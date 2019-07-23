@@ -191,7 +191,7 @@ function relrand(lims::NTuple{2,Real})
         return rand(Uniform(low,high))
     end
 end
-relrand(lims::NTuple{2,Real}, N) = [relrand(lims) for i=1:N]
+relrand(lims::NTuple{2,Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
     gen_crystal(sgnum, dim=3; abclims, αβγlims) ---> Crystal{dim}
@@ -326,6 +326,30 @@ function primitivebasis(C::Crystal, cntr::String)
         newbasis = Tuple(collect(u) for u in eachcol(v_P)) # convert from matrix form back to tuple form
         return Crystal(newbasis)
     end  
+end
+
+"""
+    reciprocalbasis(C::Crystal) --> G::NTuple{dim(C), Vector{Float64}}
+    
+    Calculates the reciprocal basis vectors associated with a crystal C
+"""
+reciprocalbasis(C::Crystal) = reciprocalbasis(basis(C))
+
+function reciprocalbasis(R::NTuple{N, Vector{<:Real}}) where N
+    if N == 3
+        pref = 2π/dot(R[1], (R[2]×R[3]))
+        return pref .* (R[2]×R[3], R[3]×R[1], R[1]×R[2])
+    elseif N == 2
+        pref = 2π/dot(R[1], [-R[2][2], R[2][1]])
+        return pref .* ([-R[2][2], R[2][1]], [R[1][2], -R[1][1]])
+    elseif N == 1
+        return (2π/first(R[1]),)
+    else
+        # the general definition of the reciprocal basis is [G₁ G₂ ... Gₙ]ᵀ = 2π[R₁ R₂ ... Rₙ]⁻¹;
+        # that form is a bit slower than the above specific variants, however, cf. the inversion
+        # operation, so we only use it as a hig-dimensional fallback (essentially, a breadcrumb)
+        return tuple(eachrow((2π*I/hcat(R...)))...) 
+    end
 end
 
 # --- TESTING ---
