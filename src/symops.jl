@@ -1,17 +1,17 @@
 """ 
-    read_symops_shorthand(sgnum::Integer, dim::Integer=3)
+    read_symops_xyzt(sgnum::Integer, dim::Integer=3)
 
     Obtains the symmetry operations in xyzt format for a given space group
     number `sgnum` by reading from json files; see `get_symops` for additional
     details. Much faster than crawling; generally preferred.
 """
-function read_symops_shorthand(sgnum::Integer, dim::Integer=3)
+function read_symops_xyzt(sgnum::Integer, dim::Integer=3)
     if all(dim .!= [2,3]); error(DomainError(dim, "dim must be 2 or 3")); end
     if sgnum < 1 || dim == 3 && sgnum > 230 || dim == 2 && sgnum > 17; 
         error(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D")) 
     end
 
-    filepath = (@__DIR__)*"/../json/symops/"*string(dim)*"d/"*string(sgnum)*".json"
+    filepath = (@__DIR__)*"/../data/symops/"*string(dim)*"d/"*string(sgnum)*".json"
     symops_str = open(filepath) do io
         JSON2.read(io)
     end
@@ -37,7 +37,7 @@ end
 """
 function get_symops(sgnum::Integer, dim::Integer=3; verbose::Bool=false)
     if verbose; print(sgnum, "\n"); end
-    sgops_str = read_symops_shorthand(sgnum, dim)
+    sgops_str = read_symops_xyzt(sgnum, dim)
     symops =  SymOperation.(sgops_str)
 
     return SpaceGroup(sgnum, symops, dim)
@@ -45,13 +45,13 @@ end
 
 
 
-function xyzt_op(s::String)
+function xyzt2matrix(s::String)
     ssub = split(s,",")
     dim = length(ssub)
-    xyzt_op!(zeros(Float64, dim, dim+1), ssub)
+    xyzt2matrix!(zeros(Float64, dim, dim+1), ssub)
 end
 
-function xyzt_op!(O::Matrix{Float64}, s::Union{T, Array{T}} where T<:AbstractString)
+function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, Array{T}} where T<:AbstractString)
     if s isa AbstractString
         itr = split(s,",")
     elseif s isa Array
@@ -93,6 +93,41 @@ function xyzt_op!(O::Matrix{Float64}, s::Union{T, Array{T}} where T<:AbstractStr
     return O
 end
 
+signaschar(x::Number) = signbit(x) ? '-' : '+'
+const idx2xyz = ['x', 'y', 'z']
+
+function matrix2xyzt(O::Matrix{T}) where T<:Real
+    dim = size(O,1)
+    buf = IOBuffer()
+    # rotation/inversion/reflection part
+    for (i,row) in enumerate(eachrow(O))
+        # rotation/inversion/reflection part
+        firstchar = true
+        for j = 1:dim
+            if !iszero(row[j])
+                if !firstchar || signbit(row[j])
+                    write(buf, signaschar(row[j]))
+                end
+                write(buf, idx2xyz[j]) 
+                firstchar = false
+            end
+        end
+
+        # nonsymmorphic/fractional translation part
+        if !iszero(row[4])
+            write(buf, signaschar(row[4]))
+            t = rationalize(float(row[4]), tol=1e-2) # convert to "minimal" Rational fraction (within nearest 1e-2 neighborhood)
+            write(buf, string(abs(numerator(t)), '/', denominator(t)))
+        end
+        if i != dim; write(buf, ','); end
+    end
+
+    return String(take!(buf))
+end
+
+fractionstring(x::Rational) = string(x.num) 
+
+
 function stripnum(s)
     if occursin(' ', s) # if the operation "number" is included as part of s
         _,s = split(s, isspace; limit=2)
@@ -129,13 +164,13 @@ issymmorph(sgnum::Integer, dim=3) = issymmorph(get_symops(sgnum, dim; verbose=fa
 
 # ----- NOW REDUNANT FUNCTIONS FOR CRAWLING 3D SPACE GROUPS FROM BILBAO -----
 """ 
-    crawl_symops_shorthand(sgnum::Integer, dim::Integer=3)
+    crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
 
     Obtains the symmetry operations in xyzt format for a given space group
     number `sgnum` by crawling the Bilbao server; see `get_symops` for 
     additional details. Only works for `dim = 3`.
 """
-function crawl_symops_shorthand(sgnum::Integer, dim::Integer=3)
+function crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
     htmlraw = crawl_symops_html(sgnum, dim)
 
     ops_html = children.(children(last(children(htmlraw.root)))[4:2:end])

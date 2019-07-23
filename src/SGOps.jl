@@ -1,35 +1,38 @@
 module SGOps
 # packages
+using HTTP, Gumbo, LinearAlgebra, Distributions, JSON2, StaticArrays, Makie
 import Base: getindex, lastindex
-using HTTP
-using Gumbo
 import PyPlot: plot, plot3D, plt
-import LinearAlgebra: norm, dot
-using Distributions
-using JSON2
+import Statistics: quantile
+
 
 # included files and exports
 include("types.jl") # defines useful types for space group symmetry analysis
 export SpaceGroup, SymOperation, Crystal, # types
+       Irrep,
        # operations on ...
-       matrix, shorthand, operations,     # ::SymOperation
+       matrix, xyzt, operations,          # ::SymOperation
        getindex, pg, translation, issymmorph,
        num, order,                        # ::SpaceGroup
-       basis, dim, norms, angles          # ::Crystal
+       basis, dim, norms, angles,         # ::Crystal
+       irreps, characters,                # ::Irrep
+       label, isspecial, kstar,
+       translations
 
 include("notation.jl")
-export schoenflies, hermannmauguin, centering
+export schoenflies, hermannmauguin, iuc, centering
 
 include("symops.jl") # crawls symmetry operations from Bilbao
-export get_symops, xyzt_op, issymmorph
+export get_symops, xyzt2matrix, matrix2xyzt, issymmorph
 
 include("bravais.jl")
 export crystal, plot, crystalsystem, 
        bravaistype, primitivebasis, 
-       gen_crystal
+       gen_crystal, reciprocalbasis
 
 include("lattices.jl")
-export gen_lattice,  symmetrize!, plotlattice
+export gen_lattice,  symmetrize!, plotlattice,
+       levelsetlattice, plotfourier, plotiso
 
 #include("crawl_kvecs.jl")
 

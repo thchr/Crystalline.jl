@@ -24,6 +24,7 @@ end
 function hermannmauguin(sgnum::Integer, dim::Integer=3) 
     return hermannmauguin_table[dim][sgnum]
 end
+const iuc = hermannmauguin # alias
 
 """ 
     centering(sgnum::Integer) --> String
