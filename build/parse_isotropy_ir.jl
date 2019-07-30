@@ -56,13 +56,13 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
             kdenom = [(iszero(origdenom) ? 1 : origdenom) for origdenom in kmat[4,:]] 
 
             # 𝐤-vectors are specified as a pair (k, kabc), denoting a 𝐤-vector
-            #       \sum_i=1^3 (k[i] + a[i]α+b[i]β+c[i]γ)*𝐆[i]     (w/ recip. basis vecs. 𝐆[i])
-            # here the matrix kabc is decomposed into vectors (a,b,c) while α,β,γ are free
+            #       ∑³ᵢ₌₁ (kᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)
+            # here the matrix kabc is decomposed into vectors (𝐚,𝐛,𝐜) while α,β,γ are free
             # parameters ranging over all non-special values (i.e. not coinciding with high-sym 𝐤)
             k[n] = (@view kmat[1:3,1])./kdenom[1]                  # coefs of "fixed" parts 
             kabc[n] =  (@view kmat[1:3,2:4])./(@view kdenom[2:4])' # coefs of free parameters (α,β,γ)
         end
-        kspecial = iszero(kabc[1]) # if no free parameters, i.e. a=b=c=0 ==> high-symmetry 𝐤-point (i.e. "special") 
+        kspecial = iszero(kabc[1]) # if no free parameters, i.e. 𝐚=𝐛=𝐜=𝟎 ⇒ high-symmetry 𝐤-point (i.e. "special") 
         checked_read2eol(io) # read to end of line & check we didn't miss anything
 
         # --- READ OPERATORS AND IRREPS IN LITTLE GROUP OF ±𝐤-STAR ---
@@ -72,9 +72,11 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
         irmatrix = [Matrix{T}(undef, irdim,irdim) for i=1:opnum]
         for i = 1:opnum
             # --- OPERATOR ---
-            # matrix form of the symmetry operation (originally in a 4x4 form; the [4,4] idx is a common denominator)
+            # matrix form of the symmetry operation (originally in a 4×4 form; the [4,4] idx is a common denominator)
             optempvec   = parsespaced(readline(io))
             opmatrix[i] = rowmajorreshape(optempvec, (4,4))[1:3,:]./optempvec[16] # surprisingly, this is in row-major form..!
+            # note the useful convention that the nonsymmorphic translation always ∈[0,1[; in parts of Bilbao, components are 
+            # occasionally negative; this makes construction of multtables unnecessarily cumbersome
             opxyzt[i]   = matrix2xyzt(opmatrix[i]) 
 
             # --- ASSOCIATED IRREP ---
@@ -237,16 +239,15 @@ reprecision_data(z::T) where T<:Complex = complex(reprecision_data(real(z)), rep
 
 
 function littlegroupirrep(ir::Irrep{<:Complex})
-
     if !isspecial(ir)
-        warning("didn't deal with non-special k-points for little groups yet")
-        return nothing
+        @warn "didn't deal with non-special k-points for little groups yet"
+        return missing, missing
     end
 
     k₀ = kstar(ir)[1][1]
     littleidx, littleops = littlegroup(operations(ir), k₀)
     knum = ir.knum; 
-    lirdim = ir.dim/knum
+    lirdim = ir.dim/knum # warning; is a float!
     if !(lirdim ≈ round(lirdim)); 
         error("..."); 
     else
@@ -259,10 +260,103 @@ function littlegroupirrep(ir::Irrep{<:Complex})
 end
 
 
+function isblockdiag(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
+    lirdim = round(Int64,ir.dim/ir.knum)
+    diagbool = trues(length(idxlist))
+    for (i,idx) in enumerate(idxlist)
+        m = irreps(ir)[idx]
+        zeroblock = true
+        for i = 1:ir.knum-1  
+            for j = i+1:ir.knum # TODO: also ought to check lower part
+                offidxs = ((i-1)*lirdim+1:i*lirdim, (j-1)*lirdim+1:j*lirdim)
+                block = m[offidxs...]
+                zeroblock &= iszero(block)
+                if !zeroblock; break; end
+                #display(abs.(block))
+            end
+            if !zeroblock; break; end
+        end
+        if !zeroblock; diagbool[i] = false; end
+    end
+    return diagbool
+
+end
+
+function isfinitetop(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
+    lirdim = round(Int64,ir.dim/ir.knum)
+    topbool = falses(length(idxlist))
+    for (i,idx) in enumerate(idxlist)
+        m = irreps(ir)[idx]
+        if !iszero(m[1:lirdim, 1:lirdim]); topbool[i] = true; end
+    end
+    return topbool
+end
 
 
-IR = parseisoir(Complex);
+function littlegroup_irreps(ir)
+    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1][1], kstar(ir)[1][2], centering(ir.sgnum,3))
+    lgirdim′ = ir.dim/ir.knum; lgirdim = round(Int64, lgirdim′)
+    @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
+                                "the dimension of the space group irrep divided by the number of vectors "*
+                                "in star{k}"
+    irs = [Matrix{ComplexF64}(undef, lgirdim, lgirdim)} for _=Base.OneTo(length(lgidx))] # preallocate
+    for (i,idx) in enumerate(lgidx)
+        m = @view irreps(ir)[idx]
+        irs[i] = m[Base.OneTo(lgirdim),Base.OneTo(lgirdim)]
+    end
 
+    return irs
+end
+
+#IR = parseisoir(Complex);
+count = 0
+for sgnum in 1:230
+    notdiag = false
+    finitetop = false
+    for (pos,iir) in enumerate(IR[sgnum])
+        idxlist, lirops = littlegroup(operations(iir), kstar(iir)[1][1], kstar(iir)[1][2], centering(sgnum,3))
+        coset_idxlist = collect(Iterators.filter(i->∉(i,idxlist),1:iir.order))
+        diagbool = isblockdiag(iir, idxlist)
+        finitetop |= any(isfinitetop(iir, coset_idxlist))
+
+        
+        lirdim = round(Int64,iir.dim/iir.knum)
+        sumcheck = zeros(lirdim,lirdim)
+        for csidx in coset_idxlist
+            sumcheck += abs.(irreps(iir)[csidx][1:lirdim,1:lirdim])
+        end
+        if !iszero(sumcheck)
+            error()
+        end
+        #display(all((iir, coset_idxlist)))
+        notdiag |= any(.!diagbool)
+        if false #any(.!diagbool) && label(iir)=="W1"
+            print(" "^4*label(iir)*":"*" "^(4-length(label(iir)))*"("*string(sum(diagbool))*"/"*string(length(diagbool))*")")
+            print(" ["*string(sum(isblockdiag(iir)))*"/"*string(iir.order)*"]")
+            print(" | i="*string(pos)*"\n")
+            for (i,b) in enumerate(diagbool)
+                if !b
+                    println(" "^6*xyzt(lirops[i]))
+                end
+            end
+            [(Base.print_matrix(IOContext(stdout, :compact=>true), (m), "      "); println("\n")) for m in irreps(iir)[idxlist]];            
+        end
+    end
+    print(""*string(sgnum)*":\t"*bravaistype(sgnum,3))
+    if finitetop #notdiag
+        print(" ⊠")
+        print(" ")
+    else
+        print(" ✓")
+        global count += 1
+    end
+    println()
+end
+println("\nCorrect: "*string(count)*"/230")
+#display(label(ir))
+#display(irreps(ir))
+#ir = IR[22][23]
+#lops, lir = littlegroupirrep(ir)
 
 #CIR = parseisoir(Complex)
 #PIR = parseisoir(Real)
