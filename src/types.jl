@@ -35,20 +35,36 @@ struct SymOperation
     matrix::Matrix{Float64}
 end
 SymOperation(s::String) = SymOperation(s, xyzt2matrix(s))
+SymOperation(m::Matrix{Float64}) = SymOperation(matrix2xyzt(m), m)
 matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
 function show(io::IO, ::MIME"text/plain", op::SymOperation) 
     print(io, "   (", xyzt(op), ")\n")
     Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
-    print(io, '\n')
 end
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
-pg(op::SymOperation) = op[:,1:end-1]        # point group part of an operation
-translation(op::SymOperation) = op[:,end]   # translation part of an operation
+pg(m::Matrix{Float64}) = m[:,1:end-1]      # point group part of an operation
+pg(op::SymOperation) = matrix(op)[:,1:end-1]        
+translation(m::Matrix{Float64}) = m[:,end] # translation part of an operation
+translation(op::SymOperation) = matrix(op)[:,end]   
 issymmorph(op::SymOperation) = iszero(translation(op))
+(==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
 
+# multiplication table
+struct MultTable
+    operations::Vector{SymOperation}
+    indices::Matrix{Int64}
+end
+function show(io::IO, ::MIME"text/plain", mt::MultTable)
+    Base.print_matrix(IOContext(io, :compact=>true), mt.indices, "  ")
+    print(io, "\nFor operations:\n  ")
+    for (i,op) in enumerate(mt.operations)
+        print(io, i, " => ", xyzt(op), "\t") # separation could be improved...
+        if mod(i,4) == 0; print(io,"\n  "); end
+    end
+end
 
 # space group
 struct SpaceGroup
@@ -66,7 +82,7 @@ function show(io::IO, ::MIME"text/plain", sg::SpaceGroup)
     println(io, groupprefix, " group #", num(sg))
     for (i,op) in enumerate(operations(sg))
         show(io, "text/plain", op)
-        if i < Nops; print(io, '\n'); end
+        if i < Nops; print(io, "\n\n"); end
     end
 end
 function show(io::IO, ::MIME"text/plain", sgs::Vector{SpaceGroup})
@@ -78,8 +94,9 @@ function show(io::IO, ::MIME"text/plain", sgs::Vector{SpaceGroup})
 end
 
 
-# irrep
-struct Irrep
+# irreps
+abstract type AbstractIrrep end
+struct Irrep{T} <: AbstractIrrep where T
     iridx::Int64    # sequential index assigned to ir by Stokes et al
     irlabel::String # CDML label of irrep (including k-point label)
     dim::Int64      # dimensionality of irrep (i.e. size)
@@ -90,24 +107,24 @@ struct Irrep
     knum::Int64     # number of kvecs in star
     pmknum::Int64   # number of ±kvecs in star
     special::Bool   # whether k-star describes high-symmetry points
-    pmkstar::Vector{Tuple{Vector{Float64}, Matrix{Float64}}}  # star of ±k (excludes ± equivalents)
+    pmkstar::Vector{Tuple{Vector{Float64}, Matrix{Float64}}}  # star of k for Complex, star of ±k for Real
     ops::Vector{SymOperation}         # every symmetry operation in k-star (±?)
     translations::Vector{Any}         # translations assoc with matrix repres of symops in irrep
-    matrices::Vector{Matrix{Float64}} # non-translation assoc with matrix repres of symops in irrep
+    matrices::Vector{Matrix{T}} # non-translation assoc with matrix repres of symops in irrep
 end
 #Irrep(matrices::Vector{Matrix{Float64}}) = Irrep(length(matrices), size(matrices[1],1), matrices)
-irreps(ir::Irrep) = ir.matrices
-characters(ir::Irrep) = tr.(irreps(ir))
-order(ir::Irrep) = ir.order
-label(ir::Irrep) = ir.irlabel
-hermannmauguin(ir::Irrep) = ir.sglabel
-operations(ir::Irrep) = ir.ops
-isspecial(ir::Irrep) = ir.special
-kstar(ir::Irrep) = [ks[1] for ks in ir.pmkstar]
-num(ir::Irrep) = ir.sgnum
-translations(ir::Irrep) = ir.translations
+irreps(ir::AbstractIrrep) = ir.matrices
+characters(ir::AbstractIrrep) = tr.(irreps(ir))
+order(ir::AbstractIrrep) = ir.order
+label(ir::AbstractIrrep) = ir.irlabel
+hermannmauguin(ir::AbstractIrrep) = ir.sglabel
+operations(ir::AbstractIrrep) = ir.ops
+isspecial(ir::AbstractIrrep) = ir.special
+kstar(ir::AbstractIrrep) = ir.pmkstar
+num(ir::AbstractIrrep) = ir.sgnum
+translations(ir::AbstractIrrep) = ir.translations
 
-schar(ir::Irrep) = begin
+schar(ir::AbstractIrrep) = begin
     m = irreps(ir)
     traces = Vector{Float64}(undef,order(ir))
     if ir.dim/ir.pmknum != div(ir.dim,ir.pmknum)

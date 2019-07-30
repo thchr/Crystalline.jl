@@ -22,7 +22,7 @@ function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
     # TODO: There is some issue here in triclinic case: it can happen 
     # that cosβ < cosϕ. This logic needs more careful consideration
     # to ensure the appropriate domains of ϕ∈[0,2π] and θ∈[0,π]
-    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 -2 *cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
+    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 -2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
     sinθ,cosθ = sincos(θ)
     sinϕ,cosϕ = sincos(ϕ)
     R3 = c.*[sinθ*cosϕ, sinθ*sinϕ, cosθ]
@@ -239,6 +239,8 @@ function gen_crystal(sgnum::Integer, dim=3;
             error("The trigonal case is not yet well thought-out")
             # rhombohedral axes                   (a = b = c, α=β=γ < 120° ≠ 90° ?)
             # hexagonal axes, triple obverse axes (a = b ≠ c, α=β=90°, γ=120° ?)
+            # maybe consult http://img.chem.ucl.ac.uk/sgp/large/sgp.htm and 
+            # the setting choices in Bilbao & ISOTROPY
         elseif system == "tetragonal"  # a=b & α=β=γ=90° (free: a,c)
             a = b = 1.0;        c = relrand(abclims)
             α = β = γ = °(90)
@@ -251,11 +253,16 @@ function gen_crystal(sgnum::Integer, dim=3;
         elseif system == "triclinic"   # no conditions (free: a,b,c,α,β,γ)
             a = 1.0;            b, c = relrand(abclims, 2)
             α, β, γ = rand(Uniform(αβγlims...),3)
+            #if abs(α)+abs(β)<abs(γ) # cannot be satisfied; reroll
+            #    return gen_crystal(sgnum, dim; abclims=abclims, αβγlims=αβγlims)
+            #end
         else 
             error(DomainError(system))
         end        
         return crystal(a,b,c,α,β,γ)
 
+    else 
+        error(ArgumentError(dim, "dimension must be 2 or 3"))
     end
 end
 
@@ -289,11 +296,11 @@ const P_primitive_3D = Dict(
          "F"=>[0 1 1; 1 0 1; 1 1 0]./2,     #     v_P = v_C*P
          "R"=>[-1 2 -1; -2 1 1; 1 1 1]./3,  # with v_P and v_C interpreted as matrices = [R1 R2 R3]
          "A"=>[2 0 0; 0 1 -1; 0 1 1]./2,
-         "C"=>[1 1 0; -1 1 0; 0 0 2]./2)    #"B"=>[], # seems to not occur, by convention
+         "C"=>[1 1 0; -1 1 0; 0 0 2]./2)    # "B"=>[], # seems to not occur, by convention
 const P_primitive_2D = Dict("c"=>[1 1; -1 1]./2, "p"=>[1 0; 0 1])
 
 """ 
-    primitivebasis(C::Crystal, sgnum::Integer) --> Cp::Crystal
+    primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
 
     Transforms the conventional basis of a Crystal `C` into its primitive 
     equivalent `Cp`, provided that it differs from the conventional one, by 
@@ -302,7 +309,7 @@ const P_primitive_2D = Dict("c"=>[1 1; -1 1]./2, "p"=>[1 0; 0 1])
 """
 function primitivebasis(sgnum::Integer, C::Crystal)
     cntr = centering(sgnum)
-    return primitivebasis(C,cntr)
+    return primitivebasis(C, cntr)
 end
 
 """
@@ -345,9 +352,11 @@ function reciprocalbasis(R::NTuple{N, Vector{<:Real}}) where N
     elseif N == 1
         return (2π/first(R[1]),)
     else
-        # the general definition of the reciprocal basis is [G₁ G₂ ... Gₙ]ᵀ = 2π[R₁ R₂ ... Rₙ]⁻¹;
-        # that form is a bit slower than the above specific variants, however, cf. the inversion
-        # operation, so we only use it as a hig-dimensional fallback (essentially, a breadcrumb)
+        # the general definition of the reciprocal basis is 
+        # [G₁ G₂ ... Gₙ]ᵀ = 2π[R₁ R₂ ... Rₙ]⁻¹; that form is
+        # a bit slower than the above specific variants, 
+        # however, cf. the inversion operation, so we only 
+        # use it as a hig-dimensional fallback (i.e. breadcrumbs)
         return tuple(eachrow((2π*I/hcat(R...)))...) 
     end
 end

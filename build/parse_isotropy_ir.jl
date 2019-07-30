@@ -209,25 +209,25 @@ function rowmajorreshape(v::AbstractVector, dims::Tuple)
     return PermutedDimsArray(reshape(v, dims), reverse(ntuple(i->i, length(dims))))
 end
 
-const datafloats = (sqrt(3)/2, sqrt(2)/2, sqrt(3)/4, cos(15)/sqrt(2), sin(15)/sqrt(2))
+const tabfloats = (sqrt(3)/2, sqrt(2)/2, sqrt(3)/4, cos(π/12)/sqrt(2), sin(π/12)/sqrt(2))
 """ 
     reprecision_data(x::Float64) --> Float64
 
     Stokes et al. used a table to convert integers to floats; in addition, 
     the floats were truncated on writing. We can restore their precision 
     by checking if any of the relevant entries occur, and then returning 
-    their untruncated floating point value. See also `datafloats::Tuple`.
+    their untruncated floating point value. See also `tabfloats::Tuple`.
       | The possible floats that can occur in the irrep tables are:
       |     0,1,-1,0.5,-0.5,0.25,-0.25, (parsed with full precision)
       |     ±0.866025403784439 => ±sqrt(3)/2
       |     ±0.707106781186548 => ±sqrt(2)/2
       |     ±0.433012701892219 => ±sqrt(3)/4
-      |     ±0.683012701892219 => ±cos(15)/sqrt(2)
-      |     ±0.183012701892219 => ±sin(15)/sqrt(2)
+      |     ±0.683012701892219 => ±cos(π/12)/sqrt(2)
+      |     ±0.183012701892219 => ±sin(π/12)/sqrt(2)
 """
 function reprecision_data(x::T) where T<:Real
     absx = abs(x)
-    for preciseabsx in datafloats
+    for preciseabsx in tabfloats
         if isapprox(absx, preciseabsx, atol=1e-4) 
             return copysign(preciseabsx, x)
         end
@@ -299,51 +299,28 @@ function littlegroup_irreps(ir)
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
                                 "the dimension of the space group irrep divided by the number of vectors "*
                                 "in star{k}"
-    irs = [Matrix{ComplexF64}(undef, lgirdim, lgirdim)} for _=Base.OneTo(length(lgidx))] # preallocate
+    irs = [Matrix{ComplexF64}(undef, lgirdim, lgirdim) for _=Base.OneTo(length(lgidx))] # preallocate
     for (i,idx) in enumerate(lgidx)
-        m = @view irreps(ir)[idx]
+        m = irreps(ir)[idx]
         irs[i] = m[Base.OneTo(lgirdim),Base.OneTo(lgirdim)]
     end
 
-    return irs
+    return irs, lgops
 end
 
-#IR = parseisoir(Complex);
+IR = parseisoir(Complex);
 count = 0
 for sgnum in 1:230
-    notdiag = false
-    finitetop = false
-    for (pos,iir) in enumerate(IR[sgnum])
-        idxlist, lirops = littlegroup(operations(iir), kstar(iir)[1][1], kstar(iir)[1][2], centering(sgnum,3))
-        coset_idxlist = collect(Iterators.filter(i->∉(i,idxlist),1:iir.order))
-        diagbool = isblockdiag(iir, idxlist)
-        finitetop |= any(isfinitetop(iir, coset_idxlist))
-
+    firstorthogacc = true
+    for (pos,ir) in enumerate(IR[sgnum])
+        irs, lgops=littlegroup_irreps(ir)
+        chars = tr.(irs)
         
-        lirdim = round(Int64,iir.dim/iir.knum)
-        sumcheck = zeros(lirdim,lirdim)
-        for csidx in coset_idxlist
-            sumcheck += abs.(irreps(iir)[csidx][1:lirdim,1:lirdim])
-        end
-        if !iszero(sumcheck)
-            error()
-        end
-        #display(all((iir, coset_idxlist)))
-        notdiag |= any(.!diagbool)
-        if false #any(.!diagbool) && label(iir)=="W1"
-            print(" "^4*label(iir)*":"*" "^(4-length(label(iir)))*"("*string(sum(diagbool))*"/"*string(length(diagbool))*")")
-            print(" ["*string(sum(isblockdiag(iir)))*"/"*string(iir.order)*"]")
-            print(" | i="*string(pos)*"\n")
-            for (i,b) in enumerate(diagbool)
-                if !b
-                    println(" "^6*xyzt(lirops[i]))
-                end
-            end
-            [(Base.print_matrix(IOContext(stdout, :compact=>true), (m), "      "); println("\n")) for m in irreps(iir)[idxlist]];            
-        end
+        firstorthog = sum(abs2.(chars)) ≈ length(lgops)
+        firstorthogacc &= firstorthog
     end
     print(""*string(sgnum)*":\t"*bravaistype(sgnum,3))
-    if finitetop #notdiag
+    if !firstorthogacc #notdiag
         print(" ⊠")
         print(" ")
     else

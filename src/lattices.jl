@@ -1,28 +1,6 @@
 
 
 _boolify(x, tol=0.5) = x > tol ? one(x) : zero(x)
-function gen_lattice(sgnum::Integer, dim::Integer=2, 
-                     Ns::Tuple=ntuple(x->10, dim))
-    sg = get_symops(sgnum, dim)
-    C = gen_crystal(sgnum, dim)
-
-    ϵ = rand(Float64, Ns...)
-    ϵ .= _boolify.(ϵ, 0.85)
-    
-    symmetrize!(sg, ϵ)
-end
-
-function plotlattice(dat)
-    plt.close("all")
-    dim = ndims(dat)
-    fig=plt.figure()
-    if dim == 3
-        ax = fig.gca(projection="3d")
-        ax.voxels(dat)
-    elseif dim == 2
-        fig.gca().pcolor(_boolify.(dat, 0.15))
-    end
-end
 
 function symmetrize!(sg::SpaceGroup, dat::Array{T} where T<:Number) #only for cubic lattices for now
     #if crystalsystem(C) != "cubic"; error("Not yet implemented"); end
@@ -86,7 +64,8 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
        # via W' = PG⁻¹*PR*W*PR⁻¹*PG = iPGPR*W*iPGPR⁻¹
        iPGPR = PG\PR # PG⁻¹*PR
        Wops_Gbasis = [iPGPR*op/iPGPR for op in Wops]  =#
-    PGᵀPR = PG'*PR  # (⋆) TODO: this is actually just 2πI since PGᵀ = 2πPR⁻¹ by definition ... 
+    PGᵀPR = PG'*PR  # (⋆)  TODO: this is actually just 2πI since PGᵀ = 2πPR⁻¹ by definition ...  
+                    # (⋆⋆) TODO: Actually, this may suggest a deeper problem; see the TODO before littlegroup(..) in bravais.jl
     # Calculates the operators (W⁻¹)ᵀ in the G-basis; note that although
     # the transformations are orthogonal in the Cartesian basis (i.e. W⁻¹=Wᵀ),
     # this is not generally the case in other bases. Here, what we are really
@@ -95,7 +74,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
     # so we define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
     W⁻¹ᵀops_Gbasis = [(PGᵀPR*op)/PGᵀPR for op in Wops] 
     # TODO: due to (⋆), we actually end up getting W⁻¹ᵀops_Gbasis = Wops, so this could 
-    # all be removed and replaced by appropriate comments...
+    # all be removed and replaced by appropriate comments... Requires that (⋆⋆) isn't a concern though.
     
     # if idxmax is interpreted as (imax, jmax, ...), then this produces an iterator
     # over i = -imax:imax, j = -jmax:jmax, ..., where each call returns (..., j, i); 
@@ -172,7 +151,10 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
 
     # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest ijk-combinations come last)
     perm = sortperm(ijkorbits, by=x->norm(x[1]))
-    return permute!(ijkorbits, perm), permute!(orbcoefs, perm)
+    permute!(ijkorbits, perm)
+    permute!(orbcoefs, perm)
+
+    return ijkorbits, orbcoefs, R
 end
 
 
@@ -230,11 +212,11 @@ function calcfourier(xyz, ijkorbits, orbcoefs)
     return f
 end
 
-function plotfourier(ijkorbits, orbcoefs, N=100, expon=2, filling=0.5)
+function plotfourier(ijkorbits, orbcoefs, R, N=100, expon=2, filling=0.5)
     dim = length(ijkorbits[end][end])
     xyz = range(-.5, .5, length=N)
     modulated_orbcoefs = orbcoefs.*rand(ComplexF64, length(orbcoefs)) # should be a general complex value; otherwise we restore unintended symmetry
-    if !isnothing(expon) # divide shorter wavelength terms by their (multiplicity*norm)^expon (to get a more "localized" and smooth character)
+    if !isnothing(expon) && !iszero(expon) # divide shorter wavelength terms by their (multiplicity*norm)^expon (to get a more "localized" and smooth character)
         for i = 2:length(ijkorbits) # leave the constant term untouched ...
         modulated_orbcoefs[i] ./= (norm(ijkorbits[i])).^expon
         end
@@ -249,7 +231,7 @@ function plotfourier(ijkorbits, orbcoefs, N=100, expon=2, filling=0.5)
         isoval = 0
     end
     
-    plotiso(xyz,vals,isoval)
+    plotiso(xyz,vals,isoval,R)
 
     return xyz,vals,isoval
 end
@@ -272,15 +254,28 @@ function calcfouriergridded(xyz, ijkorbits, orbcoefs)
     return calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
 end
 
+
+ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
-function plotiso(xyz, vals, isoval=0)  
+function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims)), length(ndims)))  
     dim = ndims(vals)
     if dim == 2
+        # convert to a cartesian coordinate system rather than direct basis of Ri
+        N = length(xyz) 
+        X = broadcast((x,y) -> x*R[1][1] + y*R[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        Y = broadcast((x,y) -> x*R[1][2] + y*R[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        uc = [[0 0]; R[1]'; (R[1]+R[2])'; (R[2])'; [0 0]] .- (R[1]+R[2])'./2
+        pad = abs((-)(extrema(uc)...))/25
+
         plt.close("all")
         fig = plt.figure()
-        fig.gca().contourf(xyz,xyz,vals,levels=[2*minimum(vals), isoval, 2*maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
-        fig.gca().contour(xyz,xyz,vals,levels=[isoval], colors="k", linestyles="solid")
+        fig.gca().contourf(X,Y,vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
+        fig.gca().contour(X,Y,vals,levels=[isoval], colors="w", linestyles="solid")
+        fig.gca().plot(uc[:,1], uc[:,2], color="C4",linestyle="solid")
+        fig.gca().scatter([0],[0],color="C4",s=30, marker="+")
+        plt.xlim([extrema(uc[:,1])...].+[-1,1].*pad); plt.ylim([extrema(uc[:,2])...].+[-1,1].*pad);
         fig.gca().set_aspect("equal", adjustable="box")
+        fig.gca().set_axis_off()
     elseif dim == 3
         @show sum(vals.-isoval .> 0)/length(vals)
         scene=Scene()

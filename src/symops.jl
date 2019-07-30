@@ -100,7 +100,7 @@ function matrix2xyzt(O::Matrix{T}) where T<:Real
     dim = size(O,1)
     buf = IOBuffer()
     # rotation/inversion/reflection part
-    for (i,row) in enumerate(eachrow(O))
+    for (i, row) in enumerate(eachrow(O))
         # rotation/inversion/reflection part
         firstchar = true
         for j = 1:dim
@@ -114,18 +114,18 @@ function matrix2xyzt(O::Matrix{T}) where T<:Real
         end
 
         # nonsymmorphic/fractional translation part
-        if !iszero(row[4])
-            write(buf, signaschar(row[4]))
-            t = rationalize(float(row[4]), tol=1e-2) # convert to "minimal" Rational fraction (within nearest 1e-2 neighborhood)
-            write(buf, string(abs(numerator(t)), '/', denominator(t)))
+        if size(O,2) == dim+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
+            if !iszero(row[end])
+                write(buf, signaschar(row[end]))
+                t = rationalize(float(row[end]), tol=1e-2) # convert to "minimal" Rational fraction (within nearest 1e-2 neighborhood)
+                write(buf, string(abs(numerator(t)), '/', denominator(t)))
+            end
         end
         if i != dim; write(buf, ','); end
     end
 
     return String(take!(buf))
 end
-
-fractionstring(x::Rational) = string(x.num) 
 
 
 function stripnum(s)
@@ -135,6 +135,10 @@ function stripnum(s)
     return String(s) # ensure we return a String, rather than possibly a SubString
 end
 
+
+function matrix2symbol(O::Matrix{T}) where T<:Real
+    # TODO; not necessarily trivial - could depend on basis vectors/crystal class.
+end
 
 
 
@@ -155,44 +159,168 @@ issymmorph(sg::SpaceGroup) = all(issymmorph.(operations(sg)))
 """
 issymmorph(sgnum::Integer, dim=3) = issymmorph(get_symops(sgnum, dim; verbose=false))
 
-
-
-
-
-
-
-
-# ----- NOW REDUNANT FUNCTIONS FOR CRAWLING 3D SPACE GROUPS FROM BILBAO -----
+# ----- GROUP ELEMENT COMPOSITION -----
 """ 
-    crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
+    (∘)(op1::T, op2::T) where T<:SymOperation
 
-    Obtains the symmetry operations in xyzt format for a given space group
-    number `sgnum` by crawling the Bilbao server; see `get_symops` for 
-    additional details. Only works for `dim = 3`.
+    Compose two symmetry operations (of the ::SymOperation kind)
+    using the composition rule (in Seitz notation)
+        {W₁|w₁}{W₂|w₂} = {W₁*W₂|w₁+W₁*t₂}
+    for symmetry operations opᵢ = {Wᵢ|wᵢ}. Returns another
+    `SymOperation`, with nonsymmorphic parts in the range [0,1].
 """
-function crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
-    htmlraw = crawl_symops_html(sgnum, dim)
+(∘)(op1::T, op2::T) where T<:SymOperation = SymOperation(matrix(op1) ∘ matrix(op2))
+function (∘)(op1::T, op2::T) where T<:Matrix{Float64}
+    W′ = pg(op1)*pg(op2)
+    w′ = mod.(translation(op1) .+ pg(op1)*translation(op2), 1.0)
+    return [W′ w′]
+end
+const compose = ∘
 
-    ops_html = children.(children(last(children(htmlraw.root)))[4:2:end])
-    Nops = length(ops_html)
-    sgops_str = Vector{String}(undef,Nops)
 
-    for (i,op_html) in enumerate(ops_html)
-        sgops_str[i] = stripnum(op_html[1].text) # strip away the space group number
+""" 
+    multtable(symops::T) where T<:Union{Vector{SymOperation}, SpaceGroup}
+
+    Computes the multiplication table of a set of symmetry operations.
+    A MultTable is returned, which contains symmetry operations 
+    resulting from composition of `row ∘ col` operators; the table of 
+    indices give the symmetry operators relative to the ordering of 
+    `symops`.
+"""
+function multtable(symops::AbstractVector{SymOperation})
+    havewarned = false
+    N = length(symops)
+    indices = Matrix{Int64}(undef, N,N)
+    for (row,oprow) in enumerate(symops)
+        for (col,opcol) in enumerate(symops)
+            op′ = matrix(oprow) ∘ matrix(opcol)
+            match = findfirst(op′′ -> op′≈matrix(op′′), symops)
+            if isnothing(match)
+                if !havewarned
+                    @warn "The given operations do not form a group!"
+                    havewarned = true
+                end
+                match = [0]
+            end
+            @inbounds indices[row,col] = first(match)
+        end
     end
-    return sgops_str
+    return MultTable(symops, indices)
+end
+multtable(sg::SpaceGroup) = multtable(operations(sg))
+
+# TODO: CHECK MULTTABLES OF LITTLE GROUP AND SPACE GROUP IRREPS IN ISOTROPY
+function multtable(irs::AbstractVector{Matrix{T}} where T<:Number)
+    havewarned = false
+    N = length(irs)
+    indices = Matrix{Int64}(undef, N,N)
+    for (row,irrow) in enumerate(irs)
+        for (col,ircol) in enumerate(irs)
+            ir′ = irrow*ircol
+            match = findfirst(ir′′ -> ir′≈ir′′, irs) # TODO: This is not a meaningful way to compare between irs (table is not unique)
+            if isnothing(match)
+                if !havewarned
+                    @warn "The given operations do not form a group!"
+                    havewarned = true
+                end
+                match = [0]
+            end
+            @inbounds indices[row,col] = first(match)
+        end
+    end
+    return MultTable(irs, indices)
 end
 
-function crawl_symops_html(sgnum::Integer, dim::Integer=3)
-    if dim != 3; error("We do not crawl plane group data; see json files instead; manually crawled.") end
-    if sgnum < 1 || sgnum > 230; error(DomainError(sgnum)); end
 
-    if dim == 3
-        baseurl = "http://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
-        contents = HTTP.request("GET", baseurl * string(sgnum))
-        return parsehtml(String(contents.body))
-    else
-        error("We did not yet implement 2D plane groups")
+# ----- LITTLE GROUP OF 𝐤 -----
+# A symmetry operation g acts on a wave vector as (𝐤′)ᵀ = 𝐤ᵀg⁻¹ since we 
+# generically operate with g on functions f(𝐫) via gf(𝐫) = f(g⁻¹𝐫), such that 
+# the operation on a plane wave creates exp(i𝐤⋅g⁻¹𝐫); invariant plane waves 
+# then define the little group elements {g}ₖ associated with wave vector 𝐤. 
+# The plane waves are evidently invariant if 𝐤ᵀg⁻¹ = 𝐤ᵀ, or since g⁻¹ = gᵀ 
+# (orthogonal transformations), if (𝐤ᵀg⁻¹)ᵀ = 𝐤 = (g⁻¹)ᵀ𝐤 = g𝐤; corresponding
+# to the requirement that 𝐤 = g𝐤). Because we have g and 𝐤 in different bases
+# (in the direct {𝐑} and reciprocal {𝐆} bases, respectively), we have to take 
+# a little extra care here. Consider each side of the equation 𝐤ᵀ = 𝐤ᵀg⁻¹, 
+# originally written in Cartesian coordinates, and rewrite each Cartesian term
+# through basis-transformation to a representation we know*
+#  in the bases we know (w/ P(𝐗) denote a matrix with columns of 𝐗):
+#   𝐤ᵀ = [P(𝐆)𝐤(𝐆)]ᵀ = 𝐤(𝐆)ᵀP(𝐆)ᵀ                    (1)
+#   𝐤ᵀg⁻¹ = [P(𝐆)𝐤(𝐆)]ᵀ[P(𝐑)g(𝐑)P(𝐑)⁻¹]⁻¹
+#         = 𝐤(𝐆)ᵀP(𝐆)ᵀ[P(𝐑)⁻¹]⁻¹g(𝐑)⁻¹P(𝐑)⁻¹
+#         = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹                       (2)
+# (1+2): 𝐤(𝐆)ᵀP(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹
+#     ⇔ 𝐤(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[P(𝐆)ᵀ]⁻¹ 
+#              = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[2πP(𝐑)⁻¹]⁻¹
+#              = 𝐤(𝐆)ᵀg(𝐑)⁻¹
+#     ⇔  𝐤(𝐆) = [g(𝐑)⁻¹]ᵀ𝐤(𝐆) = [g(𝐑)ᵀ]⁻¹𝐤(𝐆) 
+# where we have used that P(𝐆)ᵀ = 2πP(𝐑)⁻¹ several times. Importantly, this
+# essentially shows that we can consider g(𝐆) and g(𝐑) mutually interchangeable
+# in practice.
+# By similar means, one can show that 
+#   [g(𝐑)⁻¹]ᵀ = P(𝐑)ᵀP(𝐑)g(𝐑)[P(𝐑)ᵀP(𝐑)]⁻¹
+#             = [P(𝐆)ᵀP(𝐆)]⁻¹g(𝐑)[P(𝐆)ᵀP(𝐆)],
+# by using that g(C)ᵀ = g(C)⁻¹ is an orthogonal matrix in the Cartesian basis.
+# [ *) We transform from a Cartesian basis to an arbitrary 𝐗ⱼ basis via a 
+# [    transformation matrix P(𝐗) = [𝐗₁ 𝐗₂ 𝐗₃] with columns of 𝐗ⱼ; a vector 
+# [    v(𝐗) in the 𝐗-representation corresponds to a Cartesian vector v(C)≡v via
+# [      v(C) = P(𝐗)v(𝐗)
+# [    while an operator O(𝐗) corresponds to a Cartesian operator O(C)≡O via
+# [      O(C) = P(𝐗)O(𝐗)P(𝐗)⁻¹
+#
+# TODO: The above could also impact routines in `genlattice(...)`, where
+# I believe we incorporated this erroneously. There's a very good chance that
+# it will make no real difference because it essentially corresponds to working
+# with g⁻¹ initially rather than g; since both must be members of the (little 
+# or space) group simultaneously, it could be that the difference is only 
+# superficial in the end. It could be problematic if we hope to establish
+# a meaningful inter-transformation labelling at some point though.
+function littlegroup(symops, k, kabc=zero(eltype(k)), cntr='P')
+    idxlist = [1]
+    checkabc = !iszero(kabc)
+    for (idx, op) in enumerate(@view symops[2:end]) # note: idx is offset by 1 relative to position of op in symops
+        k′ = pg(op)'\k # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
+        diff = k′ .- k
+        diff = P_primitive_3D[string(cntr)]'*diff
+        kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k and k′ differ by a reciprocal vector
+        # 𝐤-vectors are specified as a pair (k, kabc), denoting a 𝐤-vector
+        #       ∑³ᵢ₌₁ (kᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)
+        # here the matrix kabc is decomposed into vectors (𝐚,𝐛,𝐜) while α,β,γ are free
+        # parameters ranging over all non-special values (i.e. not coinciding with high-sym 𝐤)
+        abcbool = checkabc ? isapprox(pg(op)'\kabc, kabc, atol=1e-11) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
+
+        if kbool && abcbool # ⇒ part of little group
+            push!(idxlist, idx+1) # `idx+1` is due to previously noted idx offset 
+        end
     end
+    return idxlist, view(symops, idxlist)
 end
+littlegroup(sg::SpaceGroup, k, kabc=zero(eltype(k)), cntr='P') = littlegroup(operations(sg), k, kabc, cntr)
+
+
+function starofk(symops::Vector{SymOperation}, k, kabc=zero(eltype(k)), cntr='P')
+    kstar = [(k, kabc)]
+    checkabc = !iszero(kabc)
+    for op in (@view symops[2:end])
+        k′ = pg(op)'\k # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
+        kabc′ = checkabc ? pg(op)'\kabc : kabc
+
+        oldkbool = false
+        for (k′′,kabc′′) in kstar
+            diff = k′ .- k′′
+            diff = P_primitive_3D[string(cntr)]'*diff
+            kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k and k′ differ by a reciprocal vector
+            #kbool = isapprox(k′, k′′) # check if k and k′ are exactly equal
+            abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=1e-11) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
+            oldkbool |= (kbool && abcbool) # means we've haven't already seen this k-vector (mod G)
+        end
+
+        if !oldkbool
+            push!(kstar, (k′, kabc′))
+        end
+    end
+    return kstar
+end
+starofk(sg::SpaceGroup, k, kabc=zero(eltype(k)), cntr='P') = starofk(operations(sg), k, kabc, cntr)
+
 
