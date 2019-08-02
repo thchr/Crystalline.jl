@@ -187,7 +187,7 @@ const compose = ∘
     indices give the symmetry operators relative to the ordering of 
     `symops`.
 """
-function multtable(symops::AbstractVector{SymOperation})
+function multtable(symops::AbstractVector{SymOperation}; verbose::Bool=false)
     havewarned = false
     N = length(symops)
     indices = Matrix{Int64}(undef, N,N)
@@ -197,38 +197,60 @@ function multtable(symops::AbstractVector{SymOperation})
             match = findfirst(op′′ -> op′≈matrix(op′′), symops)
             if isnothing(match)
                 if !havewarned
-                    @warn "The given operations do not form a group!"
+                    if verbose; @warn "The given operations do not form a group!"; end
                     havewarned = true
                 end
-                match = [0]
+                match = 0
             end
-            @inbounds indices[row,col] = first(match)
+            @inbounds indices[row,col] = match
         end
     end
-    return MultTable(symops, indices)
+    return MultTable(symops, indices, !havewarned)
 end
 multtable(sg::SpaceGroup) = multtable(operations(sg))
 
 # TODO: CHECK MULTTABLES OF LITTLE GROUP AND SPACE GROUP IRREPS IN ISOTROPY
-function multtable(irs::AbstractVector{Matrix{T}} where T<:Number)
+checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = checkmulttable(multtable(operations(lgir)), lgir, αβγ; verbose=verbose)
+function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
-    N = length(irs)
-    indices = Matrix{Int64}(undef, N,N)
+    irs = irreps(lgir, αβγ)
+    ops = operations(lgir)
+    k = kvec(lgir)(αβγ)
+    N = length(ops)
+    mtindices = indices(mt)
+    checked = trues(N, N)
     for (row,irrow) in enumerate(irs)
         for (col,ircol) in enumerate(irs)
+            @inbounds mtidx = mtindices[row,col]
+            if iszero(mtidx) && !havewarned
+                @warn "Provided multtable is not a group; cannot compare with irreps"
+                checked[row,col] = false
+                havewarned = true
+            end
             ir′ = irrow*ircol
-            match = findfirst(ir′′ -> ir′≈ir′′, irs) # TODO: This is not a meaningful way to compare between irs (table is not unique)
-            if isnothing(match)
+            # --- If 𝐤 is on the BZ boundary and if the little group is nonsymmorphic ---
+            # --- the representation could be a ray representation (see Inui, p. 89), ---
+            # --- such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(i*𝐤⋅𝐭₀) where ---
+            # --- 𝐭₀ is a lattice vector 𝐭₀ = τᵢ + βᵢτⱼ - τₖ, for symmetry operations ---
+            # --- {βᵢ|τᵢ}. To ensure we capture this, we include this phase here.     ---
+            # --- See Inui et al. Eq. (5.29) for explanation.                         ---
+            t₀ = translation(ops[row]) + pg(ops[row])*translation(ops[col]) - translation(ops[mtidx])
+            ϕ =  2π*k'*t₀ # include factor of 2π here due to normalized bases
+            match = ir′ ≈ exp(1im*ϕ)*irs[mtidx]           
+            if !match
+                checked[row,col] = false
                 if !havewarned
-                    @warn "The given operations do not form a group!"
+                    if verbose
+                        @info """Provided irreps do not match group multiplication table:
+                                 First failure at (row,col) = ($(row),$(col));
+                                 Expected idx = $(mtidx), got idx = $(findall(ir′′ -> ir′′≈ ir′, irs))"""
+                    end
                     havewarned = true
                 end
-                match = [0]
             end
-            @inbounds indices[row,col] = first(match)
         end
     end
-    return MultTable(irs, indices)
+    return checked
 end
 
 
@@ -275,18 +297,14 @@ end
 # or space) group simultaneously, it could be that the difference is only 
 # superficial in the end. It could be problematic if we hope to establish
 # a meaningful inter-transformation labelling at some point though.
-function littlegroup(symops, k, kabc=zero(eltype(k)), cntr='P')
+function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
     idxlist = [1]
     checkabc = !iszero(kabc)
     for (idx, op) in enumerate(@view symops[2:end]) # note: idx is offset by 1 relative to position of op in symops
-        k′ = pg(op)'\k # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
-        diff = k′ .- k
-        diff = P_primitive_3D[string(cntr)]'*diff
-        kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k and k′ differ by a reciprocal vector
-        # 𝐤-vectors are specified as a pair (k, kabc), denoting a 𝐤-vector
-        #       ∑³ᵢ₌₁ (kᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)
-        # here the matrix kabc is decomposed into vectors (𝐚,𝐛,𝐜) while α,β,γ are free
-        # parameters ranging over all non-special values (i.e. not coinciding with high-sym 𝐤)
+        k₀′ = pg(op)'\k₀ # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)      
+        diff = k₀′ .- k₀
+        diff = P_primitive_3D[string(cntr)]'*diff # TODO: generalize to 2D
+        kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
         abcbool = checkabc ? isapprox(pg(op)'\kabc, kabc, atol=1e-11) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
         if kbool && abcbool # ⇒ part of little group
@@ -295,32 +313,32 @@ function littlegroup(symops, k, kabc=zero(eltype(k)), cntr='P')
     end
     return idxlist, view(symops, idxlist)
 end
-littlegroup(sg::SpaceGroup, k, kabc=zero(eltype(k)), cntr='P') = littlegroup(operations(sg), k, kabc, cntr)
+littlegroup(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr='P') = littlegroup(operations(sg), k₀, kabc, cntr)
+littlegroup(symops::Vector{SymOperation}, kv::KVec, cntr='P') = littlegroup(symops, parts(kv)..., cntr)
 
-
-function starofk(symops::Vector{SymOperation}, k, kabc=zero(eltype(k)), cntr='P')
-    kstar = [(k, kabc)]
+function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
+    kstar = [KVec(k, kabc)]
     checkabc = !iszero(kabc)
     for op in (@view symops[2:end])
-        k′ = pg(op)'\k # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
+        k₀′ = pg(op)'\k₀ # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
         kabc′ = checkabc ? pg(op)'\kabc : kabc
 
         oldkbool = false
-        for (k′′,kabc′′) in kstar
-            diff = k′ .- k′′
-            diff = P_primitive_3D[string(cntr)]'*diff
-            kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k and k′ differ by a reciprocal vector
-            #kbool = isapprox(k′, k′′) # check if k and k′ are exactly equal
+        for (k₀′′,kabc′′) in kstar
+            diff = k₀′ .- k₀′′
+            diff = P_primitive_3D[string(cntr)]'*diff # TODO, generalize to 2D
+            kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=1e-11) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
             oldkbool |= (kbool && abcbool) # means we've haven't already seen this k-vector (mod G)
         end
 
         if !oldkbool
-            push!(kstar, (k′, kabc′))
+            push!(kstar, KVec(k₀′, kabc′))
         end
     end
     return kstar
 end
-starofk(sg::SpaceGroup, k, kabc=zero(eltype(k)), cntr='P') = starofk(operations(sg), k, kabc, cntr)
+starofk(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr='P')  = starofk(operations(sg), k₀, kabc, cntr)
+starofk(symops::Vector{SymOperation}, kv::KVec, cntr='P') = starofk(symops, parts(kv)..., cntr)
 
 

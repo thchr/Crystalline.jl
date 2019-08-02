@@ -1,5 +1,3 @@
-using SGOps, LinearAlgebra
-
 # magic numbers
 const BYTES_PER_KCHAR = 3
 const BYTES_PER_KVEC  = 16*BYTES_PER_KCHAR;
@@ -21,7 +19,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
         skip(io, 2)
         sglabel = filter(!isequal(' '), readuntil(io, "\""))
         skip(io, 2)
-        irlabel = filter(!isequal(' '), readuntil(io, "\""))
+        irlabel = roman2greek(filter(!isequal(' '), readuntil(io, "\"")))
         # read irdim, irtype, knum, pmknum, opnum (rest of line; split at spaces)
         #       irdim  : dimension of IR
         #       irtype : type of IR (see Sec. 5 of Acta Cryst. (2013). A69, 388)
@@ -30,10 +28,10 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
         #                              own complex conjugate; pseudoreal
         #                   - type 3 : intrinsically complex IR, inequivalent to 
         #                              its own complex conjugate
-        #       knum   : # of k-points in k-star
-        #       pmknum : # of k-points in ±k-star
-        #       opnum  : number of symmetry elements in little group of k-star 
-        #                (i.e. order of little group of k-star)
+        #       knum   : # of 𝐤-points in 𝐤-star
+        #       pmknum : # of 𝐤-points in ±𝐤-star
+        #       opnum  : number of symmetry elements in little group of 𝐤-star 
+        #                (i.e. order of little group of 𝐤-star)
         irdim, irtype, knum, pmknum, opnum = parsespaced(String(readline(io)))
 
         # --- READ VECTORS IN THE (±)𝐤-STAR (those not related by ±symmetry) ---
@@ -41,10 +39,10 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
         # in column major format; but they store their operators and irreps
         # in row-major format - we take care to follow their conventions on 
         # a case-by-case basis
-        Nstoredk = T <: Real ? pmknum : knum # number of stored k-points depend on whether we load real or complex representations
+        Nstoredk = T <: Real ? pmknum : knum # number of stored 𝐤-points depend on whether we load real or complex representations
         k = [Vector{Float64}(undef, 3) for n=Base.OneTo(Nstoredk)]
         kabc = [Matrix{Float64}(undef, 3,3) for n=Base.OneTo(Nstoredk)]
-        for n = Base.OneTo(Nstoredk) # for Complex, loop over distinct vecs in 𝐤-star; for Real loop over distinct vecs in ±k-star
+        for n = Base.OneTo(Nstoredk) # for Complex, loop over distinct vecs in 𝐤-star; for Real loop over distinct vecs in ±𝐤-star
             if n == 1 # we don't have to worry about '\n' then, and can use faster read()
                 kmat = reshape(parsespaced(String(read(io, BYTES_PER_KVEC))), (4,4))     # load as column major matrix
             else
@@ -66,10 +64,10 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
         checked_read2eol(io) # read to end of line & check we didn't miss anything
 
         # --- READ OPERATORS AND IRREPS IN LITTLE GROUP OF ±𝐤-STAR ---
-        opmatrix = [Matrix{Float64}(undef, 3,4) for i=1:opnum]
+        opmatrix = [Matrix{Float64}(undef, 3,4) for _=1:opnum]
         opxyzt   = Vector{String}(undef, opnum)
-        irtranslation = Vector{Union{Nothing, Vector{Float64}}}(nothing, opnum)
-        irmatrix = [Matrix{T}(undef, irdim,irdim) for i=1:opnum]
+        irtranslation = [zeros(Float64, 3) for _=1:opnum]
+        irmatrix = [Matrix{T}(undef, irdim,irdim) for _=1:opnum]
         for i = 1:opnum
             # --- OPERATOR ---
             # matrix form of the symmetry operation (originally in a 4×4 form; the [4,4] idx is a common denominator)
@@ -83,6 +81,8 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
             if !kspecial # if this is a general position, we have to incorporate a translational modulation in the point-part of the irreps
                 transtemp = parsespaced(readline(io))
                 irtranslation[i] = transtemp[1:3]./transtemp[4]
+            else
+                irtranslation[i] = zeros(Float64, 3)
                 # TODO: Use this to create the appropriate "translation-modulation" matrix for nonspecial kvecs (see rules in https://stokes.byu.edu/iso/irtableshelp.php)
             end
             
@@ -98,7 +98,6 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
             irmatrix[i] .= reprecision_data.(irmatrix[i])
             
             # TODO: ir_character[i] = tr(irmatrix[i]*irtranslation[i])
-
         end
 
         # --- WRITE DATA TO VECTOR OF IRREPS ---
@@ -106,49 +105,12 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=fal
                          sgnum,    sglabel,
                          irtype,   opnum,      
                          knum,     pmknum,   kspecial,
-                         collect(zip(k, kabc)),  
+                         KVec.(k, kabc),  
                          SymOperation.(opxyzt, opmatrix),
                          irtranslation, irmatrix)
         if length(irreps) < sgnum; push!(irreps, Vector{Irrep{T}}()); end # new space group idx
         push!(irreps[sgnum], irrep)
       
-
-        # --- TESTING OF IRREP ---
-        #=
-        irchar = tr.(irmatrix) 
-        sumchar2 = sum(abs2.(irchar))
-        #symmorph = all([iszero(op[:,end]) for op in opmatrix])
-        
-        if irlabel[1:2] == "GM"
-            if sumchar2 != opnum
-                println(sumchar2 == opnum, ": ", sum(abs.(irchar).^2), " | ", opnum, " | ", "(", pmknum," ", knum,")")
-            end
-        end
-        #if sgnum == 5 && irlabel[1:2] == "LD"
-        #    for (i,irm) in enumerate(irmatrix)
-        #        println(irlabel)
-        #        println(opxyzt[i])
-        #        display(irm)
-        #        display(irtranslation)
-        #        println()
-        #    end
-        #end
-        =#
-        
-        #--- DEBUG PRINTING ---
-        #=
-        if verbose
-            @show irnum, sgnum
-            @show sglabel, irlabel
-            @show irdim, irtype, knum, pmknum, opnum  
-            @show k, kspecial
-            @show opmatrix
-            @show irtranslation
-            @show irmatrix
-            println()
-        end
-        =#
-
         # --- FINISHED READING CURRENT IRREP; MOVE TO NEXT ---
     end
     close(io)
@@ -236,50 +198,21 @@ function reprecision_data(x::T) where T<:Real
 end
 reprecision_data(z::T) where T<:Complex = complex(reprecision_data(real(z)), reprecision_data(imag(z)))
 
-
-
-function littlegroupirrep(ir::Irrep{<:Complex})
-    if !isspecial(ir)
-        @warn "didn't deal with non-special k-points for little groups yet"
-        return missing, missing
+const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "ZA"=>"ζ", "GM"=>"Γ", "GP"=>"Ω")
+function roman2greek(label::String)
+    idx = findfirst(!isletter, label)
+    if idx != nothing
+        front=label[firstindex(label):prevind(label,idx)]
+        if length(front) == 2 # have to check length rather than just idx, in case of non-ascii input
+            return roman2greek_dict[front]*label[idx:lastindex(label)]
+        end
     end
-
-    k₀ = kstar(ir)[1][1]
-    littleidx, littleops = littlegroup(operations(ir), k₀)
-    knum = ir.knum; 
-    lirdim = ir.dim/knum # warning; is a float!
-    if !(lirdim ≈ round(lirdim)); 
-        error("..."); 
-    else
-        lirdim = round(Int64,lirdim)
-    end
-
-    lir = getindex.((@view irreps(ir)[littleidx]), Ref(Base.OneTo(lirdim)), Ref(Base.OneTo(lirdim)))
-
-    return littleops, lir
+    return label
 end
 
-
-function isblockdiag(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
-    lirdim = round(Int64,ir.dim/ir.knum)
-    diagbool = trues(length(idxlist))
-    for (i,idx) in enumerate(idxlist)
-        m = irreps(ir)[idx]
-        zeroblock = true
-        for i = 1:ir.knum-1  
-            for j = i+1:ir.knum # TODO: also ought to check lower part
-                offidxs = ((i-1)*lirdim+1:i*lirdim, (j-1)*lirdim+1:j*lirdim)
-                block = m[offidxs...]
-                zeroblock &= iszero(block)
-                if !zeroblock; break; end
-                #display(abs.(block))
-            end
-            if !zeroblock; break; end
-        end
-        if !zeroblock; diagbool[i] = false; end
-    end
-    return diagbool
-
+function klabel(label::String)
+    idx = findfirst(!isletter, label)
+    return label[firstindex(label):prevind(label,idx)]
 end
 
 function isfinitetop(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
@@ -293,43 +226,46 @@ function isfinitetop(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
 end
 
 
-function littlegroup_irreps(ir)
-    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1][1], kstar(ir)[1][2], centering(ir.sgnum,3))
-    lgirdim′ = ir.dim/ir.knum; lgirdim = round(Int64, lgirdim′)
+function littlegroupirrep(ir::Irrep{<:Complex})
+    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1], centering(ir.sgnum,3))
+    lgirdim′ = ir.dim/ir.knum; lgirdim = div(ir.dim, ir.knum)
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
                                 "the dimension of the space group irrep divided by the number of vectors "*
-                                "in star{k}"
-    irs = [Matrix{ComplexF64}(undef, lgirdim, lgirdim) for _=Base.OneTo(length(lgidx))] # preallocate
-    for (i,idx) in enumerate(lgidx)
-        m = irreps(ir)[idx]
-        irs[i] = m[Base.OneTo(lgirdim),Base.OneTo(lgirdim)]
-    end
+                                "in star{𝐤}"
+    # broadcasting to get all the [1:lgirdim, 1:lgirdim] blocks of every irrep assoc. w/ the lgidx list
+    lgir = getindex.((@view irreps(ir)[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 
+    lgtrans = ir.translations[lgidx]
 
-    return irs, lgops
+    return LGIrrep(num(ir), label(ir), kstar(ir)[1], lgops, lgir, lgtrans)
 end
 
-IR = parseisoir(Complex);
-count = 0
-for sgnum in 1:230
-    firstorthogacc = true
-    for (pos,ir) in enumerate(IR[sgnum])
-        irs, lgops=littlegroup_irreps(ir)
-        chars = tr.(irs)
-        
-        firstorthog = sum(abs2.(chars)) ≈ length(lgops)
-        firstorthogacc &= firstorthog
+parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
+function parselittlegroupirreps(irvec::Vector{Irrep{ComplexF64}})
+    lgirvec = Vector{Tuple{LGIrrep,Vararg{LGIrrep}}}()
+    curlab = nothing; accidx = Int64[]
+    for (idx, ir) in enumerate(irvec)
+        if curlab == klabel(label(ir))
+            push!(accidx, idx)
+        else
+            if curlab != nothing
+                lgirs = Vector{LGIrrep}(undef, length(accidx))
+                for (pos,kidx) in enumerate(accidx)
+                    lgirs[pos] = littlegroupirrep(irvec[kidx])
+                end
+                push!(lgirvec, (lgirs...,))
+            end
+
+            curlab = klabel(label(ir))
+            accidx = [idx,]
+        end
     end
-    print(""*string(sgnum)*":\t"*bravaistype(sgnum,3))
-    if !firstorthogacc #notdiag
-        print(" ⊠")
-        print(" ")
-    else
-        print(" ✓")
-        global count += 1
-    end
-    println()
+    return lgirvec
 end
-println("\nCorrect: "*string(count)*"/230")
+
+
+
+#IR = parseisoir(Complex);
+
 #display(label(ir))
 #display(irreps(ir))
 #ir = IR[22][23]
