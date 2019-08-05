@@ -52,18 +52,18 @@ end
 const origin_markeropts = (marker="o", markerfacecolor="white", markeredgecolor="black", markeredgewidth=1.5, markersize=4.5)
 
 function plot(C::Crystal)
-    bvecs = basis(C)
+    R = basis(C)
     if dim(C) == 2
-        corner = sum(bvecs)
-        for R in basis(C)
-            gca=plot([0, R[1]], [0, R[2]]; color="black") # basis vectors
-            plot([R[1], corner[1]], [R[2], corner[2]]; color="grey") # remaining unit cell boundaries
+        corner = sum(R)
+        for R′ in R
+            plot([0, R′[1]], [0, R′[2]]; color="black") # basis vectors
+            plot([R′[1], corner[1]], [R′[2], corner[2]]; color="grey") # remaining unit cell boundaries
         end
         plot([0,], [0,]; origin_markeropts...) # origin
     elseif dim(C) == 3
-        corners = (bvecs[1]+bvecs[3], bvecs[1]+bvecs[2], bvecs[2]+bvecs[3])
+        corners = (R[1]+R[3], R[1]+R[2], R[2]+R[3])
         dirs = ((-1,1,-1), (-1,-1,1), (1,-1,-1))
-        for (i,R) in enumerate(bvecs)
+        for (i,R) in enumerate(R)
             plot3D([0, R[1]], [0, R[2]], [0, R[3]]; color="black") # basis vectors
             for (corner,dir) in zip(corners,dirs) # remaining unit cell boundaries
                 plot3D([corner[1], corner[1]+dir[i]*R[1]], 
@@ -290,22 +290,38 @@ end
 
 
 
-const P_primitive_3D = Dict(
+const primitivematrix_3D = Dict(
          "P"=>[1 0 0; 0 1 0; 0 0 1],        # transformation matrices P from conventional basis v_C 
          "I"=>[-1 1 1; 1 -1 1; 1 1 -1]./2,  # to primitive basis v_p, depending on centering types
          "F"=>[0 1 1; 1 0 1; 1 1 0]./2,     #     v_P = v_C*P
          "R"=>[-1 2 -1; -2 1 1; 1 1 1]./3,  # with v_P and v_C interpreted as matrices = [R1 R2 R3]
          "A"=>[2 0 0; 0 1 -1; 0 1 1]./2,
          "C"=>[1 1 0; -1 1 0; 0 0 2]./2)    # "B"=>[], # seems to not occur, by convention
-const P_primitive_2D = Dict("c"=>[1 1; -1 1]./2, "p"=>[1 0; 0 1])
+const primitivematrix_2D = Dict("c"=>[1 1; -1 1]./2, "p"=>[1 0; 0 1])
+"""
+    primitivebasismatrix(cntr::Union{String, Char}, dim::Integer) -> ::matrix
+
+    Calculates a transformation matrix `P` from a conventional
+    to a primitive unit cell, using dictionary lookup.
+"""
+function primitivebasismatrix(cntr::Union{String, Char}, dim)
+    if dim == 3
+        return primitivematrix_3D[string(cntr)];         
+    elseif dim == 2
+        return primitivematrix_2D[string(cntr)];
+    else
+        error(ArgumentError("dim must be either 2 or 3"))
+    end
+end
+
 
 """ 
     primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
 
     Transforms the conventional basis of a Crystal `C` into its primitive 
-    equivalent `Cp`, provided that it differs from the conventional one, by 
-    inferring the Bravais type from the space group number `sgnum` and 
-    applying an applying an appropriate transformation matrix. 
+    equivalent `Cp`, provided that its centering differs from the conventional
+    (P or p), by inferring the Bravais type from the space group number
+    `sgnum` and applying an applying an appropriate transformation matrix. 
 """
 function primitivebasis(sgnum::Integer, C::Crystal)
     cntr = centering(sgnum)
@@ -324,16 +340,13 @@ function primitivebasis(C::Crystal, cntr::String)
     if cntr == "P" || cntr == "p" # the conventional and primitive bases coincide
         return C
     else         
-        if dim(C) == 3
-            P = P_primitive_3D[cntr];         
-        elseif dim(C) == 2
-            P = P_primitive_2D[cntr];
-        end
+        P = primitivebasismatrix(cntr, dim(C))
         v_P = hcat(basis(C)...)*P # v_P = v_C*P (with v_C a matrix with columns = basis vecs)
         newbasis = Tuple(collect(u) for u in eachcol(v_P)) # convert from matrix form back to tuple form
         return Crystal(newbasis)
     end  
 end
+
 
 """
     reciprocalbasis(C::Crystal) --> G::NTuple{dim(C), Vector{Float64}}

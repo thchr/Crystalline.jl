@@ -209,7 +209,7 @@ function multtable(symops::AbstractVector{SymOperation}; verbose::Bool=false)
 end
 multtable(sg::SpaceGroup) = multtable(operations(sg))
 
-# TODO: CHECK MULTTABLES OF LITTLE GROUP AND SPACE GROUP IRREPS IN ISOTROPY
+
 checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = checkmulttable(multtable(operations(lgir)), lgir, αβγ; verbose=verbose)
 function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
@@ -300,10 +300,11 @@ end
 function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
     idxlist = [1]
     checkabc = !iszero(kabc)
+    dim = length(k₀)
     for (idx, op) in enumerate(@view symops[2:end]) # note: idx is offset by 1 relative to position of op in symops
         k₀′ = pg(op)'\k₀ # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)      
         diff = k₀′ .- k₀
-        diff = P_primitive_3D[string(cntr)]'*diff # TODO: generalize to 2D
+        diff = primitivebasismatrix(cntr, dim)'*diff 
         kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
         abcbool = checkabc ? isapprox(pg(op)'\kabc, kabc, atol=1e-11) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
@@ -317,8 +318,9 @@ littlegroup(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr='P') = littlegro
 littlegroup(symops::Vector{SymOperation}, kv::KVec, cntr='P') = littlegroup(symops, parts(kv)..., cntr)
 
 function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
-    kstar = [KVec(k, kabc)]
+    kstar = [KVec(k₀, kabc)]
     checkabc = !iszero(kabc)
+    dim = length(k₀)
     for op in (@view symops[2:end])
         k₀′ = pg(op)'\k₀ # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
         kabc′ = checkabc ? pg(op)'\kabc : kabc
@@ -326,7 +328,7 @@ function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cn
         oldkbool = false
         for (k₀′′,kabc′′) in kstar
             diff = k₀′ .- k₀′′
-            diff = P_primitive_3D[string(cntr)]'*diff # TODO, generalize to 2D
+            diff = primitivebasismatrix(cntr, dim)'*diff # TODO, generalize to 2D
             kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=1e-11) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
             oldkbool |= (kbool && abcbool) # means we've haven't already seen this k-vector (mod G)

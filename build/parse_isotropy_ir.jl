@@ -214,6 +214,8 @@ function klabel(label::String)
     idx = findfirst(!isletter, label)
     return label[firstindex(label):prevind(label,idx)]
 end
+klabel(ir::AbstractIrrep) = klabel(label(ir))
+
 
 function isfinitetop(ir::Irrep{<:Complex}, idxlist=Base.OneTo(ir.order))
     lirdim = round(Int64,ir.dim/ir.knum)
@@ -244,7 +246,7 @@ function parselittlegroupirreps(irvec::Vector{Irrep{ComplexF64}})
     lgirvec = Vector{Tuple{LGIrrep,Vararg{LGIrrep}}}()
     curlab = nothing; accidx = Int64[]
     for (idx, ir) in enumerate(irvec)
-        if curlab == klabel(label(ir))
+        if curlab == klabel(ir)
             push!(accidx, idx)
         else
             if curlab != nothing
@@ -255,7 +257,7 @@ function parselittlegroupirreps(irvec::Vector{Irrep{ComplexF64}})
                 push!(lgirvec, (lgirs...,))
             end
 
-            curlab = klabel(label(ir))
+            curlab = klabel(ir)
             accidx = [idx,]
         end
     end

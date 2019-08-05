@@ -242,7 +242,7 @@ function show(io::IO, ::MIME"text/plain", lgir::LGIrrep)
     end
 end
 function show(io::IO, ::MIME"text/plain", lgirvec::Union{AbstractVector{LGIrrep}, NTuple{N,LGIrrep} where N})
-    print(io, "LGIrrep(#", num(lgirvec[1]), ") at ", klabel(label(lgirvec[1])), " = ")
+    print(io, "LGIrrep(#", num(lgirvec[1]), ") at ", klabel(lgirvec[1]), " = ")
     show(io,"text/plain", kvec(lgirvec[1])); println(io)
     Nᵢᵣ = length(lgirvec)
     for (i,lgir) in enumerate(lgirvec)

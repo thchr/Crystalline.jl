@@ -3,7 +3,7 @@ using SGOps, Test
 if !isdefined(Main, :LGIR)
     LGIR = parselittlegroupirreps.()
 end
-@testset "Operations, sorting order" begin # check that operations are sorted identically across distinct irreps for fixed sgnum, and k-label
+@testset "Operations, matched sorting" begin # check that operations are sorted identically across distinct irreps for fixed sgnum, and k-label
     for lgirs in LGIR
         for lgirvec in lgirs
             ops = operations(first(lgirvec))
@@ -16,13 +16,22 @@ end
 end
 
 @testset "Multiplication table, groups" begin
+numset=Int64[]
     for lgirs in LGIR
         for lgirvec in lgirs
             ops = operations(first(lgirvec));
             mt = multtable(ops)
-            @test_skip  isgroup(mt)
+            #@test_skip  isgroup(mt)
+            
+            if !isgroup(mt)
+                println(num(first(lgirvec)), " ",
+                        centering(num(first(lgirvec))), " ", 
+                        klabel(first(lgirvec)), " " )
+                union!(numset, num(first(lgirvec)))
+            end
         end
     end
+    println(numset)
 end
 
 @testset "Multiplication table, irreps" begin
