@@ -249,7 +249,7 @@ function calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
     return vals
 end
 function calcfouriergridded(xyz, ijkorbits, orbcoefs)
-    dim = length(ijkorbits[1][1]); N = length(ijkorbits[1][1])
+    dim = length(ijkorbits[1][1]); N = length(xyz)
     vals = Array{Float64, dim}(undef, ntuple(i->N, dim)...)
     return calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
 end

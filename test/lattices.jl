@@ -15,9 +15,9 @@ display(plt.gcf().show());
 if true
     save2matlab = true
     # 3D lattices
-    sgnum = 210; dim = 3; idxmax = 5.0.*(1,1,1)
+    sgnum = 189; dim = 3; idxmax = 1 .*(1,1,1)
     N = 50 # number of points per dimension
-    expon = 8 # exponent for fall off in coefficients
+    expon = 1 # exponent for fall off in coefficients
     filling = 0.5
 
     ijkorbits, orbcoefs, R = levelsetlattice(sgnum, dim, idxmax)

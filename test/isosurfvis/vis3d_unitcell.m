@@ -6,14 +6,15 @@ load("isosurfdata.mat")
 
 % we can flip what's inside/outside, if we want to; just a matter of
 % perspective
-flip = true;
+flip = false;
 vals = smooth3(vals);
 if flip
     vals = -vals;
     isoval = -isoval;
 end
 
-% plot the isosurfaces and isocaps
+% plot the isosurfaces and isocaps (don't trust xyz ordering; could be
+% quite different in reality)
 fh=figure; set(fh,'color','w')
 subaxis(1,1,1,'M',.25)
 [faces,verts]=isosurface(xyz,xyz,xyz,vals,isoval);
