@@ -11,6 +11,10 @@
     placed in the xy-plane.
 """
 function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
+    # consistency checks on interaxial angles (equivalently, sides of the corresponding unit-spherical triangle)
+    if !isvalid_sphericaltriangle(α,β,γ)
+        throw(ArgumentError("The provided angles cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
+    end
     # R1 and R2 are easy
     R1 = Float64[a, 0, 0] 
     R2 = b.*[cos(γ), sin(γ), 0]
@@ -19,9 +23,6 @@ function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
     cosβ = cos(β)
     sinγ,cosγ = sincos(γ)
     ϕ = atan(cosα - cosγ*cosβ, sinγ*cosβ)
-    # TODO: There is some issue here in triclinic case: it can happen 
-    # that cosβ < cosϕ. This logic needs more careful consideration
-    # to ensure the appropriate domains of ϕ∈[0,2π] and θ∈[0,π]
     θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 -2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
     sinθ,cosθ = sincos(θ)
     sinϕ,cosϕ = sincos(ϕ)
@@ -46,6 +47,22 @@ function crystal(a::Real,b::Real,γ::Real)
     R2 = b.*[cos(γ), sin(γ)]
 
     return Crystal((R1,R2))
+end
+
+# For a three-axis system, α, β, and γ are subject to constraints: specifically, 
+# since they correspond to sides of a (unit-radius) spherical triangle, they 
+# are subject to identical constraints. These constraints are
+#     0 < α + β + γ < 2π,                           (1)
+#     sin(s-α)*sin(s-β)*sin(s-γ)/sin(s) > 0,        (2)
+# with s = (α + β + γ)/2. Constraint (2) can be identified from Eq. (38) of 
+# http://mathworld.wolfram.com/SphericalTrigonometry.html; due to (1), it can 
+# be simplified to sin(s-α)*sin(s-β)*sin(s-γ) > 0. This impacts generation 
+# of triclinic and monoclinic crystals.
+function isvalid_sphericaltriangle(α,β,γ)
+    s = (α+β+γ)/2
+    check1 = 0 < s < π;                     
+    check2 = sin(s-α)*sin(s-β)*sin(s-γ) > 0 
+    return check1 && check2 
 end
 
 
@@ -250,12 +267,15 @@ function gen_crystal(sgnum::Integer, dim=3;
         elseif system == "monoclinic"  # α=γ=90° (free: a,b,c,β≥90°)
             a = 1.0;            b, c = relrand(abclims, 2)
             α = γ = °(90);      β = rand(Uniform(°(90), αβγlims[2]))
+            while !isvalid_sphericaltriangle(α,β,γ)  # arbitrary combinations of α,β,γ may not correspond 
+                β = rand(Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
+            end
         elseif system == "triclinic"   # no conditions (free: a,b,c,α,β,γ)
             a = 1.0;            b, c = relrand(abclims, 2)
             α, β, γ = rand(Uniform(αβγlims...),3)
-            #if abs(α)+abs(β)<abs(γ) # cannot be satisfied; reroll
-            #    return gen_crystal(sgnum, dim; abclims=abclims, αβγlims=αβγlims)
-            #end
+            while !isvalid_sphericaltriangle(α,β,γ)   # arbitrary combinations of α,β,γ may not correspond 
+                α, β, γ = rand(Uniform(αβγlims...),3) # to a valid axis-system; reroll until they do
+            end
         else 
             error(DomainError(system))
         end        
