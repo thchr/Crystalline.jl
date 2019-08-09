@@ -206,7 +206,7 @@ function calcfourier(xyz, ijkorbits, orbcoefs)
         for (ijk, c) in Iterators.zip(orb,coefs)
             # though one might naively think the phase would need a conversion between 
             # R and G bases, this is not necessary since PG'*PR = 2πI by definition
-            f += c*exp(1im*2*pi*dot(ijk,xyz))
+            f += c*exp(1im*2π*dot(ijk,xyz))
         end
     end
     return f
@@ -257,7 +257,7 @@ end
 
 ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
-function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims)), length(ndims)))  
+function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))))  
     dim = ndims(vals)
     if dim == 2
         # convert to a cartesian coordinate system rather than direct basis of Ri
@@ -267,7 +267,6 @@ function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims)), length(
         uc = [[0 0]; R[1]'; (R[1]+R[2])'; (R[2])'; [0 0]] .- (R[1]+R[2])'./2
         pad = abs((-)(extrema(uc)...))/25
 
-        plt.close("all")
         fig = plt.figure()
         fig.gca().contourf(X,Y,vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
         fig.gca().contour(X,Y,vals,levels=[isoval], colors="w", linestyles="solid")
@@ -277,12 +276,10 @@ function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims)), length(
         fig.gca().set_aspect("equal", adjustable="box")
         fig.gca().set_axis_off()
     elseif dim == 3
-        @show sum(vals.-isoval .> 0)/length(vals)
         scene=Scene()
-        Makie.contour!(scene, xyz,xyz,xyz,vals,levels=[isoval],color=:blue,fillrange=true)
+        Makie.contour!(scene, xyz,xyz,xyz, vals,
+                       levels=[isoval],colormap=:blues, linewidth=.1)
         Makie.display(scene)
     end
     return nothing
 end
-# fig = plt.figure()
-# fig.gca().pcolor(real.(plotfourier(levelsetlattice(17,2,(3,3))[1])))
