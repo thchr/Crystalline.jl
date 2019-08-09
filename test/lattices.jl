@@ -1,4 +1,4 @@
-using SGOps, PyPlot, AbstractPlotting
+using SGOps, PyPlot, AbstractPlotting, MAT
 
 # 2D lattices
 plt.close("all")
@@ -15,9 +15,9 @@ display(plt.gcf().show());
 if true
     save2matlab = true
     # 3D lattices
-    sgnum = 189; dim = 3; idxmax = 1 .*(1,1,1)
+    sgnum = 139; dim = 3; idxmax = 2 .*(1,1,1)
     N = 50 # number of points per dimension
-    expon = 1 # exponent for fall off in coefficients
+    expon = 2 # exponent for fall off in coefficients
     filling = 0.5
 
     ijkorbits, orbcoefs, R = levelsetlattice(sgnum, dim, idxmax)
