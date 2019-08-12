@@ -83,7 +83,7 @@ function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, Array{T}} where T<:Abstrac
         # nonsymmorphic part/fractional translation part
         nonsymmorph = op[nextidx:end]
         if !isempty(nonsymmorph)
-            slashidx = findfirst("/",nonsymmorph)[1]
+            slashidx = findfirst(x->x=='/',nonsymmorph)
             num=nonsymmorph[1:prevind(nonsymmorph, slashidx)]
             den=nonsymmorph[nextind(nonsymmorph, slashidx):end]
             O[i,end] = parse(Int64, num)/parse(Int64, den)
@@ -136,9 +136,78 @@ function stripnum(s)
 end
 
 
-function matrix2symbol(O::Matrix{T}) where T<:Real
-    # TODO; not necessarily trivial - could depend on basis vectors/crystal class.
+# Implementation based on ITA Vol. A, Table 11.2.1.1, using the table (for 3D)
+#      _______________________________________________
+#     |_detW_\_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
+#     |    1       |    |    |  2 |  3 |  4 |  6 |  1 |
+#     |___-1_______|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
+#
+# with the elements of the table giving the type of symmetry operation 
+# in Hermann-Mauguin notation.
+# TODO: So far, we only attempted for 3D.
+function seitz(op::SymOperation)
+    W = pg(op); w = translation(op)
+
+    detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip
+    detW′ ≈ detW || throw(ArgumentError("det W must be an integer for a SymOperation {W|w}"))
+    trW  = tr(W);  trW′,  trW  = trW, round(Int64, trW)   # tr, then round & flip
+    trW′ ≈ trW || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}"))
+
+    if detW == 1 # proper rotations
+        # order of rotation
+        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
+            seitz_str = string(Char(0x33+trW)) # 0x33 (UInt8) corresponds to '3' in unicode and trW=0; then we move forward/backward by adding/subtracting trW
+        elseif trW == 2 # 6-fold rotation
+            seitz_str = "6"
+        elseif trW == 3 # identity operation
+            seitz_str = "1"
+        else 
+            throw_seitzerror(trW, detW)
+        end
+    elseif detW == -1 # rotoinversions
+        # order of rotation
+        if trW == -3    # inversion
+            seitz_str = "-1"
+        elseif trW == -2 # 6-fold rotoinversion
+            seitz_str = "-6"
+        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
+            seitz_str = string('-', Char(0x33-trW)) # same as before, now we subtract/add to move forward/backward
+        elseif trW == 1  # mirror
+            seitz_str = "m"
+        else
+            throw_seitzerror(trW, detW)
+        end
+    end
+
+    #=
+        # axis of rotation 
+        # solve for {W|w}²𝐱=𝐱 ⇔ {W²|Ww+w}𝐱=𝐱 ⇔ (W²-I)𝐱=-Ww-w; 𝐱 is the axis
+        if -2 ≤ trW ≤ 0
+            W′ = W^2; w′ = W*w.+w
+
+            hom = vec(nullspace(W′))
+            idx = findall(hom); 
+            # TODO: will not work with diagonal axes...
+            length(idx) > 1 && throw(ArgumentError("The axis of rotation cannot be found"))
+            idx = first(idx)
+            axis_char = idx == 1 ? 'x' : (idx == 2 ? 'y' : 'z')
+
+            !iszero(w′[idx]) && throw(ArgumentError("The axis of rotation cannot be found"))
+            keep=filter(x->x!=idx, 1:3)
+            inhom = W′[[keep],[keep]]\w′[[keep]]
+            if iszero(inhom) # axis is at origin
+                axis_str = string(axis_char))
+            else # axis is not at origin
+                axis_str = string(axis_char))*
+    =#
+    
+    if !iszero(w)
+        return '{'*seitz_str*'|'*join(string.(w),',')*'}'
+    else
+        return seitz_str
+    end
 end
+throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA Vol A, Table 11.2.1.1"))
 
 
 
