@@ -2,8 +2,9 @@ module SGOps
 # packages
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs, 
-      Printf, DelimitedFiles
-import Base: getindex, lastindex, ∘, ==, string, length
+      Printf, DelimitedFiles, SmithNormalForm
+import Base: getindex, lastindex, ∘, ==, string,
+             length, readuntil, vec
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 
@@ -49,6 +50,6 @@ export levelsetlattice, plotfourier, plotiso
 include("bandrep.jl")
 export BandRep, BandRepSet, 
        html2dlm, html2array, html2struct, html2dlm,
-       crawlbandreps, bandreps
+       crawlbandreps, bandreps, matrix
 
 end # module

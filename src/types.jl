@@ -320,16 +320,21 @@ struct BandRep
     dim::Integer     # Dimension (i.e. # of bands) in band rep
     decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
-    irreptags::Vector{String}
+    irrepvec::Vector{Int64}   # Vector the references irreplabs of a parent BandRepSet; 
+                              # nonzero entries correspond to an element in the band representation
+    irreptags::Vector{String} # vestigial, but quite handy for display'ing; this otherwise 
+                              # requires recursive data sharing between BandRep and BandRepSet
 end
 wyck(BR::BandRep)    = BR.wyckpos
 sitesym(BR::BandRep) = BR.sitesym
 label(BR::BandRep)   = BR.label
 dim(BR::BandRep)     = BR.dim
-rep(BR::BandRep)     = BR.irreptags
+humanreadable(BR::BandRep) = BR.irreptags
+vec(BR::BandRep)     = BR.irrepvec
 function show(io::IO, ::MIME"text/plain", BR::BandRep)
-    print(label(BR), " (", dim(BR), "):")
-    join(io, rep(BR), " | ")
+    print(label(BR), " (", dim(BR), "): [")
+    join(io, map(x->replace(x, '⊕'=>'+'), humanreadable(BR)), ", ") # ⊕ doesn't render well in my terminal; swap for ordinary plus
+    print(io, "]")
 end
 
 struct BandRepSet
@@ -337,13 +342,15 @@ struct BandRepSet
     bandreps::Vector{BandRep}
     kvs::Vector{KVec}       # Vector of 𝐤-points
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
+    irreplabs::Vector{String} # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
 end
 num(BRS::BandRepSet)    = BRS.sgnum
-labels(BRS::BandRepSet) = BRS.klabs
+klabels(BRS::BandRepSet) = BRS.klabs
 kvecs(BRS::BandRepSet)  = BRS.kvs
 hasnonmax(BRS::BandRepSet) = BRS.allpaths
+irreplabels(BRS::BandRepSet)   = BRS.irreplabs
 isspinful(BRS::BandRepSet) = BRS.spinful
 reps(BRS::BandRepSet)   = BRS.bandreps
 length(BRS::BandRepSet) = length(reps(BRS))
@@ -352,18 +359,54 @@ lastindex(BRS::BandRepSet, d::Int64) = length(BRS)
 
 
 function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
-    println("BandRepSet (#$(num(BRS))):")
-    println("k-vecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")):")
-    for (lab,kv) in zip(labels(BRS), kvecs(BRS))
-        print(io,"   ", lab, ": "); show(io, "text/plain", kv); println()
+    Nirreps = length(irreplabels(BRS))
+    println(io, "BandRepSet (#$(num(BRS))):")
+    println(io, "k-vecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")):")
+    for (lab,kv) in zip(klabels(BRS), kvecs(BRS))
+        print(io,"   ", lab, ": "); show(io, "text/plain", kv); println(io)
     end
 
+    # prep-work
     maxlen = maximum(x->length(label(x))+ndigits(dim(x)), reps(BRS))+3
-    println("$(length(BRS)) band representations ($(isspinful(BRS) ? "spinful" : "spinless")):")
+    threshold = 20
+    if Nirreps > threshold
+        toomuch = div((Nirreps-threshold+2),2)
+        midpoint = div(Nirreps, 2)
+        skiprange = (-toomuch:toomuch) .+ midpoint
+        abbreviate = true
+    else
+        abbreviate = false
+    end
+    # "title"
+    println(io, "$(length(BRS)) band representations", 
+                " ($(isspinful(BRS) ? "spinful" : "spinless"))",
+                " sampling $(Nirreps) irreps:")
+    print(io, " "^(maxlen+5),'║'); # align with spaces
+    for (j,lab) in enumerate(irreplabels(BRS)) # irrep labels
+        if abbreviate && j∈skiprange
+            if j == first(skiprange)
+                print(io, "\b  …  ")
+            end
+        else
+            print(io, ' ', lab, j != Nirreps ? " │" : " ║")
+        end
+    end
+    println(io)
     for (i,BR) in enumerate(reps(BRS))
-        print(io, "   ", label(BR), " (", dim(BR), "):", " "^(maxlen-length(label(BR))-ndigits((dim(BR)))-2))
-        join(io, rep(BR), " | ")
-
-        if i != length(BRS); println(); end
+        print(io, "   ", label(BR), " (", dim(BR), "):",                      # bandrep label
+                  " "^(maxlen-length(label(BR))-ndigits((dim(BR)))-2), '║')
+        for (j,v) in enumerate(vec(BR)) # vector representation of band rep
+            if abbreviate && j∈skiprange
+                if j == first(skiprange)
+                    print(io, mod(i,4) == 0 ? "\b  …  " : "\b     ")
+                end
+            else
+                print(io, "  ")
+                !iszero(v) ? print(io, v) : print(io, '·')
+                print(io, " "^(length(irreplabels(BRS)[j])-1)) # assumes we will never have ndigit(v) != 1
+                print(io, j != Nirreps ? '│' : '║')
+            end
+        end
+        if i != length(BRS); println(io); end
     end
 end

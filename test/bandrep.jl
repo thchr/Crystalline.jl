@@ -1,10 +1,12 @@
 using SGOps
 
-BRS = Vector{BandRepSet}(undef, 230)
+
 allpaths = false
-spinful  = true
-for sgnum = 230#1:230
-    BRS[sgnum] = bandreps(sgnum, allpaths, spinful, "Elementary TR")
-    display(BRS[sgnum]); println()
+spinful  = false
+for sgnum = 212#1:230
+    global BRS = bandreps(sgnum, allpaths, spinful, "Elementary TR")
+    display(BRS); 
+    display(matrix(BRS))
+    #display(SGOps.humanreadable.(SGOps.reps(BRS)))
 end
 

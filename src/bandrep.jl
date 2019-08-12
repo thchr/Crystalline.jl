@@ -110,25 +110,71 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     klabs, kvs = (@view klist[:,1]), KVec.(@view klist[:,2])
 
     temp = split_paren.(@view M[1,2:end]) 
-    wyckpos, sitesym = getindex.(temp, 1), getindex.(temp, 2) # we really shouldn't be doing this type of trickery ...
+    wyckpos, sitesym = getindex.(temp, 1), getindex.(temp, 2) # wyckoff position and site symmetry point group of bandrep
 
     temp .= split_paren.(@view M[2,2:end]) # same size, so reuse array
-    label, dim = getindex.(temp, 1), parse.(Int64, getindex.(temp, 2))
+    label, dim = getindex.(temp, 1), parse.(Int64, getindex.(temp, 2)) # label of bandrep
 
-    decomposable = parse.(Bool, vec(@view M[3,2:end]))
+    decomposable = parse.(Bool, vec(@view M[3,2:end])) # whether bandrep can be further decomposed
 
-    irreptags = collect(eachcol(@view M[4:end, 2:end])) 
-    for col in irreptags 
-        col .= replace.(col, Ref(r"\([1-9]\)"=>""))  # get rid of irrep dimension info
+    brtags = collect(eachcol(@view M[4:end, 2:end])) # set of irreps that jointly make up the bandrep
+    for br in brtags 
+        br .= replace.(br, Ref(r"\([1-9]\)"=>""))  # get rid of irrep dimension info
     end
+    if !spinful 
+        delidxs = findall(map(isspinful, brtags))
+        for vars in (brtags, wyckpos, sitesym, label, dim, decomposable)
+            deleteat!(vars, delidxs)    
+        end
+    end
+    irreplabs, irrepvecs = get_irrepvecs(brtags)              
 
     BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, 
-                   map(isspinful, irreptags), irreptags)
-    if !spinful 
-        filter!(x->!x.spinful, BRs)        
-    end
-    return BandRepSet(sgnum, BRs, kvs, klabs, allpaths, spinful)
+                   map(isspinful, brtags), irrepvecs, brtags)
+
+    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful)
 end
+
+
+function get_irrepvecs(brtags)
+    Nklabs = length(first(brtags)) # there's equally many (composite) irrep tags in each band representation
+    irreplabs = Vector{String}()
+    for kidx in Base.OneTo(Nklabs)
+        irreplabs_at_kidx = Vector{String}()
+        for tag in getindex.(brtags, kidx) # tag could be a combination like Γ1⊕2Γ₂ (or something simpler, like Γ₁)
+            for irrep in split(tag, '⊕')
+                irrep′ = filter(!isdigit, irrep) # filter off any multiplicities
+                if irrep′ ∉ irreplabs_at_kidx
+                    push!(irreplabs_at_kidx, irrep′)
+                end
+            end
+        end
+        sort!(irreplabs_at_kidx)
+        append!(irreplabs, irreplabs_at_kidx)
+    end
+
+    irrepvecs = [zeros(Int64, length(irreplabs)) for _=Base.OneTo(length(brtags))]
+    for (bridx, tags) in enumerate(brtags)
+        for (kidx,tag) in enumerate(tags)
+            for irrep in split(tag, '⊕') # note this irrep tag may contain numerical prefactors!
+                buf = IOBuffer(irrep)
+                prefac_str = readuntil(buf, !isdigit)
+                seek(buf, ncodeunits(prefac_str)) # go back to first non-digit position in buffer
+                if isempty(prefac_str)
+                    prefac = Int64(1)
+                else
+                    prefac = parse(Int64, prefac_str)
+                end
+                irrep′ = read(buf, String) # the rest of the irrep buffer is the actual cdml label
+                close(buf)
+                irrepidx = findfirst(x->x==irrep′, irreplabs) # find position in irreplabs vector
+                irrepvecs[bridx][irrepidx] = prefac
+            end
+        end
+    end
+    return irreplabs, irrepvecs
+end
+
 
 # main "getter" function; reads data from csv files
 function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brtype::String="Elementary TR")
@@ -139,14 +185,21 @@ function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brt
     end 
 end
 
-# Convert a BandRepSet into a matrix representation
-#= 
+
+
+# Converts a BandRepSet into a matrix representation, with distinct band reps
+# along the rows, and irreducible representations along the columns
 function matrix(BRS::BandRepSet)
-    unique(reps(BRS)))
-    nbrs = length(BRS)
-    A = Matrix{Int64}(nbrs)
+    M = Matrix{Int64}(undef, length(BRS), length(irreplabels(BRS)))
+    @inbounds for (i,BR) in enumerate(reps(BRS))
+        for (j,v) in enumerate(vec(BR))
+            M[i,j] = v
+        end
+    end
+    return M
 end 
-=#
+
+
 
 # misc minor utility functions
 function split_paren(str::AbstractString)
@@ -156,7 +209,7 @@ function split_paren(str::AbstractString)
     return before_paren, inside_paren
 end
 
-isspinful(col::AbstractVector) = any(x->occursin(r"\\bar|ˢ", x), col)
+isspinful(br::AbstractVector{T} where T<:AbstractString) = any(x->occursin(r"\\bar|ˢ", x), br)
 
 function searchpriornumerals(coord, pos₂)
     pos₁ = copy(pos₂)

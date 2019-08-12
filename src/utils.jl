@@ -80,3 +80,18 @@ function normalizesubsup(c::Char)
         return c
     end
 end
+
+
+
+function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
+    buf = IOBuffer()
+    while !eof(io)
+        c = read(io, Char)
+        if delim(c)
+            keep && write(buf, c)
+            break
+        end
+        write(buf, c)
+    end
+    return String(take!(buf))
+end
