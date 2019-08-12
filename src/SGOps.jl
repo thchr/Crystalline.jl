@@ -1,12 +1,16 @@
 module SGOps
 # packages
-using HTTP, Gumbo, LinearAlgebra, Distributions, JSON2, StaticArrays, Makie, TimerOutputs, Printf
-import Base: getindex, lastindex, ∘, ==, string
+using HTTP, Gumbo, LinearAlgebra, Distributions, 
+      JSON2, StaticArrays, Makie, TimerOutputs, 
+      Printf, DelimitedFiles
+import Base: getindex, lastindex, ∘, ==, string, length
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 
 
 # included files and exports
+include("utils.jl") # useful utility methods (seldom needs exporting)
+
 include("types.jl") # defines useful types for space group symmetry analysis
 export SpaceGroup, SymOperation, Crystal, # types
        Irrep, MultTable, LGIrrep, KVec,
@@ -42,6 +46,9 @@ export parseisoir, parselittlegroupirreps,
 include("lattices.jl")
 export levelsetlattice, plotfourier, plotiso
 
-#include("crawl_kvecs.jl")
+include("bandrep.jl")
+export BandRep, BandRepSet, 
+       html2dlm, html2array, html2struct, html2dlm,
+       crawlbandreps, bandreps
 
 end # module

@@ -3,8 +3,8 @@ const BYTES_PER_KCHAR = 3
 const BYTES_PER_KVEC  = 16*BYTES_PER_KCHAR;
 
 
-parseisoir(T::Type{Real}) = parseisoir(Float64)         # just for being able to call it without thinking about Float64 or not...
-parseisoir(T::Type{Complex}) = parseisoir(ComplexF64)
+parseisoir(T::Type{Real}) = parseisoir(Float64)         # just for being able to call it with Real or Complex
+parseisoir(T::Type{Complex}) = parseisoir(ComplexF64)   # as input rather than Float64 and ComplexF64
 
 function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64} #, verbose=false
     datatag = if T <: Real; "PIR"; elseif T <: Complex; "CIR"; end   
@@ -125,7 +125,6 @@ end
     of the split elements, with elements parsed as type `T`.
     E.g. `parsespaced(Int64, "  1  2  5") = [1, 2, 5]`
 """
-#@inline parsespaced(T::Type, s::AbstractString) = parse.(T, split(s, r"\s+", keepempty=false))
 @inline function parsespaced(T::Type{<:Number}, s::AbstractString) 
     spacesplit=split(s, r"\s+", keepempty=false)
     if T <: Complex
