@@ -112,37 +112,92 @@ end
 KVec(k₀::Vector{T}) where T<:Real = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
 parts(kv::KVec) = (kv.k₀, kv.kabc)
 isspecial(kv::KVec) = iszero(kv.kabc)
-(kv::KVec)(αβγ::Vector{Float64}) = begin
+(kv::KVec)(αβγ::Vector{<:Real}) = begin
     k₀, kabc = parts(kv)
     return k₀ + kabc*αβγ
 end
+(kv::KVec)(αβγ::Vararg{<:Real, 2}) = kv([αβγ[1], αβγ[2]])
+(kv::KVec)(αβγ::Vararg{<:Real, 3}) = kv([αβγ[1], αβγ[2], αβγ[3] ])
 (kv::KVec)() = kv.k₀
 (kv::KVec)(::Nothing) = kv.k₀
 
 function string(kv::KVec)
     k₀, kabc = parts(kv)
+    buf = IOBuffer()
+    write(buf, "[")
     if isspecial(kv)
-        return string(k₀)
+        for i in eachindex(k₀) 
+            @printf(buf, "%g", k₀[i])
+            # prepare for next coordinate/termination
+            i == length(k₀) ? write(buf, "]") : write(buf, ", ")
+        end
     else
-        buf = IOBuffer()
-        write(buf, "[")
         for i in eachindex(k₀)
-            write(buf, @sprintf("%g", k₀[i]))
-            for j in eachindex(k₀)
+            # fixed parts
+            if !iszero(k₀[i]) || iszero(@view kabc[i,:]) # don't print zero, if it adds unto anything nonzero
+                @printf(buf, "%g", k₀[i])
+            end
+            # free-parameter parts
+            for j in eachindex(k₀) 
                 if !iszero(kabc[i,j])
-                    write(buf, signaschar(kabc[i,j]))
-                    if abs(kabc[i,j]) != oneunit(eltype(kabc))
-                        write(buf, @sprintf("%g", abs(kabc[i,j])))
+                    sgn = signaschar(kabc[i,j])
+                    if !(iszero(k₀[i]) && sgn=='+' && iszero(kabc[i,1:j-1])) # don't print '+' if nothing precedes it
+                        write(buf, sgn)
+                    end
+                    if abs(kabc[i,j]) != oneunit(eltype(kabc)) # don't print prefactors of 1
+                        @printf(buf, "%g", abs(kabc[i,j]))
                     end
                     write(buf, j==1 ? 'α' : (j == 2 ? 'β' : 'γ'))
                 end
             end
+            # prepare for next coordinate/termination
             i == length(k₀) ? write(buf, "]") : write(buf, ", ")
         end
-        return String(take!(buf))
     end
+    return String(take!(buf))
 end
 show(io::IO, ::MIME"text/plain", kv::KVec) = print(io, string(kv))
+
+""" 
+    KVec(str::AbstractString)
+
+    Reads a string representations of a k-vector, supplied in either of the formats
+        (x,y,z), [x,y,z], x,y,z
+    where the coefficients {x,y,z} can contain fractions, decimal numbers, and "free"
+    parameters {α,β,γ} (or, alternatively, {u,v,w}). Returns the associated KVec.
+    Any "fixed"/constant part of a coordinate _must_ precede any free parts, e.g.,
+    1+α is allowable but α+1 is not.
+"""
+function KVec(str::AbstractString)
+    xyz = split(strip(str, ['(',')','[',']']),',')
+    dim = length(xyz)
+    k₀ = zeros(Float64, dim); kabc = zeros(Float64, dim, dim)
+    for (i, coord) in enumerate(xyz)
+        # "free" coordinates, kabc[i,:]
+        for (j, matchgroup) in enumerate([['α','u'],['β','v'],['γ','w']])
+            pos₂ = findfirst(x->any(y->y==x, matchgroup), coord)
+            if !isnothing(pos₂)
+                match = searchpriornumerals(coord, pos₂)
+                kabc[i,j] = parse(Float64, match)
+            end
+        end
+
+        # "fixed" coordinate, k₀[i]
+        if !any(x->x==last(first(split(coord, r"\b(\+|\-)"))), ['α','u','β','v','γ','w']) # check for situations like '±3α' which is not handled by logic below
+            nextidx = 0
+            while (nextidx=nextind(coord, nextidx)) ≤ lastindex(coord) && !any(x->coord[nextidx]==x, ['α','u','β','v','γ','w'])
+                if nextidx != 1 && any(x->coord[nextidx]==x, ['+','-'])
+                    break
+                else 
+                end
+            end
+            if nextidx != firstindex(coord)
+                k₀[i] = parsefraction(coord[firstindex(coord):prevind(coord,nextidx)])
+            end
+        end
+    end
+    return KVec(k₀, kabc)
+end
 
 # Space group irreps
 abstract type AbstractIrrep end
@@ -177,7 +232,7 @@ translations(ir::AbstractIrrep) = ir.translations
 struct LGIrrep <: AbstractIrrep
     sgnum::Int64 # space group number
     cdml::String # CDML label of irrep (including k-point label)
-    k::KVec
+    kv::KVec
     ops::Vector{SymOperation} # every symmetry operation in little group (modulo primitive 𝐆)
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
@@ -199,7 +254,7 @@ function irreps(ir::LGIrrep, αβγ::Union{Vector{Float64},Nothing})
     return P
 end
 irreps(ir::LGIrrep) = irreps(ir, nothing)
-kvec(ir::LGIrrep)   = ir.k
+kvec(ir::LGIrrep)   = ir.kv
 isspecial(ir::LGIrrep) = isspecial(kvec(ir))
 issymmorph(ir::LGIrrep) = all(issymmorph.(operations(ir)))
 
@@ -257,15 +312,58 @@ function findirrep(LGIR, sgnum::Integer, cdml::String)
 end
 
 
-
-function printboxchar(io, i, N)
-    if i == 1
-        print(io, "╭") #┌
-    elseif i == N
-        print(io, "╰") #┕
-    else
-        print(io, "│")
-    end
+# band representations
+struct BandRep
+    wyckpos::String  # Wyckoff position that induces the BR
+    sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
+    label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
+    dim::Integer     # Dimension (i.e. # of bands) in band rep
+    decomposable::Bool  # Whether a given bandrep can be decomposed further
+    spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
+    irreptags::Vector{String}
+end
+wyck(BR::BandRep)    = BR.wyckpos
+sitesym(BR::BandRep) = BR.sitesym
+label(BR::BandRep)   = BR.label
+dim(BR::BandRep)     = BR.dim
+rep(BR::BandRep)     = BR.irreptags
+function show(io::IO, ::MIME"text/plain", BR::BandRep)
+    print(label(BR), " (", dim(BR), "):")
+    join(io, rep(BR), " | ")
 end
 
-#println("LGIrrep for space group ", num(lgir), " at ", num)
+struct BandRepSet
+    sgnum::Integer          # space group number, sequential
+    bandreps::Vector{BandRep}
+    kvs::Vector{KVec}       # Vector of 𝐤-points
+    klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
+    allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
+    spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
+end
+num(BRS::BandRepSet)    = BRS.sgnum
+labels(BRS::BandRepSet) = BRS.klabs
+kvecs(BRS::BandRepSet)  = BRS.kvs
+hasnonmax(BRS::BandRepSet) = BRS.allpaths
+isspinful(BRS::BandRepSet) = BRS.spinful
+reps(BRS::BandRepSet)   = BRS.bandreps
+length(BRS::BandRepSet) = length(reps(BRS))
+getindex(BRS::BandRepSet, keys...) = reps(BRS)[keys...]
+lastindex(BRS::BandRepSet, d::Int64) = length(BRS)
+
+
+function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
+    println("BandRepSet (#$(num(BRS))):")
+    println("k-vecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")):")
+    for (lab,kv) in zip(labels(BRS), kvecs(BRS))
+        print(io,"   ", lab, ": "); show(io, "text/plain", kv); println()
+    end
+
+    maxlen = maximum(x->length(label(x))+ndigits(dim(x)), reps(BRS))+3
+    println("$(length(BRS)) band representations ($(isspinful(BRS) ? "spinful" : "spinless")):")
+    for (i,BR) in enumerate(reps(BRS))
+        print(io, "   ", label(BR), " (", dim(BR), "):", " "^(maxlen-length(label(BR))-ndigits((dim(BR)))-2))
+        join(io, rep(BR), " | ")
+
+        if i != length(BRS); println(); end
+    end
+end
