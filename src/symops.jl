@@ -300,7 +300,7 @@ function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::B
             # --- If 𝐤 is on the BZ boundary and if the little group is nonsymmorphic ---
             # --- the representation could be a ray representation (see Inui, p. 89), ---
             # --- such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(i*𝐤⋅𝐭₀) where ---
-            # --- 𝐭₀ is a lattice vector 𝐭₀ = τᵢ + βᵢτⱼ - τₖ, for symmetry operations ---
+            # --- 𝐭₀ is a lattice vector 𝐭₀ = τᵢ + βᵢτⱼ - τₖ, for symmetry operations  ---
             # --- {βᵢ|τᵢ}. To ensure we capture this, we include this phase here.     ---
             # --- See Inui et al. Eq. (5.29) for explanation.                         ---
             t₀ = translation(ops[row]) + pg(ops[row])*translation(ops[col]) - translation(ops[mtidx])
@@ -334,8 +334,8 @@ end
 # (in the direct {𝐑} and reciprocal {𝐆} bases, respectively), we have to take 
 # a little extra care here. Consider each side of the equation 𝐤ᵀ = 𝐤ᵀg⁻¹, 
 # originally written in Cartesian coordinates, and rewrite each Cartesian term
-# through basis-transformation to a representation we know*
-#  in the bases we know (w/ P(𝐗) denote a matrix with columns of 𝐗):
+# through basis-transformation to a representation we know (w/ P(𝐗) denoting 
+# a matrix with columns of 𝐗m that facilitates this transformation):
 #   𝐤ᵀ = [P(𝐆)𝐤(𝐆)]ᵀ = 𝐤(𝐆)ᵀP(𝐆)ᵀ                    (1)
 #   𝐤ᵀg⁻¹ = [P(𝐆)𝐤(𝐆)]ᵀ[P(𝐑)g(𝐑)P(𝐑)⁻¹]⁻¹
 #         = 𝐤(𝐆)ᵀP(𝐆)ᵀ[P(𝐑)⁻¹]⁻¹g(𝐑)⁻¹P(𝐑)⁻¹

@@ -200,6 +200,41 @@ function matrix(BRS::BandRepSet)
 end 
 
 
+"""
+    classification(BRS::BandRepSet) --> String
+
+    Calculate the symmetry indicator classification of a band representation 
+    set, meaning the index-classification inferrable on the basis of symmetry
+    alone.
+    Technically, the calculation answers a question like "what direct product 
+    of Zₙ groups is the the quotient group Xᵇˢ = {BS}/{AI} isomorphic to?".
+    See Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017).
+"""
+function classification(BRS::BandRepSet)
+    Λ = smith(matrix(BRS)).SNF # get the diagonal components of the Smith normal decomposition
+    Λ .= abs.(Λ) # the sign has no significance; can be absorbed in T or S if M = T⁻¹ΛS
+    nontriv_idx = findall(x-> !(isone(x) || iszero(x)), Λ)
+    if isempty(nontriv_idx)
+        return "Z₁"
+    else
+        return ("Z"*join(subscriptify.(string.(sort(@view Λ[nontriv_idx]))), "×Z"))
+    end
+end
+
+"""
+    basisdim(BRS::BandRepSet) --> Int64
+
+    Computes the dimension of the (linearly independent parts) of a 
+    band representation set. This is dᵇˢ = dᵃⁱ in the notation of 
+    Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017). In other words,
+    this is the number of linearly independent basis vectors that span the 
+    expansions of a band structure or atomic insulator viewed as symmetry-data.
+""" 
+function basisdim(BRS::BandRepSet)
+    Λ = smith(matrix(BRS)).SNF
+    nnz = sum(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix, equal to 
+    return nnz
+end
 
 # misc minor utility functions
 function split_paren(str::AbstractString)

@@ -50,6 +50,7 @@ export levelsetlattice, plotfourier, plotiso
 include("bandrep.jl")
 export BandRep, BandRepSet, 
        html2dlm, html2array, html2struct, html2dlm,
-       crawlbandreps, bandreps, matrix
+       crawlbandreps, bandreps, matrix, 
+       classification, basisdim
 
 end # module
