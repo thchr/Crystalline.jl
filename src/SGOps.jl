@@ -4,7 +4,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       JSON2, StaticArrays, Makie, TimerOutputs, 
       Printf, DelimitedFiles, SmithNormalForm
 import Base: getindex, lastindex, ∘, ==, string,
-             length, readuntil, vec
+             length, readuntil, vec, show
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 
@@ -15,6 +15,7 @@ include("utils.jl") # useful utility methods (seldom needs exporting)
 include("types.jl") # defines useful types for space group symmetry analysis
 export SpaceGroup, SymOperation, Crystal, # types
        Irrep, MultTable, LGIrrep, KVec,
+       BandRep, BandRepSet, 
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
        getindex, pg, translation, 
@@ -25,7 +26,9 @@ export SpaceGroup, SymOperation, Crystal, # types
        label, isspecial, kstar,
        translations, findirrep,
        israyrep,
-       string, parts                      # ::KVec
+       string, parts,                     # ::KVec
+       vec, irreplabels, reps,            # ::BandRep & ::BandRepSet 
+       isspinful
 
 include("notation.jl")
 export schoenflies, hermannmauguin, iuc, centering
@@ -48,9 +51,8 @@ include("lattices.jl")
 export levelsetlattice, plotfourier, plotiso
 
 include("bandrep.jl")
-export BandRep, BandRepSet, 
-       html2dlm, html2array, html2struct, html2dlm,
-       crawlbandreps, bandreps, matrix, 
-       classification, basisdim
+export crawlbandreps, dlm2struct, 
+       bandreps, 
+       matrix, classification, basisdim
 
 end # module
