@@ -253,7 +253,7 @@ function gen_crystal(sgnum::Integer, dim=3;
             a = b = 1.0;        c = relrand(abclims)
             α = β = °(90);      γ = °(120)
         elseif system == "trigonal"   # TODO 
-            error("The trigonal case is not yet well thought-out")
+            error("The trigonal case (143-167) is not yet well thought-out")
             # rhombohedral axes                   (a = b = c, α=β=γ < 120° ≠ 90° ?)
             # hexagonal axes, triple obverse axes (a = b ≠ c, α=β=90°, γ=120° ?)
             # maybe consult http://img.chem.ucl.ac.uk/sgp/large/sgp.htm and 

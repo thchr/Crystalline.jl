@@ -226,7 +226,7 @@ issymmorph(sg::SpaceGroup) = all(issymmorph.(operations(sg)))
     Checks whether a given space group `sgnum` is symmorphic (true) or
     nonsymmorphic (false)
 """
-issymmorph(sgnum::Integer, dim=3) = issymmorph(get_symops(sgnum, dim; verbose=false))
+issymmorph(sgnum::Integer, dim::Integer=3) = issymmorph(get_symops(sgnum, dim; verbose=false))
 
 # ----- GROUP ELEMENT COMPOSITION -----
 """ 
@@ -340,11 +340,11 @@ end
 #   𝐤ᵀg⁻¹ = [P(𝐆)𝐤(𝐆)]ᵀ[P(𝐑)g(𝐑)P(𝐑)⁻¹]⁻¹
 #         = 𝐤(𝐆)ᵀP(𝐆)ᵀ[P(𝐑)⁻¹]⁻¹g(𝐑)⁻¹P(𝐑)⁻¹
 #         = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹                       (2)
-# (1+2): 𝐤(𝐆)ᵀP(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹
-#     ⇔ 𝐤(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[P(𝐆)ᵀ]⁻¹ 
-#              = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[2πP(𝐑)⁻¹]⁻¹
-#              = 𝐤(𝐆)ᵀg(𝐑)⁻¹
-#     ⇔  𝐤(𝐆) = [g(𝐑)⁻¹]ᵀ𝐤(𝐆) = [g(𝐑)ᵀ]⁻¹𝐤(𝐆) 
+# (1+2): 𝐤′(𝐆)ᵀP(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹
+#     ⇔ 𝐤′(𝐆)ᵀ = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[P(𝐆)ᵀ]⁻¹ 
+#               = 𝐤(𝐆)ᵀ2πg(𝐑)⁻¹P(𝐑)⁻¹[2πP(𝐑)⁻¹]⁻¹
+#               = 𝐤(𝐆)ᵀg(𝐑)⁻¹
+#     ⇔  𝐤′(𝐆) = [g(𝐑)⁻¹]ᵀ𝐤(𝐆) = [g(𝐑)ᵀ]⁻¹𝐤(𝐆) 
 # where we have used that P(𝐆)ᵀ = 2πP(𝐑)⁻¹ several times. Importantly, this
 # essentially shows that we can consider g(𝐆) and g(𝐑) mutually interchangeable
 # in practice.
@@ -358,14 +358,6 @@ end
 # [      v(C) = P(𝐗)v(𝐗)
 # [    while an operator O(𝐗) corresponds to a Cartesian operator O(C)≡O via
 # [      O(C) = P(𝐗)O(𝐗)P(𝐗)⁻¹
-#
-# TODO: The above could also impact routines in `genlattice(...)`, where
-# I believe we incorporated this erroneously. There's a very good chance that
-# it will make no real difference because it essentially corresponds to working
-# with g⁻¹ initially rather than g; since both must be members of the (little 
-# or space) group simultaneously, it could be that the difference is only 
-# superficial in the end. It could be problematic if we hope to establish
-# a meaningful inter-transformation labelling at some point though.
 function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
     idxlist = [1]
     checkabc = !iszero(kabc)

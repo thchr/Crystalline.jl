@@ -47,35 +47,28 @@ end
 
 
 
-
+const NULL_ATOL = 1e-11
+# Group orbits of plane waves G = (ijk)ᵀ under a symmetry operation Ô = {W|w}, 
+# using that Ô acts as Ô⁻¹={W⁻¹|-W⁻¹w} when acting on functions, i.e.
+#   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
+# and 
+#   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
 function levelsetlattice(sgnum::Int64, dim::Int64=2, 
                          idxmax::NTuple=ntuple(i->2,dim))
     sg = get_symops(sgnum, dim)
-    C = gen_crystal(sgnum, dim)
-    R = basis(C)
-    G = reciprocalbasis(R)
+    C = gen_crystal(sgnum, dim) # TODO; we don't need to generate the lattice here; could be factored out
 
     symops = operations(sg)
-    Wops = pg.(symops) # operations W in R-basis (point group part)
-    PR = hcat(R...) # matrix with cols of R[i]; rCartesian = PR*rDirect
-    PG = hcat(G...) # matrix with cols of G[i]; gCartesian = PG*gDirect
-    
-    #= # sym ops in a direct G basis (e.g., [1,1,0] means G₁-G₂); basis change 
-       # via W' = PG⁻¹*PR*W*PR⁻¹*PG = iPGPR*W*iPGPR⁻¹
-       iPGPR = PG\PR # PG⁻¹*PR
-       Wops_Gbasis = [iPGPR*op/iPGPR for op in Wops]  =#
-    PGᵀPR = PG'*PR  # (⋆)  TODO: this is actually just 2πI since PGᵀ = 2πPR⁻¹ by definition ...  
-                    # (⋆⋆) TODO: Actually, this may suggest a deeper problem; see the TODO before littlegroup(..) in bravais.jl
-    # Calculates the operators (W⁻¹)ᵀ in the G-basis; note that although
-    # the transformations are orthogonal in the Cartesian basis (i.e. W⁻¹=Wᵀ),
-    # this is not generally the case in other bases. Here, what we are really
-    # manipulating is (this is what we need to be invariant essentially)
-    #   exp[idot(G, W⁻¹r)] = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀr}
-    # so we define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
-    W⁻¹ᵀops_Gbasis = [(PGᵀPR*op)/PGᵀPR for op in Wops] 
-    # TODO: due to (⋆), we actually end up getting W⁻¹ᵀops_Gbasis = Wops, so this could 
-    # all be removed and replaced by appropriate comments... Requires that (⋆⋆) isn't a concern though.
-    
+    Ws = pg.(symops) # operations W in R-basis (point group part)
+    ws = translation.(symops)
+
+    # we define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
+    # Calculates the operators (W⁻¹)ᵀ in the G-basis:
+    # The action of a symmetry operator in an 𝐑-basis, i.e. W(𝐑), on a 𝐤 vector in a 
+    # 𝐆-basis, i.e. 𝐤(𝐆), is 𝐤′(𝐆)ᵀ = 𝐤(𝐆)ᵀW(𝐑)⁻¹. To deal with column vectors, we 
+    # transpose, obtaining 𝐤′(𝐆) = [W(𝐑)⁻¹]ᵀ𝐤(𝐆) [details in symops.jl, above littlegroup(...)].
+    W⁻¹ᵀs = transpose.(inv.(Ws))
+
     # if idxmax is interpreted as (imax, jmax, ...), then this produces an iterator
     # over i = -imax:imax, j = -jmax:jmax, ..., where each call returns (..., j, i); 
     # note that the final order is anti-lexicographical; so we reverse it in the actual
@@ -92,7 +85,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
         end
         skip && continue
         
-        neworb = orbit(W⁻¹ᵀops_Gbasis, ijk) # compute orbit assoc with ijk-combination
+        neworb = orbit(W⁻¹ᵀs, ijk) # compute orbit assoc with ijk-combination
         # the symmetry transformation may introduce round-off errors, but we know that 
         # the indices must be integers; fix that here, and check its validity as well
         neworb′ = [round.(Int64,ijk′) for ijk′ in neworb] 
@@ -102,34 +95,30 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
         push!(ijkorbits, neworb′) # add orbit to list of orbits
     end
 
-    # compute restrictions on orbit coefficients due to any nonsymmorphic elements
-    # in the space group
-    #if !issymmorph(sg)
-    wops = translation.(symops)
-    # calculate inverse translation: this is equal to -W⁻¹w; we do it first 
-    # in the direct R basis, and then transform to Cartesian basis
-    W⁻¹w = [PR*(W\w) for (W,w) = zip(Wops, wops)] 
-
+    # --- restrictions on orbit coeffs. due to nonsymmorphic elements in space group ---
     orbcoefs = Vector{Vector{ComplexF64}}()
     deleteidx = Vector{Int64}()
     for (o,orb) in enumerate(ijkorbits)
         start = true; prevspan = []
-        for (Wop, wop) in zip(W⁻¹ᵀops_Gbasis, W⁻¹w)
+        for (W⁻¹ᵀ, w) in zip(W⁻¹ᵀs, ws)
             conds = zeros(ComplexF64, length(orb), length(orb))
             for (m, ijk) in enumerate(orb)
-                ijk′ = Wop*ijk  # where the ijk is transformed to by Wop
+                ijk′ = W⁻¹ᵀ*ijk  # planewave ijk is transformed to by W⁻¹ᵀ
                 diffs = norm.(Ref(ijk′) .- orb); 
                 n = argmin(diffs) # find assoc linear index in orbit
-                diffs[n] > 1e-10 && error("Part of an orbit was miscalculated")
-                conds[n,m] = exp(-1im*dot(PG*ijk, wop)) 
+                diffs[n] > 1e-10 && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
+                # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
+                # is equivalent to exp[-i(W⁻¹ᵀG)w]. We use the latter, so we avoid an
+                # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(ijk′, w)]
+                conds[n,m] = exp(-1im*2π*dot(ijk′, w)) 
             end
 
-            nextspan = nullspace(conds-I, atol=1e-12)
-            if start 
+            nextspan = nullspace(conds-I, atol=NULL_ATOL)          
+            if start
                 prevspan = nextspan
                 start = false
             elseif !isempty(prevspan) && !isempty(nextspan)
-                spansect = nullspace([prevspan -nextspan], atol=1e-12)[size(prevspan, 2)+1:end,:]
+                spansect = nullspace([prevspan -nextspan], atol=NULL_ATOL)[size(prevspan, 2)+1:end,:]
                 prevspan = nextspan*spansect
             else
                 prevspan = nothing; break
@@ -146,7 +135,6 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
         end
     end
 
-    ijkorbits_forbidden = ijkorbits[deleteidx]
     deleteat!(ijkorbits, deleteidx)
 
     # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest ijk-combinations come last)
@@ -154,29 +142,29 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
     permute!(ijkorbits, perm)
     permute!(orbcoefs, perm)
 
-    return ijkorbits, orbcoefs, R
+    return ijkorbits, orbcoefs, basis(C)
 end
 
 
 """
-    orbit(Wops, x)
+    orbit(Ws, x)
 
-    Computes the orbit of `x` under a set of point-group operations `Wops`,
+    Computes the orbit of `x` under a set of point-group operations `Ws`,
     i.e. computes the set `{gx | g∈G}` where `g` denotes elements of the group
-    `G` composed of all operations in `Wops` (possibly iterated, to ensure
+    `G` composed of all operations in `Ws` (possibly iterated, to ensure
     full coverage).
     At the moment, we only consider _point group_ operations; i.e. there are 
-    no nonsymmorphic `wops` parts. 
-    It is important that `Wops` and `x` are given in the same basis. 
+    no nonsymmorphic `Ws` parts. 
+    It is important that `Ws` and `x` are given in the same basis. 
     [W' = PWP⁻¹ if the basis change is from coordinates r to r' = Pr, corresponding 
     to a new set of basis vectors (x̂')ᵀ=x̂ᵀP; e.g., when going from a direct basis
     representation to a Cartesian one, the basis change matrix is P = [R₁ R₂ R₃],
     with Rᵢ inserted as column vectors]
 """
-function orbit(Wops, x)
+function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<:Real})
     fx = float.(x)
     xorbit = [fx]
-    for W in Wops
+    for W in Ws
         x′ = fx
         while true
             x′ = W*x′
