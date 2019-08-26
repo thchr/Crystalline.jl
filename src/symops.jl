@@ -36,17 +36,15 @@ end
           choices, within the orthorhombic, tetragonal and cubic systems.
 """
 function get_symops(sgnum::Integer, dim::Integer=3; verbose::Bool=false)
-    if verbose; print(sgnum, "\n"); end
+    if verbose; print(sgnum, '\n'); end
     sgops_str = read_symops_xyzt(sgnum, dim)
     symops =  SymOperation.(sgops_str)
 
     return SpaceGroup(sgnum, symops, dim)
 end
 
-
-
 function xyzt2matrix(s::String)
-    ssub = split(s,",")
+    ssub = split(s, ",")
     dim = length(ssub)
     xyzt2matrix!(zeros(Float64, dim, dim+1), ssub)
 end
@@ -136,15 +134,24 @@ function stripnum(s)
 end
 
 
-# Implementation based on ITA Vol. A, Table 11.2.1.1, using the table (for 3D)
-#      _______________________________________________
-#     |_detW_\_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
-#     |    1       |    |    |  2 |  3 |  4 |  6 |  1 |
-#     |___-1_______|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
-#
-# with the elements of the table giving the type of symmetry operation 
-# in Hermann-Mauguin notation.
-# TODO: So far, we only attempted for 3D.
+
+
+""" 
+    seitz(op::SymOperation) --> String
+
+    Computes the correponding Seitz notation for a symmetry operation in 
+    coordinate form.
+
+    Implementation based on ITA Vol. A, Table 11.2.1.1, using the table (for 3D)
+         ________________________________________________
+        |_detW_\\_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
+        |    1        |    |    |  2 |  3 |  4 |  6 |  1 |
+        |___-1________|_-1_|_-6_|_-4_|_-3_|__m_|____|____|   
+    with the elements of the table giving the type of symmetry operation in
+    in Hermann-Mauguin notation.
+    TODO: So far, we only attempted for 3D; 2D can probably be gotten from there by having z=z. 
+    TODO: Finish axis and sense implementations.
+"""
 function seitz(op::SymOperation)
     W = pg(op); w = translation(op)
 
@@ -153,62 +160,63 @@ function seitz(op::SymOperation)
     trW  = tr(W);  trW′,  trW  = trW, round(Int64, trW)   # tr, then round & flip
     trW′ ≈ trW || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}"))
 
+    # rotation order (and proper/improper determination)
     if detW == 1 # proper rotations
-        # order of rotation
         if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
-            seitz_str = string(Char(0x33+trW)) # 0x33 (UInt8) corresponds to '3' in unicode and trW=0; then we move forward/backward by adding/subtracting trW
+            rot_str = string(Char(0x33+trW)) # 0x33 (UInt8) corresponds to '3' in unicode and trW=0; then we move forward/backward by adding/subtracting trW
         elseif trW == 2 # 6-fold rotation
-            seitz_str = "6"
+            rot_str = "6"
         elseif trW == 3 # identity operation
-            seitz_str = "1"
+            rot_str = "1"
         else 
-            throw_seitzerror(trW, detW)
+            _throw_seitzerror(trW, detW)
         end
-    elseif detW == -1 # rotoinversions
-        # order of rotation
+    elseif detW == -1 # improper rotations (rotoinversions)
         if trW == -3    # inversion
-            seitz_str = "-1"
+            rot_str = "-1"
         elseif trW == -2 # 6-fold rotoinversion
-            seitz_str = "-6"
+            rot_str = "-6"
         elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
-            seitz_str = string('-', Char(0x33-trW)) # same as before, now we subtract/add to move forward/backward
-        elseif trW == 1  # mirror
-            seitz_str = "m"
+            rot_str = string('-', Char(0x33-trW)) # same as before, now we subtract/add to move forward/backward
+        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
+            rot_str = "m"
         else
-            throw_seitzerror(trW, detW)
+            _throw_seitzerror(trW, detW)
         end
     end
 
     #=
-        # axis of rotation 
-        # solve for {W|w}²𝐱=𝐱 ⇔ {W²|Ww+w}𝐱=𝐱 ⇔ (W²-I)𝐱=-Ww-w; 𝐱 is the axis
-        if -2 ≤ trW ≤ 0
-            W′ = W^2; w′ = W*w.+w
+    # rotation axis 
+    # solve for {W|w}²𝐱=𝐱 ⇔ {W²|Ww+w}𝐱=𝐱 ⇔ (W²-I)𝐱=-Ww-w; 𝐱 is the axis
+    if -2 ≤ trW ≤ 0
+        W′ = W^2; w′ = W*w.+w
 
-            hom = vec(nullspace(W′))
-            idx = findall(hom); 
-            # TODO: will not work with diagonal axes...
-            length(idx) > 1 && throw(ArgumentError("The axis of rotation cannot be found"))
-            idx = first(idx)
-            axis_char = idx == 1 ? 'x' : (idx == 2 ? 'y' : 'z')
+        hom = vec(nullspace(W′))
+        idx = findall(hom); 
+        # TODO: will not work with diagonal axes...
+        length(idx) > 1 && throw(ArgumentError("The axis of rotation cannot be found"))
+        idx = first(idx)
+        axis_char = idx == 1 ? 'x' : (idx == 2 ? 'y' : 'z')
 
-            !iszero(w′[idx]) && throw(ArgumentError("The axis of rotation cannot be found"))
-            keep=filter(x->x!=idx, 1:3)
-            inhom = W′[[keep],[keep]]\w′[[keep]]
-            if iszero(inhom) # axis is at origin
-                axis_str = string(axis_char))
-            else # axis is not at origin
-                axis_str = string(axis_char))*
+        !iszero(w′[idx]) && throw(ArgumentError("The axis of rotation cannot be found"))
+        keep=filter(x->x!=idx, 1:3)
+        inhom = W′[[keep],[keep]]\w′[[keep]]
+        if iszero(inhom) # axis is at origin
+            axis_str = string(axis_char))
+        else # axis is not at origin
+            axis_str = string(axis_char))*
     =#
+
+    # rotation sense (for order ≠ {1,2})
+    # ...
     
     if !iszero(w)
-        return '{'*seitz_str*'|'*join(string.(w),',')*'}'
+        return '{'*rot_str*'|'*join(unicode_frac.(w),',')*'}'
     else
-        return seitz_str
+        return '{'*rot_str*"|0}"
     end
 end
-throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA Vol A, Table 11.2.1.1"))
-
+_throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA Vol A, Table 11.2.1.1"))
 
 
 
@@ -358,7 +366,7 @@ end
 # [      v(C) = P(𝐗)v(𝐗)
 # [    while an operator O(𝐗) corresponds to a Cartesian operator O(C)≡O via
 # [      O(C) = P(𝐗)O(𝐗)P(𝐗)⁻¹
-function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
+function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr::Char='P')
     idxlist = [1]
     checkabc = !iszero(kabc)
     dim = length(k₀)
@@ -375,10 +383,10 @@ function littlegroup(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀))
     end
     return idxlist, view(symops, idxlist)
 end
-littlegroup(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr='P') = littlegroup(operations(sg), k₀, kabc, cntr)
-littlegroup(symops::Vector{SymOperation}, kv::KVec, cntr='P') = littlegroup(symops, parts(kv)..., cntr)
+littlegroup(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr::Char='P') = littlegroup(operations(sg), k₀, kabc, cntr)
+littlegroup(symops::Vector{SymOperation}, kv::KVec, cntr::Char='P') = littlegroup(symops, parts(kv)..., cntr)
 
-function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr='P')
+function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cntr::Char='P')
     kstar = [KVec(k₀, kabc)]
     checkabc = !iszero(kabc)
     dim = length(k₀)
@@ -387,9 +395,10 @@ function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cn
         kabc′ = checkabc ? pg(op)'\kabc : kabc
 
         oldkbool = false
-        for (k₀′′,kabc′′) in kstar
+        for kv′′ in kstar
+            k₀′′,kabc′′ = parts(kv′′)
             diff = k₀′ .- k₀′′
-            diff = primitivebasismatrix(cntr, dim)'*diff # TODO, generalize to 2D
+            diff = primitivebasismatrix(cntr, dim)'*diff
             kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=1e-11) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
             oldkbool |= (kbool && abcbool) # means we've haven't already seen this k-vector (mod G)
@@ -401,7 +410,8 @@ function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cn
     end
     return kstar
 end
-starofk(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr='P')  = starofk(operations(sg), k₀, kabc, cntr)
-starofk(symops::Vector{SymOperation}, kv::KVec, cntr='P') = starofk(symops, parts(kv)..., cntr)
+starofk(sg::SpaceGroup, k₀, kabc=zero(eltype(k₀)), cntr::Char='P')  = starofk(operations(sg), k₀, kabc, cntr)
+starofk(symops::Vector{SymOperation}, kv::KVec, cntr::Char='P') = starofk(symops, parts(kv)..., cntr)
+starofk(sg::SpaceGroup, kv::KVec, cntr::Char='P') = starofk(operations(sg), parts(kv)..., cntr)
 
 

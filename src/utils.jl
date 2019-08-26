@@ -15,18 +15,16 @@ function parsefraction(str)
 end
 
 
+"""
+    isapproxin(x, itr) --> Bool
+
+    Determine whether `x` ∈ `itr` with approximate equality.
+"""
+isapproxin(x, itr) = any(y->y≈x, itr)
 
 
-function printboxchar(io, i, N)
-    if i == 1
-        print(io, "╭") #┌
-    elseif i == N
-        print(io, "╰") #┕
-    else
-        print(io, "│")
-    end
-end
 
+# --- UNICODE FUNCTIONALITY ---
 const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>'₅',  # digits
                            '6'=>'₆', '7'=>'₇', '8'=>'₈', '9'=>'₉', '0'=>'₀',
                            'a'=>'ₐ', 'e'=>'ₑ', 'h'=>'ₕ', 'i'=>'ᵢ', 'j'=>'ⱼ',  # letters (missing several)
@@ -81,6 +79,42 @@ function normalizesubsup(c::Char)
     end
 end
 
+function unicode_frac(x::Number)
+    xabs=abs(x)
+    if     xabs == 0;   return "0" # early termination for common case & avoids undesirable sign for -0.0
+    elseif xabs ≈ 1/2;  xstr = "½"
+    elseif xabs ≈ 1/3;  xstr = "⅓"
+    elseif xabs ≈ 2/3;  xstr = "⅔"
+    elseif xabs ≈ 1/4;  xstr = "¼"
+    elseif xabs ≈ 3/4;  xstr = "¾"
+    elseif xabs ≈ 1/5;  xstr = "⅕"
+    elseif xabs ≈ 2/5;  xstr = "⅖"
+    elseif xabs ≈ 3/5;  xstr = "⅗"
+    elseif xabs ≈ 4/5;  xstr = "⅘"
+    elseif xabs ≈ 1/6;  xstr = "⅙"
+    elseif xabs ≈ 5/6;  xstr = "⅚"
+    elseif xabs ≈ 1/7;  xstr = "⅐"
+    elseif xabs ≈ 1/8;  xstr = "⅛"
+    elseif xabs ≈ 3/8;  xstr = "⅜"
+    elseif xabs ≈ 5/8;  xstr = "⅝"
+    elseif xabs ≈ 7/8;  xstr = "⅞"
+    elseif xabs ≈ 1/9;  xstr = "⅑"
+    elseif xabs ≈ 1/10; xstr = "⅒"
+    else xstr = @sprintf("%g",xabs) # return a conventional string representation
+    end
+    return signbit(x) ? "-"*xstr : xstr
+end
+
+function printboxchar(io, i, N)
+    if i == 1
+        print(io, "╭") #┌
+    elseif i == N
+        print(io, "╰") #┕
+    else
+        print(io, "│")
+    end
+end
+
 
 
 function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
@@ -95,3 +129,8 @@ function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     end
     return String(take!(buf))
 end
+
+
+
+
+
