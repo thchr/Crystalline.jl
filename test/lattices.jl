@@ -2,17 +2,26 @@ using SGOps, PyPlot, AbstractPlotting, MAT
 
 # 2D lattices
 plt.close("all")
-sgnum = 1; dim = 2; idxmax = (2,2)
+sgnum = 4; dim = 2; idxmax = (2,2)
 N = 100 # number of points per dimension
 expon = .5 # exponent for fall off in coefficients
 filling = 0.5
+repeat = 2
 
-ijkorbits, orbcoefs, R = levelsetlattice(sgnum, dim, idxmax)
-plotfourier(ijkorbits, orbcoefs, R, N, expon, filling)
-display(plt.gcf().show());
+for sgnum = 1:17
+    global flat = levelsetlattice(sgnum, dim, idxmax)
+    for n = 1:3
+        global C = gen_crystal(sgnum, dim) 
+        plotfourier(flat, C, N, expon, filling, repeat)
+        display(plt.gcf().show());
+        if false
+            PyPlot.savefig((@__DIR__)*"\\figures\\planegroup$(sgnum)_$(n).png")
+        end
+    end
+end
 #display(fig.show()) # force focus when run from script
 
-if true
+if false
     save2matlab = true
     # 3D lattices
     sgnum = 139; dim = 3; idxmax = 2 .*(1,1,1)

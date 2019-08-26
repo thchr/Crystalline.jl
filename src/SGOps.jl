@@ -14,18 +14,20 @@ include("utils.jl") # useful utility methods (seldom needs exporting)
 
 include("types.jl") # defines useful types for space group symmetry analysis
 export SpaceGroup, SymOperation, Crystal, # types
-       Irrep, MultTable, LGIrrep, KVec,
+       SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet, 
+       FourierLattice,
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
        getindex, pg, translation, 
        issymmorph, ==,
        num, order,                        # ::SpaceGroup
        basis, dim, norms, angles,         # ::Crystal
-       irreps, characters,                # ::Irrep
+       irreps, characters,                # ::SGIrrep
        label, isspecial, kstar,
        translations, findirrep,
-       israyrep,
+       type,
+       israyrep,                          # ::LGIrrep
        string, parts,                     # ::KVec
        vec, irreplabels, reps,            # ::BandRep & ::BandRepSet 
        isspinful

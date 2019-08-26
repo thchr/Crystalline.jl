@@ -394,17 +394,21 @@ function starofk(symops::Vector{SymOperation}, k₀, kabc=zero(eltype(k₀)), cn
         k₀′ = pg(op)'\k₀ # this is k(𝐆)′ = [g(𝐑)ᵀ]⁻¹k(𝐆)      
         kabc′ = checkabc ? pg(op)'\kabc : kabc
 
-        oldkbool = false
+        newkbool = true
         for kv′′ in kstar
             k₀′′,kabc′′ = parts(kv′′)
             diff = k₀′ .- k₀′′
             diff = primitivebasismatrix(cntr, dim)'*diff
             kbool = all(el -> isapprox(el, round(el), atol=1e-11), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=1e-11) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
-            oldkbool |= (kbool && abcbool) # means we've haven't already seen this k-vector (mod G)
+
+            if kbool && abcbool # ⇒ we've already seen this KVec for (mod 𝐆) - we can skip it and go to next operator
+                newkbool = false
+                break # no need to check the rest of the kvecs currently in kstar; already found a match
+            end
         end
 
-        if !oldkbool
+        if newkbool
             push!(kstar, KVec(k₀′, kabc′))
         end
     end

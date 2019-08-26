@@ -48,7 +48,7 @@ end
 
 
 const NULL_ATOL = 1e-11
-# Group orbits of plane waves G = (ijk)ᵀ under a symmetry operation Ô = {W|w}, 
+# Group orbits of plane waves G = (G)ᵀ under a symmetry operation Ô = {W|w}, 
 # using that Ô acts as Ô⁻¹={W⁻¹|-W⁻¹w} when acting on functions, i.e.
 #   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
 # and 
@@ -56,8 +56,6 @@ const NULL_ATOL = 1e-11
 function levelsetlattice(sgnum::Int64, dim::Int64=2, 
                          idxmax::NTuple=ntuple(i->2,dim))
     sg = get_symops(sgnum, dim)
-    C = gen_crystal(sgnum, dim) # TODO; we don't need to generate the lattice here; could be factored out
-
     symops = operations(sg)
     Ws = pg.(symops) # operations W in R-basis (point group part)
     ws = translation.(symops)
@@ -75,42 +73,42 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
     # loop for our own sanity's sake
     reviter = Iterators.product(reverse((:).(.-idxmax, idxmax))...)
 
-    ijkorbits = Vector{Vector{SVector{dim,Int64}}}() # vector to store orbits of ijk-indices into G-basis
-    for rijk in reviter  # --- compute orbits ---
-        ijk = SVector{dim,Int64}(reverse(rijk)) # fix order and convert to SVector{dim,Int64} from Tuple
+    orbits = Vector{Vector{SVector{dim,Int64}}}() # vector to store orbits of G-indices into G-basis
+    for rG in reviter  # --- compute orbits ---
+        G = SVector{dim,Int64}(reverse(rG)) # fix order and convert to SVector{dim,Int64} from Tuple
 
-        skip = false # if ijk already contained in an orbit; go to next ijk
-        for orb in ijkorbits
-            isapproxin(ijk, orb) && (skip=true; break) 
+        skip = false # if G already contained in an orbit; go to next G
+        for orb in orbits
+            isapproxin(G, orb) && (skip=true; break) 
         end
         skip && continue
         
-        neworb = orbit(W⁻¹ᵀs, ijk) # compute orbit assoc with ijk-combination
+        neworb = orbit(W⁻¹ᵀs, G) # compute orbit assoc with G-vector
         # the symmetry transformation may introduce round-off errors, but we know that 
         # the indices must be integers; fix that here, and check its validity as well
-        neworb′ = [round.(Int64,ijk′) for ijk′ in neworb] 
+        neworb′ = [round.(Int64,G′) for G′ in neworb] 
         if norm(neworb′ .- neworb) > 1e-10; 
-            error("The ijk-combinations and their symmetry-transforms must be integers"); 
+            error("The G-combinations and their symmetry-transforms must be integers"); 
         end
-        push!(ijkorbits, neworb′) # add orbit to list of orbits
+        push!(orbits, neworb′) # add orbit to list of orbits
     end
 
     # --- restrictions on orbit coeffs. due to nonsymmorphic elements in space group ---
-    orbcoefs = Vector{Vector{ComplexF64}}()
+    orbitcoefs = Vector{Vector{ComplexF64}}()
     deleteidx = Vector{Int64}()
-    for (o,orb) in enumerate(ijkorbits)
+    for (o,orb) in enumerate(orbits)
         start = true; prevspan = []
         for (W⁻¹ᵀ, w) in zip(W⁻¹ᵀs, ws)
             conds = zeros(ComplexF64, length(orb), length(orb))
-            for (m, ijk) in enumerate(orb)
-                ijk′ = W⁻¹ᵀ*ijk  # planewave ijk is transformed to by W⁻¹ᵀ
-                diffs = norm.(Ref(ijk′) .- orb); 
+            for (m, G) in enumerate(orb)
+                G′ = W⁻¹ᵀ*G  # planewave G is transformed to by W⁻¹ᵀ
+                diffs = norm.(Ref(G′) .- orb); 
                 n = argmin(diffs) # find assoc linear index in orbit
                 diffs[n] > 1e-10 && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
                 # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
                 # is equivalent to exp[-i(W⁻¹ᵀG)w]. We use the latter, so we avoid an
-                # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(ijk′, w)]
-                conds[n,m] = exp(-1im*2π*dot(ijk′, w)) 
+                # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(G′, w)]
+                conds[n,m] = exp(-1im*2π*dot(G′, w)) 
             end
 
             nextspan = nullspace(conds-I, atol=NULL_ATOL)          
@@ -129,20 +127,20 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
             if size(prevspan,2) != 1; error("Unexpected size of prevspan"); end
             coefbasis = vec(prevspan)
             coefbasis ./= coefbasis[argmax(norm(coefbasis, Inf))]
-            push!(orbcoefs, coefbasis)
+            push!(orbitcoefs, coefbasis)
         else 
             push!(deleteidx, o)
         end
     end
 
-    deleteat!(ijkorbits, deleteidx)
+    deleteat!(orbits, deleteidx)
 
-    # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest ijk-combinations come last)
-    perm = sortperm(ijkorbits, by=x->norm(x[1]))
-    permute!(ijkorbits, perm)
-    permute!(orbcoefs, perm)
+    # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest G-combinations come last)
+    perm = sortperm(orbits, by=x->norm(x[1]))
+    permute!(orbits, perm)
+    permute!(orbitcoefs, perm)
 
-    return ijkorbits, orbcoefs, basis(C)
+    return FourierLattice(orbits, orbitcoefs)
 end
 
 
@@ -178,40 +176,31 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
 end
 
-function isapproxin(x, itr)
-    for y in itr
-        if isapprox(x, y)
-            return true
-        end
-    end
-    return false
-end
-
-
-function calcfourier(xyz, ijkorbits, orbcoefs)
+calcfourier(xyz, flat::FourierLattice) = calcfourier(xyz, flat.orbits, flat.orbitcoefs)
+function calcfourier(xyz, orbits, orbitcoefs)
     f = zero(ComplexF64)
-    for (orb, coefs) in Iterators.zip(ijkorbits, orbcoefs)
-        for (ijk, c) in Iterators.zip(orb,coefs)
+    for (orb, coefs) in Iterators.zip(orbits, orbitcoefs)
+        for (G, c) in Iterators.zip(orb, coefs)
             # though one might naively think the phase would need a conversion between 
-            # R and G bases, this is not necessary since PG'*PR = 2πI by definition
-            f += c*exp(1im*2π*dot(ijk,xyz))
+            # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
+            f += c*exp(1im*2π*dot(G,xyz))
         end
     end
     return f
 end
 
-function plotfourier(ijkorbits, orbcoefs, R, N=100, expon=2, filling=0.5)
-    dim = length(ijkorbits[end][end])
+function plotfourier(flat::FourierLattice{dim}, C::Crystal, N=100, expon=2, filling=0.5, repeat=nothing) where dim
+    orbits = flat.orbits; orbitcoefs = flat.orbitcoefs; R = basis(C) # unpacking ...
     xyz = range(-.5, .5, length=N)
-    modulated_orbcoefs = orbcoefs.*rand(ComplexF64, length(orbcoefs)) # should be a general complex value; otherwise we restore unintended symmetry
+    modulated_orbitcoefs = orbitcoefs.*rand(ComplexF64, length(orbitcoefs)) # in general, a complex value; otherwise we restore unintended symmetry
     if !isnothing(expon) && !iszero(expon) # divide shorter wavelength terms by their (multiplicity*norm)^expon (to get a more "localized" and smooth character)
-        for i = 2:length(ijkorbits) # leave the constant term untouched ...
-        modulated_orbcoefs[i] ./= (norm(ijkorbits[i])).^expon
+        for i = 2:length(orbits) # leave the constant term untouched ...
+        modulated_orbitcoefs[i] ./= (norm(orbits[i])).^expon
         end
     end
     
     vals = Array{Float64, dim}(undef, ntuple(i->N, dim)...)
-    calcfouriergridded!(vals, xyz, ijkorbits, modulated_orbcoefs, dim, N)
+    calcfouriergridded!(vals, xyz, orbits, modulated_orbitcoefs, dim, N)
 
     if !isnothing(filling)
         isoval = quantile(Iterators.flatten(vals), filling)
@@ -219,14 +208,14 @@ function plotfourier(ijkorbits, orbcoefs, R, N=100, expon=2, filling=0.5)
         isoval = 0
     end
     
-    plotiso(xyz,vals,isoval,R)
+    plotiso(xyz,vals,isoval,R,repeat)
 
     return xyz,vals,isoval
 end
 
 
-function calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
-    f = (coords...)-> real(calcfourier(coords, ijkorbits, orbcoefs))
+function calcfouriergridded!(vals, xyz, orbits, orbitcoefs, dim, N)
+    f = (coords...)-> real(calcfourier(coords, orbits, orbitcoefs))
     # evaluate f over all gridpoints via broadcasting
     if dim == 2
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
@@ -236,16 +225,18 @@ function calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
     end
     return vals
 end
-function calcfouriergridded(xyz, ijkorbits, orbcoefs)
-    dim = length(ijkorbits[1][1]); N = length(xyz)
+function calcfouriergridded(xyz, orbits, orbitcoefs)
+    dim = length(orbits[1][1]); N = length(xyz)
     vals = Array{Float64, dim}(undef, ntuple(i->N, dim)...)
-    return calcfouriergridded!(vals, xyz, ijkorbits, orbcoefs, dim, N)
+    return calcfouriergridded!(vals, xyz, orbits, orbitcoefs, dim, N)
 end
 
 
 ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
-function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))))  
+function plotiso(xyz, vals, isoval=0, 
+                 R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
+                 repeat=nothing)  
     dim = ndims(vals)
     if dim == 2
         # convert to a cartesian coordinate system rather than direct basis of Ri
@@ -260,7 +251,23 @@ function plotiso(xyz, vals, isoval=0, R=ntuple(i->ivec(i,length(ndims(vals))), l
         fig.gca().contour(X,Y,vals,levels=[isoval], colors="w", linestyles="solid")
         fig.gca().plot(uc[:,1], uc[:,2], color="C4",linestyle="solid")
         fig.gca().scatter([0],[0],color="C4",s=30, marker="+")
-        plt.xlim([extrema(uc[:,1])...].+[-1,1].*pad); plt.ylim([extrema(uc[:,2])...].+[-1,1].*pad);
+        
+
+        if repeat !== nothing # allow repetitions of unit cell in 2D
+            for r1 in -repeat:repeat
+                for r2 in -repeat:repeat
+                    if r1 == r2 == 0; continue; end
+                    offset = R[1].*r1 .+ R[2].*r2
+                    fig.gca().contourf(X.+offset[1],Y.+offset[2],vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
+                    fig.gca().contour(X.+offset[1],Y.+offset[2],vals,levels=[isoval], colors="w", linestyles="solid")
+                end
+            end
+            xd = -(-)(extrema(uc[:,1])...); yd = -(-)(extrema(uc[:,2])...)
+            plt.xlim([extrema(uc[:,1])...].+[-1,1].*repeat*xd.+[-1,1].*pad); 
+            plt.ylim([extrema(uc[:,2])...].+[-1,1].*repeat*yd.+[-1,1].*pad);
+        else
+            plt.xlim([extrema(uc[:,1])...].+[-1,1].*pad); plt.ylim([extrema(uc[:,2])...].+[-1,1].*pad);
+        end
         fig.gca().set_aspect("equal", adjustable="box")
         fig.gca().set_axis_off()
     elseif dim == 3

@@ -98,6 +98,13 @@ function show(io::IO, ::MIME"text/plain", sgs::Vector{SpaceGroup})
     end
 end
 
+# Fourier/plane wave lattice (specified by Gorbits and coefficient interrelations)
+struct FourierLattice{N}
+    orbits::Vector{Vector{SVector{N, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
+    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit
+end
+FourierLattice(orbits, orbitcoefs)   = FourierLattice{length(first(first(orbits)))}(orbits, orbitcoefs)
+dim(flat::FourierLattice{N}) where N = N
 
 # K-vectors
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -201,7 +208,7 @@ end
 
 # Space group irreps
 abstract type AbstractIrrep end
-struct Irrep{T} <: AbstractIrrep where T
+struct SGIrrep{T} <: AbstractIrrep where T
     iridx::Int64    # sequential index assigned to ir by Stokes et al
     cdml::String    # CDML label of irrep (including 𝐤-point label)
     dim::Int64      # dimensionality of irrep (i.e. size)
@@ -224,18 +231,20 @@ label(ir::AbstractIrrep) = ir.cdml
 hermannmauguin(ir::AbstractIrrep) = ir.sglabel
 operations(ir::AbstractIrrep) = ir.ops
 isspecial(ir::AbstractIrrep) = ir.special
-kstar(ir::Irrep) = ir.pmkstar
+kstar(ir::SGIrrep) = ir.pmkstar
 num(ir::AbstractIrrep) = ir.sgnum
 translations(ir::AbstractIrrep) = ir.translations
+type(ir::AbstractIrrep) = ir.type
 
 # Little group Irreps
 struct LGIrrep <: AbstractIrrep
     sgnum::Int64 # space group number
     cdml::String # CDML label of irrep (including k-point label)
     kv::KVec
-    ops::Vector{SymOperation} # every symmetry operation in little group (modulo primitive 𝐆)
+    ops::Vector{SymOperation} # every symmetry operation in little group (modulo _primitive_ 𝐆)
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
+    type::Int64 # real, pseudo-real, or complex (1, 2, or 3)
 end
 order(ir::LGIrrep) = length(operations(ir))
 function irreps(ir::LGIrrep, αβγ::Union{Vector{Float64},Nothing})
@@ -305,6 +314,7 @@ function show(io::IO, ::MIME"text/plain", lgirvec::Union{AbstractVector{LGIrrep}
         if i != Nᵢᵣ; println(io); end
     end
 end
+
 function findirrep(LGIR, sgnum::Integer, cdml::String)
     kidx = findfirst(x->label(x[1])[1]==cdml[1], LGIR[sgnum])
     irrepidx = findfirst(x->label(x)==cdml, LGIR[sgnum][kidx])

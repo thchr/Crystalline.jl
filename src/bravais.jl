@@ -224,8 +224,8 @@ relrand(lims::NTuple{2,Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
     oblique, monoclinic, & triclinic lattices).
 """
 function gen_crystal(sgnum::Integer, dim=3;
-                     abclims::NTuple{2,Real}=(0.2,5.0), 
-                     αβγlims::NTuple{2,Real}=(°(10),°(170)))
+                     abclims::NTuple{2,Real}=(0.5,2.0), 
+                     αβγlims::NTuple{2,Real}=(°(30),°(150)))
     system = crystalsystem(sgnum, dim)
     if dim == 2
         if     system == "square"      # a=b & γ=90° (free: a)
@@ -286,11 +286,11 @@ function gen_crystal(sgnum::Integer, dim=3;
     end
 end
 
-const crystalsystem_abbrev_3D = Dict("triclinic"=>"a", "monoclinic"=>"m", "orthorhombic"=>"o", 
-                                     "tetragonal"=>"t", "trigonal"=>"h", "hexagonal"=>"h", 
-                                     "cubic"=>"c")
-const crystalsystem_abbrev_2D = Dict("oblique"=>"m", "rectangular"=>"o", "square"=>"t", 
-                                     "hexagonal"=>"h")
+const crystalsystem_abbrev_3D = Dict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o', 
+                                     "tetragonal"=>'t', "trigonal"=>'h', "hexagonal"=>'h', 
+                                     "cubic"=>'c')
+const crystalsystem_abbrev_2D = Dict("oblique"=>'m', "rectangular"=>'o', "square"=>'t', 
+                                     "hexagonal"=>'h')
 
 function bravaistype(sgnum::Integer, dim::Integer=3)
     cntr = centering(sgnum, dim)
@@ -311,29 +311,49 @@ end
 
 
 const primitivematrix_3D = Dict(
-         "P"=>[1 0 0; 0 1 0; 0 0 1],        # transformation matrices P from conventional basis v_C 
-         "I"=>[-1 1 1; 1 -1 1; 1 1 -1]./2,  # to primitive basis v_p, depending on centering types
-         "F"=>[0 1 1; 1 0 1; 1 1 0]./2,     #     v_P = v_C*P
-         "R"=>[-1 2 -1; -2 1 1; 1 1 1]./3,  # with v_P and v_C interpreted as matrices = [R1 R2 R3]
-         "A"=>[2 0 0; 0 1 -1; 0 1 1]./2,
-         "C"=>[1 1 0; -1 1 0; 0 0 2]./2)    # "B"=>[], # seems to not occur, by convention
-const primitivematrix_2D = Dict("c"=>[1 1; -1 1]./2, "p"=>[1 0; 0 1])
+         'P'=>[1 0 0; 0 1 0; 0 0 1],        # transformation matrices P from conventional basis v_C 
+         'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,  # to primitive basis v_p, depending on centering types
+         'F'=>[0 1 1; 1 0 1; 1 1 0]./2,     #     v_P = v_C*P
+         'R'=>[-1 2 -1; -2 1 1; 1 1 1]./3,  # with v_P and v_C interpreted as matrices = [R1 R2 R3]
+         'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,
+         'C'=>[1 1 0; -1 1 0; 0 0 2]./2)    # "B"=>[], # seems to not occur, by convention
+const primitivematrix_2D = Dict('c'=>[1 1; -1 1]./2, 'p'=>[1 0; 0 1])
 """
-    primitivebasismatrix(cntr::Union{String, Char}, dim::Integer) -> ::matrix
+    primitivebasismatrix(cntr::Char, dim::Integer) -> ::matrix
 
     Calculates a transformation matrix `P` from a conventional
     to a primitive unit cell, using dictionary lookup.
 """
-function primitivebasismatrix(cntr::Union{String, Char}, dim)
+function primitivebasismatrix(cntr::Char, dim::Integer=3)
     if dim == 3
-        return primitivematrix_3D[string(cntr)];         
+        return primitivematrix_3D[cntr];         
     elseif dim == 2
-        return primitivematrix_2D[string(cntr)];
+        return primitivematrix_2D[cntr];
     else
         error(ArgumentError("dim must be either 2 or 3"))
     end
 end
 
+function centeringtranslation(cntr::Char, dim::Integer=3)
+    if dim == 3      # pick the correct abbreviation from a Dict
+        if cntr == 'P';     return zeros(Float64,3)
+        elseif cntr == 'I'; return [1,1,1]/2
+        elseif cntr == 'F'; return [NaN,NaN,NaN] # TODO
+        elseif cntr == 'R'; return [NaN,NaN,NaN] # TODO
+        elseif cntr == 'A'; return [NaN,NaN,NaN] # TODO
+        elseif cntr == 'C'; return [NaN,NaN,NaN] # TODO
+        else;               throw(ArgumentError("invalid centering type cntr=$cntr"))
+        end
+    elseif dim == 2
+        if cntr == 'p';     return zeros(Float64,2)
+        elseif cntr == 'c'; return [1,1]/2
+        else;               throw(ArgumentError("invalid centering type cntr=$cntr"))
+        end
+    else 
+        throw(ArgumentError("invalid dimension dim=$dim"))
+    end
+
+end
 
 """ 
     primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
@@ -349,15 +369,15 @@ function primitivebasis(sgnum::Integer, C::Crystal)
 end
 
 """
-    primitivebasis(C::Crystal, cntr::String) --> Cp::Crystal
+    primitivebasis(C::Crystal, cntr::Char) --> Cp::Crystal
 
     Transforms the conventional basis of a Crystal `C` into its primitive 
     equivalent `Cp`, with the transformation dependent on the centering
     type `cntr` (P, I, F, R, A, C, and p, c); for centering P and p, the 
     conventional and primive bases coincide.
 """
-function primitivebasis(C::Crystal, cntr::String)
-    if cntr == "P" || cntr == "p" # the conventional and primitive bases coincide
+function primitivebasis(C::Crystal, cntr::Char)
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return C
     else         
         P = primitivebasismatrix(cntr, dim(C))
