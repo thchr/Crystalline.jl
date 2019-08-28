@@ -1,25 +1,26 @@
 """
-    schoenflies(sgnum::Integer) 
+    schoenflies(sgnum::Integer) --> String
 
-    Returns the Schoenflies notation for a given space group number
-    `sgnum`. Schoenflies notation only applies to point groups and 
-    space groups, not plane groups, so this notation is only relevant
-    in three dimensions.
+Returns the Schoenflies notation for a given space group number
+`sgnum`. Schoenflies notation only applies to point groups and 
+space groups, not plane groups, so this notation is only relevant
+in three dimensions.
 """
 function schoenflies(sgnum::Integer) 
     return schoenflies_table[sgnum]
 end
 
 """
-    hermannmauguin(sgnum::Integer, dim::Integer=3) 
+    hermannmauguin(sgnum::Integer, dim::Integer=3) --> String
 
-    Returns the Hermann-Mauguin notation for a given space group number
-    `sgnum`, sometimes also called the IUC (International Union of 
-    Crystallography) or international notation (since it is used in the
-    International Tables of Crystallography). Hermann-Mauguin notation 
-    applies in two and three-dimensions.
-    See https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation
-    for additional information.
+Returns the Hermann-Mauguin notation for a given space group number
+`sgnum` and dimensionality `dim`, sometimes also called the IUC 
+(International Union of Crystallography) or international notation 
+(since it is used in the International Tables of Crystallography); 
+accordingly, the functionality is aliased by `iuc(sgnum, dim)`. 
+Hermann-Mauguin notation applies in two and three-dimensions.
+
+For additional information see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
 function hermannmauguin(sgnum::Integer, dim::Integer=3) 
     return hermannmauguin_table[dim][sgnum]
@@ -27,18 +28,21 @@ end
 const iuc = hermannmauguin # alias
 
 """ 
-    centering(sgnum::Integer) --> String
+    centering(sgnum::Integer, dim::Integer=3) --> Char
 
-    Determines the conventional centering type of a given space group number
-    `sgnum` by comparison with the Hermann-Mauguin notation's first letter. 
-    Possible output values are (see ITA Sec. 9.1.4):
-    2D  "p" : no centring (primitive)
-        "c" : face centered
-    3D  "P" : no centring (primitive)
-        "I" : body centred (innenzentriert)
-        "F" : all-face centred
-        "A, B, C" : one-face centred, (b,c) or (c,a) or (a,b)
-        "R" : hexagonal cell rhombohedrally centred
+Determines the conventional centering type of a given space/plane group number
+`sgnum` by comparison with the Hermann-Mauguin notation's first letter. 
+
+Possible output values, depending on dimensionality `dim`, are (see ITA Sec. 9.1.4):
+
+    dim=2 ┌ 'p': no centring (primitive)
+          └ 'c': face centered
+
+    dim=3 ┌ 'P': no centring (primitive)
+          ├ 'I': body centred (innenzentriert)
+          ├ 'F': all-face centred
+          ├ 'A', 'B', 'C': one-face centred, (b,c) or (c,a) or (a,b)
+          └ 'R': hexagonal cell rhombohedrally centred
 """
 centering(sgnum::Integer, dim::Integer=3) = first(hermannmauguin(sgnum, dim))
 
@@ -169,3 +173,131 @@ const hermannmauguin_table = Dict{Int64, Vector{String}}(
 "p 6 m m"
 ]
 )
+
+
+
+""" 
+    seitz(op::SymOperation) --> String
+
+Computes the correponding Seitz notation {β|τ} for a symmetry operation in 
+triplet form.
+
+Implementation based on ITA5 Table 11.2.1.1 (for 3D)\n
+        ________________________________________________
+        |_detW_|_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
+        |  1         |    |    |  2 |  3 |  4 |  6 |  1 |
+        |__1_________|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
+with the elements of the table giving the type of symmetry operation in
+in Hermann-Mauguin notation. The rotation axis and the rotation sense are 
+computed following the rules in ITA6 Sec. 1.2.2.4(1)(b-c).
+The implementation has been checked against the Tables 1.4.2.1-5 of ITA6.
+
+Note that the orientation of axis (i.e. its sign) is not necessarily equal
+to the orientation picked in those tables; it is a matter of convention,
+and the conventions have not been explicated in ITA6.
+
+For 2D operations, we elevate the operation to one in 3D that leaves the 
+3rd coordinate invariant, and then compute results using the 3D procedure.
+"""
+function seitz(op::SymOperation)
+    W = pg(op); w = translation(op); dim = size(W,1)
+    if dim == 2 # we just augment the 2D case by leaving z invariant
+        W = [W zeros(2); 0.0 0.0 1.0]; 
+        w = [w, 0]
+    end
+
+    detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip
+    detW′ ≈ detW || throw(ArgumentError("det W must be an integer for a SymOperation {W|w}"))
+    trW  = tr(W);  trW′,  trW  = trW, round(Int64, trW)   # tr, then round & flip
+    trW′ ≈ trW || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}"))
+
+    # --- rotation order (and proper/improper determination) ---
+    if detW == 1 # proper rotations
+        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
+            rot = trW + 3
+        elseif trW == 2 # 6-fold rotation
+            rot = 6
+        elseif trW == 3 # identity operation
+            rot = 1
+        else 
+            _throw_seitzerror(trW, detW)
+        end
+    elseif detW == -1 # improper rotations (rotoinversions)
+        if trW == -3    # inversion
+            rot = -1
+        elseif trW == -2 # 6-fold rotoinversion
+            rot= -6
+        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
+            rot = trW - 3
+        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
+            rot = -2
+        else
+            _throw_seitzerror(trW, detW)
+        end
+    else
+        _throw_seitzerror(trW, detW)
+    end
+    order = abs(rot)
+    rot_str = rot == -2 ? "m" : string(rot)
+    
+    # --- rotation axis (for order ≠ 1)---
+    # the rotation axis 𝐮 is determined from the product of
+    # 𝐘ₖ(𝐖) ≡ (d𝐖)ᵏ⁻¹+(d𝐖)ᵏ⁻² + ... + (d𝐖) + 𝐈 where d ≡ det(𝐖) 
+    # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮
+    # [cf. ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(b)]
+    if dim == 3 && order == 1 || dim == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
+        axis_str = ""                                 # (w/ in plane normals; otherwise along [001])
+        u = dim == 2 ? [0, 0, 1] : [0, 0, 0]
+    else
+        Yₖ = Matrix{Float64}(I, 3, 3) # calculate Yₖ by iteration
+        for j=1:order-1
+            term = W^j
+            if detW^j == -1;
+                Yₖ .-= term 
+            else
+                Yₖ .+= term
+            end
+        end
+        u = zeros(Float64, 3)
+        while iszero(u)
+            v = rand(3); 
+            u = Yₖ*v # there is near-infinitesimal chance that u is zero for random v, but we check anyway.
+        end
+        norm = minimum(Base.Filter(!iszero,u)) # minimum nonzero element
+        u ./= norm # normalize
+        u′,  u  = u, round.(Int64, u) # convert from float to integer and check validity of conversion
+        u′ ≈ u || throw(ArgumentError("the rotation axis must be equivalent to an integer vector by appropriate normalization; got $(u′)"))
+        # the sign of u is arbitrary: we adopt the convention of '-' elements
+        # coming "before" '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1]
+        # and [-1 1 -1] is picked over [1 -1 1]; note that this impacts the 
+        # sense of rotation which depends on the sign of the rotation axis
+        negidx = findfirst(x->x<0, u)
+        if negidx ≠ nothing && negidx ≠ 1; u .*= -1; end
+
+        axis_str = subscriptify(join(string(u[i]) for i in 1:dim)) # for 2D, ignore z-component
+    end
+    
+    # --- rotation sense (for order > 2}) ---
+    # ±-rotation sense is determined from sign of det(𝐙) where
+    # 𝐙 ≡ [𝐮|𝐱|det(𝐖)𝐖𝐱] where 𝐱 is an arbitrary vector that 
+    # is not parallel to 𝐮. [ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(c)]
+    if order > 2
+        while true
+            global x = rand(Int64, 3)
+            iszero(x×u) || break # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
+        end
+        Z = [u x (detW*W*x)]
+        sense_str = signbit(det(Z)) ? "⁻" : "⁺"
+    else
+        sense_str = ""
+    end
+
+    # --- nonsymmorphic part ---
+    w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:dim), ',') : "0"
+        
+
+    # --- combine labels ---
+    return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+end
+seitz(str::String) = seitz(SymOperation(str))
+_throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
