@@ -3,7 +3,7 @@ using SGOps
 function writebandreps(sgnum, allpaths, brtype="Elementary TR")
     paths_str = allpaths ? "allpaths" : "maxpaths"
 
-    BR_dlm = html2dlm(crawlbandreps(sgnum, allpaths, brtype), "⊕", SGOps.BandRepTrait())
+    BR_dlm = SGOps.html2dlm(crawlbandreps(sgnum, allpaths, brtype), "⊕", SGOps.BandRepTrait())
 
     filename = (@__DIR__)*"/../data/bandreps/3d/$(filter(!isspace, brtype))/$(paths_str)/$(string(sgnum)).csv"
     open(filename; write=true, create=true, truncate=true) do io
