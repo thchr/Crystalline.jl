@@ -4,11 +4,15 @@ authors = ["Thomas Christensen <tchr@mit.edu>"]
 version = "0.1.0"
 
 [deps]
+BSON = "fbb218c0-5317-5bc6-957e-2ee96dd4b1f0"
+Blosc = "a74b3585-a348-5f62-a45c-50e91977d574"
 Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Gumbo = "708ec375-b3d6-5a57-a7ce-8257bf98657a"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
 JSON2 = "2535ab7d-5cd8-5a07-80ac-9b1792aadce3"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
