@@ -26,10 +26,10 @@ end
 function transform!(opdat::Array{T}, op::SymOperation, dat::Array{T}) where T<:Number
     @assert axes(opdat) == axes(dat)
 
-    perms = (findall(.!iszero.(oprow)) for oprow in eachrow(pg(op)))
+    perms = (findall(.!iszero.(oprow)) for oprow in eachrow(rotation(op)))
     display(op)
     display(collect(perms))
-    perm = findfirst.(eachrow(.!iszero.(pg(op))))
+    perm = findfirst.(eachrow(.!iszero.(rotation(op))))
 
     display(perm)
     permutedims!(opdat, dat, perm)
@@ -47,7 +47,6 @@ end
 
 
 
-const NULL_ATOL = 1e-11
 # Group orbits of plane waves G = (G)ᵀ under a symmetry operation Ô = {W|w}, 
 # using that Ô acts as Ô⁻¹={W⁻¹|-W⁻¹w} when acting on functions, i.e.
 #   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
@@ -57,7 +56,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
                          idxmax::NTuple=ntuple(i->2,dim))
     sg = get_symops(sgnum, dim)
     symops = operations(sg)
-    Ws = pg.(symops) # operations W in R-basis (point group part)
+    Ws = rotation.(symops) # operations W in R-basis (point group part)
     ws = translation.(symops)
 
     # we define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
@@ -87,7 +86,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
         # the symmetry transformation may introduce round-off errors, but we know that 
         # the indices must be integers; fix that here, and check its validity as well
         neworb′ = [round.(Int64,G′) for G′ in neworb] 
-        if norm(neworb′ .- neworb) > 1e-10; 
+        if norm(neworb′ .- neworb) > DEFAULT_ATOL; 
             error("The G-combinations and their symmetry-transforms must be integers"); 
         end
         push!(orbits, neworb′) # add orbit to list of orbits
@@ -104,7 +103,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
                 G′ = W⁻¹ᵀ*G  # planewave G is transformed to by W⁻¹ᵀ
                 diffs = norm.(Ref(G′) .- orb); 
                 n = argmin(diffs) # find assoc linear index in orbit
-                diffs[n] > 1e-10 && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
+                diffs[n] > DEFAULT_ATOL && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
                 # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
                 # is equivalent to exp[-i(W⁻¹ᵀG)w]. We use the latter, so we avoid an
                 # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(G′, w)]
@@ -147,17 +146,20 @@ end
 """
     orbit(Ws, x)
 
-    Computes the orbit of `x` under a set of point-group operations `Ws`,
-    i.e. computes the set `{gx | g∈G}` where `g` denotes elements of the group
-    `G` composed of all operations in `Ws` (possibly iterated, to ensure
-    full coverage).
-    At the moment, we only consider _point group_ operations; i.e. there are 
-    no nonsymmorphic `Ws` parts. 
-    It is important that `Ws` and `x` are given in the same basis. 
-    [W' = PWP⁻¹ if the basis change is from coordinates r to r' = Pr, corresponding 
-    to a new set of basis vectors (x̂')ᵀ=x̂ᵀP; e.g., when going from a direct basis
-    representation to a Cartesian one, the basis change matrix is P = [R₁ R₂ R₃],
-    with Rᵢ inserted as column vectors]
+Computes the orbit of `x` under a set of point-group operations `Ws`,
+i.e. computes the set `{gx | g∈G}` where `g` denotes elements of the group
+`G` composed of all operations in `Ws` (possibly iterated, to ensure
+full coverage).
+
+At the moment, we only consider _point group_ operations; i.e. there are 
+no nonsymmorphic `Ws` parts. 
+
+It is important that `Ws` and `x` are given in the same basis. 
+
+[W' = PWP⁻¹ if the basis change is from coordinates r to r' = Pr, corresponding 
+to a new set of basis vectors (x̂')ᵀ=x̂ᵀP; e.g., when going from a direct basis
+representation to a Cartesian one, the basis change matrix is P = [R₁ R₂ R₃],
+with Rᵢ inserted as column vectors]
 """
 function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<:Real})
     fx = float.(x)

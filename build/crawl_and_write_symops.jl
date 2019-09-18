@@ -16,9 +16,9 @@ end
 """ 
     crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
 
-    Obtains the symmetry operations in xyzt format for a given space group
-    number `sgnum` by crawling the Bilbao server; see `get_symops` for 
-    additional details. Only works for `dim = 3`.
+Obtains the symmetry operations in xyzt format for a given space group
+number `sgnum` by crawling the Bilbao server; see `get_symops` for 
+additional details. Only works for `dim = 3`.
 """
 function crawl_symops_xyzt(sgnum::Integer, dim::Integer=3)
     htmlraw = crawl_symops_html(sgnum, dim)

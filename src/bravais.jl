@@ -1,19 +1,20 @@
 """
     crystal(a,b,c,α,β,γ) -> Crystal{3}
 
-    Calculate basis vectors `R1`, `R2`, `R3` in a 3D Cartesian basis 
-    for a right-handed coordinate system with specified basis vector lengths 
-    `a`, `b`, `c` (associated with  `R1`, `R2`, `R3`, respectively)
-    and specified interaxial angles `α=angle(R2, R3)`, `β=angle(R3,R1)`, 
-    `γ=angle(R1,R2)`.
-    For definiteness, the `R1` basis vector is oriented along the
-    x-axis of the Cartesian coordinate system, and the `R2` axis is 
-    placed in the xy-plane.
+Calculate basis vectors `R1`, `R2`, `R3` in a 3D Cartesian basis 
+for a right-handed coordinate system with specified basis vector lengths 
+`a`, `b`, `c` (associated with  `R1`, `R2`, `R3`, respectively)
+and specified interaxial angles `α=angle(R2, R3)`, `β=angle(R3,R1)`, 
+`γ=angle(R1,R2)`.
+
+For definiteness, the `R1` basis vector is oriented along the
+x-axis of the Cartesian coordinate system, and the `R2` axis is 
+placed in the xy-plane.
 """
 function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
     # consistency checks on interaxial angles (equivalently, sides of the corresponding unit-spherical triangle)
     if !isvalid_sphericaltriangle(α,β,γ)
-        throw(ArgumentError("The provided angles cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
+        throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
     end
     # R1 and R2 are easy
     R1 = Float64[a, 0, 0] 
@@ -35,12 +36,13 @@ end
 """
     crystal(a,b,γ) -> Crystal{2}
 
-    Calculate basis vectors `R1`, `R2` in a 2D Cartesian basis for a 
-    right-handed coordinate system with specified basis vector lengths 
-    `a`, `b` (associated with  `R1`, `R2`, respectively) and specified 
-    interaxial angle `γ=angle(R1,R2)`.
-    For definiteness, the `R1` basis vector is oriented along the
-    x-axis of the Cartesian coordinate system.
+Calculate basis vectors `R1`, `R2` in a 2D Cartesian basis for a 
+right-handed coordinate system with specified basis vector lengths 
+`a`, `b` (associated with  `R1`, `R2`, respectively) and specified 
+interaxial angle `γ=angle(R1,R2)`.
+
+For definiteness, the `R1` basis vector is oriented along the
+x-axis of the Cartesian coordinate system.
 """
 function crystal(a::Real,b::Real,γ::Real) 
     R1 = Float64[a, 0] 
@@ -101,10 +103,11 @@ end
 """ 
     crystalsystem(C::Crystal)
 
-    Determine the crystal system of a point lattice specified in a 
-    *conventional* basis using Table 2.1.2.1, 9.1.7.1, & 9.1.7.2 of 
-    the International Tables of Crystallography, Volume 1 (ITA). 
-    There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
+Determine the crystal system of a point lattice specified in a 
+*conventional* basis using Table 2.1.2.1, 9.1.7.1, & 9.1.7.2 of 
+the International Tables of Crystallography, Volume 1 (ITA). 
+There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
+
       |_DIM_|_SYSTEM_______|_CONDITIONS_____________|_FREE PARAMS___|
       | 2D  | square       | a=b & γ=90°            | a             |
       |     | rectangular  | γ=90°                  | a,b           |
@@ -118,10 +121,11 @@ end
       |     | orthorhombic | α=β=γ=90°              | a,b,c         |
       |     | monoclinic   | α=γ=90°                | a,b,c,β≥90°   |
       |     | triclinic    | none                   | a,b,c,α,β,γ   |
-    The Crystal input is assumed to use *conventional* basis vectors; 
-    i.e. not necessarily primitive. For primitive basis vectors, the 
-    crystal system can be further reduced into 5 Bravais types in 2D and
-    14 in 3D.
+
+The Crystal input is assumed to use *conventional* basis vectors; 
+i.e. not necessarily primitive. For primitive basis vectors, the 
+crystal system can be further reduced into 5 Bravais types in 2D and
+14 in 3D.
 """
 function crystalsystem(C::Crystal)
     if dim(C) == 2
@@ -168,7 +172,7 @@ function crystalsystem(sgnum::Integer, dim::Integer=3)
         elseif  sgnum ∈ 3:9;   return "rectangular"  # op, oc
         elseif  sgnum ∈ 10:12; return "square"       # tp
         elseif  sgnum ∈ 13:17; return "hexagonal"    # hp
-        else    DomainError(sgnum, "There are only 17 two-dimensional plane groups.")
+        else    throw(DomainError(sgnum, "There are only 17 two-dimensional plane groups."))
         end
     
     elseif dim == 3
@@ -179,7 +183,7 @@ function crystalsystem(sgnum::Integer, dim::Integer=3)
         elseif  sgnum ∈ 143:167; return "trigonal"      # ? hP, hI ?
         elseif  sgnum ∈ 168:194; return "hexagonal"     # hR, hP
         elseif  sgnum ∈ 195:230; return "cubic"         # cP, cI, cF
-        else    DomainError(sgnum, "There are only 230 three-dimensional space groups.")
+        else    throw(DomainError(sgnum, "There are only 230 three-dimensional space groups."))
         end
     end
 end
@@ -187,15 +191,15 @@ end
 """
     relrand(lims::NTuple{2,Real}, N=1) --> Vector{Float64}
 
-    Computes a random number in the range specified by the two-element 
-    tuple `lims`. The random numbers are sampled from two uniform 
-    distributions, namely [lims[1], 1.0] and [1.0, lims[2]], in such a
-    way as to ensure that the sampling is uniform over the joint  
-    interval [-1/lims[1], -1.0] ∪ [1.0, lims[2]].
+Computes a random number in the range specified by the two-element 
+tuple `lims`. The random numbers are sampled from two uniform 
+distributions, namely [lims[1], 1.0] and [1.0, lims[2]], in such a
+way as to ensure that the sampling is uniform over the joint  
+interval [-1/lims[1], -1.0] ∪ [1.0, lims[2]].
 
-    This is useful for ensuring an even sampling of numbers that are
-    either smaller or larger than unity. Eg. for `x=relrand((0.2,5.0))`,
-    `x` is equally probable to fall in inv(x)∈[1,5] or x∈[1,5].
+This is useful for ensuring an even sampling of numbers that are
+either smaller or larger than unity. Eg. for `x=relrand((0.2,5.0))`,
+`x` is equally probable to fall in inv(x)∈[1,5] or x∈[1,5].
 """
 function relrand(lims::NTuple{2,Real})
     low, high = lims; invlow = inv(low)
@@ -213,15 +217,16 @@ relrand(lims::NTuple{2,Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 """ 
     gen_crystal(sgnum, dim=3; abclims, αβγlims) ---> Crystal{dim}
 
-    Generates a Crystal (in a conventional basis) compatible with the
-    space group number `sgnum`. By convention, the length of the first
-    lattice vector (= `a`) is set to unity, such that the second and
-    third (= `b` and `c`) lattice vectors' lengths are relative to the
-    first.
-    Limits on the relative uniform distribution of lengths `b` and `c`
-    can be specified as 2-tuple kwarg `abclims`; similarly, limits on 
-    the angles `α`, `β`, `γ` can be set via αβγlims (only affects 
-    oblique, monoclinic, & triclinic lattices).
+Generates a Crystal (in a conventional basis) compatible with the
+space group number `sgnum`. By convention, the length of the first
+lattice vector (= `a`) is set to unity, such that the second and
+third (= `b` and `c`) lattice vectors' lengths are relative to the
+first.
+
+Limits on the relative uniform distribution of lengths `b` and `c`
+can be specified as 2-tuple kwarg `abclims`; similarly, limits on 
+the angles `α`, `β`, `γ` can be set via αβγlims (only affects 
+oblique, monoclinic, & triclinic lattices).
 """
 function gen_crystal(sgnum::Integer, dim=3;
                      abclims::NTuple{2,Real}=(0.5,2.0), 
@@ -241,7 +246,7 @@ function gen_crystal(sgnum::Integer, dim=3;
             a = 1.0;    b = relrand(abclims)
             γ = rand(Uniform(αβγlims...)) 
         else 
-            error(DomainError(system))
+            throw(DomainError(system))
         end
         return crystal(a,b,γ)
 
@@ -253,7 +258,7 @@ function gen_crystal(sgnum::Integer, dim=3;
             a = b = 1.0;        c = relrand(abclims)
             α = β = °(90);      γ = °(120)
         elseif system == "trigonal"   # TODO 
-            error("The trigonal case (143-167) is not yet well thought-out")
+            throw(DomainError(system, "The trigonal case (143-167) is not yet well thought-out"))
             # rhombohedral axes                   (a = b = c, α=β=γ < 120° ≠ 90° ?)
             # hexagonal axes, triple obverse axes (a = b ≠ c, α=β=90°, γ=120° ?)
             # maybe consult http://img.chem.ucl.ac.uk/sgp/large/sgp.htm and 
@@ -277,12 +282,12 @@ function gen_crystal(sgnum::Integer, dim=3;
                 α, β, γ = rand(Uniform(αβγlims...),3) # to a valid axis-system; reroll until they do
             end
         else 
-            error(DomainError(system))
+            throw(DomainError(system))
         end        
         return crystal(a,b,c,α,β,γ)
 
     else 
-        error(ArgumentError(dim, "dimension must be 2 or 3"))
+        _throw_invaliddim(dim)
     end
 end
 
@@ -295,34 +300,44 @@ const crystalsystem_abbrev_2D = Dict("oblique"=>'m', "rectangular"=>'o', "square
 function bravaistype(sgnum::Integer, dim::Integer=3)
     cntr = centering(sgnum, dim)
     system = crystalsystem(sgnum, dim)
-    if cntr != 'R'
-        if dim == 3      # pick the correct abbreviation from a Dict
-            bravaistype = crystalsystem_abbrev_3D[system]*cntr
-        elseif dim == 2
-            bravaistype = crystalsystem_abbrev_2D[system]*cntr
-        end
-    else # TODO: special rules for trigonal systems that in the R (= rhombohedral) subset ?
-        bravaistype = "rR"
+    if dim == 3      # pick the correct abbreviation from a Dict
+        return crystalsystem_abbrev_3D[system]*cntr
+    elseif dim == 2
+        return crystalsystem_abbrev_2D[system]*cntr
     end
-    return bravaistype
 end
 
 
 
-
+# Transformation matrices 𝐏 from a (direct-space) conventional basis 
+# (𝐚 𝐛 𝐜) to a primitive basis (𝐚ₚ 𝐛ₚ 𝐜ₚ) via
+#     (𝐚ₚ 𝐛ₚ 𝐜ₚ) = (𝐚 𝐛 𝐜)𝐏
+# # with (𝐚 𝐛 𝐜) and (𝐚ₚ 𝐛ₚ 𝐜ₚ) interpreted as column matrices the 
+# transformation matrix 𝐏 depends only on the centering type [note
+# that centering type 'B' seems to not occur, by convention]
+# The values of 𝐏 are taken from Table 2 of the Aroyo's Bilbao 
+# publication (https://doi.org/:10.1107/S205327331303091X), which 
+# give the coefficients of (𝐏ᵀ)⁻¹. See also Hinuma's 2016 paper
+# (https://doi.org/10.1016/j.commatsci.2016.10.015) for details,
+# though note that they use different matrices for 'A' and complicate
+# the 'C' scenario (Table 3).
 const primitivematrix_3D = Dict(
-         'P'=>[1 0 0; 0 1 0; 0 0 1],        # transformation matrices P from conventional basis v_C 
-         'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,  # to primitive basis v_p, depending on centering types
-         'F'=>[0 1 1; 1 0 1; 1 1 0]./2,     #     v_P = v_C*P
-         'R'=>[-1 2 -1; -2 1 1; 1 1 1]./3,  # with v_P and v_C interpreted as matrices = [R1 R2 R3]
+         'P'=>[1 0 0; 0 1 0; 0 0 1],
+         'F'=>[0 1 1; 1 0 1; 1 1 0]./2,
+         'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,
+         'R'=>[2 -1 -1; 1 1 -2; 1 1 1]./3,
          'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,
-         'C'=>[1 1 0; -1 1 0; 0 0 2]./2)    # "B"=>[], # seems to not occur, by convention
-const primitivematrix_2D = Dict('c'=>[1 1; -1 1]./2, 'p'=>[1 0; 0 1])
+         'C'=>[1 1 0; -1 1 0; 0 0 2]./2
+         )
+const primitivematrix_2D = Dict(
+         'c'=>[1 1; -1 1]./2, 
+         'p'=>[1 0; 0 1])
+
 """
     primitivebasismatrix(cntr::Char, dim::Integer) -> ::matrix
 
-    Calculates a transformation matrix `P` from a conventional
-    to a primitive unit cell, using dictionary lookup.
+Calculates a transformation matrix `P` from a conventional
+to a primitive unit cell, using dictionary lookup.
 """
 function primitivebasismatrix(cntr::Char, dim::Integer=3)
     if dim == 3
@@ -330,7 +345,7 @@ function primitivebasismatrix(cntr::Char, dim::Integer=3)
     elseif dim == 2
         return primitivematrix_2D[cntr];
     else
-        error(ArgumentError("dim must be either 2 or 3"))
+        _throw_invaliddim(dim)
     end
 end
 
@@ -338,30 +353,30 @@ function centeringtranslation(cntr::Char, dim::Integer=3)
     if dim == 3      # pick the correct abbreviation from a Dict
         if cntr == 'P';     return zeros(Float64,3)
         elseif cntr == 'I'; return [1,1,1]/2
-        elseif cntr == 'F'; return [NaN,NaN,NaN] # TODO
-        elseif cntr == 'R'; return [NaN,NaN,NaN] # TODO
-        elseif cntr == 'A'; return [NaN,NaN,NaN] # TODO
-        elseif cntr == 'C'; return [NaN,NaN,NaN] # TODO
-        else;               throw(ArgumentError("invalid centering type cntr=$cntr"))
+        elseif cntr == 'F'; return [1,0,1]/2
+        elseif cntr == 'R'; return [2,1,1]/3
+        elseif cntr == 'A'; return [0,1,1]/2
+        elseif cntr == 'C'; return [1,1,0]/2
+        else;               _throw_invalidcntr(cntr)
         end
     elseif dim == 2
         if cntr == 'p';     return zeros(Float64,2)
         elseif cntr == 'c'; return [1,1]/2
-        else;               throw(ArgumentError("invalid centering type cntr=$cntr"))
+        else;               _throw_invalidcntr(cntr)
         end
     else 
-        throw(ArgumentError("invalid dimension dim=$dim"))
+        _throw_invaliddim(dim)
     end
-
 end
-
+@noinline _throw_invalidcntr(cntr::Char) = throw(DomainError(cntr, "input centering character must be {P,I,F,R,A,C} in 3D or {p,c} in 2D"))
+@noinline _throw_invaliddim(dim::Integer) = throw(DomainError(dim, "input dimension must be 2 or 3"))
 """ 
     primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
 
-    Transforms the conventional basis of a Crystal `C` into its primitive 
-    equivalent `Cp`, provided that its centering differs from the conventional
-    (P or p), by inferring the Bravais type from the space group number
-    `sgnum` and applying an applying an appropriate transformation matrix. 
+Transforms the conventional basis of a Crystal `C` into its primitive 
+equivalent `Cp`, provided that its centering differs from the conventional
+(P or p), by inferring the Bravais type from the space group number
+`sgnum` and applying an applying an appropriate transformation matrix. 
 """
 function primitivebasis(sgnum::Integer, C::Crystal)
     cntr = centering(sgnum)
@@ -371,18 +386,18 @@ end
 """
     primitivebasis(C::Crystal, cntr::Char) --> Cp::Crystal
 
-    Transforms the conventional basis of a Crystal `C` into its primitive 
-    equivalent `Cp`, with the transformation dependent on the centering
-    type `cntr` (P, I, F, R, A, C, and p, c); for centering P and p, the 
-    conventional and primive bases coincide.
+Transforms the conventional basis of a Crystal `C` into its primitive 
+equivalent `Cp`, with the transformation dependent on the centering
+type `cntr` (P, I, F, R, A, C, and p, c); for centering P and p, the 
+conventional and primive bases coincide.
 """
 function primitivebasis(C::Crystal, cntr::Char)
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return C
     else         
         P = primitivebasismatrix(cntr, dim(C))
-        v_P = hcat(basis(C)...)*P # v_P = v_C*P (with v_C a matrix with columns = basis vecs)
-        newbasis = Tuple(collect(u) for u in eachcol(v_P)) # convert from matrix form back to tuple form
+        R_P = hcat(basis(C)...)*P # R_P = R_C*P (w/ R_C a matrix w/ columns of conventional direct basis vecs)
+        newbasis = Tuple(collect(u) for u in eachcol(R_P)) # convert from matrix form back to tuple form
         return Crystal(newbasis)
     end  
 end
@@ -391,10 +406,9 @@ end
 """
     reciprocalbasis(C::Crystal) --> G::NTuple{dim(C), Vector{Float64}}
     
-    Calculates the reciprocal basis vectors associated with a crystal C
+Calculates the reciprocal basis vectors associated with a crystal `C`.
 """
 reciprocalbasis(C::Crystal) = reciprocalbasis(basis(C))
-
 function reciprocalbasis(R::NTuple{N, Vector{<:Real}}) where N
     if N == 3
         pref = 2π/dot(R[1], (R[2]×R[3]))
@@ -414,10 +428,44 @@ function reciprocalbasis(R::NTuple{N, Vector{<:Real}}) where N
     end
 end
 
-# --- TESTING ---
-C = crystal(1,1,1, π/3, π/3, π/3)
-#display(B)
-plt.close("all")
-plot(C)
-crystalsystem(C)
+"""
+    primitivereciprocalbasis(C::Crystal, cntr::Char) --> G_P::NTuple{dim(C), Vector{Float64}}
+    
+Calculates the **primitive** reciprocal basis vectors associated with a 
+crystal `C` of centering type `cntr`.
+"""
+primitivereciprocalbasis(C::Crystal, cntr::Char) = primitivereciprocalbasis(basis(C), cntr::Char)
+function primitivereciprocalbasis(R::NTuple{N, Vector{<:Real}}, cntr::Char) where N
+    G_C = reciprocalbasis(R)
+    
+    # While the direct basis (𝐚 𝐛 𝐜) transforms like 
+    #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
+    # under a basis change matrix 𝐏, the direct basis
+    # (𝐚* 𝐛* 𝐜*) transforms like 
+    #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
+    # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved
+    # after the basis change
+    P = primitivebasismatrix(cntr, N)
+    G_P = hcat(G_C...)/P' # G_P = G_C*(P⁻¹)ᵀ = G_C*(Pᵀ)⁻¹
+                          # (w/ G_C a matrix w/ columns conventional reciprocal vecs)
+    
+    return Tuple(collect(v) for v in eachcol(G_P))    
+end
+# Note that the 𝑐𝑜𝑒𝑓𝑓𝑒𝑐𝑖𝑒𝑛𝑡𝑠 of a general 𝐤-vector transform
+# differently than the reciprocal basis, which transforms
+# from non-primed to primed variants via a basis matrix 𝐏
+# according to (see also `primitivereciprocalbasis(...)`):
+# Specifically, a 𝐤-vector is specified by a product of a
+# reciprocal basis (𝐚* 𝐛* 𝐜*) and a coefficient vector
+# (k₁ k₂ k₃)ᵀ, ie. 𝐤 ≡ (𝐚* 𝐛* 𝐜*)(k₁ k₂ k₃)ᵀ [note that 
+# (k₁ k₂ k₃)ᵀ is a column vector].
+# As a result, (k₁ k₂ k₃)ᵀ transforms like 
+#     (k₁′ k₂′ k₃′)ᵀ = Pᵀ (k₁ k₂ k₃)ᵀ
+# since
+#     𝐤 = (𝐚*′ 𝐛*′ 𝐜*′)(k₁′ k₂′ k₃′)ᵀ     (1)  [... by definition]
+#       = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ       [... transformation of (𝐚* 𝐛* 𝐜*) under 𝐏]
+#       = (𝐚* 𝐛* 𝐜*)(k₁ k₂ k₃)ᵀ           (2)  [... by definition]
+# then, combining (1) and (2)
+#     (𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ = (k₁ k₂ k₃)ᵀ
+#  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ 
 

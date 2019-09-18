@@ -32,25 +32,26 @@ end
 # Symmetry operations
 struct SymOperation
     xyzt::String
-    matrix::Matrix{Float64}
+    matrix::Matrix{Float64} # TODO: factor this out into a rotation and a translation part (to avoid needless copying)
 end
-SymOperation(s::String) = SymOperation(s, xyzt2matrix(s))
-SymOperation(m::Matrix{Float64}) = SymOperation(matrix2xyzt(m), m)
+SymOperation(s::AbstractString) = SymOperation(string(s), xyzt2matrix(s))
+SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), float(m))
 matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
 function show(io::IO, ::MIME"text/plain", op::SymOperation) 
-    print(io, "   (", xyzt(op), ")\n")
+    print(io, seitz(op),":\n   (", xyzt(op), ")\n")
     Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
 end
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
-pg(m::Matrix{Float64}) = m[:,1:end-1]      # point group part of an operation
-pg(op::SymOperation) = matrix(op)[:,1:end-1]        
-translation(m::Matrix{Float64}) = m[:,end] # translation part of an operation
+rotation(m::Matrix{Float64}) = m[:,1:end-1] # rotational (proper or improper) part of an operation
+rotation(op::SymOperation) = matrix(op)[:,1:end-1]        
+translation(m::Matrix{Float64}) = m[:,end]  # translation part of an operation
 translation(op::SymOperation) = matrix(op)[:,end]   
 issymmorph(op::SymOperation) = iszero(translation(op))
 (==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
+isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
 
 # Multiplication table
 struct MultTable
@@ -116,15 +117,16 @@ struct KVec
     k₀::Vector{Float64}
     kabc::Matrix{Float64}
 end
-KVec(k₀::Vector{T}) where T<:Real = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
+KVec(k₀::AbstractVector{<:Real}) = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
 parts(kv::KVec) = (kv.k₀, kv.kabc)
 isspecial(kv::KVec) = iszero(kv.kabc)
+dim(kv::KVec) = length(kv.k₀)
 (kv::KVec)(αβγ::Vector{<:Real}) = begin
     k₀, kabc = parts(kv)
     return k₀ + kabc*αβγ
 end
 (kv::KVec)(αβγ::Vararg{<:Real, 2}) = kv([αβγ[1], αβγ[2]])
-(kv::KVec)(αβγ::Vararg{<:Real, 3}) = kv([αβγ[1], αβγ[2], αβγ[3] ])
+(kv::KVec)(αβγ::Vararg{<:Real, 3}) = kv([αβγ[1], αβγ[2], αβγ[3]])
 (kv::KVec)() = kv.k₀
 (kv::KVec)(::Nothing) = kv.k₀
 
@@ -134,7 +136,8 @@ function string(kv::KVec)
     write(buf, "[")
     if isspecial(kv)
         for i in eachindex(k₀) 
-            @printf(buf, "%g", k₀[i])
+            coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
+            @printf(buf, "%g", coord)
             # prepare for next coordinate/termination
             i == length(k₀) ? write(buf, "]") : write(buf, ", ")
         end
@@ -142,7 +145,8 @@ function string(kv::KVec)
         for i in eachindex(k₀)
             # fixed parts
             if !iszero(k₀[i]) || iszero(@view kabc[i,:]) # don't print zero, if it adds unto anything nonzero
-                @printf(buf, "%g", k₀[i])
+                coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
+                @printf(buf, "%g", coord)
             end
             # free-parameter parts
             for j in eachindex(k₀) 
@@ -166,17 +170,21 @@ end
 show(io::IO, ::MIME"text/plain", kv::KVec) = print(io, string(kv))
 
 """ 
-    KVec(str::AbstractString)
+    KVec(str::AbstractString) --> KVec
 
-    Reads a string representations of a k-vector, supplied in either of the formats
-        (x,y,z), [x,y,z], x,y,z
-    where the coefficients {x,y,z} can contain fractions, decimal numbers, and "free"
-    parameters {α,β,γ} (or, alternatively, {u,v,w}). Returns the associated KVec.
-    Any "fixed"/constant part of a coordinate _must_ precede any free parts, e.g.,
-    1+α is allowable but α+1 is not.
+Construct a `KVec` struct from a string representations of a *k*-vector, supplied 
+in either of the formats
+        `"(\$x,\$y,\$z)"`, `"[\$x,\$y,\$z]"`, `"\$x,\$y,\$z"`,
+where the coordinates `x`,`y`, and `z` are strings that can contain fractions,
+decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively,
+{`'u'`,`'v'`,`'w'`}). Returns the associated `KVec`.
+
+Any "fixed"/constant part of a coordinate _must_ precede any free parts, e.g.,
+`x="1+α"` is allowable but `x="α+1"` is not.
 """
 function KVec(str::AbstractString)
-    xyz = split(strip(str, ['(',')','[',']']),',')
+    str = replace(strip(str, ['(',')','[',']']), ' '=>"") # tidy up string (remove parens & spaces)
+    xyz = split(str,',')
     dim = length(xyz)
     k₀ = zeros(Float64, dim); kabc = zeros(Float64, dim, dim)
     for (i, coord) in enumerate(xyz)
@@ -206,6 +214,25 @@ function KVec(str::AbstractString)
     return KVec(k₀, kabc)
 end
 
+# arithmetic with k-vectors
+(-)(kv::KVec) = KVec(.- kv.k₀, .- kv.kabc)
+(-)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .- kv2.k₀, kv1.kabc .- kv2.kabc)
+(+)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .+ kv2.k₀, kv1.kabc .+ kv2.kabc)
+
+function isapprox(kv1::KVec, kv2::KVec, cntr; kwargs...)
+    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)
+    d = length(k₀1)
+    # check if k₀1 and k₀2 differ by a _primitive_ reciprocal vector
+    diff = k₀1 .- k₀2
+    diff = primitivebasismatrix(cntr, d)'*diff
+    kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
+    # check if kabc1 == kabc2; no need to check for difference by a reciprocal
+    # vector, since kabc contribution is restricted to non-special values
+    abcbool = isapprox(kabc1, kabc2; kwargs...)
+
+    return kbool && abcbool
+end
+
 # Space group irreps
 abstract type AbstractIrrep end
 struct SGIrrep{T} <: AbstractIrrep where T
@@ -221,7 +248,7 @@ struct SGIrrep{T} <: AbstractIrrep where T
     special::Bool   # whether star{𝐤} describes high-symmetry points
     pmkstar::Vector{KVec}       # star{𝐤} for Complex, star{±𝐤} for Real
     ops::Vector{SymOperation}   # every symmetry operation in space group
-    translations::Vector{Vector{Float64}}   # translations assoc with matrix repres of symops in irrep
+    translations::Vector{Vector{Float64}} # translations assoc with matrix repres of symops in irrep
     matrices::Vector{Matrix{T}} # non-translation assoc with matrix repres of symops in irrep
 end
 irreps(ir::AbstractIrrep) = ir.matrices
@@ -235,6 +262,12 @@ kstar(ir::SGIrrep) = ir.pmkstar
 num(ir::AbstractIrrep) = ir.sgnum
 translations(ir::AbstractIrrep) = ir.translations
 type(ir::AbstractIrrep) = ir.type
+klabel(ir::AbstractIrrep) = klabel(label(ir))
+function klabel(label::String)
+    idx = findfirst(!isletter, label)
+    return label[firstindex(label):prevind(label,idx)]
+end
+
 
 # Little group Irreps
 struct LGIrrep <: AbstractIrrep
@@ -244,18 +277,36 @@ struct LGIrrep <: AbstractIrrep
     ops::Vector{SymOperation} # every symmetry operation in little group (modulo _primitive_ 𝐆)
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
-    type::Int64 # real, pseudo-real, or complex (1, 2, or 3)
+    type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
 end
 order(ir::LGIrrep) = length(operations(ir))
-function irreps(ir::LGIrrep, αβγ::Union{Vector{Float64},Nothing})
+function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing})
     P = ir.matrices
     τ = ir.translations
     if !iszero(τ)
         k = kvec(ir)(αβγ)
-        P′ = deepcopy(P)        # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
+        P′ = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
-                P′[i] .*= exp(2π*im*k'*τ′)
+                P′[i] .*= exp(2π*im*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
+                                               # Bilbao server; but disagrees (as far as I can tell) with some
+                                               # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
+                                               # and Kovalev's book).
+                                               # In those other references they have Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), but 
+                                               # Inui has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice 
+                                               # actually appears more natural, since we usually have symmetry 
+                                               # operations acting inversely on functions of spatial coordinates. 
+                                               # If we swap the sign here, we probably have to swap t₀ in the check
+                                               # for ray-representations in multtable(::MultTable, ::LGIrrep), to 
+                                               # account for this difference. It is not enough just to swap the sign
+                                               # - I checked (⇒ 112 failures in test/multtable.jl) - you would have 
+                                               # to account for the fact that it would be -β⁻¹τ that appears in the 
+                                               # inverse operation, not just τ. Same applies here, if you want to 
+                                               # adopt the other convention, it should probably not just be a swap 
+                                               # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
+                                               # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
+                                               # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY, 
+                                               # so, overall, this is probably the sanest choice for this dataset.
             end
         end
         return P′
@@ -270,12 +321,12 @@ issymmorph(ir::LGIrrep) = all(issymmorph.(operations(ir)))
 """
     israyrep(ir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
 
-    Computes whether a given little group irrep is a ray representation 
-    by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
-    from unity, we consider the little group irrep a ray representation
-    (as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
-    The function returns a boolean (true => ray representation) and the
-    coefficient matrix αᵢⱼ.
+Computes whether a given little group irrep `ir` is a ray representation 
+by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
+from unity, we consider the little group irrep a ray representation
+(as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
+The function returns a boolean (true => ray representation) and the
+coefficient matrix αᵢⱼ.
 """
 function israyrep(ir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
     k = kvec(ir)(αβγ)
@@ -285,7 +336,7 @@ function israyrep(ir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     mt = multtable(ops, verbose=false)
     for (row, oprow) in enumerate(ops)
         for (col, opcol) in enumerate(ops)
-            t₀ = translation(oprow) + pg(oprow)*translation(opcol) - translation(ops[mt[row,col]])
+            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(ops[mt[row,col]])
             ϕ  = 2π*k'*t₀ # include factor of 2π here due to normalized bases
             α[row,col] = exp(1im*ϕ)
         end
@@ -378,7 +429,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
 
     # prep-work
     maxlen = maximum(x->length(label(x))+ndigits(dim(x)), reps(BRS))+3
-    threshold = 20
+    threshold = 30
     if Nirreps > threshold
         toomuch = div((Nirreps-threshold+2),2)
         midpoint = div(Nirreps, 2)

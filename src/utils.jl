@@ -1,9 +1,9 @@
 """ 
-    parsefraction(str)
+    parsefraction(str::AbstractString)
 
-    Parse a string, allowing fraction inputs (e.g. "1/2"), return as Float64
+Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), return as `Float64`.
 """
-function parsefraction(str)
+function parsefraction(str::AbstractString)
     slashidx = findfirst(x->x=='/',str)
     if isnothing(slashidx)
         return parse(Float64, str)
@@ -18,9 +18,9 @@ end
 """
     isapproxin(x, itr) --> Bool
 
-    Determine whether `x` ∈ `itr` with approximate equality.
+Determine whether `x` ∈ `itr` with approximate equality.
 """
-isapproxin(x, itr) = any(y->y≈x, itr)
+isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; kwargs...), itr)
 
 
 
@@ -68,6 +68,21 @@ function supscriptify(c::Char)
     end
 end
 
+function formatirreplabel(str::AbstractString)
+    buf = IOBuffer()
+    for c in str
+        if c ∈ ['+','-']
+            write(buf, supscriptify(c))
+        elseif isdigit(c)
+            write(buf, subscriptify(c))
+        else
+            write(buf, c)
+        end
+    end
+    return String(take!(buf))
+end
+
+
 normalizesubsup(str::AbstractString) = map(normalizesubsup, str)
 function normalizesubsup(c::Char)
     if c ∈ keys(SUBSCRIPT_MAP_REVERSE)
@@ -105,6 +120,22 @@ function unicode_frac(x::Number)
     return signbit(x) ? "-"*xstr : xstr
 end
 
+const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω",
+                              "LE"=>"Λ′", "DU"=>"Λ′", "SN"=>"Σ′")  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
+                                                                   # They "match" a simpler k-vector, by reducing their second character by one,
+                                                                   # alphabetically (e.g. LE => LD = Λ). The primed notation is our own.
+function roman2greek(label::String)
+    idx = findfirst(!isletter, label)
+    if idx != nothing
+        front=label[firstindex(label):prevind(label,idx)]
+        if length(front) == 2 # have to check length rather than just idx, in case of non-ascii input
+            return roman2greek_dict[front]*label[idx:lastindex(label)]
+        end
+    end
+    return label
+end
+
+
 function printboxchar(io, i, N)
     if i == 1
         print(io, "╭") #┌
@@ -134,3 +165,20 @@ end
 
 
 
+"""
+    uniquetol(a; kwargs)
+
+Computes approximate-equality unique with tolerance specifiable
+via keyword arguments `kwargs` in O(n²) runtime.
+
+Copied from https://github.com/JuliaLang/julia/issues/19147#issuecomment-256981994
+"""
+function uniquetol(A::AbstractArray{T}; kwargs...) where T
+    S = Vector{T}()
+    for a in A
+         if !any(s -> isapprox(s, a; kwargs...), S)
+             push!(S, a)
+         end
+    end
+    return S
+end

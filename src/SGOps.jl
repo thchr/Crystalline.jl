@@ -2,12 +2,18 @@ module SGOps
 # packages
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs, 
-      Printf, DelimitedFiles, SmithNormalForm
-import Base: getindex, lastindex, ∘, ==, string,
-             length, readuntil, vec, show
+      Printf, DelimitedFiles, SmithNormalForm,
+      BSON
+import Base: getindex, lastindex, string, isapprox,
+             length, readuntil, vec, show, 
+             +, -, ∘, ==
+import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 
+# constant scalars
+const DEFAULT_ATOL = 1e-12 # absolute tolerance for approximate equality
+const NULL_ATOL = 1e-11    # absolute tolerance for nullspace 
 
 # included files and exports
 include("utils.jl") # useful utility methods (seldom needs exporting)
@@ -19,26 +25,28 @@ export SpaceGroup, SymOperation, Crystal, # types
        FourierLattice,
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
-       getindex, pg, translation, 
+       getindex, rotation, translation, 
        issymmorph, ==,
        num, order,                        # ::SpaceGroup
        basis, dim, norms, angles,         # ::Crystal
        irreps, characters,                # ::SGIrrep
        label, isspecial, kstar,
        translations, findirrep,
-       type,
-       israyrep,                          # ::LGIrrep
+       type, klabel,
+       israyrep, kvec,                    # ::LGIrrep
        string, parts,                     # ::KVec
        vec, irreplabels, reps,            # ::BandRep & ::BandRepSet 
        isspinful
 
 include("notation.jl")
-export schoenflies, hermannmauguin, iuc, centering
+export schoenflies, hermannmauguin, 
+       iuc, centering, seitz
 
 include("symops.jl") # crawls symmetry operations from Bilbao
 export get_symops, xyzt2matrix, matrix2xyzt, 
        issymmorph, littlegroup, starofk,
-       multtable, isgroup, checkmulttable
+       multtable, isgroup, checkmulttable,
+       pointgroup, primitivize, conventionalize
 
 include("bravais.jl")
 export crystal, plot, crystalsystem, 
@@ -47,7 +55,8 @@ export crystal, plot, crystalsystem,
 
 include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
-       littlegroupirrep, klabel
+       littlegroupirrep, klabel, herring,
+       realify
 
 include("lattices.jl")
 export levelsetlattice, plotfourier, plotiso

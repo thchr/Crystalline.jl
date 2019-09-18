@@ -200,7 +200,7 @@ For 2D operations, we elevate the operation to one in 3D that leaves the
 3rd coordinate invariant, and then compute results using the 3D procedure.
 """
 function seitz(op::SymOperation)
-    W = pg(op); w = translation(op); dim = size(W,1)
+    W = rotation(op); w = translation(op); dim = size(W,1)
     if dim == 2 # we just augment the 2D case by leaving z invariant
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w, 0]
@@ -272,7 +272,8 @@ function seitz(op::SymOperation)
         # and [-1 1 -1] is picked over [1 -1 1]; note that this impacts the 
         # sense of rotation which depends on the sign of the rotation axis
         negidx = findfirst(x->x<0, u)
-        if negidx ≠ nothing && negidx ≠ 1; u .*= -1; end
+        firstnonzero = findfirst(x-> abs(x) ≠ 0, u)
+        if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3); u .*= -1; end
 
         axis_str = subscriptify(join(string(u[i]) for i in 1:dim)) # for 2D, ignore z-component
     end
