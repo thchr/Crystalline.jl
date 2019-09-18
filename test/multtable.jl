@@ -16,22 +16,23 @@ end
 end
 
 @testset "Multiplication table, groups" begin
-numset=Int64[]
+    numset=Int64[]
     for lgirs in LGIR
         for lgirvec in lgirs
             ops = operations(first(lgirvec));
             mt = multtable(ops)
-            #@test_skip  isgroup(mt)
+            #@test isgroup(mt)
             
             if !isgroup(mt)
-                println(num(first(lgirvec)), " ",
-                        centering(num(first(lgirvec))), " ", 
-                        klabel(first(lgirvec)), " " )
+                #println(num(first(lgirvec)), " ",
+                #        centering(num(first(lgirvec))), " ", 
+                #        klabel(first(lgirvec)), " " )
                 union!(numset, num(first(lgirvec)))
             end
         end
     end
-    println(numset)
+    @test_broken false
+    println("The multiplication tables of __$(length(numset))__ little groups are faulty:\n   ", numset)
 end
 
 @testset "Multiplication table, irreps" begin
@@ -46,6 +47,8 @@ end
                         @test all(checkmt)
                     end
                 end
+            else
+                @test_broken false # doesn't currently work for groups with trivial fractional "translation sets"
             end 
         end
     end
