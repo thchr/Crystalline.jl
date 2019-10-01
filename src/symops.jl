@@ -256,7 +256,12 @@ end
 multtable(sg::SpaceGroup) = multtable(operations(sg))
 
 
-checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = checkmulttable(multtable(operations(lgir)), lgir, αβγ; verbose=verbose)
+checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = begin
+    ops = operations(lgir)
+    sgnum = num(lgir); cntr = centering(sgnum, dim(first(ops)))
+    primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices for composition/∘
+    checkmulttable(multtable(primitive_ops), lgir, αβγ; verbose=verbose)
+end
 function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
     irs = irreps(lgir, αβγ)
@@ -281,8 +286,9 @@ function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::B
             # {βᵢ|τᵢ}. To ensure we capture this, we include this phase here.
             # See Inui et al. Eq. (5.29) for explanation.   
             t₀ = translation(ops[row]) + rotation(ops[row])*translation(ops[col]) - translation(ops[mtidx])
-            ϕ =  2π*k'*t₀ # include factor of 2π here due to normalized bases
-            match = ir′ ≈ exp(1im*ϕ)*irs[mtidx]           
+            #t₀ = translation(ops[row]) + rotation(ops[row])*translation(ops[col]) - translation(compose(ops[row],ops[col], true))
+            ϕ =  2π*dot(k, t₀) # accumulated ray-phase (factor of 2π from to normalized bases)
+            match = ir′ ≈ cis(ϕ)*irs[mtidx]  # cis(x) = exp(ix)       
             if !match
                 checked[row,col] = false
                 if !havewarned
@@ -290,7 +296,7 @@ function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::B
                         @info """Provided irreps do not match group multiplication table:
                                  First failure at (row,col) = ($(row),$(col));
                                  Expected idx $(mtidx), got idx $(findall(ir′′ -> ir′′≈ ir′, irs))
-                                 Expected irrep = $(exp(1im*ϕ)*irs[mtidx])
+                                 Expected irrep = $(cis(ϕ)*irs[mtidx])
                                  Got irrep      = $(ir′)"""
 
                     end
@@ -411,7 +417,7 @@ end
 
 
 """
-    primitivize(op::SymOperation, cntr::Char, dim::Integer) --> SymOperation
+    primitivize(op::SymOperation, cntr::Char) --> SymOperation
 
 Transforms a symmetry operation `op`={W|w} from a conventional cell 
 to a primitive cell (specified by its centering character `cntr`), 

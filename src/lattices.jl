@@ -107,7 +107,7 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
                 # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
                 # is equivalent to exp[-i(W⁻¹ᵀG)w]. We use the latter, so we avoid an
                 # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(G′, w)]
-                conds[n,m] = exp(-1im*2π*dot(G′, w)) 
+                conds[n,m] = cis(-2π*dot(G′, w)) # cis(x) = exp(ix)
             end
 
             nextspan = nullspace(conds-I, atol=NULL_ATOL)          
@@ -185,7 +185,7 @@ function calcfourier(xyz, orbits, orbitcoefs)
         for (G, c) in Iterators.zip(orb, coefs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
-            f += c*exp(1im*2π*dot(G,xyz))
+            f += c*cis(2π*dot(G,xyz)) # cis(x) = exp(ix)
         end
     end
     return f

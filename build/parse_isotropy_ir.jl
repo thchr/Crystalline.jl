@@ -201,7 +201,7 @@ end
 reprecision_data(z::T) where T<:Complex = complex(reprecision_data(real(z)), reprecision_data(imag(z)))
 
 function littlegroupirrep(ir::SGIrrep{<:Complex})
-    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1], centering(ir.sgnum,3))
+    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1], centering(num(ir),3))
     lgirdim′ = ir.dim/ir.knum; lgirdim = div(ir.dim, ir.knum)
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
                                 "the dimension of the space group irrep divided by the number of vectors "*
@@ -416,7 +416,7 @@ function realify(irs::NTuple{Nirr, LGIrrep}, verbose::Bool=false) where Nirr
                             else           # 𝐤 not equivalent to -𝐤, i.e. 𝐤 ≠ -𝐤 + 𝐆
                                 g₋⁻¹gg₋ = compose(compose(inv(g₋), lgops[n], false), g₋, false)
                                 n′, Δw = findequiv(g₋⁻¹gg₋, lgops, cntr)
-                                χⱼ_g₋⁻¹gg₋ = exp(2π*1im*dot(kv_αβγ, Δw)) .* χⱼ[n′]
+                                χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
                             end
                             
                             match = isapprox(θχᵢ[n], χⱼ_g₋⁻¹gg₋; atol=DEFAULT_ATOL)
@@ -508,7 +508,7 @@ function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation}, αβγ::Union
             # primitive lattice vectors `w_op²`; the difference must be included when 
             # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(2πi𝐤⋅𝐭)
             idx_of_op²_in_lgops, Δw_op² = findequiv(op², lgops, cntr)
-            ϕ_op² = exp(2π*1im*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts
+            ϕ_op² = cis(2π*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cis(x) = exp(ix)]
             χ_op² = ϕ_op²*tr(Ds[idx_of_op²_in_lgops]) # χ(op²)
 
             s += χ_op²
@@ -541,7 +541,8 @@ end
 
 Search for an operator `op′` in `ops` which is equivalent, modulo differences
 by **primitive** lattice translations `Δw`, to `op`. Return the index of `op′` in 
-`ops`, as well as the primitive translation difference `Δw`.
+`ops`, as well as the primitive translation difference `Δw`. If no match is found
+returns `(nothing, nothing)`.
 
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]

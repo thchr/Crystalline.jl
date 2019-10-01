@@ -264,7 +264,7 @@ translations(ir::AbstractIrrep) = ir.translations
 type(ir::AbstractIrrep) = ir.type
 klabel(ir::AbstractIrrep) = klabel(label(ir))
 function klabel(label::String)
-    idx = findfirst(!isletter, label)
+    idx = findfirst(isdigit, label)
     return label[firstindex(label):prevind(label,idx)]
 end
 
@@ -280,7 +280,7 @@ struct LGIrrep <: AbstractIrrep
     type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
 end
 order(ir::LGIrrep) = length(operations(ir))
-function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing})
+function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = ir.matrices
     τ = ir.translations
     if !iszero(τ)
@@ -288,32 +288,31 @@ function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing})
         P′ = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
-                P′[i] .*= exp(2π*im*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
-                                               # Bilbao server; but disagrees (as far as I can tell) with some
-                                               # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
-                                               # and Kovalev's book).
-                                               # In those other references they have Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), but 
-                                               # Inui has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice 
-                                               # actually appears more natural, since we usually have symmetry 
-                                               # operations acting inversely on functions of spatial coordinates. 
-                                               # If we swap the sign here, we probably have to swap t₀ in the check
-                                               # for ray-representations in multtable(::MultTable, ::LGIrrep), to 
-                                               # account for this difference. It is not enough just to swap the sign
-                                               # - I checked (⇒ 112 failures in test/multtable.jl) - you would have 
-                                               # to account for the fact that it would be -β⁻¹τ that appears in the 
-                                               # inverse operation, not just τ. Same applies here, if you want to 
-                                               # adopt the other convention, it should probably not just be a swap 
-                                               # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-                                               # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
-                                               # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY, 
-                                               # so, overall, this is probably the sanest choice for this dataset.
+                P′[i] .*= cis(2π*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
+                # note cis(x) = exp(ix)     # Bilbao server; but disagrees (as far as I can tell) with some
+                                            # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
+                                            # and Kovalev's book).
+                                            # In those other references they have Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), but 
+                                            # Inui has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice 
+                                            # actually appears more natural, since we usually have symmetry 
+                                            # operations acting inversely on functions of spatial coordinates. 
+                                            # If we swap the sign here, we probably have to swap t₀ in the check
+                                            # for ray-representations in multtable(::MultTable, ::LGIrrep), to 
+                                            # account for this difference. It is not enough just to swap the sign
+                                            # - I checked (⇒ 112 failures in test/multtable.jl) - you would have 
+                                            # to account for the fact that it would be -β⁻¹τ that appears in the 
+                                            # inverse operation, not just τ. Same applies here, if you want to 
+                                            # adopt the other convention, it should probably not just be a swap 
+                                            # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
+                                            # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
+                                            # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY, 
+                                            # so, overall, this is probably the sanest choice for this dataset.
             end
         end
         return P′
     end
     return P
 end
-irreps(ir::LGIrrep) = irreps(ir, nothing)
 kvec(ir::LGIrrep)   = ir.kv
 isspecial(ir::LGIrrep) = isspecial(kvec(ir))
 issymmorph(ir::LGIrrep) = all(issymmorph.(operations(ir)))
@@ -333,12 +332,14 @@ function israyrep(ir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     ops = operations(ir)
     Nₒₚ = length(ops)
     α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
-    mt = multtable(ops, verbose=false)
+    # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
+    #       here, given the tricks we then perform subsequently?
+    mt = multtable(primitivize.(ops, centering(num(ir))), verbose=false) 
     for (row, oprow) in enumerate(ops)
         for (col, opcol) in enumerate(ops)
             t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(ops[mt[row,col]])
-            ϕ  = 2π*k'*t₀ # include factor of 2π here due to normalized bases
-            α[row,col] = exp(1im*ϕ)
+            ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
+            α[row,col] = cis(ϕ)
         end
     end
     return (any(x->norm(x-1.0)>1e-12, α), α)
