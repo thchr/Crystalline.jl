@@ -1,3 +1,44 @@
+## --- TYPES ---
+
+abstract type AbstractFourierLattice{D}; end
+getcoefs(flat::AbstractFourierLattice) = flat.orbitcoefs
+getorbits(flat::AbstractFourierLattice) = flat.orbits
+dim(flat::AbstractFourierLattice{D}) where D = D
+
+"""
+UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
+
+A general `D`-dimensional Fourier/plane wave lattice (specified 
+by G-orbits and coefficient interrelations); specifies the allowable 
+interrelations between coefficients within each orbit. The norm of 
+all orbit coefficients is unity. The G-orbits `orbits` (& associated
+coefficients) are sorted in order of increasing |G| (low to high).
+"""
+struct UnityFourierLattice{D} <: AbstractFourierLattice{D}
+    orbits::Vector{Vector{SVector{D, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
+    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit; unit norm
+end
+UnityFourierLattice(orbits, orbitcoefs) = begin
+    D = length(first(first(orbits)))
+    UnityFourierLattice{D}(orbits, orbitcoefs)
+end
+
+
+"""
+    ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
+
+A `D`-dimensional concrete Fourier/plane wave lattice, derived from 
+a UnityFourierLattice by scaling/modulating its orbit coefficients 
+by complex numbers; in general, the coefficients do not have unit norm.
+"""
+struct ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
+    orbits::Vector{Vector{SVector{D, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
+    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of coefficients of 𝐆-plane waves within an orbit
+end
+
+
+## --- METHODS --- 
+
 # Group orbits of plane waves G = (G)ᵀ under a symmetry operation Ô = {W|w}, 
 # using that Ô acts as Ô⁻¹={W⁻¹|-W⁻¹w} when acting on functions, i.e.
 #   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
@@ -10,21 +51,22 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
     Ws = rotation.(symops) # operations W in R-basis (point group part)
     ws = translation.(symops)
 
-    # we define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
-    # Calculates the operators (W⁻¹)ᵀ in the G-basis:
+    # We define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
+    # calculating the operators (W⁻¹)ᵀ in the 𝐆-basis:
     # The action of a symmetry operator in an 𝐑-basis, i.e. W(𝐑), on a 𝐤 vector in a 
     # 𝐆-basis, i.e. 𝐤(𝐆), is 𝐤′(𝐆)ᵀ = 𝐤(𝐆)ᵀW(𝐑)⁻¹. To deal with column vectors, we 
     # transpose, obtaining 𝐤′(𝐆) = [W(𝐑)⁻¹]ᵀ𝐤(𝐆) [details in symops.jl, above littlegroup(...)].
     W⁻¹ᵀs = transpose.(inv.(Ws))
 
-    # if idxmax is interpreted as (imax, jmax, ...), then this produces an iterator
+    # If idxmax is interpreted as (imax, jmax, ...), then this produces an iterator
     # over i = -imax:imax, j = -jmax:jmax, ..., where each call returns (..., j, i); 
     # note that the final order is anti-lexicographical; so we reverse it in the actual
     # loop for our own sanity's sake
     reviter = Iterators.product(reverse((:).(.-idxmax, idxmax))...)
 
-    orbits = Vector{Vector{SVector{dim,Int64}}}() # vector to store orbits of G-indices into G-basis
-    for rG in reviter  # --- compute orbits ---
+    # --- compute orbits ---
+    orbits = Vector{Vector{SVector{dim,Int64}}}() # vector to store orbits of G-vectors (in G-basis)
+    for rG in reviter  
         G = SVector{dim,Int64}(reverse(rG)) # fix order and convert to SVector{dim,Int64} from Tuple
 
         skip = false # if G already contained in an orbit; go to next G
@@ -82,15 +124,14 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
             push!(deleteidx, o)
         end
     end
-
     deleteat!(orbits, deleteidx)
 
     # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest G-combinations come last)
-    perm = sortperm(orbits, by=x->norm(x[1]))
+    perm = sortperm(orbits, by=x->norm(first(x)))
     permute!(orbits, perm)
     permute!(orbitcoefs, perm)
 
-    return FourierLattice(orbits, orbitcoefs)
+    return UnityFourierLattice(orbits, orbitcoefs)
 end
 
 
@@ -129,59 +170,118 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
 end
 
-calcfourier(xyz, flat::FourierLattice) = calcfourier(xyz, flat.orbits, flat.orbitcoefs)
+"""
+    modulate(flat::UnityFourierLattice{dim},
+    modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
+    expon::Union{Nothing, Real}=nothing)
+                            --> ModulatedFourierLattice
+
+Derive a concrete, modulated Fourier lattice from `flat`, a UnityFourierLattice 
+struct (that contains the _interrelations_ between orbit coefficients), by 
+multiplying the "normalized" orbit coefficients by a `modulation`, a _complex_
+modulating vector (in general, should be complex; otherwise restores unintended
+symmetry to the lattice). Distinct `modulation` vectors produce distinct 
+realizations of the same lattice described by the original `flat`. By default,
+a random complex vector is used.
+
+An exponent `expon` can be provided, which introduces a penalty term to short-
+wavelength features (i.e. high-|G| orbits) by dividing the orbit coefficients
+by |G|^`expon`; producing a more "localized" and "smooth" lattice boundary
+when `expon > 0` (reverse for `expon < 0`). This basically amounts to a 
+continuous "simplifying" operation on the lattice (it is not necessarily a 
+smoothing operation; it simply suppresses "high-frequency" components).
+If `expon = nothing`, no rescaling is performed. 
+
+The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
+of a `ModulatedFourierLattice`.
+"""
+function modulate(flat::UnityFourierLattice,
+                  modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
+                  expon::Union{Nothing, Real}=nothing)
+
+    orbits = getorbits(flat); orbitcoefs = getcoefs(flat); # unpacking ...
+    
+    # `expon ≠ 0` is provided, we will interpret it as a penalty term on 
+    # short-wavelength orbits (i.e., high |𝐆|) by dividing the orbit 
+    # coefficients by |𝐆|ᵉˣᵖᴼⁿ; this produces more "localized" and "smooth"
+    # lattice boundaries for `expon > 0` (reverse for `expon < 0`).
+    if !isnothing(expon) && !iszero(expon) 
+        @inbounds for i in 2:length(orbits) # leaves the constant term untouched 
+                                            # (there will _always_ be a constant term)...
+            modulation[i] /= (norm(first(orbits[i])))^expon
+        end
+    end
+
+    # scale the orbit coefficients by the overall `modulation` vector
+    modulated_orbitcoefs = orbitcoefs.*modulation
+
+    return ModulatedFourierLattice(orbits, modulated_orbitcoefs)
+end
+
+""" 
+    normscale(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+
+Applies subsequent norm-rescaling via `expon`; see detailed description 
+in `modulate`. An in-place variant is provided as `normscale!`.
+"""
+normscale(flat::ModulatedFourierLattice, expon::Real) = normscale!(deepcopy(flat), expon)
+"""
+    normscale!(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+
+In-place equivalent of `normscale`: changes `flat`.
+"""
+function normscale!(flat::ModulatedFourierLattice, expon::Real)
+    @inbounds for i in 2:length(getorbits(flat))
+        rescale_factor = norm(first(getorbits(flat)[i]))^expon
+        flat.orbitcoefs[i] ./= rescale_factor
+    end
+    return flat
+end
+
+calcfourier(xyz, flat::AbstractFourierLattice) = calcfourier(xyz, getorbits(flat), getcoefs(flat))
 function calcfourier(xyz, orbits, orbitcoefs)
     f = zero(ComplexF64)
     for (orb, coefs) in Iterators.zip(orbits, orbitcoefs)
         for (G, c) in Iterators.zip(orb, coefs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
-            f += c*cis(2π*dot(G,xyz)) # cis(x) = exp(ix)
+            f += c*cis(2π*dot(G, xyz)) # cis(x) = exp(ix)
         end
     end
     return f
 end
 
-function plotfourier(flat::FourierLattice{dim}, C::Crystal, N=100, expon=2, filling=0.5, repeat=nothing) where dim
-    orbits = flat.orbits; orbitcoefs = flat.orbitcoefs; R = basis(C) # unpacking ...
+function plotfourier(flat::AbstractFourierLattice, 
+                     C::Crystal, N::Integer=100, 
+                     filling::Union{Real, Nothing}=0.5, 
+                     repeat::Union{Integer, Nothing}=nothing)
+ 
     xyz = range(-.5, .5, length=N)
-    modulated_orbitcoefs = orbitcoefs.*rand(ComplexF64, length(orbitcoefs)) # in general, a complex value; otherwise we restore unintended symmetry
-    if !isnothing(expon) && !iszero(expon) # divide shorter wavelength terms by their (multiplicity*norm)^expon (to get a more "localized" and smooth character)
-        for i = 2:length(orbits) # leave the constant term untouched ...
-        modulated_orbitcoefs[i] ./= (norm(orbits[i])).^expon
-        end
-    end
+    vals = calcfouriergridded(xyz, flat, N)
+    isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
     
-    vals = Array{Float64, dim}(undef, ntuple(i->N, dim)...)
-    calcfouriergridded!(vals, xyz, orbits, modulated_orbitcoefs, dim, N)
-
-    if !isnothing(filling)
-        isoval = quantile(Iterators.flatten(vals), filling)
-    else
-        isoval = 0
-    end
-    
-    plotiso(xyz,vals,isoval,R,repeat)
+    plotiso(xyz,vals,isoval,basis(C),repeat)
 
     return xyz,vals,isoval
 end
 
 
-function calcfouriergridded!(vals, xyz, orbits, orbitcoefs, dim, N)
-    f = (coords...)-> real(calcfourier(coords, orbits, orbitcoefs))
+function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice, 
+                             N::Integer=length(xyz))
+    f = (coords...)-> real(calcfourier(coords, flat))
     # evaluate f over all gridpoints via broadcasting
-    if dim == 2
+    if dim(flat) == 2
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
-    elseif dim == 3
-        # unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
+    elseif dim(flat) == 3
+        # VERIFY: unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
         broadcast!(f, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
     end
     return vals
 end
-function calcfouriergridded(xyz, orbits, orbitcoefs)
-    dim = length(orbits[1][1]); N = length(xyz)
-    vals = Array{Float64, dim}(undef, ntuple(i->N, dim)...)
-    return calcfouriergridded!(vals, xyz, orbits, orbitcoefs, dim, N)
+function calcfouriergridded(xyz, flat::AbstractFourierLattice{D},
+                            N::Integer=length(xyz)) where D
+    vals = Array{Float64, D}(undef, ntuple(i->N, D)...)
+    return calcfouriergridded!(vals, xyz, flat, N)
 end
 
 
@@ -189,7 +289,7 @@ ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
 function plotiso(xyz, vals, isoval=0, 
                  R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
-                 repeat=nothing)  
+                 repeat::Union{Integer, Nothing}=nothing)  
     dim = ndims(vals)
     if dim == 2
         # convert to a cartesian coordinate system rather than direct basis of Ri

@@ -4,15 +4,16 @@ using SGOps, PyPlot, AbstractPlotting, MAT
 plt.close("all")
 sgnum = 4; dim = 2; idxmax = (2,2)
 N = 100 # number of points per dimension
-expon = .5 # exponent for fall off in coefficients
+expon = .5 # exponent for coefficient fall-off
 filling = 0.5
-repeat = 2
+repeat = 1
 
 for sgnum = 1:17
-    global flat = levelsetlattice(sgnum, dim, idxmax)
+    flat = levelsetlattice(sgnum, dim, idxmax)
+    C = gen_crystal(sgnum, dim) 
     for n = 1:3
-        global C = gen_crystal(sgnum, dim) 
-        plotfourier(flat, C, N, expon, filling, repeat)
+        mflat = normscale!(modulate(flat), expon)
+        plotfourier(mflat, C, N, filling, repeat)
         display(plt.gcf().show());
         if false
             PyPlot.savefig((@__DIR__)*"\\figures\\planegroup$(sgnum)_$(n).png")
@@ -24,13 +25,15 @@ end
 if false
     save2matlab = true
     # 3D lattices
-    sgnum = 139; dim = 3; idxmax = 2 .*(1,1,1)
+    sgnum = 139; dim = 3; idxmax = 2 .* (1,1,1)
     N = 50 # number of points per dimension
-    expon = 2 # exponent for fall off in coefficients
+    expon = 2 # exponent for coefficient fall-off
     filling = 0.5
 
-    ijkorbits, orbcoefs, R = levelsetlattice(sgnum, dim, idxmax)
-    xyz,vals,isoval=plotfourier(ijkorbits, orbcoefs, R, N, expon, filling)
+    C = gen_crystal(sgnum, dim)
+    flat = levelsetlattice(sgnum, dim, idxmax)
+    mflat = normscale!(modulate(flat), expon)
+    xyz,vals,isoval=plotfourier(mflat, C, N, filling)
     #display(AbstractPlotting.current_scene());
 
     if save2matlab

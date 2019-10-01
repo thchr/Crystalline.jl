@@ -99,14 +99,6 @@ function show(io::IO, ::MIME"text/plain", sgs::Vector{SpaceGroup})
     end
 end
 
-# Fourier/plane wave lattice (specified by Gorbits and coefficient interrelations)
-struct FourierLattice{N}
-    orbits::Vector{Vector{SVector{N, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
-    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit
-end
-FourierLattice(orbits, orbitcoefs)   = FourierLattice{length(first(first(orbits)))}(orbits, orbitcoefs)
-dim(flat::FourierLattice{N}) where N = N
-
 # K-vectors
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
 #       𝐤 = ∑³ᵢ₌₁ (k₀ᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)

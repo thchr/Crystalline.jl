@@ -22,7 +22,6 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SpaceGroup, SymOperation, Crystal, # types
        SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet, 
-       FourierLattice,
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
        getindex, rotation, translation, 
@@ -59,7 +58,10 @@ export parseisoir, parselittlegroupirreps,
        realify
 
 include("lattices.jl")
-export levelsetlattice, plotfourier, plotiso
+export UnityFourierLattice, ModulatedFourierLattice,
+       getcoefs, getorbits, levelsetlattice,
+       modulate, normscale, normscale!, calcfourier,
+       plotfourier, plotiso
 
 include("bandrep.jl")
 export crawlbandreps, dlm2struct, 
