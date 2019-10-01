@@ -121,8 +121,8 @@ function unicode_frac(x::Number)
 end
 
 const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω",
-                              "LE"=>"Λ′", "DU"=>"Λ′", "SN"=>"Σ′")  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
-                                                                   # They "match" a simpler k-vector, by reducing their second character by one,
+                              "LE"=>"Λ′", "DU"=>"Δ′", "SN"=>"Σ′",  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
+                              "ZA"=>"Z′", "WA"=>"W′")              # They "match" a simpler k-vector, by reducing their second character by one,
                                                                    # alphabetically (e.g. LE => LD = Λ). The primed notation is our own.
 function roman2greek(label::String)
     idx = findfirst(!isletter, label)
