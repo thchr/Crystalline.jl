@@ -1,22 +1,24 @@
 using SGOps, Test, Crayons
 
-#LGIRS=parselittlegroupirreps();
+if !isdefined(Main, :LGIRS)
+    LGIRS = parselittlegroupirreps()
+end
 
 # Compare our calculation of the Herring criterion with the tabulated 
 # reality types in ISOTROPY
 @testset "Herring criterion" begin
-    #= error_count = 0 =#
+    #= error_count = 0 =#       # for debugging
     for sgnum = 1:230
         sgops = operations(LGIRS[sgnum][1][1]) # this is important: we may _not_ use trivial repeated sets, i.e. get_symops would not work generally
         for kidx = 1:length(LGIRS[sgnum])
             for iridx = 1:length(LGIRS[sgnum][kidx])
                 iso_rawtype = type(LGIRS[sgnum][kidx][iridx])
                 iso_type = iso_rawtype == 1 ? 1 : (iso_rawtype == 2 ? -1 : 0) # map ISOTROPY's types from {1,2,3} to {1,-1,0} = {real, pseudoreal, complex}
-                #= try =#
+                #= try =#       # for debugging
                 herring_sum, herring_norm = herring(LGIRS[sgnum][kidx][iridx], sgops)
                 herring_type = herring_sum ≠ 0 ? herring_sum/herring_norm : 0
                 @test iso_type ≈ herring_type
-                #= catch err # debugging printouts
+                #= catch err    # for debugging
                     if true
                         println(sgnum, ", ", 
                                 SGOps.subscriptify.(label(LGIRS[sgnum][kidx][iridx])), ", ", 
@@ -30,7 +32,7 @@ using SGOps, Test, Crayons
         end
     end
 
-    #= 
+    #=                          # for debugging
     if error_count>0
         println(Crayon(foreground=:red, bold=true), "Outright errors: ", error_count)
     else
@@ -39,15 +41,16 @@ using SGOps, Test, Crayons
     =#
 end
     
-
-linelen = 60
-for sgnum = 1:230
-    println("\n\nSpace group $(sgnum)\n", "──┬", '─'^linelen)
-    for kidx = 1:length(LGIRS[sgnum])
-        realify(LGIRS[sgnum][kidx], true)
-        if kidx ≠ length(LGIRS[sgnum]) 
-            println("──┼", '─'^linelen)
+if false # code to print reality induced degeneracy properties of all irreps
+    linelen = 60
+    for sgnum = 1:230
+        println("\n\nSpace group $(sgnum)\n", "──┬", '─'^linelen)
+        for kidx = 1:length(LGIRS[sgnum])
+            realify(LGIRS[sgnum][kidx], true)
+            if kidx ≠ length(LGIRS[sgnum]) 
+                println("──┼", '─'^linelen)
+            end
         end
+        println("──┴", '─'^linelen)
     end
-    println("──┴", '─'^linelen)
 end

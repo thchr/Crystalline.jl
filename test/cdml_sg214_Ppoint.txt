@@ -1,0 +1,51 @@
+Small irrep generators/info from CDML: space group 214, BZ label P
+==================================================================
+
+{Rotation,Translation} | Characters (P1 P2 P3)
+1           | 2 2 2
+2,2 3,3 4,1 | 0 0 0
+9           | -conj(W) -1 -W
+11,3 12,1   | conj(U) I -U
+5           | -W -1 -conj(W)
+8,1         | U -I -conj(U)
+10,2        | conj(U) I -U
+6,2 7,3     | U -I -conj(U)
+
+{Rotation,Translation} | Matrix (P1 P2 P3)
+4,1 | M4  M4    M4
+2,2 | M2  M2    M2
+9   | M16 M16*W M16*conj(W)
+
+Translations:
+    T1 = (0,1/2,0)
+    T2 = (0,0,1/2)
+    T3 = (1/2,0,0)
+
+Rotations:
+    R1  = x,y,z
+    R2  = x,-y,-z
+    R3  = -x,y,-z
+    R4  = -x,-y,z
+    R5  = y,z,x
+    R6  = y,-z,-x
+    R7  = -y,z,-x
+    R8  = -y,-z,x
+    R9  = z,x,y
+    R10 = z,-x,-y
+    R11 = -z,x,-y
+    R12 = -z,-x,y 
+
+Matrices:
+    M1  = [1 0; 1 0]
+    M2  = [0 1; 1 0]
+    M4  = [1 0; 0 -1]
+    M16 = C*[P conj(Q); P -conj(Q)]
+
+Scalars:
+    C = 1/√2
+    I = 1im
+    P = exp(1im*π/12)
+    Q = exp(5im*π/12)
+    U = exp(1im*π/6)
+    V = exp(1im*π/4)
+    W = exp(2im*π/3)

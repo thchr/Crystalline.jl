@@ -1,6 +1,8 @@
 using SGOps, Test
 
-#LGIRS=parselittlegroupirreps();
+if !isdefined(Main, :LGIRS)
+    LGIRS = parselittlegroupirreps()
+end
 
 # see e.g. Bradley & Cracknell p. 151(bottom)-152(top)
 @testset "Decomposition, order[star{k}]*order[G₀ᵏ] = order[G₀]" begin
@@ -36,14 +38,18 @@ end
 end
 
 @testset "Macroscopic order, Bilbao vs. ISOTROPY" begin
-for sgnum = 1:230
-    sgops_bilbao = operations(get_symops(sgnum, 3))         # from crawling Bilbao
-    sgops_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
+    for sgnum = 1:230
+        sgops_bilbao = operations(get_symops(sgnum, 3))         # from crawling Bilbao
+        sgops_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
 
-    order_macroscopic_bilbao = length(pointgroup(sgops_bilbao))
-    order_macroscopic_isotropy = length(pointgroup(sgops_isotropy))
+        # note that we don't have to worry about whether the operations 
+        # are represented in conventional or primitive bases, and whether 
+        # there are "repeated translation sets" in the former; taking the 
+        # point group automatically removes such sets
+        order_macroscopic_bilbao = length(pointgroup(sgops_bilbao))
+        order_macroscopic_isotropy = length(pointgroup(sgops_isotropy))
 
-    @test order_macroscopic_bilbao == order_macroscopic_isotropy
-end   
+        @test order_macroscopic_bilbao == order_macroscopic_isotropy
+    end   
 end  
             

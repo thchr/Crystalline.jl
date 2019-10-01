@@ -4,4 +4,7 @@ using SGOps, Test
     include("symops.jl")
 
     include("irreps.jl")
+
+    include("multtable.jl")
+    include("reality.jl")
 end
