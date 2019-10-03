@@ -135,17 +135,29 @@ function stripnum(s)
 end
 
 
+"""
+    issymmorph(op::SymOperation, cntr::Char) --> Bool
 
+Checks whether a given symmetry operation `op` is symmorphic (true) or
+nonsymmorphic (false). The operation is assumed to be given in a 
+conventional basis; but the check requires that the translation is zero 
+in a primitive basis. Accordingly, the centering `cntr` must provided.
+"""
+function issymmorph(op::SymOperation, cntr::Char)
+    P = primitivebasismatrix(cntr, dim(op))
+    w_primitive = transform_translation(op, P, nothing) # translation in a primitive basis
+    return iszero(translation(op))
+end
 """
     issymmorph(sg::SpaceGroup) --> Bool
 
 Checks whether a given space group `sg` is symmorphic (true) or
 nonsymmorphic (false).
 """
-issymmorph(sg::SpaceGroup) = all(issymmorph.(operations(sg)))
+issymmorph(sg::SpaceGroup) = all(issymmorph.(operations(sg), centering(num(sg), dim(sg))))
 
 """
-    issymmorph(sgnum::SpaceGroup, dim::Integer=3) --> Bool
+    issymmorph(sgnum::Integer, dim::Integer=3) --> Bool
 
 Checks whether a given space group `sgnum` is symmorphic (true) or
 nonsymmorphic (false).
@@ -430,18 +442,40 @@ For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
 """
 function primitivize(op::SymOperation, cntr::Char)
     P = primitivebasismatrix(cntr, dim(op))
-    transform(op, P, zeros(dim(op)))
+    transform(op, P, nothing)
 end
 
 function conventionalize(op::SymOperation, cntr::Char)
     P = primitivebasismatrix(cntr, dim(op))
-    transform(op, inv(P), zeros(dim(op)))
+    transform(op, inv(P), nothing)
 end
 
-function transform(op::SymOperation, P::Matrix{<:Real}, p::Vector{<:Real}=zeros(dim(op)))
-    W = rotation(op)
-    w = translation(op)
+""" 
+    transform(op::SymOperation, P::Matrix{<:Real}, 
+              p::Union{Vector{<:Real}, Nothing}=nothing) --> SymOperation
 
+Transforms a symmetry operation `op = {W|w}` by a rotation matrix `P` and 
+a translation vector `p` (can be `nothing` for zero-translations), producing
+a new symmetry operation `op′ = {W′|w′}`:
+    {W′|w′} = {P|p}⁻¹{W|w}{P|p}
+    with   W′ =  P⁻¹WP
+           w′ = P⁻¹(w+Wp-p)
+with the translation `w′` reduced to the range [0, 1). 
+
+See also `primivitze` and `conventionalize`.
+"""
+# translation (usually zero; can then be given as `nothing`)
+function transform(op::SymOperation, P::Matrix{<:Real}, 
+                   p::Union{Vector{<:Real}, Nothing}=nothing)    
+    W′ = transform_rotation(op, P)       # = P⁻¹WP       (+ rounding)
+    w′ = transform_translation(op, P, p) # = P⁻¹(w+Wp-p)
+                                         # with W ≡ rotation(op) and w ≡ translation(op)
+
+    return SymOperation([W′ w′])
+end
+
+function transform_rotation(op::SymOperation, P::Matrix{<:Real})
+    W = rotation(op)
     W′ = P\(W*P)        # = P⁻¹WP
     # clean up rounding-errors introduced by transformation (e.g. 
     # occassionally produces -0.0). The rotational part should 
@@ -458,10 +492,19 @@ function transform(op::SymOperation, P::Matrix{<:Real}, p::Vector{<:Real}=zeros(
 
         W′[idx] = rel
     end
+end
 
-    w′ = P\(w+W*p-p)    # = P⁻¹(w+Wp-p)
+function transform_translation(op::SymOperation, P::Matrix{<:Real}, 
+                               p::Union{Vector{<:Real}, Nothing}=nothing)
+    w = translation(op)
+
+    if !isnothing(p)
+        w′ = P\(w+rotation(op)*p-p)  # = P⁻¹(w+Wp-p)
+    else
+        w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
+    end
     w′ .= mod.(w′, 1.0)
-    return SymOperation([W′ w′])
+    return w′
 end
 
 function reduce_symops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim::Bool=true)
