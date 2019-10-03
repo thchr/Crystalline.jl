@@ -146,7 +146,7 @@ in a primitive basis. Accordingly, the centering `cntr` must provided.
 function issymmorph(op::SymOperation, cntr::Char)
     P = primitivebasismatrix(cntr, dim(op))
     w_primitive = transform_translation(op, P, nothing) # translation in a primitive basis
-    return iszero(translation(op))
+    return iszero(w_primitive)
 end
 """
     issymmorph(sg::SpaceGroup) --> Bool
@@ -441,13 +441,21 @@ associated with the coordinate transformation.
 For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
 """
 function primitivize(op::SymOperation, cntr::Char)
-    P = primitivebasismatrix(cntr, dim(op))
-    transform(op, P, nothing)
+    if cntr === 'P' || cntr === 'p' # primitive basis: identity-transform, short circuit
+        return op
+    else
+        P = primitivebasismatrix(cntr, dim(op))
+        return transform(op, P, nothing)
+    end
 end
 
 function conventionalize(op::SymOperation, cntr::Char)
-    P = primitivebasismatrix(cntr, dim(op))
-    transform(op, inv(P), nothing)
+    if cntr === 'P' || cntr === 'p' # primitive basis: identity-transform, short circuit
+        return op
+    else
+        P = primitivebasismatrix(cntr, dim(op))
+        return transform(op, inv(P), nothing)
+    end
 end
 
 """ 
@@ -456,7 +464,7 @@ end
 
 Transforms a symmetry operation `op = {W|w}` by a rotation matrix `P` and 
 a translation vector `p` (can be `nothing` for zero-translations), producing
-a new symmetry operation `op′ = {W′|w′}`:
+a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
     {W′|w′} = {P|p}⁻¹{W|w}{P|p}
     with   W′ =  P⁻¹WP
            w′ = P⁻¹(w+Wp-p)
@@ -492,6 +500,7 @@ function transform_rotation(op::SymOperation, P::Matrix{<:Real})
 
         W′[idx] = rel
     end
+    return W′
 end
 
 function transform_translation(op::SymOperation, P::Matrix{<:Real}, 
@@ -508,16 +517,19 @@ function transform_translation(op::SymOperation, P::Matrix{<:Real},
 end
 
 function reduce_symops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim::Bool=true)
-    ops′ = primitivize.(ops, cntr)
+    P = primitivebasismatrix(cntr, dim(first(ops)))
+    ops′ = transform.(ops, Ref(P), nothing)         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
+    # remove equivalent operations
     ops′_reduced = SymOperation.(uniquetol(matrix.(ops′), atol=SGOps.DEFAULT_ATOL))
 
     if conv_or_prim # (true) return in conventional basis
-        return conventionalize.(ops′_reduced, cntr)
+        return transform.(ops′_reduced, Ref(inv(P))) # equiv. to conventionalize.(ops′_reduced, cntr)
     else            # (false) return in primitive basis
         return ops′_reduced
     end
 end
-
+reduce_symops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_symops(operations(sg), centering(num(sg), dim(sg)), conv_or_prim)
+reduce_symops(sgnum::Int64, dim::Int64=3, conv_or_prim::Bool=true) = reduce_symops(get_symops(sgnum, dim), conv_or_prim)
 
 
 # --- INVERSE OF SYMMETRY OPERATION ---
