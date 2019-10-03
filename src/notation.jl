@@ -203,7 +203,7 @@ function seitz(op::SymOperation)
     W = rotation(op); w = translation(op); dim = size(W,1)
     if dim == 2 # we just augment the 2D case by leaving z invariant
         W = [W zeros(2); 0.0 0.0 1.0]; 
-        w = [w, 0]
+        w = [w; 0]
     end
 
     detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip
