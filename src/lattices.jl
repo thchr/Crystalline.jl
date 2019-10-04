@@ -46,10 +46,17 @@ end
 #   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
 function levelsetlattice(sgnum::Int64, dim::Int64=2, 
                          idxmax::NTuple=ntuple(i->2,dim))
-    sg = get_symops(sgnum, dim)
-    symops = operations(sg)
-    Ws = rotation.(symops) # operations W in R-basis (point group part)
-    ws = translation.(symops)
+    # check validity of inputs
+    (sgnum < 1)               && throw(DomainError(sgnum, "sgnum must be greater than 1"))
+    !(dim == 2 || dim == 3)   && throw(DomainError(dim, "dim must be equal to 2 or 3"))
+    dim ≠ length(idxmax)      && throw(DomainError((dim, idxmax), "dim must equal length(idxmax): got (dim = $dim) ≠ (length(idxmax) = $(length(idxmax)))"))
+    (dim == 2 && sgnum > 17)  || (dim == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
+
+    # prepare
+    sg = get_sgops(sgnum, dim)
+    sgops = operations(sg)
+    Ws = rotation.(sgops) # operations W in R-basis (point group part)
+    ws = translation.(sgops)
 
     # We define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
     # calculating the operators (W⁻¹)ᵀ in the 𝐆-basis:
@@ -231,30 +238,42 @@ normscale(flat::ModulatedFourierLattice, expon::Real) = normscale!(deepcopy(flat
 In-place equivalent of `normscale`: changes `flat`.
 """
 function normscale!(flat::ModulatedFourierLattice, expon::Real)
-    @inbounds for i in 2:length(getorbits(flat))
-        rescale_factor = norm(first(getorbits(flat)[i]))^expon
-        flat.orbitcoefs[i] ./= rescale_factor
+    if !iszero(expon)
+        @inbounds for i in 2:length(getorbits(flat))
+            rescale_factor = norm(first(getorbits(flat)[i]))^expon
+            flat.orbitcoefs[i] ./= rescale_factor
+        end
     end
     return flat
 end
 
+""" 
+    calcfourier(xyz, flat::AbstractFourierLattice) --> Float64
+
+Compute the real part of the function evaluation of `flat` at a
+point `xyz` (a tuple, SVector, or a vector), i.e. return
+    Re[∑ᵢ cᵢexp(2πi𝐆ᵢ⋅𝐫)]
+with 𝐆ᵢ denoting a 𝐆-vector in an allowed orbit in `flat`, and 
+cᵢ an associated coefficient (and with 𝐫 ≡ `xyz`).
+"""
 calcfourier(xyz, flat::AbstractFourierLattice) = calcfourier(xyz, getorbits(flat), getcoefs(flat))
 function calcfourier(xyz, orbits, orbitcoefs)
-    f = zero(ComplexF64)
-    for (orb, coefs) in Iterators.zip(orbits, orbitcoefs)
-        for (G, c) in Iterators.zip(orb, coefs)
+    f = zero(Float64)
+    for (orb, coefs) in zip(orbits, orbitcoefs)
+        for (G, c) in zip(orb, coefs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
-            f += c*cis(2π*dot(G, xyz)) # cis(x) = exp(ix)
+            exp_im, exp_re = sincos(2π*dot(G, xyz))
+            f += real(c)*exp_re - imag(c)*exp_im    # ≡ real(exp(2π*1im*dot(G, xyz)))
         end
     end
     return f
 end
 
-function plotfourier(flat::AbstractFourierLattice, 
-                     C::Crystal, N::Integer=100, 
-                     filling::Union{Real, Nothing}=0.5, 
-                     repeat::Union{Integer, Nothing}=nothing)
+function plot(flat::AbstractFourierLattice, C::Crystal;
+              N::Integer=100, 
+              filling::Union{Real, Nothing}=0.5, 
+              repeat::Union{Integer, Nothing}=nothing)
  
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
@@ -268,7 +287,7 @@ end
 
 function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice, 
                              N::Integer=length(xyz))
-    f = (coords...)-> real(calcfourier(coords, flat))
+    f = (coords...)-> calcfourier(coords, flat)
     # evaluate f over all gridpoints via broadcasting
     if dim(flat) == 2
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
@@ -287,7 +306,7 @@ end
 
 ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
-function plotiso(xyz, vals, isoval=0, 
+function plotiso(xyz, vals, isoval::Real=0.0, 
                  R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
                  repeat::Union{Integer, Nothing}=nothing)  
     dim = ndims(vals)
@@ -306,7 +325,7 @@ function plotiso(xyz, vals, isoval=0,
         fig.gca().scatter([0],[0],color="C4",s=30, marker="+")
         
 
-        if repeat !== nothing # allow repetitions of unit cell in 2D
+        if !isnothing(repeat) # allow repetitions of unit cell in 2D
             for r1 in -repeat:repeat
                 for r2 in -repeat:repeat
                     if r1 == r2 == 0; continue; end
@@ -328,6 +347,22 @@ function plotiso(xyz, vals, isoval=0,
         Makie.contour!(scene, xyz,xyz,xyz, vals,
                        levels=[isoval],colormap=:blues, linewidth=.1)
         Makie.display(scene)
+
+        # marching cubes algorithm to find isosurfaces
+        algo = MarchingCubes(iso=isoval, eps=1e-3)
+        verts, faces = isosurface(vals, algo; 
+                                  origin = SVector(-0.5,-0.5,-0.5), 
+                                  widths = SVector(1.0,1.0,1.0))
+        verts′ = [verts[i][j] for i = 1:length(verts), j = 1:3]
+        faces′ = [faces[i][j] for i = 1:length(faces), j = 1:3]
+
+        #println("Mesh: $(length(verts)) vertices\n", " "^6, "$(length(faces)) faces")
+        isomesh = convert_arguments(Mesh, verts′, faces′)[1]
+
+        # plot isosurface
+        scene = Scene()
+        mesh!(isomesh, color=:grey)
+        display(scene)
     end
     return nothing
 end

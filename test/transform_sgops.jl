@@ -4,8 +4,8 @@ using SGOps, Test, PrettyTables
 @testset "Order of space group, in primitized basis" begin
     for sgnum = 1:230
         cntr = centering(sgnum, 3)
-        # symops from Bilbao (BCD)
-        ops = operations(get_symops(sgnum))
+        # sgops from Bilbao (BCD)
+        ops = operations(get_sgops(sgnum))
         ops′ = SymOperation.(SGOps.uniquetol(matrix.(primitivize.(ops, cntr)), # go to primitive basis and
                                              atol=SGOps.DEFAULT_ATOL))         # and reduce to unique set
         ops′′ = conventionalize.(ops′, cntr) # back to conventional basis
@@ -14,7 +14,7 @@ using SGOps, Test, PrettyTables
         end
         
         Nops_ISO = length(operations(LGIRS[sgnum][1][1]))
-        @test Nops_ISO == length(ops′) # test that ISOTROPY symops indeed excludes trivial translation sets
+        @test Nops_ISO == length(ops′) # test that ISOTROPY get_sgops indeed excludes trivial translation sets
     end
 end
 
@@ -22,13 +22,13 @@ end
 let count = 0, failures = Int[]
     for sgnum = 1:230
         cntr = centering(sgnum, 3)
-        # symops from Bilbao (BCD)
-        ops_BCD = operations(get_symops(sgnum))
+        # sgops from Bilbao (BCD)
+        ops_BCD = operations(get_sgops(sgnum))
         ops_BCD′ = SymOperation.(SGOps.uniquetol(matrix.(primitivize.(ops_BCD, cntr)), # go to primitive basis and
                                                  atol=SGOps.DEFAULT_ATOL))             # and reduce to unique set
         ops_BCD′′ = conventionalize.(ops_BCD′, cntr) # back to conventional basis
 
-        # symops from ISOTROPY (via Γ point)
+        # sgops from ISOTROPY (via Γ point)
         ops_ISO = operations(LGIRS[sgnum][1][1])
         ops′_ISO = primitivize.(ops_ISO, cntr)
         
@@ -38,7 +38,7 @@ let count = 0, failures = Int[]
         ops_BCD′′ = ops_BCD′′[sorted_idx_BCD]
         ops_ISO = ops_ISO[sorted_idx_ISO]
 
-        # extracting various (sorted) metrics of the symops
+        # extracting various (sorted) metrics of the sgops
         seitz_BCD = seitz.(ops_BCD′′)
         seitz_ISO = seitz.(ops_ISO)
         matrix_BCD = matrix.(ops_BCD′′)
@@ -46,12 +46,12 @@ let count = 0, failures = Int[]
         τ_BCD      = translation.(ops_BCD′′)
         τ_ISO      = translation.(ops_ISO)
 
-        # comparisons of (sorted) symops across BCD and ISO
+        # comparisons of (sorted) sgops across BCD and ISO
         BCD_vs_ISO = seitz_BCD .== seitz_ISO                          # 6 disagreements (trivial differences of **primitive** lattice translations)
         #BCD_vs_ISO = matrix_ISO .== matrix_BCD                       # 6 disagreements (trivial differences of **primitive** lattice translations)
         #BCD_vs_ISO = (sort(seitz.(ops′)) .== sort(seitz.(ops′_ISO))) # 0 disagreements (primitive operators)
 
-        # print some stuff if BCD and ISO symops sets not equivalent
+        # print some stuff if BCD and ISO sgops sets not equivalent
         if any(!, BCD_vs_ISO) 
             count += 1
             push!(failures, sgnum)

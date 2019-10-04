@@ -1,13 +1,13 @@
 import Base: show
 
 # Crystalline lattice
-struct Crystal{N}
-    R::NTuple{N,Vector{Float64}}
+struct Crystal{D}
+    Rs::NTuple{D,Vector{Float64}}
 end
-Crystal(R,type) = Crystal{length(R)}(R, type)
-Crystal(R) = Crystal{length(R)}(R, "")
-basis(C::Crystal) = C.R
-dim(C::Crystal{N}) where N = N
+Crystal(Rs) = Crystal{length(Rs)}(Rs)
+Crystal(Rs...) = Crystal(Rs)
+basis(C::Crystal) = C.Rs
+dim(C::Crystal{D}) where D = D
 function show(io::IO, ::MIME"text/plain", C::Crystal)
     print(io, "$(dim(C))D Crystal:")
     print(io, " ($(crystalsystem(C)))");
@@ -17,10 +17,10 @@ function show(io::IO, ::MIME"text/plain", C::Crystal)
 end
 norms(C::Crystal) = norm.(basis(C))
 _angle(rA,rB) = acos(dot(rA,rB)/(norm(rA)*norm(rB)))
-function angles(C::Crystal{N}) where N
+function angles(C::Crystal{D}) where D
     R = basis(C)
     γ = _angle(R[1], R[2])
-    if N == 3
+    if D == 3
         α = _angle(R[2], R[3])
         β = _angle(R[3], R[1])
         return α,β,γ
@@ -30,9 +30,11 @@ end
 
 
 # Symmetry operations
-struct SymOperation
+struct SymOperation#{D}
     xyzt::String
     matrix::Matrix{Float64} # TODO: factor this out into a rotation and a translation part (to avoid needless copying)
+    #rotation::Matrix{Float64} 
+    #translation::Vector{Float64}
 end
 SymOperation(s::AbstractString) = SymOperation(string(s), xyzt2matrix(s))
 SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), float(m))
@@ -43,13 +45,18 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation)
     print(io, seitz(op),":\n   (", xyzt(op), ")\n")
     Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
 end
+function show(io::IO, ::MIME"text/plain", ops::AbstractVector{SymOperation})
+    for (i,op) in enumerate(ops)
+        show(io, "text/plain", op)
+        if i < length(ops); print(io, "\n"); end
+    end
+end
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
 rotation(m::Matrix{Float64}) = m[:,1:end-1] # rotational (proper or improper) part of an operation
 rotation(op::SymOperation) = matrix(op)[:,1:end-1]        
 translation(m::Matrix{Float64}) = m[:,end]  # translation part of an operation
 translation(op::SymOperation) = matrix(op)[:,end]   
-issymmorph(op::SymOperation) = iszero(translation(op))
 (==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
 
@@ -71,33 +78,6 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
 end
 getindex(mt::MultTable, keys...) = indices(mt)[keys...]
 lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
-
-# Space group
-struct SpaceGroup
-    num::Int64
-    operations::Vector{SymOperation}
-    dim::Int64
-end
-num(sg::SpaceGroup) = sg.num
-operations(sg::SpaceGroup) = sg.operations
-dim(sg::SpaceGroup) = sg.dim
-order(sg::SpaceGroup) = length(operations(sg))
-function show(io::IO, ::MIME"text/plain", sg::SpaceGroup)
-    Nops = order(sg)
-    groupprefix = dim(sg) == 3 ? "Space" : (dim(sg) == 2 ? "Plane" : nothing)
-    println(io, groupprefix, " group #", num(sg))
-    for (i,op) in enumerate(operations(sg))
-        show(io, "text/plain", op)
-        if i < Nops; print(io, "\n\n"); end
-    end
-end
-function show(io::IO, ::MIME"text/plain", sgs::Vector{SpaceGroup})
-    Nsgs = length(sgs)
-    for (i,sg) in enumerate(sgs); 
-        show(io, "text/plain", sg); 
-        if i < Nsgs; print(io, '\n'); end
-    end
-end
 
 # K-vectors
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -224,6 +204,62 @@ function isapprox(kv1::KVec, kv2::KVec, cntr; kwargs...)
 
     return kbool && abcbool
 end
+
+
+# Abstract spatial group
+abstract type AbstractGroup end
+num(g::AbstractGroup) = g.num
+operations(g::AbstractGroup) = g.operations
+dim(g::AbstractGroup) = g.dim
+order(g::AbstractGroup) = length(operations(g))
+getindex(g::AbstractGroup, keys...) = operations(g)[keys...]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+lastindex(g::AbstractGroup, d::Int64) = size(operations(g), d)  # allows using `end` in indices
+
+function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
+    if isa(g, SpaceGroup)
+        groupprefix = dim(g) == 3 ? "Space group" : (dim(g) == 2 ? "Plane group" : nothing)
+    elseif isa(g, PointGroup)
+        groupprefix = "Point group"
+    else
+        groupprefix = string(T)
+    end
+    println(io, groupprefix, " #", num(g), " (", label(g), ") with ", order(g), " operations:")
+    show(io, "text/plain", operations(g))
+end
+function show(io::IO, ::MIME"text/plain", gs::AbstractVector{<:AbstractGroup})
+    Ngs = length(gs)
+    for (i,g) in enumerate(gs); 
+        show(io, "text/plain", g); 
+        if i < Ngs; print(io, '\n'); end
+    end
+end
+
+# Space group
+struct SpaceGroup <: AbstractGroup
+    num::Int64
+    operations::Vector{SymOperation}
+    dim::Int64
+end
+label(sg::SpaceGroup) = iuc(num(sg), dim(sg))
+
+# Point group
+struct PointGroup <: AbstractGroup
+    num::Int64
+    label::String
+    operations::Vector{SymOperation}
+    dim::Int64
+end
+label(pg::PointGroup) = pg.label
+
+# Little group
+struct LittleGroup{D} <: AbstractGroup
+    num::Int64
+    kv::KVec
+    operations::Vector{SymOperation}
+end
+dim(lg::LittleGroup{D}) where D = D
+label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*string(kvec(lg))
+kvec(lg::LittleGroup) = lg.kv
 
 # Space group irreps
 abstract type AbstractIrrep end

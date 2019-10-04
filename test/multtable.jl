@@ -48,7 +48,7 @@ for dim in 2:3
     @testset "Multiplication table, groups (Bilbao: $(dim)D)" begin
         for sgnum in sgnums[dim-1]
             cntr = centering(sgnum, dim);
-            ops = operations(get_symops(sgnum, dim))      # ops in conventional basis
+            ops = operations(get_sgops(sgnum, dim))      # ops in conventional basis
             primitive_ops = SGOps.primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
             checkmt = @test isgroup(mt) 

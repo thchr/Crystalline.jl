@@ -3,7 +3,7 @@ module SGOps
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs, 
       Printf, DelimitedFiles, SmithNormalForm,
-      BSON
+      BSON, Meshing
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==
@@ -19,9 +19,10 @@ const NULL_ATOL = 1e-11    # absolute tolerance for nullspace
 include("utils.jl") # useful utility methods (seldom needs exporting)
 
 include("types.jl") # defines useful types for space group symmetry analysis
-export SpaceGroup, SymOperation, Crystal, # types
+export SymOperation, Crystal,             # types
        SGIrrep, MultTable, LGIrrep, KVec,
-       BandRep, BandRepSet, 
+       BandRep, BandRepSet,
+       SpaceGroup, PointGroup, LittleGroup
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
        getindex, rotation, translation, 
@@ -41,11 +42,14 @@ include("notation.jl")
 export schoenflies, hermannmauguin, 
        iuc, centering, seitz
 
-include("symops.jl") # crawls symmetry operations from Bilbao
-export get_symops, xyzt2matrix, matrix2xyzt, 
+include("symops.jl") # symmetry operations for space and plane groups
+export get_sgops, xyzt2matrix, matrix2xyzt, 
        issymmorph, littlegroup, starofk,
        multtable, isgroup, checkmulttable,
        pointgroup, primitivize, conventionalize
+
+include("pointgroup.jl") # symmetry operations for crystallographic point groups
+export get_pgops
 
 include("bravais.jl")
 export crystal, plot, crystalsystem, 
@@ -61,11 +65,14 @@ include("lattices.jl")
 export UnityFourierLattice, ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
        modulate, normscale, normscale!, calcfourier,
-       plotfourier, plotiso
+       plot
 
 include("bandrep.jl")
 export crawlbandreps, dlm2struct, 
        bandreps, 
        matrix, classification, basisdim
+
+include("export2mpb.jl")
+export prepare_mpbcalc, prepare_mpbcalc!
 
 end # module

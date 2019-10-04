@@ -316,7 +316,7 @@ function realify(irs::NTuple{Nirr, LGIrrep}, verbose::Bool=false) where Nirr
 
     d = dim(kv)
     cntr = centering(sgnum, d)
-    sgops = operations(get_symops(sgnum, d))
+    sgops = operations(get_sgops(sgnum, d))
     star = starofk(sgops, kv, cntr)
 
     verbose && print(klabel(first(irs)), " │ ")
@@ -477,7 +477,7 @@ Computes the Herring criterion for a little group irrep `ir`, from
 over symmetry operations {β,b} that take k → -k.
 
 The provided space group operations `sgops` **must** be the set reduced by 
-primitive translation vectors; i.e. using `get_symops(...)` directly is **not** 
+primitive translation vectors; i.e. using `get_sgops(...)` directly is **not** 
 allowable in general. Using the operations from the Γ point of ISOTROPY's 
 dataset is, however, fine.
 
