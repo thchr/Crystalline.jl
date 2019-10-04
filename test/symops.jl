@@ -19,7 +19,7 @@ using SGOps, Test
         @test xyzt(op) == "-x+y+1/3,-x+2/3,z+2/3"
     end
 
-    @testset "Plane group 7" begin
+    @testset "Plane group #7" begin
         plg = get_sgops(7, 2; verbose=false)
         @test order(plg) == 4
         @test dim(plg) == 2

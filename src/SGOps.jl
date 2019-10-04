@@ -22,7 +22,7 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation, Crystal,             # types
        SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet,
-       SpaceGroup, PointGroup, LittleGroup
+       SpaceGroup, PointGroup, LittleGroup,
        # operations on ...
        matrix, xyzt, operations,          # ::SymOperation
        getindex, rotation, translation, 
