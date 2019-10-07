@@ -4,8 +4,10 @@ if !isdefined(Main, :LGIRS)
     LGIRS = parselittlegroupirreps()
 end
 
+@testset "Multiplication tables" begin
+
 # check that operations are sorted identically across distinct irreps for fixed sgnum, and k-label
-@testset "Operations, matching sorting (ISOTROPY)" begin 
+@testset "Space groups (consistent operator sorting order in ISOTROPY)" begin 
     for lgirs in LGIRS
         for lgirvec in lgirs
             ops = operations(first(lgirvec))
@@ -24,7 +26,7 @@ end
     end
 end
 
-@testset "Multiplication table, groups (ISOTROPY: 3D)" begin
+@testset "Space groups (ISOTROPY: 3D)" begin
     numset=Int64[]
     for lgirs in LGIRS
         for lgirvec in lgirs
@@ -45,7 +47,7 @@ end
 
 sgnums = (1:17, 1:230)
 for dim in 2:3
-    @testset "Multiplication table, groups (Bilbao: $(dim)D)" begin
+    @testset "Space groups (Bilbao: $(dim)D)" begin
         for sgnum in sgnums[dim-1]
             cntr = centering(sgnum, dim);
             ops = operations(get_sgops(sgnum, dim))      # ops in conventional basis
@@ -56,7 +58,7 @@ for dim in 2:3
     end
 end
 
-@testset "Multiplication table, irreps" begin
+@testset "Complex LGIrreps" begin
     for lgirs in LGIRS
         for lgirvec in lgirs
             sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
@@ -72,6 +74,7 @@ end
             end
         end
     end
+end
 end
 
 # TODO: Test physically irreducible irreps (co-reps)

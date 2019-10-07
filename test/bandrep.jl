@@ -1,18 +1,15 @@
-using SGOps, SmithNormalForm, Test
+using SGOps, Test
 
-
-allpaths = false
-spinful  = false
-for sgnum = 1#1:230
-    global BRS = bandreps(sgnum, allpaths, spinful, "Elementary TR")
-    display(BRS); 
-    display(smith(matrix(BRS)).SNF)
-    display(classification(BRS))
-    #display(SGOps.humanreadable.(SGOps.reps(BRS)))
+if !isdefined(Main, :LGIRS)
+    LGIRS = parselittlegroupirreps()
 end
 
-#LGIRS=parselittlegroupirreps();
-println("\n\n\n\n")
+@testset "k-vectors required by BandRepSet analysis" begin
+allpaths = false
+spinful  = false
+showmissing = false
+
+@testset "Complex (no TR) irreps" begin
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
 for sgnum = 1:230
     BRS = bandreps(sgnum, allpaths, spinful, "Elementary")
@@ -24,8 +21,10 @@ for sgnum = 1:230
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
         if irlab_BRS ∉ irlabs_ISOTROPY
-            @warn "Cannot find $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
-
+            if showmissing
+                @info "Cannot find complex irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
+            end
+            @test_broken false
             kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
             kidx_ISOTROPY_nearest = findfirst(x->x==string(first(klabel(irlab_BRS))), klabs_ISOTROPY)
 
@@ -33,6 +32,7 @@ for sgnum = 1:230
             # just equal to minus the kvector in the (P,K,W,H) variant (i.e. without the 'A' postscript)
             @test string(-BRS.kvs[kidx_BRS]) == string(kvec(LGIRS[sgnum][kidx_ISOTROPY_nearest][1]))
 
+            # TODO:
             # ... to get the irreps of these variants, we need to follow the prescription 
             # detailed in CDML p. 69-73 (though that won't work, presumably, for sgnum = 205)
             # Pretty sure this is the subject of Cracknell & Davies 1976b (On the completeness
@@ -46,8 +46,9 @@ for sgnum = 1:230
         end
     end
 end
+end
 
-println("\n\n\n\n")
+@testset "Physically irreducible irreps/co-reps (with TR)" begin
 # --- test physically irreducible irreps/co-reps (assuming time-reversal symmetry) ---
 for sgnum = 1:230
     BRS = bandreps(sgnum, allpaths, spinful, "Elementary TR")
@@ -59,8 +60,10 @@ for sgnum = 1:230
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
         if irlab_BRS ∉ irlabs_ISOTROPY
-            @warn "Cannot find $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
-
+            if showmissing
+                @info "Cannot find real irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
+            end
+            @test_broken false
             kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
             kidx_ISOTROPY_nearest = findfirst(x->x==string(first(klabel(irlab_BRS))), klabs_ISOTROPY)
         else
@@ -71,4 +74,6 @@ for sgnum = 1:230
             @test string(BRS.kvs[kidx_BRS]) == string(kvec(LGIRS[sgnum][kidx_ISOTROPY][1]))
         end
     end
+end
+end
 end

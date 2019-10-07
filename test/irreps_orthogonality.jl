@@ -1,14 +1,16 @@
 using SGOps, Test, LinearAlgebra, Printf
 
+debug = false
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
     LGIRS = parselittlegroupirreps()
 end
 
+@testset "Irrep orthogonality (complex little groups)" begin
 # 1ˢᵗ orthogonality theorem (characters): 
 #       ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
 # for each irrep
 # Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
-@testset "1ˢᵗ orthogonality theorem (complex little groups)" begin
+@testset "1ˢᵗ orthogonality theorem" begin
     for lgirs in LGIRS       # loop over space groups: lgirs contains _all_ little groups and their irreps
         for lgirvec in lgirs # loop over little group: lgirvec contains all the associated irreps
             Nₒₚ = order(first(lgirvec)) # number of elements in little group
@@ -24,7 +26,7 @@ end
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾  
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
-@testset "2ⁿᵈ orthogonality theorem (complex little groups)" begin
+@testset "2ⁿᵈ orthogonality theorem" begin
     for lgirs in LGIRS          # lgirs: vectors of little group irrep collections
         for lgirvec in lgirs    # lgirvec:  tuples of distinct little group irreps
             Nₒₚ = order(first(lgirvec))    
@@ -46,7 +48,7 @@ end
 #       ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ = δₐᵦδₙⱼδₘₖNₒₚ⁽ᵃ⁾/dim(D⁽ᵃ⁾)
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
-@testset "Great orthogonality theorem (complex little groups)" begin
+@testset "Great orthogonality theorem" begin
     αβγ = nothing#[1,1,1]*1e-1
     debug = false# true
     count = total = 0 # counters
@@ -87,52 +89,59 @@ end
                                 count += 1
                             end
                             total += 1
-                            #@test g_orthog
+                            @test check_g_orthog
                         end
                     end
                 end
             end
         end
-    end
-    print("\n\n$(count)/$(total) errored"); @printf(" (%.2f%%)\n\n", 100*count/total)
+	end
+	if debug
+		print("\n\n$(count)/$(total) errored"); 
+		@printf(" (%.2f%%)\n\n", 100*count/total)
+	end
 end
-println() 
+end
 
-## Comparison with Bilbao's REPRES for P1 and P3 of sg 214
-D°s = Dict( # polar representation (r,ϕ) with ϕ in degrees
-        :P1 => [[(1.0,  0.0)  (0.0,   0.0); (0.0,   0.0) (1.0,   0.0)],
-                [(1.0, 90.0)  (0.0,   0.0); (0.0,   0.0) (1.0, 270.0)],
-                [(0.0,  0.0)  (1.0, 180.0); (1.0,   0.0) (0.0,   0.0)],
-                [(0.0,  0.0)  (1.0,  90.0); (1.0,  90.0) (0.0,   0.0)],
-                [(1/√2,255.0) (1/√2,345.0); (1/√2, 75.0) (1/√2,345.0)],
-                [(1/√2,345.0) (1/√2,255.0); (1/√2,165.0) (1/√2,255.0)],
-                [(1/√2,345.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,255.0)],
-                [(1/√2, 75.0) (1/√2,345.0); (1/√2, 75.0) (1/√2,165.0)],
-                [(1/√2,105.0) (1/√2,285.0); (1/√2, 15.0) (1/√2, 15.0)],
-                [(1/√2,195.0) (1/√2,195.0); (1/√2,105.0) (1/√2,285.0)],
-                [(1/√2,285.0) (1/√2,285.0); (1/√2, 15.0) (1/√2,195.0)],
-                [(1/√2, 15.0) (1/√2,195.0); (1/√2,105.0) (1/√2,105.0)]],
-        :P3 => [[(1.0,  0.0)  (0.0,   0.0); (0.0,   0.0) (1.0,   0.0)],
-                [(1.0, 90.0)  (0.0,   0.0); (0.0,   0.0) (1.0, 270.0)],
-                [(0.0,  0.0)  (1.0, 180.0); (1.0,   0.0) (0.0,   0.0)],
-                [(0.0,  0.0)  (1.0,  90.0); (1.0,  90.0) (0.0,   0.0)],
-                [(1/√2, 15.0) (1/√2,105.0); (1/√2,195.0) (1/√2,105.0)],
-                [(1/√2,105.0) (1/√2, 15.0); (1/√2,285.0) (1/√2, 15.0)],
-                [(1/√2,105.0) (1/√2,195.0); (1/√2,105.0) (1/√2, 15.0)],
-                [(1/√2,195.0) (1/√2,105.0); (1/√2,195.0) (1/√2,285.0)],
-                [(1/√2,345.0) (1/√2,165.0); (1/√2,255.0) (1/√2,255.0)],
-                [(1/√2, 75.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,165.0)],
-                [(1/√2,165.0) (1/√2,165.0); (1/√2,255.0) (1/√2, 75.0)],
-                [(1/√2,255.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,345.0)]]
-        )
-polar2complex(vs) = vs[1]*(cosd(vs[2])+1im*sind(vs[2]))
-Ds = Dict(label=>[polar2complex.(m) for m in D°] for (label, D°) in pairs(D°s))
-for (label, D) in pairs(Ds)
-    Nₒₚ = length(D)
-    dimD = size(first(D),1)
+if debug
+	println() 
 
-    kroncheck = sum(kron(conj.(D[i]), D[i]) for i in Base.OneTo(Nₒₚ))
-    println("\nIrrep $(string(label)):")
-    println("   |G|/l = $(Nₒₚ/dimD)")
-    display(kroncheck)    
+	## Comparison with Bilbao's REPRES for P1 and P3 of sg 214
+	D°s = Dict( # polar representation (r,ϕ) with ϕ in degrees
+			:P1 => [[(1.0,  0.0)  (0.0,   0.0); (0.0,   0.0) (1.0,   0.0)],
+					[(1.0, 90.0)  (0.0,   0.0); (0.0,   0.0) (1.0, 270.0)],
+					[(0.0,  0.0)  (1.0, 180.0); (1.0,   0.0) (0.0,   0.0)],
+					[(0.0,  0.0)  (1.0,  90.0); (1.0,  90.0) (0.0,   0.0)],
+					[(1/√2,255.0) (1/√2,345.0); (1/√2, 75.0) (1/√2,345.0)],
+					[(1/√2,345.0) (1/√2,255.0); (1/√2,165.0) (1/√2,255.0)],
+					[(1/√2,345.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,255.0)],
+					[(1/√2, 75.0) (1/√2,345.0); (1/√2, 75.0) (1/√2,165.0)],
+					[(1/√2,105.0) (1/√2,285.0); (1/√2, 15.0) (1/√2, 15.0)],
+					[(1/√2,195.0) (1/√2,195.0); (1/√2,105.0) (1/√2,285.0)],
+					[(1/√2,285.0) (1/√2,285.0); (1/√2, 15.0) (1/√2,195.0)],
+					[(1/√2, 15.0) (1/√2,195.0); (1/√2,105.0) (1/√2,105.0)]],
+			:P3 => [[(1.0,  0.0)  (0.0,   0.0); (0.0,   0.0) (1.0,   0.0)],
+					[(1.0, 90.0)  (0.0,   0.0); (0.0,   0.0) (1.0, 270.0)],
+					[(0.0,  0.0)  (1.0, 180.0); (1.0,   0.0) (0.0,   0.0)],
+					[(0.0,  0.0)  (1.0,  90.0); (1.0,  90.0) (0.0,   0.0)],
+					[(1/√2, 15.0) (1/√2,105.0); (1/√2,195.0) (1/√2,105.0)],
+					[(1/√2,105.0) (1/√2, 15.0); (1/√2,285.0) (1/√2, 15.0)],
+					[(1/√2,105.0) (1/√2,195.0); (1/√2,105.0) (1/√2, 15.0)],
+					[(1/√2,195.0) (1/√2,105.0); (1/√2,195.0) (1/√2,285.0)],
+					[(1/√2,345.0) (1/√2,165.0); (1/√2,255.0) (1/√2,255.0)],
+					[(1/√2, 75.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,165.0)],
+					[(1/√2,165.0) (1/√2,165.0); (1/√2,255.0) (1/√2, 75.0)],
+					[(1/√2,255.0) (1/√2, 75.0); (1/√2,345.0) (1/√2,345.0)]]
+			)
+	polar2complex(vs) = vs[1]*(cosd(vs[2])+1im*sind(vs[2]))
+	Ds = Dict(label=>[polar2complex.(m) for m in D°] for (label, D°) in pairs(D°s))
+	for (label, D) in pairs(Ds)
+		Nₒₚ = length(D)
+		dimD = size(first(D),1)
+
+		kroncheck = sum(kron(conj.(D[i]), D[i]) for i in Base.OneTo(Nₒₚ))
+		println("\nIrrep $(string(label)):")
+		println("   |G|/l = $(Nₒₚ/dimD)")
+		display(kroncheck)    
+	end
 end

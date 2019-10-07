@@ -4,6 +4,7 @@ if !isdefined(Main, :LGIRS)
     LGIRS = parselittlegroupirreps()
 end
 
+@testset "Little group order" begin
 # see e.g. Bradley & Cracknell p. 151(bottom)-152(top)
 @testset "Decomposition, order[star{k}]*order[G₀ᵏ] = order[G₀]" begin
 for sgnum = 1:230
@@ -52,4 +53,5 @@ end
         @test order_macroscopic_bilbao == order_macroscopic_isotropy
     end   
 end  
+end
             
