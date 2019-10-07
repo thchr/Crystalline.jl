@@ -255,11 +255,14 @@ label(pg::PointGroup) = pg.label
 struct LittleGroup{D} <: AbstractGroup
     num::Int64
     kv::KVec
+    klab::String
     operations::Vector{SymOperation}
 end
+LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, klab, ops)
 dim(lg::LittleGroup{D}) where D = D
-label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*string(kvec(lg))
 kvec(lg::LittleGroup) = lg.kv
+label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*string(kvec(lg))
+
 
 # Space group irreps
 abstract type AbstractIrrep end
@@ -297,22 +300,26 @@ function klabel(label::String)
 end
 
 
-# Little group Irreps
+# Little group irreps
 struct LGIrrep <: AbstractIrrep
-    sgnum::Int64 # space group number
     cdml::String # CDML label of irrep (including k-point label)
-    kv::KVec
-    ops::Vector{SymOperation} # every symmetry operation in little group (modulo _primitive_ 𝐆)
+    lg::LittleGroup # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
 end
-order(ir::LGIrrep) = length(operations(ir))
-function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
-    P = ir.matrices
-    τ = ir.translations
+littlegroup(lgir::LGIrrep) = lgir.lg
+num(lgir::LGIrrep) = num(littlegroup(lgir))
+operations(lgir::LGIrrep)  = operations(littlegroup(lgir))
+order(lgir::LGIrrep) = order(littlegroup(lgir))
+kvec(lgir::LGIrrep)  = kvec(littlegroup(lgir))
+isspecial(lgir::LGIrrep) = isspecial(kvec(lgir))
+issymmorph(lgir::LGIrrep) = issymmorph(littlegroup(lgir))
+function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
+    P = lgir.matrices
+    τ = lgir.translations
     if !iszero(τ)
-        k = kvec(ir)(αβγ)
+        k = kvec(lgir)(αβγ)
         P′ = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
@@ -341,12 +348,10 @@ function irreps(ir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     end
     return P
 end
-kvec(ir::LGIrrep)   = ir.kv
-isspecial(ir::LGIrrep) = isspecial(kvec(ir))
-issymmorph(ir::LGIrrep) = all(issymmorph.(operations(ir)))
+
 
 """
-    israyrep(ir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
+    israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
 
 Computes whether a given little group irrep `ir` is a ray representation 
 by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
@@ -355,14 +360,14 @@ from unity, we consider the little group irrep a ray representation
 The function returns a boolean (true => ray representation) and the
 coefficient matrix αᵢⱼ.
 """
-function israyrep(ir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
-    k = kvec(ir)(αβγ)
-    ops = operations(ir)
+function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
+    k = kvec(lgir)(αβγ)
+    ops = operations(lgir)
     Nₒₚ = length(ops)
     α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
     # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
     #       here, given the tricks we then perform subsequently?
-    mt = multtable(primitivize.(ops, centering(num(ir))), verbose=false) 
+    mt = multtable(primitivize.(ops, centering(num(lgir))), verbose=false) 
     for (row, oprow) in enumerate(ops)
         for (col, opcol) in enumerate(ops)
             t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(ops[mt[row,col]])

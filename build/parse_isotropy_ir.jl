@@ -217,7 +217,7 @@ function littlegroupirrep(ir::SGIrrep{<:Complex})
         lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir), dim(kv))
     end
 
-    return LGIrrep(num(ir), label(ir), kv, lgops, lgirmatrices, lgirtrans, type(ir))
+    return LGIrrep(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, type(ir))
 end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))

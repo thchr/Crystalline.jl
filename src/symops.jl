@@ -149,12 +149,12 @@ function issymmorph(op::SymOperation, cntr::Char)
     return iszero(w_primitive)
 end
 """
-    issymmorph(sg::SpaceGroup) --> Bool
+    issymmorph(sg::AbstractGroup) --> Bool
 
 Checks whether a given space group `sg` is symmorphic (true) or
 nonsymmorphic (false).
 """
-issymmorph(sg::SpaceGroup) = all(issymmorph.(operations(sg), centering(num(sg), dim(sg))))
+issymmorph(g::AbstractGroup) = all(op->issymmorph(op, centering(num(g), dim(g))), operations(g))
 
 """
     issymmorph(sgnum::Integer, dim::Integer=3) --> Bool
