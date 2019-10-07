@@ -46,7 +46,9 @@ include("symops.jl") # symmetry operations for space and plane groups
 export get_sgops, xyzt2matrix, matrix2xyzt, 
        issymmorph, littlegroup, starofk,
        multtable, isgroup, checkmulttable,
-       pointgroup, primitivize, conventionalize
+       pointgroup, 
+       primitivize, conventionalize, 
+       reduce_ops
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export get_pgops

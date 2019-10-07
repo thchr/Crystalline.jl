@@ -6,7 +6,8 @@ if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
 end
 
 @testset "Irrep orthogonality (complex little groups)" begin
-# 1ˢᵗ orthogonality theorem (characters): 
+
+## 1ˢᵗ orthogonality theorem (characters): 
 #       ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
 # for each irrep
 # Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
@@ -22,7 +23,7 @@ end
     end
 end
 
-# 2ⁿᵈ orthogonality theorem (characters): 
+## 2ⁿᵈ orthogonality theorem (characters): 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾  
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
@@ -43,8 +44,8 @@ end
     end
 end
 
-##
-# Grand orthogonality theorem (irreps): 
+
+## Grand orthogonality theorem (irreps): 
 #       ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ = δₐᵦδₙⱼδₘₖNₒₚ⁽ᵃ⁾/dim(D⁽ᵃ⁾)
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
@@ -52,7 +53,7 @@ end
     αβγ = nothing#[1,1,1]*1e-1
     debug = false# true
     count = total = 0 # counters
-    for lgirs in LGIRS#[[214,]]          # lgirs: vectors of little group irrep collections
+    for lgirs in LGIRS          # lgirs: vectors of little group irrep collections
         for lgirvec in lgirs    # lgirvec:  tuples of distinct little group irreps
             Nₒₚ = order(first(lgirvec))
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirvec) 
@@ -63,16 +64,17 @@ end
                     D⁽ᵝ⁾ = irreps(lgir⁽ᵝ⁾,αβγ)  # vector of irreps in (β)
                     dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
                     δₐᵦ = (a==β)
-                    g_orthog_kron = sum(kron(conj.(D⁽ᵃ⁾[i]), D⁽ᵝ⁾[i]) for i in Base.OneTo(Nₒₚ))
                     if a == β && debug
                         display(label(lgir⁽ᵃ⁾))
                         display(label(lgir⁽ᵝ⁾))
+                        g_orthog_kron = sum(kron(conj.(D⁽ᵃ⁾[i]), D⁽ᵝ⁾[i]) for i in Base.OneTo(Nₒₚ))
                         display(g_orthog_kron)
                     end
                     for n in Base.OneTo(dim⁽ᵃ⁾), j in Base.OneTo(dim⁽ᵝ⁾)     # rows of each irrep
                         δₐᵦδₙⱼ = δₐᵦ*(n==j)
                         for m in Base.OneTo(dim⁽ᵃ⁾), k in Base.OneTo(dim⁽ᵝ⁾) # cols of each irrep
                             δₐᵦδₙⱼδₘₖ = δₐᵦδₙⱼ*(m==k)
+
                             # compute ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ
                             g_orthog = sum(conj(D⁽ᵃ⁾[i][n,m])*D⁽ᵝ⁾[i][j,k] for i in Base.OneTo(Nₒₚ)) 
                             

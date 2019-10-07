@@ -40,7 +40,7 @@ if true
     #display(AbstractPlotting.current_scene());
 
     if save2matlab
-        file = matopen("test/isosurfvis/isosurfdata.mat", "w")
+        file = matopen((@__DIR__)*"/isosurfvis/isosurfdata.mat", "w")
         write(file, "isoval", isoval)
         write(file, "xyz", collect(xyz))
         write(file, "vals", vals)
