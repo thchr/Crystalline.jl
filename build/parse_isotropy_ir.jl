@@ -206,11 +206,18 @@ function littlegroupirrep(ir::SGIrrep{<:Complex})
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
                                 "the dimension of the space group irrep divided by the number of vectors "*
                                 "in star{𝐤}"
-    # broadcasting to get all the [1:lgirdim, 1:lgirdim] blocks of every irrep assoc. w/ the lgidx list
-    lgir = getindex.((@view irreps(ir)[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 
-    lgtrans = ir.translations[lgidx]
 
-    return LGIrrep(num(ir), label(ir), kstar(ir)[1], lgops, lgir, lgtrans, type(ir))
+    kv = kstar(ir)[1] # representative element of the k-star; the k-vector of assoc. w/ this little group   
+    if !is_erroneous_lgir(num(ir), label(ir), dim(kv))
+        # broadcasting to get all the [1:lgirdim, 1:lgirdim] blocks of every irrep assoc. w/ the lgidx list
+        lgirmatrices = getindex.((@view irreps(ir)[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 
+        lgirtrans = ir.translations[lgidx]
+    else
+        #println("Manually swapped out corrected (CDML) LGIrrep for sgnum ", num(ir), ", irrep ", label(ir))
+        lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir), dim(kv))
+    end
+
+    return LGIrrep(num(ir), label(ir), kv, lgops, lgirmatrices, lgirtrans, type(ir))
 end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
@@ -245,6 +252,96 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
 
     return lgirvec
 end
+
+
+const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need dim ≠ 3 as well
+@inline function is_erroneous_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
+    dim ≠ 3 && throw(DomainError(dim, "Didn't implement any manual corrections in 2D yet"))
+    @simd for ps in ERRONEOUS_LGIRS
+        (ps[1]==sgnum && ps[2]==irlab) && return true
+    end 
+    return false
+end
+
+"""
+    manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
+
+The small irreps associated with the little group of k-point P ≡ KVec(½,½,½)
+of space group 214 are not correct in ISOTROPY's dataset: specifically, while 
+they have the correct characters and pass the 1st and 2nd character orthogonality
+theorems, they do not pass the grand orthogonality theorem that tests the irrep
+matrices themselves. To that end, we manually replace these small irreps with 
+those listed by CDML (read off from their tables). 
+Those irreps are manually extracted in the scripts/cdml_sg214_P1P2P3.jl file.
+
+The fix is made in littlegroupirrep(ir::SGIrrep{<:Complex}), using the check 
+in is_erroneous_lgir(...), with the constant "erroneous" tuple ERRONEOUS_LGIRS.
+
+Emailed Stokes & Campton regarding the issue on Sept. 26, 2019; did not yet 
+hear back.
+"""
+function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
+    dim ≠ 3 && throw(DomainError(dim, "Didn't implement any manual corrections in 2D yet"))
+    if sgnum == 214
+        CP  = cis(π/12)/√2   # C*P       ≈ 0.683013 + 0.183013im
+        CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im
+        CcP = cis(-π/12)/√2  # C*conj(P) ≈ 0.683013 - 0.183013im
+        CcQ = cis(-5π/12)/√2 # C*conj(Q) ≈ 0.183013 - 0.683013im
+        if irlab == "P1"
+            matrices = [[1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],     # x,y,z
+                        [0.0+0.0im 1.0+0.0im; 1.0+0.0im 0.0+0.0im],     # x,-y,-z+1/2
+                        [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z
+                        [1.0+0.0im 0.0+0.0im; 0.0+0.0im -1.0+0.0im],    # -x,-y+1/2,z
+                        [CP CcQ; CP -CcQ],                              # z,x,y
+                        [CcP CcP; CQ -CQ],                             # y,z,x
+                        [CcP -CcP; CQ CQ],                               # -y+1/2,z,-x
+                        [CP CcQ; -CP CcQ],                             # -z,-x+1/2,y
+                        [CcP CcP; -CQ CQ],                             # -y,-z+1/2,x
+                        [CP -CcQ; CP CcQ],                              # z,-x,-y+1/2
+                        [CQ -CQ; CcP CcP],                             # y,-z,-x+1/2
+                        [CcQ CP; -CcQ CP]]                              # -z+1/2,x,-y
+        elseif irlab == "P2" 
+            # there is, as far as I can see, nothing wrong with ISOTROPY's (214,P2)
+            # small irrep: but it doesn't agree with the form we extract from CDML 
+            # either. To be safe, and to have a consistent set of irreps for the P 
+            # point we just swap out this irrep as well.
+            matrices =  [[1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],    # x,y,z
+                         [0.0+0.0im 0.0+1.0im; 0.0-1.0im 0.0+0.0im],    # x,-y,-z+1/2
+                         [0.0+0.0im -1.0+0.0im; -1.0+0.0im 0.0+0.0im],  # -x+1/2,y,-z
+                         [-1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],   # -x,-y+1/2,z
+                         [-0.5-0.5im -0.5-0.5im; 0.5-0.5im -0.5+0.5im], # z,x,y
+                         [-0.5+0.5im 0.5+0.5im; -0.5+0.5im -0.5-0.5im], # y,z,x
+                         [0.5-0.5im 0.5+0.5im; 0.5-0.5im -0.5-0.5im],   # -y+1/2,z,-x
+                         [0.5+0.5im 0.5+0.5im; 0.5-0.5im -0.5+0.5im],   # -z,-x+1/2,y
+                         [0.5-0.5im -0.5-0.5im; -0.5+0.5im -0.5-0.5im], # -y,-z+1/2,x
+                         [0.5+0.5im -0.5-0.5im; -0.5+0.5im -0.5+0.5im], # z,-x,-y+1/2
+                         [-0.5-0.5im 0.5-0.5im; 0.5+0.5im 0.5-0.5im],   # y,-z,-x+1/2
+                         [-0.5+0.5im 0.5-0.5im; 0.5+0.5im 0.5+0.5im]]   # -z+1/2,x,-y
+        elseif irlab == "P3"
+            matrices = [[1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],     # x,y,z
+                        [0.0+0.0im 1.0+0.0im; 1.0+0.0im 0.0+0.0im],     # x,-y,-z+1/2
+                        [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z
+                        [1.0+0.0im 0.0+0.0im; 0.0+0.0im -1.0+0.0im],    # -x,-y+1/2,z
+                        [-CQ -CcP; -CQ CcP],                            # z,x,y
+                        [-CcQ -CcQ; -CP CP],                           # y,z,x
+                        [-CcQ CcQ; -CP -CP],                          # -y+1/2,z,-x
+                        [-CQ -CcP; CQ -CcP],                            # -z,-x+1/2,y
+                        [-CcQ -CcQ; CP -CP],                           # -y,-z+1/2,x
+                        [-CQ CcP; -CQ -CcP],                            # z,-x,-y+1/2
+                        [-CP CP; -CcQ -CcQ],                           # y,-z,-x+1/2
+                        [-CcP -CQ; CcP -CQ]]                            # -z+1/2,x,-y
+        else
+            throw(DomainError((sgnum, irlab), "should not be called with these input; nothing to fix"))
+        end
+        translations = [zeros(Float64, 3) for _=Base.OneTo(length(matrices))]
+
+        return matrices, translations
+    else
+        throw(DomainError((sgnum, irlab), "should not be called with these input; nothing to fix"))
+    end
+end
+
+
 
 """
     write_littlegroupirreps(lgirsvec::Vector{Tuple{LGIrrep}})
