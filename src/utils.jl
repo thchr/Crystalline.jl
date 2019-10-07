@@ -94,6 +94,8 @@ function normalizesubsup(c::Char)
     end
 end
 
+issubdigit(c::AbstractChar) = (c >= '₀') & (c <= '₉')
+
 function unicode_frac(x::Number)
     xabs=abs(x)
     if     xabs == 0;   return "0" # early termination for common case & avoids undesirable sign for -0.0

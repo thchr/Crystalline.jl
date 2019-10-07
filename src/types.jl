@@ -292,7 +292,7 @@ translations(ir::AbstractIrrep) = ir.translations
 type(ir::AbstractIrrep) = ir.type
 klabel(ir::AbstractIrrep) = klabel(label(ir))
 function klabel(label::String)
-    idx = findfirst(isdigit, label)
+    idx = findfirst(c->isdigit(c) || issubdigit(c), label) # look for regular digit or subscript digit
     return label[firstindex(label):prevind(label,idx)]
 end
 
