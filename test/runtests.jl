@@ -1,6 +1,6 @@
 using SGOps, Test
 
-@testset "All tests" begin
+@testset "SGOps" begin
     # basic symmetry operations
     include("symops.jl")
 

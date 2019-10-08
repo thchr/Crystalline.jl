@@ -8,7 +8,7 @@ function read_pgops_xyzt(label::String, dim::Integer=2)
     return symops_str
 end
 
-function get_pgops(label::String, dim::Integer=2; verbose::Bool=false)
+function get_pgops(label::String, dim::Integer=2)
     dim ≠ 2 && throw(DomainError("Only two-dimensional point groups are implemented at this point"))
     pgnum = pointgroup_label2num(label)
     sgops_str = read_pgops_xyzt(label, dim)
@@ -16,7 +16,7 @@ function get_pgops(label::String, dim::Integer=2; verbose::Bool=false)
     return PointGroup(pgnum, label, SymOperation.(sgops_str), dim)
 end
 
-function get_pgops(pgnum::Integer, dim::Integer=2; verbose::Bool=false)
+function get_pgops(pgnum::Integer, dim::Integer=2)
     dim ≠ 2 && throw(DomainError("Only two-dimensional point groups are implemented at this point"))
     label = pointgroup_num2label(pgnum)
     sgops_str = read_pgops_xyzt(label, dim)
