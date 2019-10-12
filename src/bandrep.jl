@@ -57,11 +57,13 @@ function html2dlm(body::String, oplus::Union{String,Char}="⊕ ", ::BandRepTrait
         "<font size=\"5\">&uarr;</font>"=>"↑",  # induction arrow
         r"\<font style\=\"text-decoration:overline;\"\>(.*?)\<\/font\>"=>s"\1ˢ", # spinful irrep
         "&oplus;"=>oplus,                       # special symbols # ⊕
-        "&Gamma;"=>"Γ",                                           # Γ
-        "&Sigma;"=>"Σ",                                           # Σ
-        "&Lambda;"=>"Λ",                                          # Λ
-        "&Delta;"=>"Δ",                                           # Δ
+        "&Gamma;"=>'Γ',                                           # Γ
+        "&Sigma;"=>'Σ',                                           # Σ
+        "&Lambda;"=>'Λ',                                          # Λ
+        "&Delta;"=>'Δ',                                           # Δ
+        "GP"=>'Ω',                                                # GP to Ω
         "&nbsp;"=>"",                                             # non-breaking space
+        '*'=>"",                                                  # * (for Σ k-points in e.g. sg 146: sending `u,-2*u,0`⇒`u,-2u,0`)
         r"\<form.*?\"Decomposable\"\>\<\/form\>"=>"Decomposable", # decomposable bandreps contain a link to decompositions; ignore it
         "$(dlm)Decomposable"=>"$(dlm)true",    # simplify statement of composability
         "$(dlm)Indecomposable"=>"$(dlm)false",
