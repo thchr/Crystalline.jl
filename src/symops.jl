@@ -12,9 +12,10 @@ function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
     end
 
     filepath = (@__DIR__)*"/../data/symops/"*string(dim)*"d/"*string(sgnum)*".json"
-    sgops_str = open(filepath) do io
+    sgops_str::Vector{String} = open(filepath) do io
         JSON2.read(io)
     end
+
     return sgops_str
 end
 
@@ -126,14 +127,6 @@ function matrix2xyzt(O::Matrix{T}) where T<:Real
 end
 
 
-function stripnum(s)
-    if occursin(' ', s) # if the operation "number" is included as part of s
-        _,s′ = split(s, isspace; limit=2)
-    end
-    return String(s′) # ensure we return a String, rather than possibly a SubString
-end
-
-
 """
     issymmorph(op::SymOperation, cntr::Char) --> Bool
 
@@ -211,7 +204,7 @@ const compose = ∘
 
 
 """
-    (⊚)(op1::T, op2::T) where T<:SymOperation
+    (⊚)(op1::T, op2::T) where T<:SymOperation -->  Vector{Float64}
 
 Compose two symmetry operations `op1`={W₁|w₁} and `op2`={W₂|w₂} and
 return the quotient of w₁+W₁*w₂ and 1. This functionality complements
@@ -233,6 +226,21 @@ function (⊚)(op1::T, op2::T) where T<:SymOperation
     w′_lattice = div.(w′, 1.0) + rem.(w′, 1.0) .- mod.(w′, 1.0) 
 
     return w′_lattice
+end
+
+"""
+    inv(op::SymOperation) --> SymOperation
+
+Compute the inverse {W|w}⁻¹ of an operator `op`≡{W|w}.
+"""
+function inv(op::SymOperation)
+    W = rotation(op)
+    w = translation(op)
+
+    W⁻¹ = inv(W)
+    w⁻¹ = -W⁻¹*w
+
+    return SymOperation([W⁻¹ w⁻¹])
 end
 
 
@@ -296,21 +304,24 @@ function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::B
             # such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(i*𝐤⋅𝐭₀) where
             # 𝐭₀ is a lattice vector 𝐭₀ = τᵢ + βᵢτⱼ - τₖ, for symmetry operations
             # {βᵢ|τᵢ}. To ensure we capture this, we include this phase here.
-            # See Inui et al. Eq. (5.29) for explanation.   
-            t₀ = translation(ops[row]) + rotation(ops[row])*translation(ops[col]) - translation(ops[mtidx])
-            #t₀ = translation(ops[row]) + rotation(ops[row])*translation(ops[col]) - translation(compose(ops[row],ops[col], true))
-            ϕ =  2π*dot(k, t₀) # accumulated ray-phase (factor of 2π from to normalized bases)
-            match = ir′ ≈ cis(ϕ)*irs[mtidx]  # cis(x) = exp(ix)       
+            # See Inui et al. Eq. (5.29) for explanation.
+            # Note that the phase's sign is opposite to that used in many other 
+            # conventions (e.g. Bradley & Cracknell, 1972, Eq. 3.7.7 & 3.7.8), 
+            # but consistent with that used in Stokes' paper (see irreps(::LGIrrep)).
+            # It is still a puzzle to me why I cannot successfully flip the sign 
+            # of `ϕ` here and in `irreps(::LGIrrep)`.
+            t₀ = translation(ops[row]) .+ rotation(ops[row])*translation(ops[col]) .- translation(ops[mtidx])
+            ϕ =  2π*dot(k, t₀) # accumulated ray-phase
+            match = ir′ ≈ cis(ϕ)*irs[mtidx] # cis(x) = exp(ix)
             if !match
                 checked[row,col] = false
                 if !havewarned
                     if verbose
-                        @info """Provided irreps do not match group multiplication table:
+                        println("""Provided irreps do not match group multiplication table for sg $(num(lgir)) in irrep $(label(lgir)):
                                  First failure at (row,col) = ($(row),$(col));
-                                 Expected idx $(mtidx), got idx $(findall(ir′′ -> ir′′≈ ir′, irs))
+                                 Expected idx $(mtidx), got idx $(findall(ir′′ -> ir′′≈ir′, irs))
                                  Expected irrep = $(cis(ϕ)*irs[mtidx])
-                                 Got irrep      = $(ir′)"""
-
+                                 Got irrep      = $(ir′)""")
                     end
                     havewarned = true
                 end
@@ -379,8 +390,8 @@ function littlegroup(sg::SpaceGroup, kv::KVec)
     return LittleGroup{dim(sg)}(num(sg), kv, lgops)
 end
 
-function starofk(ops::Vector{SymOperation}, kv::KVec, cntr::Char='P')
-    # we denote kv by (k₀, kabc) in comments below
+function kstar(ops::Vector{SymOperation}, kv::KVec, cntr::Char)
+    # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(kv.kabc)
     d = dim(kv)
@@ -392,8 +403,8 @@ function starofk(ops::Vector{SymOperation}, kv::KVec, cntr::Char='P')
             k₀′′, kabc′′ = parts(kv′′)
             diff = k₀′ .- k₀′′
             diff = primitivebasismatrix(cntr, d)'*diff
-            kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
-            abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=DEFAULT_ATOL) : true   # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
+            kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff)    # check if k₀ and k₀′ differ by a _primitive_ G-vector
+            abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=DEFAULT_ATOL) : true # check if kabc == kabc′ (no need to check for difference by G-vectors, since kabc ∈ interior of BZ)
 
             if kbool && abcbool # ⇒ we've already seen this KVec for (mod 𝐆) - we can skip it and go to next operator
                 newkbool = false
@@ -407,7 +418,7 @@ function starofk(ops::Vector{SymOperation}, kv::KVec, cntr::Char='P')
     end
     return kstar
 end
-starofk(sg::SpaceGroup, kv::KVec) = starofk(operations(sg), kv, centering(num(sg), dim(sg)))
+kstar(sg::SpaceGroup, kv::KVec) = kstar(operations(sg), kv, centering(num(sg), dim(sg)))
 
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
@@ -535,13 +546,38 @@ reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg),
 reduce_ops(sgnum::Int64, dim::Int64=3, conv_or_prim::Bool=true) = reduce_ops(get_sgops(sgnum, dim), conv_or_prim)
 
 
-# --- INVERSE OF SYMMETRY OPERATION ---
-function inv(op::SymOperation)
+"""
+    findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Char) 
+                                                --> Tuple{Int, Vector{Float64}}
+
+Search for an operator `op′` in `ops` which is equivalent, modulo differences
+by **primitive** lattice translations `Δw`, to `op`. Return the index of `op′` in 
+`ops`, as well as the primitive translation difference `Δw`. If no match is found
+returns `(nothing, nothing)`.
+
+The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
+the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
+"""
+function findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Char)
     W = rotation(op)
     w = translation(op)
 
-    W⁻¹ = inv(W)
-    w⁻¹ = -W⁻¹*w
+    P = primitivebasismatrix(cntr, dim(op))
+    w′ = P\w    # `w` in its primitive basis
 
-    return SymOperation([W⁻¹ w⁻¹])
+    for (j, opⱼ) in enumerate(ops)
+        Wⱼ = rotation(opⱼ)
+        wⱼ = translation(opⱼ)
+        wⱼ′ = P\w
+
+        if W == Wⱼ # rotation-part of op and opⱼ is identical
+            # check if translation-part of op and opⱼ is equivalent, modulo a primitive lattice translation
+            if all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), w′.-wⱼ′)
+                return j, w.-wⱼ
+            end
+        end
+    end
+    return nothing, nothing # didn't find any match
 end
+
+

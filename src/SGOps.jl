@@ -2,11 +2,12 @@ module SGOps
 # packages
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs, 
-      Printf, DelimitedFiles, SmithNormalForm,
-      BSON, Meshing
+      DelimitedFiles, SmithNormalForm,
+      Meshing, JLD2
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==
+using Compat
 import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
@@ -19,23 +20,22 @@ const NULL_ATOL = 1e-11    # absolute tolerance for nullspace
 include("utils.jl") # useful utility methods (seldom needs exporting)
 
 include("types.jl") # defines useful types for space group symmetry analysis
-export SymOperation, Crystal,             # types
+export SymOperation, Crystal,               # types
        SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        # operations on ...
-       matrix, xyzt, operations,          # ::SymOperation
+       matrix, xyzt, operations,            # ::SymOperation
        getindex, rotation, translation, 
        issymmorph, ==,
-       num, order,                        # ::SpaceGroup
-       basis, dim, norms, angles,         # ::Crystal
-       irreps, characters,                # ::SGIrrep
-       label, isspecial, kstar,
-       translations, findirrep,
-       type, klabel,
-       israyrep, kvec,                    # ::LGIrrep
-       string, parts,                     # ::KVec
-       vec, irreplabels, reps,            # ::BandRep & ::BandRepSet 
+       num, order,                          # ::AbstractGroup
+       basis, dim, norms, angles,           # ::Crystal
+       kstar, klabel, characters,           # ::AbstractIrrep
+       label, type,
+       isspecial, translations, findirrep,  # ::SGIrrep
+       israyrep, kvec, irreps,              # ::LGIrrep
+       string, parts,                       # ::KVec
+       vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
 
 include("notation.jl")
@@ -44,7 +44,7 @@ export schoenflies, hermannmauguin,
 
 include("symops.jl") # symmetry operations for space and plane groups
 export get_sgops, xyzt2matrix, matrix2xyzt, 
-       issymmorph, littlegroup, starofk,
+       issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
        pointgroup, 
        primitivize, conventionalize, 
@@ -58,10 +58,16 @@ export crystal, plot, crystalsystem,
        bravaistype, primitivebasis, 
        gen_crystal, reciprocalbasis
 
+include("irreps_reality.jl")
+export herring, realify
+
 include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
-       littlegroupirrep, klabel, herring,
-       realify
+       littlegroupirrep, klabel
+
+include("littlegroup_irreps.jl")
+export get_lgirreps, get_littlegroups,
+       get_all_lgirreps
 
 include("lattices.jl")
 export UnityFourierLattice, ModulatedFourierLattice,

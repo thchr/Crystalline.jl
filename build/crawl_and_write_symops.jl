@@ -28,7 +28,7 @@ function crawl_sgops_xyzt(sgnum::Integer, dim::Integer=3)
     sgops_str = Vector{String}(undef,Nops)
 
     for (i,op_html) in enumerate(ops_html)
-        sgops_str[i] = stripnum(op_html[1].text) # strip away the space group number
+        sgops_str[i] = _stripnum(op_html[1].text) # strip away the space group number
     end
     return sgops_str
 end
@@ -44,4 +44,11 @@ function crawl_sgops_html(sgnum::Integer, dim::Integer=3)
     else
         error("We did not yet implement 2D plane groups")
     end
+end
+
+function _stripnum(s)
+    if occursin(' ', s) # if the operation "number" is included as part of s
+        _,s′ = split(s, isspace; limit=2)
+    end
+    return String(s′) # ensure we return a String, rather than possibly a SubString
 end

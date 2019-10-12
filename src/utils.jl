@@ -117,7 +117,7 @@ function unicode_frac(x::Number)
     elseif xabs ≈ 7/8;  xstr = "⅞"
     elseif xabs ≈ 1/9;  xstr = "⅑"
     elseif xabs ≈ 1/10; xstr = "⅒"
-    else xstr = @sprintf("%g",xabs) # return a conventional string representation
+    else xstr = string(xabs) # return a conventional string representation
     end
     return signbit(x) ? "-"*xstr : xstr
 end
@@ -128,7 +128,7 @@ const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "G
                                                                    # alphabetically (e.g. LE => LD = Λ). The primed notation is our own.
 function roman2greek(label::String)
     idx = findfirst(!isletter, label)
-    if idx != nothing
+    if idx !== nothing
         front=label[firstindex(label):prevind(label,idx)]
         if length(front) == 2 # have to check length rather than just idx, in case of non-ascii input
             return roman2greek_dict[front]*label[idx:lastindex(label)]

@@ -30,35 +30,33 @@ end
 
 
 # Symmetry operations
-struct SymOperation#{D}
+struct SymOperation
     xyzt::String
-    matrix::Matrix{Float64} # TODO: factor this out into a rotation and a translation part (to avoid needless copying)
-    #rotation::Matrix{Float64} 
-    #translation::Vector{Float64}
+    matrix::Matrix{Float64}
 end
 SymOperation(s::AbstractString) = SymOperation(string(s), xyzt2matrix(s))
 SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), float(m))
 matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
-function show(io::IO, ::MIME"text/plain", op::SymOperation) 
+getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
+rotation(m::Matrix{Float64}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
+rotation(op::SymOperation)   = rotation(matrix(op))
+translation(m::Matrix{Float64}) = @view m[:,end]  # translation part of an operation
+translation(op::SymOperation)   = translation(matrix(op))
+(==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
+isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
+function show(io::IO, ::MIME"text/plain", op::SymOperation)
     print(io, seitz(op),":\n   (", xyzt(op), ")\n")
     Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
 end
-function show(io::IO, ::MIME"text/plain", ops::AbstractVector{SymOperation})
+function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
     for (i,op) in enumerate(ops)
         show(io, "text/plain", op)
         if i < length(ops); print(io, "\n"); end
     end
 end
-getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
-lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
-rotation(m::Matrix{Float64}) = m[:,1:end-1] # rotational (proper or improper) part of an operation
-rotation(op::SymOperation) = matrix(op)[:,1:end-1]        
-translation(m::Matrix{Float64}) = m[:,end]  # translation part of an operation
-translation(op::SymOperation) = matrix(op)[:,end]   
-(==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
-isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
 
 # Multiplication table
 struct MultTable
@@ -93,7 +91,7 @@ KVec(k₀::AbstractVector{<:Real}) = KVec(float.(k₀), zeros(Float64, length(k�
 parts(kv::KVec) = (kv.k₀, kv.kabc)
 isspecial(kv::KVec) = iszero(kv.kabc)
 dim(kv::KVec) = length(kv.k₀)
-(kv::KVec)(αβγ::Vector{<:Real}) = begin
+function (kv::KVec)(αβγ::AbstractVector{<:Real})
     k₀, kabc = parts(kv)
     return k₀ + kabc*αβγ
 end
@@ -105,20 +103,20 @@ end
 function string(kv::KVec)
     k₀, kabc = parts(kv)
     buf = IOBuffer()
-    write(buf, "[")
+    write(buf, '[')
     if isspecial(kv)
         for i in eachindex(k₀) 
             coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
-            @printf(buf, "%g", coord)
+            print(buf, coord)
             # prepare for next coordinate/termination
-            i == length(k₀) ? write(buf, "]") : write(buf, ", ")
+            i == length(k₀) ? write(buf, ']') : write(buf, ", ")
         end
     else
         for i in eachindex(k₀)
             # fixed parts
             if !iszero(k₀[i]) || iszero(@view kabc[i,:]) # don't print zero, if it adds unto anything nonzero
                 coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
-                @printf(buf, "%g", coord)
+                print(buf, coord)
             end
             # free-parameter parts
             for j in eachindex(k₀) 
@@ -128,18 +126,20 @@ function string(kv::KVec)
                         write(buf, sgn)
                     end
                     if abs(kabc[i,j]) != oneunit(eltype(kabc)) # don't print prefactors of 1
-                        @printf(buf, "%g", abs(kabc[i,j]))
+                        print(buf, abs(kabc[i,j]))
                     end
                     write(buf, j==1 ? 'α' : (j == 2 ? 'β' : 'γ'))
                 end
             end
             # prepare for next coordinate/termination
-            i == length(k₀) ? write(buf, "]") : write(buf, ", ")
+            i == length(k₀) ? write(buf, ']') : write(buf, ", ")
         end
     end
     return String(take!(buf))
 end
 show(io::IO, ::MIME"text/plain", kv::KVec) = print(io, string(kv))
+
+
 
 """ 
     KVec(str::AbstractString) --> KVec
@@ -153,34 +153,37 @@ decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively
 
 Any "fixed"/constant part of a coordinate _must_ precede any free parts, e.g.,
 `x="1+α"` is allowable but `x="α+1"` is not.
+
+Fractions such as `1/2` can be parsed: but use of any other special operator
+besides `/` will result in faulty operations (e.g. do not use `*`).
 """
 function KVec(str::AbstractString)
-    str = replace(strip(str, ['(',')','[',']']), ' '=>"") # tidy up string (remove parens & spaces)
+    str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
     xyz = split(str,',')
     dim = length(xyz)
     k₀ = zeros(Float64, dim); kabc = zeros(Float64, dim, dim)
     for (i, coord) in enumerate(xyz)
-        # "free" coordinates, kabc[i,:]
-        for (j, matchgroup) in enumerate([['α','u'],['β','v'],['γ','w']])
-            pos₂ = findfirst(x->any(y->y==x, matchgroup), coord)
+        # --- "free" coordinates, kabc[i,:] ---
+        for (j, matchgroup) in enumerate((('α','u'),('β','v'),('γ','w')))
+            pos₂ = findfirst(x -> x ∈ matchgroup, coord)
             if !isnothing(pos₂)
                 match = searchpriornumerals(coord, pos₂)
                 kabc[i,j] = parse(Float64, match)
             end
         end
-
-        # "fixed" coordinate, k₀[i]
-        if !any(x->x==last(first(split(coord, r"\b(\+|\-)"))), ['α','u','β','v','γ','w']) # check for situations like '±3α' which is not handled by logic below
-            nextidx = 0
-            while (nextidx=nextind(coord, nextidx)) ≤ lastindex(coord) && !any(x->coord[nextidx]==x, ['α','u','β','v','γ','w'])
-                if nextidx != 1 && any(x->coord[nextidx]==x, ['+','-'])
-                    break
-                else 
-                end
+        
+        # --- "fixed" coordinate, k₀[i] ---
+        sepidx′ = findfirst(r"\b(\+|\-)", coord) # find any +/- separators between fixed and free parts
+        # regex matches '+' or '-', except if they are the first character in 
+        # string (or if they are preceded by space; but that cannot occur here)   
+        if sepidx′===nothing # no separators
+            if last(coord) ∈ ('α','u','β','v','γ','w') # free-part only case
+                continue # k₀[i] is zero already
+            else                                       # constant-part only case
+                k₀[i] = parsefraction(coord)
             end
-            if nextidx != firstindex(coord)
-                k₀[i] = parsefraction(coord[firstindex(coord):prevind(coord,nextidx)])
-            end
+        else # exploit that we require fixed parts to come before free parts
+            k₀[i] = parsefraction(coord[firstindex(coord):prevind(coord, first(sepidx′))])
         end
     end
     return KVec(k₀, kabc)
@@ -191,19 +194,49 @@ end
 (-)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .- kv2.k₀, kv1.kabc .- kv2.kabc)
 (+)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .+ kv2.k₀, kv1.kabc .+ kv2.kabc)
 
-function isapprox(kv1::KVec, kv2::KVec, cntr; kwargs...)
-    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)
-    d = length(k₀1)
-    # check if k₀1 and k₀2 differ by a _primitive_ reciprocal vector
-    diff = k₀1 .- k₀2
-    diff = primitivebasismatrix(cntr, d)'*diff
+"""
+    isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
+                                                            
+Compute approximate equality of two KVec's `k1` and `k2` modulo any 
+primitive G-vectors. To ensure that primitive G-vectors are used, 
+the centering type `cntr` (see `centering(cntr, dim)`) must be given
+(the dimensionality is inferred from `kv1` and `kv2`).
+Optionally, keyword arguments (e.g., `atol` and `rtol`) can be 
+provided, to include in calls to `Base.isapprox`.
+
+If `cntr` is not provided, the comparison will not account for equivalence
+by primitive G-vectors.
+"""
+function isapprox(kv1::KVec, kv2::KVec, cntr::Char; kwargs...)
+    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
+
+    dim1, dim2 = length(k₀1), length(k₀2)
+    if dim1 ≠ dim2
+        throw(ArgumentError("dim(kv1)=$(dim1) and dim(kv2)=$(dim2) must be equal"))
+    end
+
+    # check if k₀ ≈ k₀′ differ by a _primitive_ 𝐆 vector
+    diff = primitivebasismatrix(cntr, dim1)' * (k₀1 .- k₀2)
     kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
-    # check if kabc1 == kabc2; no need to check for difference by a reciprocal
-    # vector, since kabc contribution is restricted to non-special values
-    abcbool = isapprox(kabc1, kabc2; kwargs...)
+    # check if kabc1 ≈ kabc2; no need to check for difference by a 
+    # 𝐆 vector, since kabc is in interior of BZ
+    abcbool = isapprox(kabc1, kabc2;  kwargs...)
 
     return kbool && abcbool
 end
+# ... without considerations of G-vectors
+function isapprox(kv1::KVec, kv2::KVec; kwargs...) 
+    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
+       
+    return isapprox(k₀1, k₀2; kwargs...) && isapprox(kabc1, kabc2; kwargs...)
+end
+
+function (==)(kv1::KVec, kv2::KVec)   
+    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
+       
+    return k₀1 == k₀2 && kabc1 == kabc2
+end
+
 
 
 # Abstract spatial group
@@ -264,12 +297,28 @@ kvec(lg::LittleGroup) = lg.kv
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*string(kvec(lg))
 
 
-# Space group irreps
+# Abstract group irreps
+""" 
+    AbstractIrrep (abstract type)
+
+Abstract supertype for irreps: must have fields cdml, matrices, 
+and type (and possibly translations). Must implement a function
+`irreps` that return the associated irrep matrices.
+"""
 abstract type AbstractIrrep end
+label(ir::AbstractIrrep) = ir.cdml
+matrices(ir::AbstractIrrep) = ir.matrices    
+type(ir::AbstractIrrep) = ir.type
+translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
+characters(ir::AbstractIrrep) = tr.(irreps(ir))
+klabel(ir::AbstractIrrep) = klabel(label(ir))
+irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
+
+# 3D Space group irreps
 struct SGIrrep{T} <: AbstractIrrep where T
     iridx::Int64    # sequential index assigned to ir by Stokes et al
     cdml::String    # CDML label of irrep (including 𝐤-point label)
-    dim::Int64      # dimensionality of irrep (i.e. size)
+    irdim::Int64    # dimensionality of irrep (i.e. size)
     sgnum::Int64    # space group number
     sglabel::String # Hermann-Mauguin label of space group
     type::Int64     # real, pseudo-real, or complex (1, 2, or 3)
@@ -282,39 +331,40 @@ struct SGIrrep{T} <: AbstractIrrep where T
     translations::Vector{Vector{Float64}} # translations assoc with matrix repres of symops in irrep
     matrices::Vector{Matrix{T}} # non-translation assoc with matrix repres of symops in irrep
 end
-irreps(ir::AbstractIrrep) = ir.matrices
-characters(ir::AbstractIrrep) = tr.(irreps(ir))
-order(ir::AbstractIrrep) = ir.order
-label(ir::AbstractIrrep) = ir.cdml
-hermannmauguin(ir::AbstractIrrep) = ir.sglabel
-operations(ir::AbstractIrrep) = ir.ops
-isspecial(ir::AbstractIrrep) = ir.special
-kstar(ir::SGIrrep) = ir.pmkstar
-num(ir::AbstractIrrep) = ir.sgnum
-translations(ir::AbstractIrrep) = ir.translations
-type(ir::AbstractIrrep) = ir.type
-klabel(ir::AbstractIrrep) = klabel(label(ir))
-function klabel(label::String)
-    idx = findfirst(c->isdigit(c) || issubdigit(c), label) # look for regular digit or subscript digit
-    return label[firstindex(label):prevind(label,idx)]
-end
-
+num(sgir::SGIrrep) = sgir.sgnum
+irreps(sgir::SGIrrep) = sgir.matrices
+order(sgir::SGIrrep) = sgir.order
+hermannmauguin(sgir::SGIrrep) = sgir.sglabel
+operations(sgir::SGIrrep) = sgir.ops
+isspecial(sgir::SGIrrep) = sgir.special
+kstar(sgir::SGIrrep) = sgir.pmkstar
+irdim(sgir::SGIrrep) = sgir.irdim
+dim(sgir::SGIrrep) = 3
 
 # Little group irreps
-struct LGIrrep <: AbstractIrrep
+struct LGIrrep{D} <: AbstractIrrep
     cdml::String # CDML label of irrep (including k-point label)
-    lg::LittleGroup # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
+    lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
 end
+function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
+                    matrices::Vector{Matrix{ComplexF64}}, 
+                    translations_sentinel::Nothing, # sentinel value for all-zero translations
+                    type::Int64) where D
+    translations = [zeros(Float64,D) for _=Base.OneTo(order(lg))]
+    return LGIrrep{D}(cdml, lg, matrices, translations, type)
+end
 littlegroup(lgir::LGIrrep) = lgir.lg
 num(lgir::LGIrrep) = num(littlegroup(lgir))
+dim(lgir::LGIrrep{D}) where D = D
 operations(lgir::LGIrrep)  = operations(littlegroup(lgir))
 order(lgir::LGIrrep) = order(littlegroup(lgir))
 kvec(lgir::LGIrrep)  = kvec(littlegroup(lgir))
-isspecial(lgir::LGIrrep) = isspecial(kvec(lgir))
+isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(littlegroup(lgir))
+kstar(lgir::LGIrrep) = kstar(get_sgops(num(lgir), dim(lgir)), kvec(lgir), centering(num(lgir), dim(lgir)))
 function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = lgir.matrices
     τ = lgir.translations
@@ -334,19 +384,25 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
                                             # If we swap the sign here, we probably have to swap t₀ in the check
                                             # for ray-representations in multtable(::MultTable, ::LGIrrep), to 
                                             # account for this difference. It is not enough just to swap the sign
-                                            # - I checked (⇒ 112 failures in test/multtable.jl) - you would have 
+                                            # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
                                             # to account for the fact that it would be -β⁻¹τ that appears in the 
                                             # inverse operation, not just τ. Same applies here, if you want to 
                                             # adopt the other convention, it should probably not just be a swap 
                                             # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
                                             # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
-                                            # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY, 
+                                            # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY 
+                                            # (also expliciated at https://stokes.byu.edu/iso/irtableshelp.php),
                                             # so, overall, this is probably the sanest choice for this dataset.
             end
         end
         return P′
     end
     return P
+end
+
+function klabel(cdml::String)
+    idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
+    return cdml[firstindex(cdml):prevind(cdml,idx)]
 end
 
 
