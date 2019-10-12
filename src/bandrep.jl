@@ -42,7 +42,7 @@ function crawlbandreps(sgnum::Integer, allpaths::Bool=false, brtype::String="Ele
 end
 
 # parsing functionality
-function html2dlm(body::String, oplus::Union{String,Char}="⊕ ", ::BandRepTrait=BandRepTrait())
+function html2dlm(body::String, oplus::Union{String,Char}='⊕', ::BandRepTrait=BandRepTrait())
     dlm='|'
     # list of replacements, mostly using regexes; see https://regexr.com for inspiration.
     replacepairlist= (
