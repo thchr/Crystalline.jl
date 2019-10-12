@@ -21,7 +21,7 @@ for sgnum = 1:230
             lgir = LGIRS[sgnum][kidx][iridx]
             
             # number of k-vectors in the star of k
-            order_starofk = length(starofk(sgops, kv, cntr)) 
+            order_kstar = length(kstar(sgops, kv, cntr)) 
             # number of operations in the little group of k
             order_pointgroupofk = length(pointgroup(operations(lgir)))
 
@@ -32,7 +32,7 @@ for sgnum = 1:230
             # and where G₀ denotes the point group derived from the space 
             # group G, Gᵏ denotes the little group of k derived from G, 
             # and G₀ᵏ denotes the point group derived from Gᵏ
-            @test order_starofk*order_pointgroupofk == order_macroscopic
+            @test order_kstar*order_pointgroupofk == order_macroscopic
         end
     end
 end

@@ -58,8 +58,10 @@ for dim in 2:3
     end
 end
 
+
 @testset "Complex LGIrreps" begin
-    for lgirs in LGIRS
+    #failcount = 0
+    for lgirs in LGIRS#[[230]]
         for lgirvec in lgirs
             sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
             ops = operations(first(lgirvec))              # ops in conventional basis
@@ -68,12 +70,14 @@ end
 
             for lgir in lgirvec
                 for αβγ = [nothing, [1,1,1]*1e-1] # test finite and zero values of αβγ
-                    checkmt = checkmulttable(mt, lgir, αβγ)
+                    checkmt = checkmulttable(mt, lgir, αβγ; verbose=false)
                     @test all(checkmt)
+                    #if !all(checkmt); failcount += 1; end
                 end
             end
         end
     end
+    #println("\nFails: $(failcount)\n\n")
 end
 end
 

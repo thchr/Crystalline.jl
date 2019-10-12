@@ -1,36 +1,46 @@
 using SGOps, Test
 
 if !isdefined(Main, :LGIRS)
-    LGIRS = parselittlegroupirreps()
+    LGIRS = get_all_lgirreps(3)  # loaded from our saved .jld2 files
 end
 
 @testset "k-vectors required by BandRepSet analysis" begin
 allpaths = false
 spinful  = false
-showmissing = false
+showmissing = true
 
 @testset "Complex (no TR) irreps" begin
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
-for sgnum = 1:230
+for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths, spinful, "Elementary")
     irlabs_BRS = BRS.irreplabs
     klabs_BRS = BRS.klabs
 
-    irlabs_ISOTROPY = [SGOps.formatirreplabel(label(LGIRS[sgnum][kidx][irridx])) for kidx = 1:length(LGIRS[sgnum]) for irridx in 1:length(LGIRS[sgnum][kidx])]
-    klabs_ISOTROPY = [klabel(LGIRS[sgnum][kidx][1]) for kidx = 1:length(LGIRS[sgnum])]
+    irlabs_ISO = [SGOps.formatirreplabel(label(lgir)) for lgirs in lgirsvec for lgir in lgirs]
+    klabs_ISO = [klabel(lgirs[1]) for lgirs in lgirsvec]
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
-        if irlab_BRS ∉ irlabs_ISOTROPY
+        klab_BRS = klabel(irlab_BRS)
+        # unfortunately, in our ISO dataset the general point is Ω; in 
+        # the band rep set it is GP: put a bandaid on that for now
+        klab_BRS′ = klab_BRS == "GP" ? "Ω" : klab_BRS
+        irlab_BRS′ = occursin("GP", irlab_BRS) ? "Ω₁" : irlab_BRS
+        if irlab_BRS′ ∉ irlabs_ISO
             if showmissing
                 @info "Cannot find complex irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
             end
             @test_broken false
-            kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
-            kidx_ISOTROPY_nearest = findfirst(x->x==string(first(klabel(irlab_BRS))), klabs_ISOTROPY)
+            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
+            kidx_ISO_related = findfirst(x->x==klab_BRS′[1:1], klabs_ISO)
 
             # test that for each of the (P,K,W,H)A k-label variants, that the associated k-vector is 
             # just equal to minus the kvector in the (P,K,W,H) variant (i.e. without the 'A' postscript)
-            @test string(-BRS.kvs[kidx_BRS]) == string(kvec(LGIRS[sgnum][kidx_ISOTROPY_nearest][1]))
+            @test -BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO_related]))
+
+            # Note that (Z, ZA) points are not simply the plus/minus pairs of 
+            # eachother; rather, Z≡[α,0.5,0] and ZA≡[0.5,α,0]; this affects 
+            # space groups 195, 198, 200, and 201, but ZA only features in the
+            # allpaths bandreps. 
 
             # TODO:
             # ... to get the irreps of these variants, we need to follow the prescription 
@@ -38,11 +48,34 @@ for sgnum = 1:230
             # Pretty sure this is the subject of Cracknell & Davies 1976b (On the completeness
             # of tables of irreducible representations of the classical space groups)
         else
-            kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
-            kidx_ISOTROPY = findfirst(x->x==klabel(irlab_BRS), klabs_ISOTROPY)
+            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
+            kidx_ISO = findfirst(x->x==klab_BRS′, klabs_ISO)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
-            @test string(BRS.kvs[kidx_BRS]) == string(kvec(LGIRS[sgnum][kidx_ISOTROPY][1]))
+            @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))
+            if showmissing
+                if BRS.kvs[kidx_BRS] ≠ kvec(first(lgirsvec[kidx_ISO]))
+                    println("Different definitions of k-point labels in space group ", sgnum)
+                    println("   BRS, ", klab_BRS, ": ",string(BRS.kvs[kidx_BRS]))
+                    println("   ISO, ", klabs_ISO[kidx_ISO], ": ",string(kvec(first(lgirsvec[kidx_ISO]))))
+                    println()
+                end
+            end
+            # Note that the definition of Σ appears to be different in the BRSs
+            # (i.e. in Bilbao) and in ISOTROPY. Specifically, 
+            #   Σ_BRS≡[α,α,0] while Σ_ISO≡[α,-2α,0]
+            # This impacts space groups 146, 148, 155, 160, 161, 166, & 167
+            # Ah, this is actually a parsing error on our part; it seems that 
+            # we did not parse (u, -2*u, 0) correctly due to the multiplication
+            # operator '*'. Need to fix that and recrawl/parse. 
+            # TODO: The root cause of this problem is that KVec(::String) doesn't
+            #       handle * multiply signs: as a result, we have 
+            #            KVec("u,-2*u,0") = [α, α, 0.0]
+            #       We could probably just strip out '*' chars early on in the method.
+            #       Done! ✓
+            # TODO: Need to recrawl bandreps after fixing this; and we should probably
+            #       do a conversion of "GP" to "Ω" to be consistent with the notation 
+            #       we used for ISOTROPY's bandreps.
         end
     end
 end
@@ -50,28 +83,40 @@ end
 
 @testset "Physically irreducible irreps/co-reps (with TR)" begin
 # --- test physically irreducible irreps/co-reps (assuming time-reversal symmetry) ---
-for sgnum = 1:230
+for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths, spinful, "Elementary TR")
     irlabs_BRS = BRS.irreplabs
     klabs_BRS = BRS.klabs
 
-    irlabs_ISOTROPY = [SGOps.formatirreplabel(label(LGIRS[sgnum][kidx][irridx])) for kidx = 1:length(LGIRS[sgnum]) for irridx in 1:length(LGIRS[sgnum][kidx])]
-    klabs_ISOTROPY = [klabel(LGIRS[sgnum][kidx][1]) for kidx = 1:length(LGIRS[sgnum])]
+    irlabs_ISO = Vector{String}()
+    realirlabs_ISO = Vector{String}()
+    klabs_ISO = Vector{String}(undef, length(lgirsvec))
+    for (kidx, lgirs) in enumerate(lgirsvec)
+        append!(irlabs_ISO,     [label(lgir) for lgir in lgirs])
+        append!(realirlabs_ISO, realify(lgirs)[2])
+        klabs_ISO[kidx] = klabel(first(lgirs))
+    end
+    irlabs_ISO = SGOps.formatirreplabel.(irlabs_ISO)
+    realirlabs_ISO = SGOps.formatirreplabel.(realirlabs_ISO)
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
-        if irlab_BRS ∉ irlabs_ISOTROPY
+        klab_BRS = klabel(irlab_BRS)
+        # unfortunately, in our ISO dataset the general point is Ω; in 
+        # the band rep set it is GP: put a bandaid on that for now
+        klab_BRS′ = klab_BRS == "GP" ? "Ω" : klab_BRS
+        irlab_BRS′ = occursin("GP", irlab_BRS) ? "Ω₁" : irlab_BRS
+        if irlab_BRS′ ∉ realirlabs_ISO
             if showmissing
                 @info "Cannot find real irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
             end
             @test_broken false
-            kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
-            kidx_ISOTROPY_nearest = findfirst(x->x==string(first(klabel(irlab_BRS))), klabs_ISOTROPY)
+
         else
-            kidx_BRS = findfirst(x->x==klabel(irlab_BRS), klabs_BRS)
-            kidx_ISOTROPY = findfirst(x->x==klabel(irlab_BRS), klabs_ISOTROPY)
+            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
+            kidx_ISO = findfirst(x->x==klab_BRS′, klabs_ISO)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
-            @test string(BRS.kvs[kidx_BRS]) == string(kvec(LGIRS[sgnum][kidx_ISOTROPY][1]))
+            @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))
         end
     end
 end
