@@ -6,9 +6,7 @@ Returns the Schoenflies notation for a given space group number
 space groups, not plane groups, so this notation is only relevant
 in three dimensions.
 """
-function schoenflies(sgnum::Integer) 
-    return schoenflies_table[sgnum]
-end
+schoenflies(sgnum::Integer) = SCHOENFLIES_TABLE[sgnum]
 
 """
     hermannmauguin(sgnum::Integer, dim::Integer=3) --> String
@@ -22,9 +20,7 @@ Hermann-Mauguin notation applies in two and three-dimensions.
 
 For additional information see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
-function hermannmauguin(sgnum::Integer, dim::Integer=3) 
-    return hermannmauguin_table[dim][sgnum]
-end
+hermannmauguin(sgnum::Integer, dim::Integer=3) = HERMANNMAUGUIN_TABLE[dim][sgnum]
 const iuc = hermannmauguin # alias
 
 """ 
@@ -48,62 +44,81 @@ centering(sgnum::Integer, dim::Integer=3) = first(hermannmauguin(sgnum, dim))
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]
-const schoenflies_table = [
+const SCHOENFLIES_TABLE = (
 # triclinic
-"C_1^1",    "C_i^1", 
+"C₁¹",    "Cᵢ¹",
 # monoclinic
-"C_2^1",    "C_2^2",    "C_2^3",    "C_S^1",    "C_S^2",    "C_S^3", 
-"C_S^4",    "C_2h^1",   "C_2h^2",   "C_2h^3",   "C_2h^4",   "C_2h^5", 
-"C_2h^6",
+"C₂¹",    "C₂²",    "C₂³",    "Cₛ¹",    "Cₛ²",    "Cₛ³",
+"Cₛ⁴",    "C₂ₕ¹",   "C₂ₕ²",   "C₂ₕ³",   "C₂ₕ⁴",   "C₂ₕ⁵",
+"C₂ₕ⁶",
 # orthorhombic
-"D_2^1",    "D_2^2",    "D_2^3",    "D_2^4",    "D_2^5",    "D_2^6", 
-"D_2^7",    "D_2^8",    "D_2^9",    "C_2v^1",   "C_2v^2",   "C_2v^3", 
-"C_2v^4",   "C_2v^5",   "C_2v^6",   "C_2v^7",   "C_2v^8",   "C_2v^9", 
-"C_2v^10",  "C_2v^11",  "C_2v^12",  "C_2v^13",  "C_2v^14",  "C_2v^15", 
-"C_2v^16",  "C_2v^17",  "C_2v^18",  "C_2v^19",  "C_2v^20",  "C_2v^21", 
-"C_2v^22",  "D_2h^1",   "D_2h^2",   "D_2h^3",   "D_2h^4",   "D_2h^5", 
-"D_2h^6",   "D_2h^7",   "D_2h^8",   "D_2h^9",   "D_2h^10",  "D_2h^11", 
-"D_2h^12",  "D_2h^13",  "D_2h^14",  "D_2h^15",  "D_2h^16",  "D_2h^17", 
-"D_2h^18",  "D_2h^19",  "D_2h^20",  "D_2h^21",  "D_2h^22",  "D_2h^23", 
-"D_2h^24",  "D_2h^25",  "D_2h^26",  "D_2h^27",  "D_2h^28",
-# tetragonal 
-"C_4^1",    "C_4^2",    "C_4^3",    "C_4^4",    "C_4^5",    "C_4^6", 
-"S_4^1",    "S_4^2",    "C_4h^1",   "C_4h^2",   "C_4h^3",   "C_4h^4", 
-"C_4h^5",   "C_4h^6",   "D_4^1",    "D_4^2",    "D_4^3",    "D_4^4", 
-"D_4^5",    "D_4^6",    "D_4^7",    "D_4^8",    "D_4^9",    "D_4^10", 
-"C_4v^1",   "C_4v^2",   "C_4v^3",   "C_4v^4",   "C_4v^5",   "C_4v^6", 
-"C_4v^7",   "C_4v^8",   "C_4v^9",   "C_4v^10",  "C_4v^11",  "C_4v^12", 
-"D_2d^1",   "D_2d^2",   "D_2d^3",   "D_2d^4",   "D_2d^5",   "D_2d^6", 
-"D_2d^7",   "D_2d^8",   "D_2d^9",   "D_2d^10",  "D_2d^11",  "D_2d^12", 
-"D_4h^1",   "D_4h^2",   "D_4h^3",   "D_4h^4",   "D_4h^5",   "D_4h^6", 
-"D_4h^7",   "D_4h^8",   "D_4h^9",   "D_4h^10",  "D_4h^11",  "D_4h^12", 
-"D_4h^13",  "D_4h^14",  "D_4h^15",  "D_4h^16",  "D_4h^17",  "D_4h^18", 
-"D_4h^19",  "D_4h^20",
+"D₂¹",    "D₂²",    "D₂³",    "D₂⁴",    "D₂⁵",    "D₂⁶",
+"D₂⁷",    "D₂⁸",    "D₂⁹",    "C₂ᵥ¹",   "C₂ᵥ²",   "C₂ᵥ³",
+"C₂ᵥ⁴",   "C₂ᵥ⁵",   "C₂ᵥ⁶",   "C₂ᵥ⁷",   "C₂ᵥ⁸",   "C₂ᵥ⁹",
+"C₂ᵥ¹⁰",  "C₂ᵥ¹¹",  "C₂ᵥ¹²",  "C₂ᵥ¹³",  "C₂ᵥ¹⁴",  "C₂ᵥ¹⁵",
+"C₂ᵥ¹⁶",  "C₂ᵥ¹⁷",  "C₂ᵥ¹⁸",  "C₂ᵥ¹⁹",  "C₂ᵥ²⁰",  "C₂ᵥ²¹",
+"C₂ᵥ²²",  "D₂ₕ¹",   "D₂ₕ²",   "D₂ₕ³",   "D₂ₕ⁴",   "D₂ₕ⁵",
+"D₂ₕ⁶",   "D₂ₕ⁷",   "D₂ₕ⁸",   "D₂ₕ⁹",   "D₂ₕ¹⁰",  "D₂ₕ¹¹",
+"D₂ₕ¹²",  "D₂ₕ¹³",  "D₂ₕ¹⁴",  "D₂ₕ¹⁵",  "D₂ₕ¹⁶",  "D₂ₕ¹⁷",
+"D₂ₕ¹⁸",  "D₂ₕ¹⁹",  "D₂ₕ²⁰",  "D₂ₕ²¹",  "D₂ₕ²²",  "D₂ₕ²³",
+"D₂ₕ²⁴",  "D₂ₕ²⁵",  "D₂ₕ²⁶",  "D₂ₕ²⁷",  "D₂ₕ²⁸",
+# tetragonal
+"C₄¹",    "C₄²",    "C₄³",    "C₄⁴",    "C₄⁵",    "C₄⁶",
+"S₄¹",    "S₄²",    "C₄ₕ¹",   "C₄ₕ²",   "C₄ₕ³",   "C₄ₕ⁴",
+"C₄ₕ⁵",   "C₄ₕ⁶",   "D₄¹",    "D₄²",    "D₄³",    "D₄⁴",
+"D₄⁵",    "D₄⁶",    "D₄⁷",    "D₄⁸",    "D₄⁹",    "D₄¹⁰",
+"C₄ᵥ¹",   "C₄ᵥ²",   "C₄ᵥ³",   "C₄ᵥ⁴",   "C₄ᵥ⁵",   "C₄ᵥ⁶",
+"C₄ᵥ⁷",   "C₄ᵥ⁸",   "C₄ᵥ⁹",   "C₄ᵥ¹⁰",  "C₄ᵥ¹¹",  "C₄ᵥ¹²",
+"D₂d¹",   "D₂d²",   "D₂d³",   "D₂d⁴",   "D₂d⁵",   "D₂d⁶",
+"D₂d⁷",   "D₂d⁸",   "D₂d⁹",   "D₂d¹⁰",  "D₂d¹¹",  "D₂d¹²",
+"D₄ₕ¹",   "D₄ₕ²",   "D₄ₕ³",   "D₄ₕ⁴",   "D₄ₕ⁵",   "D₄ₕ⁶",
+"D₄ₕ⁷",   "D₄ₕ⁸",   "D₄ₕ⁹",   "D₄ₕ¹⁰",  "D₄ₕ¹¹",  "D₄ₕ¹²",
+"D₄ₕ¹³",  "D₄ₕ¹⁴",  "D₄ₕ¹⁵",  "D₄ₕ¹⁶",  "D₄ₕ¹⁷",  "D₄ₕ¹⁸",
+"D₄ₕ¹⁹",  "D₄ₕ²⁰",
 # trigonal
-"C_3^1",    "C_3^2",    "C_3^3",    "C_3^4",    "C_3i^1",   "C_3i^2", 
-"D_3^1",    "D_3^2",    "D_3^3",    "D_3^4",    "D_3^5",    "D_3^6", 
-"D_3^7",    "C_3v^1",   "C_3v^2",   "C_3v^3",   "C_3v^4",   "C_3v^5", 
-"C_3v^6",   "D_3d^1",   "D_3d^2",   "D_3d^3",   "D_3d^4",   "D_3d^5", 
-"D_3d^6",
+"C₃¹",    "C₃²",    "C₃³",    "C₃⁴",    "C₃ᵢ¹",   "C₃ᵢ²",
+"D₃¹",    "D₃²",    "D₃³",    "D₃⁴",    "D₃⁵",    "D₃⁶",
+"D₃⁷",    "C₃ᵥ¹",   "C₃ᵥ²",   "C₃ᵥ³",   "C₃ᵥ⁴",   "C₃ᵥ⁵",
+"C₃ᵥ⁶",   "D₃d¹",   "D₃d²",   "D₃d³",   "D₃d⁴",   "D₃d⁵",
+"D₃d⁶",
 # hexagonal
-"C_6^1",    "C_6^2",    "C_6^3",    "C_6^4",    "C_6^5",    "C_6^6", 
-"C_3h^1",   "C_6h^1",   "C_6h^2",   "D_6^1",    "D_6^2",    "D_6^3", 
-"D_6^4",    "D_6^5",    "D_6^6",    "C_6v^1",   "C_6v^2",   "C_6v^3", 
-"C_6v^4",   "D_3h^1",   "D_3h^2",   "D_3h^3",   "D_3h^4",   "D_6h^1", 
-"D_6h^2",   "D_6h^3",   "D_6h^4",
+"C₆¹",    "C₆²",    "C₆³",    "C₆⁴",    "C₆⁵",    "C₆⁶",
+"C₃ₕ¹",   "C₆ₕ¹",   "C₆ₕ²",   "D₆¹",    "D₆²",    "D₆³",
+"D₆⁴",    "D₆⁵",    "D₆⁶",    "C₆ᵥ¹",   "C₆ᵥ²",   "C₆ᵥ³",
+"C₆ᵥ⁴",   "D₃ₕ¹",   "D₃ₕ²",   "D₃ₕ³",   "D₃ₕ⁴",   "D₆ₕ¹",
+"D₆ₕ²",   "D₆ₕ³",   "D₆ₕ⁴",
 # cubic
-"T^1",      "T^2",      "T^3",      "T^4",      "T^5",      "T_h^1", 
-"T_h^2",    "T_h^3",    "T_h^4",    "T_h^5",    "T_h^6",    "T_h^7", 
-"O^1",      "O^2",      "O^3",      "O^4",      "O^5",      "O^6", 
-"O^7",      "O^8",      "T_d^1",    "T_d^2",    "T_d^3",    "T_d^4", 
-"T_d^5",    "T_d^6",    "O_h^1",    "O_h^2",    "O_h^3",    "O_h^4", 
-"O_h^5",    "O_h^6",    "O_h^7",    "O_h^8",    "O_h^9",    "O_h^10"
-]
+"T¹",      "T²",    "T³",     "T⁴",    "T⁵",     "Tₕ¹",
+"Tₕ²",     "Tₕ³",    "Tₕ⁴",    "Tₕ⁵",    "Tₕ⁶",    "Tₕ⁷",
+"O¹",      "O²",    "O³",     "O⁴",    "O⁵",     "O⁶",
+"O⁷",      "O⁸",    "Td¹",    "Td²",   "Td³",    "Td⁴",
+"Td⁵",     "Td⁶",   "Oₕ¹",    "Oₕ²",    "Oₕ³",    "Oₕ⁴",
+"Oₕ⁵",     "Oₕ⁶",    "Oₕ⁷",    "Oₕ⁸",    "Oₕ⁹",    "Oₕ¹⁰"
+)
 
 # Hermann-Mauguin notation, ordered relative to space/plane group number
-const hermannmauguin_table = Dict{Int64, Vector{String}}(
-3 => # space-group notation (three dimensions) [from https://bruceravel.github.io/demeter/artug/atoms/space.html]
-[
+const HERMANNMAUGUIN_TABLE = (
+# ------------------------------------------------------------------------------------------
+# line-group notation (one dimension) [see https://en.wikipedia.org/wiki/Line_group]
+# ------------------------------------------------------------------------------------------    
+("p1", "p1m"),
+# ------------------------------------------------------------------------------------------
+# plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974]
+# ------------------------------------------------------------------------------------------
+(
+# oblique
+"p1",   "p211",
+# rectangular ('p' or 'c' centering; c-centered lattices are rhombic in their primitive cell)
+"p1m1", "p1g1", "c1m1", "p2mm", "p2mg", "p2gg", "c2mm",   
+# square
+"p4",   "p4mm", "p4gm",
+# hexagonal
+"p3",   "p3m1", "p31m", "p6",   "p6mm"
+),
+# ------------------------------------------------------------------------------------------
+# space-group notation (three dimensions) [adapted from https://bruceravel.github.io/demeter/artug/atoms/space.html]
+# ------------------------------------------------------------------------------------------
+(
 # triclinic
 "P1",      "P-1",
 # monoclinic
@@ -153,19 +168,7 @@ const hermannmauguin_table = Dict{Int64, Vector{String}}(
 "P4132",   "I4132",   "P-43M",   "F-43M",   "I-43M",   "P-43N",
 "F-43C",   "I-43D",   "PM3M",    "PN3N",    "PM3N",    "PN3M",
 "FM3M",    "FM3C",    "FD3M",    "FD3C",    "IM3M",    "IA3D"
-]
-, 
-2 => # plane group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974]
-[
-# oblique
-"p1",   "p211",
-# rectangular ('p' or 'c' centering; c-centered lattices are rhombic in their primitive cell)
-"p1m1", "p1g1", "c1m1", "p2mm", "p2mg", "p2gg", "c2mm",   
-# square
-"p4",   "p4mm", "p4gm",
-# hexagonal
-"p3",   "p3m1", "p31m", "p6",   "p6mm"
-]
+)
 )
 
 
