@@ -12,11 +12,12 @@ import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 
-# constant scalars
-const DEFAULT_ATOL = 1e-12 # absolute tolerance for approximate equality
-const NULL_ATOL = 1e-11    # absolute tolerance for nullspace 
+
 
 # included files and exports
+include("constants.jl")
+export MAX_SGNUM
+
 include("utils.jl") # useful utility methods (seldom needs exporting)
 
 include("types.jl") # defines useful types for space group symmetry analysis

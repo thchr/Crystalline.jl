@@ -431,7 +431,7 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
             α[row,col] = cis(ϕ)
         end
     end
-    return (any(x->norm(x-1.0)>1e-12, α), α)
+    return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
 end
 
 function show(io::IO, ::MIME"text/plain", lgir::LGIrrep)
