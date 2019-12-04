@@ -158,6 +158,7 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         else                      # complex
             # doubles with complex conjugate
             # what to do about exp(ikτ) dependence? Need new type, different from LGIrrep?
+            # maybe the τ values are the same? Could just check...
         end
     end
     =#
