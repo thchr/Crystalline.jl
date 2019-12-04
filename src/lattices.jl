@@ -270,16 +270,34 @@ function calcfourier(xyz, orbits, orbitcoefs)
     return f
 end
 
+"""
+    plot(flat::AbstractFourierLattice, C::Crystal)
+
+Plots an lattice `flat::AbstractFourierLattice` with lattice vectors
+given by `C::Crystal`. Possible kwargs are (default in brackets) 
+
+- `N`: resolution [`100`]
+- `filling`: determine isovalue from relative filling fraction [`0.5`]
+- `isoval`: isovalue [nothing (inferred from `filling`)]
+- `repeat`: if not `nothing`, repeats the unit cell an integer number of times [`nothing`]
+- `fig`: figure handle to plot [`nothing`, i.e. opens a new figure]
+
+If both `filling` and `isoval` kwargs simultaneously not equal 
+to `nothing`, then `isoval` takes precedence.
+"""
 function plot(flat::AbstractFourierLattice, C::Crystal;
               N::Integer=100, 
               filling::Union{Real, Nothing}=0.5, 
-              repeat::Union{Integer, Nothing}=nothing)
+              isoval::Union{Real, Nothing}=nothing,
+              repeat::Union{Integer, Nothing}=nothing,
+              fig=nothing)
  
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
-    isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
-    
-    plotiso(xyz,vals,isoval,basis(C),repeat)
+    if isnothing(isoval)
+        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
+    end
+    plotiso(xyz,vals,isoval,basis(C),repeat,fig)
 
     return xyz,vals,isoval
 end
@@ -308,7 +326,8 @@ ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
 function plotiso(xyz, vals, isoval::Real=0.0, 
                  R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
-                 repeat::Union{Integer, Nothing}=nothing)  
+                 repeat::Union{Integer, Nothing}=nothing, 
+                 fig=nothing)  
     dim = ndims(vals)
     if dim == 2
         # convert to a cartesian coordinate system rather than direct basis of Ri
@@ -318,8 +337,14 @@ function plotiso(xyz, vals, isoval::Real=0.0,
         uc = [[0 0]; R[1]'; (R[1]+R[2])'; (R[2])'; [0 0]] .- (R[1]+R[2])'./2
         pad = abs((-)(extrema(uc)...))/25
 
-        fig = plt.figure()
-        fig.gca().contourf(X,Y,vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
+        if isnothing(fig)
+            fig = plt.figure()
+        else
+            fig.clf()
+        end
+        fig.gca().contourf(X,Y,vals; 
+                           levels=[-1e12, isoval, 1e12],
+                           cmap=plt.get_cmap("gray",2))# is also good
         fig.gca().contour(X,Y,vals,levels=[isoval], colors="w", linestyles="solid")
         fig.gca().plot(uc[:,1], uc[:,2], color="C4",linestyle="solid")
         fig.gca().scatter([0],[0],color="C4",s=30, marker="+")
