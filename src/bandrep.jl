@@ -90,9 +90,9 @@ function html2array(body)
 end
 
 function html2struct(body::String, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                     ::BandRepTrait=BandRepTrait())
+                     brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
     M = html2array(body)
-    array2struct(M, sgnum, allpaths, spinful, BandRepTrait())
+    array2struct(M, sgnum, allpaths, spinful, brtype, BandRepTrait())
 end
 
 dlm2array(str::String) = DelimitedFiles.readdlm(IOBuffer(str), '|', String, '\n')
@@ -100,13 +100,13 @@ dlm2array(io::IO) = DelimitedFiles.readdlm(io, '|', String, '\n')
 
 # utilities for creation of BandRepStruct 
 function dlm2struct(str::Union{String,IO}, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                    ::BandRepTrait=BandRepTrait())
+                    brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
     M = dlm2array(str);
-    array2struct(M, sgnum, allpaths, spinful, BandRepTrait())
+    array2struct(M, sgnum, allpaths, spinful, brtype, BandRepTrait())
 end
 
 function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                      ::BandRepTrait=BandRepTrait()) 
+                      brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
 
     klist =  permutedims(mapreduce(x->String.(split(x,":")), hcat, M[4:end,1])) # 1ˢᵗ col is labels, 2ⁿᵈ col is coordinates as strings
     klabs, kvs = (@view klist[:,1]), KVec.(@view klist[:,2])
@@ -134,7 +134,8 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, 
                    map(isspinful, brtags), irrepvecs, brtags)
 
-    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful)
+    
+    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful, occursin("TR", brtype))
 end
 
 
@@ -179,11 +180,13 @@ end
 
 
 # main "getter" function; reads data from csv files
+# TODO: Should probably rename to get_bandreps
+# TODO: Write documentation/method description.
 function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brtype::String="Elementary TR")
     paths_str = allpaths ? "allpaths" : "maxpaths"
     filename = (@__DIR__)*"/../data/bandreps/3d/$(filter(!isspace, brtype))/$(paths_str)/$(string(sgnum)).csv"
     open(filename) do io
-        BRS = dlm2struct(io, sgnum, allpaths, spinful, BandRepTrait())
+        BRS = dlm2struct(io, sgnum, allpaths, spinful, brtype, BandRepTrait())
     end 
 end
 
