@@ -42,7 +42,7 @@ include("notation.jl")
 export schoenflies, hermannmauguin, 
        iuc, centering, seitz
 
-include("symops.jl") # symmetry operations for space and plane groups
+include("symops.jl") # symmetry operations for space, plane, and line groups
 export get_sgops, xyzt2matrix, matrix2xyzt, 
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,

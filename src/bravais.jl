@@ -291,19 +291,19 @@ function gen_crystal(sgnum::Integer, dim=3;
     end
 end
 
-const crystalsystem_abbrev_3D = Dict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o', 
+const CRYSTALSYSTEM_ABBREV_3D = Dict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o', 
                                      "tetragonal"=>'t', "trigonal"=>'h', "hexagonal"=>'h', 
                                      "cubic"=>'c')
-const crystalsystem_abbrev_2D = Dict("oblique"=>'m', "rectangular"=>'o', "square"=>'t', 
+const CRYSTALSYSTEM_ABBREV_2D = Dict("oblique"=>'m', "rectangular"=>'o', "square"=>'t', 
                                      "hexagonal"=>'h')
 
 function bravaistype(sgnum::Integer, dim::Integer=3)
     cntr = centering(sgnum, dim)
     system = crystalsystem(sgnum, dim)
     if dim == 3      # pick the correct abbreviation from a Dict
-        return crystalsystem_abbrev_3D[system]*cntr
+        return CRYSTALSYSTEM_ABBREV_3D[system]*cntr
     elseif dim == 2
-        return crystalsystem_abbrev_2D[system]*cntr
+        return CRYSTALSYSTEM_ABBREV_2D[system]*cntr
     end
 end
 
@@ -364,12 +364,14 @@ function centeringtranslation(cntr::Char, dim::Integer=3)
         elseif cntr == 'c'; return [1,1]/2
         else;               _throw_invalidcntr(cntr)
         end
+    elseif dim == 1
+        return zeros(Float64, 1)
     else 
         _throw_invaliddim(dim)
     end
 end
-@noinline _throw_invalidcntr(cntr::Char) = throw(DomainError(cntr, "input centering character must be {P,I,F,R,A,C} in 3D or {p,c} in 2D"))
-@noinline _throw_invaliddim(dim::Integer) = throw(DomainError(dim, "input dimension must be 2 or 3"))
+@noinline _throw_invalidcntr(cntr::Char) = throw(DomainError(cntr, "input centering character must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
+@noinline _throw_invaliddim(dim::Integer) = throw(DomainError(dim, "input dimension must be 1, 2, or 3"))
 """ 
     primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
 

@@ -29,10 +29,9 @@ using SGOps, Test
     end
 
     @testset "Conversion between xyzt and matrix forms" begin
-        sgnum_span = Dict(2=>1:17, 3=>1:230)
-        for dim = 2:3
-            for sgnum = sgnum_span[dim]
-                    @testset "SG$sgnum" begin
+        for dim = 1:3
+            for sgnum in 1:MAX_SGNUM[dim]
+                    @testset "SG$sgnum ($(dim)D)" begin
                     sg = get_sgops(sgnum, dim)
                     for op in operations(sg)
                         @test all(xyzt2matrix(xyzt(op))   == matrix(op)) # xyzt->matrix

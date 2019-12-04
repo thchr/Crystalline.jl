@@ -198,6 +198,15 @@ function seitz(op::SymOperation)
     if dim == 2 # we just augment the 2D case by leaving z invariant
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w; 0]
+    elseif dim == 1
+        w_str = !iszero(w[1]) ? unicode_frac(w[1]) : "0"
+        if isone(W[1])
+            return "{1|"*w_str*"}"
+        elseif isone(-W[1])
+            return "{-1|"*w_str*"}"
+        else
+            throw(DomainError((W,w), "not a valid 1D symmetry operation"))
+        end
     end
 
     detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip

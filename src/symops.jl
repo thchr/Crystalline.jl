@@ -6,9 +6,9 @@ number `sgnum` by reading from json files; see `get_sgops` for additional
 details. Much faster than crawling; generally preferred.
 """
 function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
-    if all(dim .!= [2,3]); throw(DomainError(dim, "dim must be 2 or 3")); end
-    if sgnum < 1 || dim == 3 && sgnum > 230 || dim == 2 && sgnum > 17; 
-        throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D")) 
+    if dim ∉ (1,2,3); throw(DomainError(dim, "dim must be 1, 2, or 3")); end
+    if sgnum < 1 || dim == 3 && sgnum > 230 || dim == 2 && sgnum > 17 || dim == 1 && sgnum > 2
+        throw(DomainError(sgnum, "sgnum must be in range 1:2 in 1D, 1:17 in 2D, and in 1:230 in 3D")) 
     end
 
     filepath = (@__DIR__)*"/../data/symops/"*string(dim)*"d/"*string(sgnum)*".json"
