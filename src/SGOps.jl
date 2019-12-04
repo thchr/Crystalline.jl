@@ -3,7 +3,7 @@ module SGOps
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs, 
       DelimitedFiles, SmithNormalForm,
-      Meshing, JLD2
+      Meshing, JLD2, PrettyTables, 
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==
@@ -25,6 +25,7 @@ export SymOperation, Crystal,               # types
        SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
+       CharacterTable,
        # operations on ...
        matrix, xyzt, operations,            # ::SymOperation
        getindex, rotation, translation, 

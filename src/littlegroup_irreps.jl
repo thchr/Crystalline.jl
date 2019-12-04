@@ -94,7 +94,42 @@ function _load_irreps_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
     return Ps_list, τs_list, type_list, cdml_list
 end
 
-throw_2d_not_yet_implemented() = throw(error("Only 3D little groups are support at this time"))
+throw_2d_not_yet_implemented() = throw(DomainError("Only 3D little groups are supported at this time"))
+
+# character table construction
+function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
+    table = Array{ComplexF64}(undef, length(lgirs), order(first(lgirs)))
+    for (i,row) in enumerate(eachrow(table))
+        row .= characters(lgirs[i])
+    end
+    tag = join(["#", string(num(first(lgirs)))])
+    return CharacterTable{D}(operations(first(lgirs)), label.(lgirs), table, tag)
+end
+
+function chartable(klab::String, sgnum::Integer, dim::Integer)
+    lgirsvec = get_lgirreps(sgnum, dim)
+    kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
+    if kidx === nothing
+        throw(DomainError(klab, "Could not find the input klabel `klab` in the requested space group"))
+    else
+        return chartable(lgirsvec[kidx])
+    end
+end
+
+function chartable(kv::KVec, sgnum::Integer, dim::Integer)
+    lgirsvec = get_lgirreps(sgnum, dim)
+    # TODO: Implement matching to generic KVec format, so that 
+    #       we can specify `kv` at concrete non-special momenta 
+    #       and still match
+    kidx = findfirst(x->kvec(first(x))==kv, lgirsvec)
+    if kidx === nothing
+        throw(DomainError(kv, "Could not find the input k-vector `kv` in the requested space group"))
+    else
+        return chartable(lgirsvec[kidx])
+    end
+end
+
+
 # old attempt at trying to have the data files open all the time, whenever the 
 # module is called, and then closed afterwards. Ultimately, this only worked 
 # rather sporadically and seemed quite buggy (though it was faster, since

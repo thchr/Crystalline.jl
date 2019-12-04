@@ -1,5 +1,3 @@
-import Base: show
-
 # Crystalline lattice
 struct Crystal{D}
     Rs::NTuple{D,Vector{Float64}}
@@ -88,6 +86,7 @@ struct KVec
     kabc::Matrix{Float64}
 end
 KVec(k₀::AbstractVector{<:Real}) = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
+KVec(k₀s::T...) where T<:Real = KVec([float.(k₀s)...])
 parts(kv::KVec) = (kv.k₀, kv.kabc)
 isspecial(kv::KVec) = iszero(kv.kabc)
 dim(kv::KVec) = length(kv.k₀)
@@ -310,7 +309,7 @@ label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
 type(ir::AbstractIrrep) = ir.type
 translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
-characters(ir::AbstractIrrep) = tr.(irreps(ir))
+characters(ir::AbstractIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
 klabel(ir::AbstractIrrep) = klabel(label(ir))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 
@@ -462,6 +461,41 @@ function findirrep(LGIR, sgnum::Integer, cdml::String)
     return LGIR[sgnum][kidx][irrepidx]
 end
 
+# character table
+struct CharacterTable{D}
+    ops::Vector{SymOperation}
+    irlabs::Vector{String}
+    chartable::Matrix{ComplexF64}
+    tag::String
+end
+CharacterTable{D}(ops::Vector{SymOperation}, 
+                  irlabs::Vector{String}, 
+                  chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
+operations(ct::CharacterTable) = ct.ops
+labels(ct::CharacterTable) = ct.irlabs
+characters(ct::CharacterTable) = ct.chartable
+tag(ct::CharacterTable) = ct.tag
+
+function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
+    chars = characters(ct)
+    chars_formatted = Array{Union{Float64, Int64, ComplexF64, Complex{Int64}}}(undef, size(chars))
+    for (idx, c) in enumerate(chars)
+        chars_formatted[idx] = if isreal(c)
+            isinteger(real(c)) ? convert(Int64, real(c)) : real(c)
+        else
+            ((isinteger(real(c)) && isinteger(imag(c))) 
+                      ? convert(Int64, real(c)) + convert(Int64, imag(c))
+                      : c)
+        end
+    end
+    pretty_table(stdout, 
+                 [formatirreplabel.(labels(ct)) chars_formatted],  # first column of table = irrep labels; then formatted character table
+                 [tag(ct) seitz.(operations(ct))...], # table header = seitz operations and table tag
+                  unicode_rounded,
+                  highlighters=Highlighter((data,i,j)->i==1 || j==1; bold = true),
+                  #screen_size =(250,100)
+                  )
+end
 
 # band representations
 struct BandRep
