@@ -344,6 +344,8 @@ function primitivebasismatrix(cntr::Char, dim::Integer=3)
         return primitivematrix_3D[cntr];         
     elseif dim == 2
         return primitivematrix_2D[cntr];
+    elseif dim == 1
+        return fill(1.0,1,1)
     else
         _throw_invaliddim(dim)
     end

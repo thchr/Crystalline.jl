@@ -26,8 +26,8 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
                 @info "Cannot find complex irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
             end
             @test_broken false
-            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
-            kidx_ISO_related = findfirst(x->x==klab_BRS[1:1], klabs_ISO)
+            kidx_BRS = findfirst(==(klab_BRS), klabs_BRS)
+            kidx_ISO_related = findfirst(==(klab_BRS[1:1]), klabs_ISO)
 
             # test that for each of the (P,K,W,H)A k-label variants, that the associated k-vector is 
             # just equal to minus the kvector in the (P,K,W,H) variant (i.e. without the 'A' postscript)
@@ -44,8 +44,8 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             # Pretty sure this is the subject of Cracknell & Davies 1976b (On the completeness
             # of tables of irreducible representations of the classical space groups)
         else
-            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
-            kidx_ISO = findfirst(x->x==klab_BRS, klabs_ISO)
+            kidx_BRS = findfirst(==(klab_BRS), klabs_BRS)
+            kidx_ISO = findfirst(==(klab_BRS), klabs_ISO)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
             @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))
@@ -89,8 +89,8 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             @test_broken false
 
         else
-            kidx_BRS = findfirst(x->x==klab_BRS, klabs_BRS)
-            kidx_ISO = findfirst(x->x==klab_BRS, klabs_ISO)
+            kidx_BRS = findfirst(==(klab_BRS), klabs_BRS)
+            kidx_ISO = findfirst(==(klab_BRS), klabs_ISO)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
             @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))

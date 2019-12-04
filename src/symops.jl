@@ -45,47 +45,52 @@ function get_sgops(sgnum::Integer, dim::Integer=3)
 end
 
 function xyzt2matrix(s::String)
-    ssub = split(s, ",")
+    ssub = split(s, ',')
     dim = length(ssub)
     xyzt2matrix!(zeros(Float64, dim, dim+1), ssub)
 end
 
-function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, Array{T}} where T<:AbstractString)
+function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, AbstractVector{T}} where T<:AbstractString)
     if s isa AbstractString
-        itr = split(s,",")
+        itr = split(s, ',')
     elseif s isa Array
         itr = s
     end
 
-    for (i,op) in enumerate(itr)
+    @inbounds for (i, op) in enumerate(itr)
         # rotation/inversion/reflection part
-        nextidx = 1
+        firstidx = nextidx = firstindex(op)
         while true
-            idx = findnext(r"x|y|z", op, nextidx);
-            if !isnothing(idx)
+            idx = findnext(c -> c==='x' || c==='y' || c==='z', op, nextidx)
+            if idx !== nothing
                 opchar = op[idx]
-                if     opchar == "x"; j = 1; 
-                elseif opchar == "y"; j = 2;
-                elseif opchar == "z"; j = 3; end
+                if      opchar === 'x';   j = 1; 
+                elseif  opchar === 'y';   j = 2;
+                else #= opchar === 'z' =# j = 3; end # opchar can only be 'z' at this point; no need to check
                 
-                if idx[1] == 1 || op[prevind(op, idx[1])] == '+'
+                previdx = prevind(op, idx)
+                if idx == firstidx || op[previdx] === '+'
                     O[i,j] = 1.0
-                elseif op[prevind(op, idx[1])] == '-'
+                elseif op[previdx] === '-'
                     O[i,j] = -1.0
                 end
-                nextidx = nextind(op, idx[end])
+                nextidx = nextind(op, idx)
             else
                 break
             end
         end
         
         # nonsymmorphic part/fractional translation part
-        nonsymmorph = op[nextidx:end]
-        if !isempty(nonsymmorph)
-            slashidx = findfirst(x->x=='/',nonsymmorph)
-            num=nonsymmorph[1:prevind(nonsymmorph, slashidx)]
-            den=nonsymmorph[nextind(nonsymmorph, slashidx):end]
-            O[i,end] = parse(Int64, num)/parse(Int64, den)
+        lastidx = lastindex(op)
+        if nextidx ≤ lastidx # ... then there's stuff "remaining" in op; a nonsymmorphic part
+            slashidx = findnext(==('/'), op, nextidx)
+            if slashidx !== nothing # interpret as integer fraction
+                num = SubString(op, nextidx, prevind(op, slashidx))
+                den = SubString(op, nextind(op, slashidx), lastidx)
+                O[i,end] = parse(Int64, num)/parse(Int64, den)
+            else                    # interpret at floating point number
+                O[i,end] = parse(Float64, SubString(op, nextidx, lastidx))
+            end
         end
     end
         
@@ -116,7 +121,7 @@ function matrix2xyzt(O::Matrix{T}) where T<:Real
         if size(O,2) == dim+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
             if !iszero(row[end])
                 write(buf, signaschar(row[end]))
-                t = rationalize(float(row[end]), tol=1e-2) # convert to "minimal" Rational fraction (within nearest 1e-2 neighborhood)
+                t = rationalize(float(row[end]), tol=1e-4) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
                 write(buf, string(abs(numerator(t)), '/', denominator(t)))
             end
         end

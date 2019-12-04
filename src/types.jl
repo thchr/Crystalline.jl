@@ -165,7 +165,7 @@ function KVec(str::AbstractString)
     for (i, coord) in enumerate(xyz)
         # --- "free" coordinates, kabc[i,:] ---
         for (j, matchgroup) in enumerate((('α','u'),('β','v'),('γ','w')))
-            pos₂ = findfirst(x -> x ∈ matchgroup, coord)
+            pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
                 match = searchpriornumerals(coord, pos₂)
                 kabc[i,j] = parse(Float64, match)

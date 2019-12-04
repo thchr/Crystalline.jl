@@ -4,8 +4,8 @@
 Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), return as `Float64`.
 """
 function parsefraction(str::AbstractString)
-    slashidx = findfirst(x->x=='/',str)
-    if isnothing(slashidx)
+    slashidx = findfirst(==('/'), str)
+    if slashidx === nothing
         return parse(Float64, str)
     else
         num=str[1:prevind(str, slashidx)]

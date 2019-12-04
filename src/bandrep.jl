@@ -169,7 +169,7 @@ function get_irrepvecs(brtags)
                 end
                 irrep′ = read(buf, String) # the rest of the irrep buffer is the actual cdml label
                 close(buf)
-                irrepidx = findfirst(x->x==irrep′, irreplabs) # find position in irreplabs vector
+                irrepidx = findfirst(==(irrep′), irreplabs) # find position in irreplabs vector
                 irrepvecs[bridx][irrepidx] = prefac
             end
         end
@@ -266,7 +266,7 @@ end
 isspinful(br::AbstractVector{T} where T<:AbstractString) = any(x->occursin(r"\\bar|ˢ", x), br)
 
 function split_paren(str::AbstractString)
-    openpar = findfirst(x->x=='(', str) # index of the opening parenthesis
+    openpar = findfirst(==('('), str) # index of the opening parenthesis
     before_paren = SubString(str, firstindex(str), prevind(str, openpar))
     inside_paren = SubString(str, nextind(str, openpar), prevind(str, lastindex(str)))
     return before_paren, inside_paren

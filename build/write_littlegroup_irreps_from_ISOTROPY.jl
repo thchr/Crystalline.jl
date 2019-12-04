@@ -39,7 +39,7 @@ function __write_littlegroupirreps(LGIRS)
             lgir = first(lgirs) # 𝐤-info is the same for each LGIrrep in tuple lgirs
             klab_list[kidx] = klabel(lgir)
             kstr_list[kidx] = filter(!isspace, chop(string(kvec(lgir)); head=1, tail=1))
-            opsidx_list[kidx] = map(y->findfirst(x->x==y, sgops), operations(lgir))
+            opsidx_list[kidx] = map(y->findfirst(==(y), sgops), operations(lgir))
         end
     
         # ==== irreps data ====
