@@ -13,7 +13,7 @@ function get_all_littlegroups(dim::Integer=3)
     if dim == 3
         sgnums = 1:230
     else 
-        throw_2d_not_yet_implemented()
+        throw_2d_not_yet_implemented(dim)
     end
     JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
         return [get_littlegroups(sgnum, dim, lgfile) for sgnum in sgnums]; 
@@ -46,7 +46,7 @@ function get_all_lgirreps(dim::Integer=3)
     if dim == 3
         sgnums = 1:230
     else 
-        throw_2d_not_yet_implemented()
+        throw_2d_not_yet_implemented(dim)
     end
 
     JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
@@ -65,7 +65,7 @@ function _load_littlegroups_data(sgnum::Integer, dim::Integer, ::Nothing)
     end   
 end
 function _load_littlegroups_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
-    dim ≠ 3 && throw_2d_not_yet_implemented()
+    dim ≠ 3 && throw_2d_not_yet_implemented(dim)
     
     jldgroup = jldfile[string(sgnum)]
     sgops_str::Vector{String}      = jldgroup["sgops"]
@@ -82,7 +82,7 @@ function _load_irreps_data(sgnum::Integer, dim::Integer, ::Nothing)
     end
 end
 function _load_irreps_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
-    dim ≠ 3 && throw_2d_not_yet_implemented()
+    dim ≠ 3 && throw_2d_not_yet_implemented(dim)
 
     jldgroup = jldfile[string(sgnum)] 
     # ≈ 70% of the time in loading all irreps is spent in getting Ps_list and τs_list
@@ -94,7 +94,7 @@ function _load_irreps_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
     return Ps_list, τs_list, type_list, cdml_list
 end
 
-throw_2d_not_yet_implemented() = throw(DomainError("Only 3D little groups are supported at this time"))
+throw_2d_not_yet_implemented(dim) = throw(DomainError(dim, "Only dim=3 little groups are supported at this time"))
 
 # character table construction
 function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
