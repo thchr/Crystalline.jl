@@ -8,8 +8,8 @@ function parsefraction(str::AbstractString)
     if slashidx === nothing
         return parse(Float64, str)
     else
-        num=str[1:prevind(str, slashidx)]
-        den=str[nextind(str, slashidx):end]
+        num = SubString(str, firstindex(str), prevind(str, slashidx))
+        den = SubString(str, nextind(str, slashidx), lastindex(str))
         return parse(Float64, num)/parse(Float64, den)
     end
 end
@@ -28,7 +28,7 @@ isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; 
 const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>'₅',  # digits
                            '6'=>'₆', '7'=>'₇', '8'=>'₈', '9'=>'₉', '0'=>'₀',
                            'a'=>'ₐ', 'e'=>'ₑ', 'h'=>'ₕ', 'i'=>'ᵢ', 'j'=>'ⱼ',  # letters (missing several)
-                           'k'=>'ₖ', 'l'=>'ₗ', 'm'=>'ₘ', 'n'=>'ₙ', 'o'=>'ₒ', 
+                           'k'=>'ₖ', 'l'=>'ₗ',  'm'=>'ₘ', 'n'=>'ₙ', 'o'=>'ₒ', 
                            'p'=>'ₚ', 'r'=>'ᵣ', 's'=> 'ₛ', 't'=>'ₜ', 'u'=>'ᵤ', 
                            'v'=>'ᵥ', 'x'=>'ₓ', 
                            '+'=>'₊', '-'=>'₋', '='=>'₌', '('=>'₍', ')'=>'₎',  # special characters
@@ -40,7 +40,7 @@ const SUPSCRIPT_MAP = Dict('1'=>'¹', '2'=>'²', '3'=>'³', '4'=>'⁴', '5'=>'�
                            'a'=>'ᵃ', 'b'=>'ᵇ', 'c'=>'ᶜ', 'd'=>'ᵈ', 'e'=>'ᵉ', 
                            'f'=>'ᶠ', 'g'=>'ᵍ', 'h'=>'ʰ', 'i'=>'ⁱ', 'j'=>'ʲ',  # letters (only 'q' missing)
                            'k'=>'ᵏ', 'l'=>'ˡ', 'm'=>'ᵐ', 'n'=>'ⁿ', 'o'=>'ᵒ', 
-                           'p'=>'ᵖ', 'r'=>'ʳ', 's'=> 'ˢ', 't'=>'ᵗ', 'u'=>'ᵘ', 
+                           'p'=>'ᵖ', 'r'=>'ʳ', 's'=>'ˢ', 't'=>'ᵗ', 'u'=>'ᵘ', 
                            'v'=>'ᵛ', 'w'=>'ʷ', 'x'=>'ˣ', 'y'=>'ʸ', 'z'=>'ᶻ',
                            '+'=>'⁺', '-'=>'⁻', '='=>'⁼', '('=>'⁽', ')'=>'⁾',  # special characters
                            'α'=>'ᵅ', 'β'=>'ᵝ', 'γ'=>'ᵞ', 'δ'=>'ᵟ', 'ε'=>'ᵋ',  # greek
@@ -183,4 +183,34 @@ function uniquetol(A::AbstractArray{T}; kwargs...) where T
          end
     end
     return S
+end
+
+"""
+    get_kvpath(kvs::T, Ninterp::Integer) 
+        where T<:AbstractVector{<:AbstractVector{<:Real}} --> Vector{Vector{Float64}}
+
+Compute an interpolated k-path between discrete k-points given in `kvs` (a vector of
+vectors of `Real`s), so that the interpolated path has `Ninterp` points in total.
+
+Note that, in general, it is not possible to do this so that all points are equidistant; 
+but points are equidistant in-between the initial discrete points provided in `kvs`.
+"""
+function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
+    Nkpairs = length(kvs)-1
+    dists = Vector{Float64}(undef, Nkpairs)
+    @inbounds for i in Base.OneTo(Nkpairs)
+        dists[i] = norm(kvs[i] .- kvs[i+1])
+    end
+    mindist = mean(dists)
+
+    kvpath = [float.(kvs[1])]
+    @inbounds for i in  Base.OneTo(Nkpairs)
+        # try to maintain an even distribution of k-points along path
+        Ninterp_i = round(Int64, dists[i]./mindist*Ninterp)
+        # new k-points
+        newkvs = range(kvs[i],kvs[i+1],length=Ninterp_i)
+        # append new kvecs to kpath
+        append!(kvpath, (@view newkvs[2:end]))
+    end
+    return kvpath
 end
