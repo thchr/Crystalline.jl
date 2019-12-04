@@ -54,7 +54,7 @@ end
     debug = false# true
     count = total = 0 # counters
     for lgirs in LGIRS          # lgirs: vectors of little group irrep collections
-        for lgirvec in lgirs    # lgirvec:  tuples of distinct little group irreps
+        for lgirvec in lgirs    # lgirvec: vector of distinct little group irreps
             Nₒₚ = order(first(lgirvec))
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirvec) 
                 D⁽ᵃ⁾ = irreps(lgir⁽ᵃ⁾,αβγ)      # vector of irreps in (a)

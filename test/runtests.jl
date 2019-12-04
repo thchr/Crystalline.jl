@@ -12,6 +12,7 @@ using SGOps, Test
 
     # multiplication tables and irreps
     include("irreps_orthogonality.jl")
+    include("chartable.jl")
     include("multtable.jl")
     include("irreps_reality.jl")
 
