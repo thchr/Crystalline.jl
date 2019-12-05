@@ -122,15 +122,16 @@ function unicode_frac(x::Number)
     return signbit(x) ? "-"*xstr : xstr
 end
 
-const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω",
-                              "LE"=>"Λ′", "DU"=>"Δ′", "SN"=>"Σ′",  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
-                              "ZA"=>"Z′", "WA"=>"W′")              # They "match" a simpler k-vector, by reducing their second character by one,
-                                                                   # alphabetically (e.g. LE => LD = Λ). The primed notation is our own.
+const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω")
+                              #"LE"=>"Λ′", "DU"=>"Δ′", "SN"=>"Σ′",  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
+                              #"ZA"=>"Z′", "WA"=>"W′")              # They "match" a simpler k-vector, by reducing their second character by one,
+                                                                    # alphabetically (e.g. LE => LD = Λ). The primed notation is our own (actually,
+                                                                    # it is also used in B&C, e.g. p. 412).
 function roman2greek(label::String)
     idx = findfirst(!isletter, label)
     if idx !== nothing
         front=label[firstindex(label):prevind(label,idx)]
-        if length(front) == 2 # have to check length rather than just idx, in case of non-ascii input
+        if front ∈ keys(roman2greek_dict)
             return roman2greek_dict[front]*label[idx:lastindex(label)]
         end
     end
