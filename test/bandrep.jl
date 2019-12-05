@@ -33,11 +33,6 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             # just equal to minus the kvector in the (P,K,W,H) variant (i.e. without the 'A' postscript)
             @test -BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO_related]))
 
-            # Note that (Z, ZA) points are not simply the plus/minus pairs of 
-            # eachother; rather, Z≡[α,0.5,0] and ZA≡[0.5,α,0]; this affects 
-            # space groups 195, 198, 200, and 201, but ZA only features in the
-            # allpaths bandreps. This gives 10 failures when allpaths = true.
-
             # TODO:
             # ... to get the irreps of these variants, we need to follow the prescription 
             # detailed in CDML p. 69-73 (though that won't work, presumably, for sgnum = 205)
