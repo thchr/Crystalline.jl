@@ -3,3 +3,5 @@ test/isosurfvis/isosurfdata.mat
 *.blend
 *.blend1
 *.png
+*.svg
+*.pdf
