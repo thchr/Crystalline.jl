@@ -264,8 +264,8 @@ function multtable(ops::AbstractVector{SymOperation}; verbose::Bool=false)
     indices = Matrix{Int64}(undef, N,N)
     for (row,oprow) in enumerate(ops)
         for (col,opcol) in enumerate(ops)
-            op′ = matrix(oprow) ∘ matrix(opcol)
-            match = findfirst(op′′ -> op′≈matrix(op′′), ops)
+            op′ = oprow ∘ opcol
+            match = findfirst(op′′ -> op′≈op′′, ops)
             if isnothing(match)
                 if !havewarned
                     if verbose; @warn "The given operations do not form a group!"; end

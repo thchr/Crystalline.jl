@@ -47,6 +47,7 @@ export schoenflies, hermannmauguin,
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export get_sgops, xyzt2matrix, matrix2xyzt, 
+       ∘, compose,
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
        pointgroup, 

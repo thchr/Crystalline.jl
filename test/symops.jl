@@ -41,4 +41,14 @@ using SGOps, Test
             end
         end
     end
+
+    @testset "Composition" begin
+        ops = operations(get_sgops(230, 3)) # random space group
+
+        # test associativity (with and without modular arithmetic)
+        g₁, g₂, g₃ = ops[5:7] 
+        @test g₁∘(g₂∘g₃) == (g₁∘g₂)∘g₃
+        @test compose(compose(g₁, g₂, false), g₃, false) == compose(g₁, compose(g₂, g₃, false), false)
+    end
+
 end
