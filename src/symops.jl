@@ -100,7 +100,7 @@ end
 signaschar(x::Number) = signbit(x) ? '-' : '+'
 const IDX2XYZ = ('x', 'y', 'z')
 
-function matrix2xyzt(O::Matrix{T}) where T<:Real
+function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
     dim = size(O,1)
     buf = IOBuffer()
     # rotation/inversion/reflection part
@@ -197,7 +197,7 @@ This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e.
 `true` by default). Returns another `SymOperation`.
 """
 (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation = SymOperation((∘)(matrix(op1), matrix(op2), modτ))
-function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:Matrix{Float64}
+function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
     W′ = rotation(op1)*rotation(op2)
     w′ = translation(op1) .+ rotation(op1)*translation(op2)
     if modτ; w′ .= mod.(w′, 1.0); end
@@ -395,7 +395,7 @@ function littlegroup(sg::SpaceGroup, kv::KVec)
     return LittleGroup{dim(sg)}(num(sg), kv, lgops)
 end
 
-function kstar(ops::Vector{SymOperation}, kv::KVec, cntr::Char)
+function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(kv.kabc)
@@ -489,11 +489,11 @@ a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
            w′ = P⁻¹(w+Wp-p)
 with the translation `w′` reduced to the range [0, 1). 
 
-See also `primivitze` and `conventionalize`.
+See also `primitivize` and `conventionalize`.
 """
 # translation (usually zero; can then be given as `nothing`)
-function transform(op::SymOperation, P::Matrix{<:Real}, 
-                   p::Union{Vector{<:Real}, Nothing}=nothing)    
+function transform(op::SymOperation, P::AbstractMatrix{<:Real}, 
+                   p::Union{AbstractVector{<:Real}, Nothing}=nothing)    
     W′ = transform_rotation(op, P)       # = P⁻¹WP       (+ rounding)
     w′ = transform_translation(op, P, p) # = P⁻¹(w+Wp-p)
                                          # with W ≡ rotation(op) and w ≡ translation(op)
@@ -501,7 +501,7 @@ function transform(op::SymOperation, P::Matrix{<:Real},
     return SymOperation([W′ w′])
 end
 
-function transform_rotation(op::SymOperation, P::Matrix{<:Real})
+function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
     W = rotation(op)
     W′ = P\(W*P)        # = P⁻¹WP
     # clean up rounding-errors introduced by transformation (e.g. 
@@ -522,8 +522,8 @@ function transform_rotation(op::SymOperation, P::Matrix{<:Real})
     return W′
 end
 
-function transform_translation(op::SymOperation, P::Matrix{<:Real}, 
-                               p::Union{Vector{<:Real}, Nothing}=nothing)
+function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real}, 
+                               p::Union{AbstractVector{<:Real}, Nothing}=nothing)
     w = translation(op)
 
     if !isnothing(p)

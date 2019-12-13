@@ -39,10 +39,10 @@ xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
-rotation(m::Matrix{Float64}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
-rotation(op::SymOperation)   = rotation(matrix(op))
-translation(m::Matrix{Float64}) = @view m[:,end]  # translation part of an operation
-translation(op::SymOperation)   = translation(matrix(op))
+rotation(m::Matrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
+rotation(op::SymOperation)  = rotation(matrix(op))
+translation(m::Matrix{<:Real}) = @view m[:,end]  # translation part of an operation
+translation(op::SymOperation)  = translation(matrix(op))
 (==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
 function show(io::IO, ::MIME"text/plain", op::SymOperation)
