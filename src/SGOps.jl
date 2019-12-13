@@ -6,7 +6,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       Meshing, JLD2, PrettyTables, 
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
-             +, -, ∘, ==
+             +, -, ∘, ==, ImmutableDict
 using Compat
 import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
