@@ -118,19 +118,22 @@ Determine the crystal system of a point lattice specified in a
 the International Tables of Crystallography, Volume 1 (ITA). 
 There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 
-      |_DIM_|_SYSTEM_______|_CONDITIONS_____________|_FREE PARAMS___|
-      | 2D  | square       | a=b & γ=90°            | a             |
-      |     | rectangular  | γ=90°                  | a,b           |
-      |     | hexagonal    | a=b & γ=120°           | a             |
-      |     | oblique      | none                   | a,b,γ         |
-      |-----|--------------|------------------------|---------------|
-      | 3D  | cubic        | a=b=c & α=β=γ=90°      | a             |
-      |     | hexagonal    | a=b & α=β=90° & γ=120° | a,c           |
-      |     | trigonal     | a=b=c & α=β=γ          | a,α or a,c    |
-      |     | tetragonal   | a=b & α=β=γ=90°        | a,c           |
-      |     | orthorhombic | α=β=γ=90°              | a,b,c         |
-      |     | monoclinic   | α=γ=90°                | a,b,c,β≥90°   |
-      |     | triclinic    | none                   | a,b,c,α,β,γ   |
+      |_DIM_|_SYSTEM_______|_CONDITIONS_____________|_FREE PARAMS______|
+      | 1D  | linear       | none                   | a                |
+      |-----|--------------|------------------------|------------------|
+      | 2D  | square       | a=b & γ=90°            | a                |
+      |     | rectangular  | γ=90°                  | a,b              |
+      |     | hexagonal    | a=b & γ=120°           | a                |
+      |     | oblique      | none                   | a,b,γ            |
+      |-----|--------------|------------------------|------------------|
+      | 3D  | cubic        | a=b=c & α=β=γ=90°      | a                |
+      |     | hexagonal    | a=b & α=β=90° & γ=120° | a,c              |
+      |     | trigonal     | ==========||========== | a,c (a,α for hR) |
+      |     | tetragonal   | a=b & α=β=γ=90°        | a,c              |
+      |     | orthorhombic | α=β=γ=90°              | a,b,c            |
+      |     | monoclinic   | α=γ=90°                | a,b,c,β≥90°      |
+      |     | triclinic    | none                   | a,b,c,α,β,γ      |
+      |-----|--------------|------------------------|------------------|
 
 The Crystal input is assumed to use *conventional* basis vectors; 
 i.e. not necessarily primitive. For primitive basis vectors, the 
