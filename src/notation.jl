@@ -213,9 +213,9 @@ function seitz(op::SymOperation)
     end
 
     detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip
-    detW′ ≈ detW || throw(ArgumentError("det W must be an integer for a SymOperation {W|w}"))
+    isapprox(detW′, detW, atol=DEFAULT_ATOL) || throw(ArgumentError("det W must be an integer for a SymOperation {W|w}; got $(detW′)"))
     trW  = tr(W);  trW′,  trW  = trW, round(Int64, trW)   # tr, then round & flip
-    trW′ ≈ trW || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}"))
+    isapprox(trW′, trW, atol=DEFAULT_ATOL) || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}; got $(trW′)"))
 
     # --- rotation order (and proper/improper determination) ---
     if detW == 1 # proper rotations
@@ -269,10 +269,10 @@ function seitz(op::SymOperation)
             v = rand(3); 
             u = Yₖ*v # there is near-infinitesimal chance that u is zero for random v, but we check anyway.
         end
-        norm = minimum(Base.Filter(!iszero,u)) # minimum nonzero element
+        norm = minimum(Base.Filter(x->x>DEFAULT_ATOL,abs.(u))) # minimum nonzero element
         u ./= norm # normalize
         u′,  u  = u, round.(Int64, u) # convert from float to integer and check validity of conversion
-        u′ ≈ u || throw(ArgumentError("the rotation axis must be equivalent to an integer vector by appropriate normalization; got $(u′)"))
+        isapprox(u′, u, atol=DEFAULT_ATOL) || throw(ArgumentError("the rotation axis must be equivalent to an integer vector by appropriate normalization; got $(u′)"))
         # the sign of u is arbitrary: we adopt the convention of '-' elements
         # coming "before" '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1]
         # and [-1 1 -1] is picked over [1 -1 1]; note that this impacts the 
