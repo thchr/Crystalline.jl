@@ -312,11 +312,13 @@ function gen_crystal(sgnum::Integer, dim=3;
     end
 end
 
-const CRYSTALSYSTEM_ABBREV_3D = Dict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o', 
+const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                                            # 1D
+                              ImmutableDict("oblique"=>'m', "rectangular"=>'o', "square"=>'t',         # 2D
+                                   "hexagonal"=>'h'),
+                              ImmutableDict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o',  # 3D
                                      "tetragonal"=>'t', "trigonal"=>'h', "hexagonal"=>'h', 
                                      "cubic"=>'c')
-const CRYSTALSYSTEM_ABBREV_2D = Dict("oblique"=>'m', "rectangular"=>'o', "square"=>'t', 
-                                     "hexagonal"=>'h')
+                             )
 
 function bravaistype(sgnum::Integer, dim::Integer=3)
     cntr = centering(sgnum, dim)

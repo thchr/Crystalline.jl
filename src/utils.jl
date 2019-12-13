@@ -215,3 +215,19 @@ function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Inte
     end
     return kvpath
 end
+
+"""
+    ImmutableDict(ps::Pair...)
+
+Construct an `ImmutableDict` from any number of `Pair`s; a convenience function
+that extends `Base.ImmutableDict` which otherwise only allows construction by
+iteration.
+"""
+function ImmutableDict(ps::Pair{K,V}...) where {K,V}
+    d = ImmutableDict{K,V}()
+    for p in ps # construct iteratively (linked list)
+        d = ImmutableDict(d, p)
+    end
+    return d
+end
+ImmutableDict(ps::Pair...) = ImmutableDict(ps)
