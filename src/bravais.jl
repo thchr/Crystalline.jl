@@ -198,7 +198,7 @@ function crystalsystem(sgnum::Integer, dim::Integer=3)
         elseif  sgnum ∈ 3:15;    return "monoclinic"    # mP, mC
         elseif  sgnum ∈ 16:74;   return "orthorhombic"  # oP, oI, oF, oC
         elseif  sgnum ∈ 75:142;  return "tetragonal"    # tP, tI
-        elseif  sgnum ∈ 143:167; return "trigonal"      # ? hP, hI ?
+        elseif  sgnum ∈ 143:167; return "trigonal"      # hR, hP
         elseif  sgnum ∈ 168:194; return "hexagonal"     # hR, hP
         elseif  sgnum ∈ 195:230; return "cubic"         # cP, cI, cF
         else    throw(DomainError(sgnum, "There are only 230 three-dimensional space groups."))
@@ -272,31 +272,38 @@ function gen_crystal(sgnum::Integer, dim=3;
         return crystal(a,b,γ)
 
     elseif dim == 3
-        if     system == "cubic"       # a=b=c & α=β=γ=90° (free: a)
+        if     system == "cubic"        # a=b=c & α=β=γ=90° (free: a)
             a = b = c = 1.0
             α = β = γ = °(90)
-        elseif system == "hexagonal"   # a=b & α=β=90° & γ=120° (free: a,c)
+        elseif system == "hexagonal" || # a=b & α=β=90° & γ=120° (free: a,c)
+               system == "trigonal"    
             a = b = 1.0;        c = relrand(abclims)
             α = β = °(90);      γ = °(120)
-        elseif system == "trigonal"   # TODO 
-            throw(DomainError(system, "The trigonal case (143-167) is not yet well thought-out"))
-            # rhombohedral axes                   (a = b = c, α=β=γ < 120° ≠ 90° ?)
-            # hexagonal axes, triple obverse axes (a = b ≠ c, α=β=90°, γ=120° ?)
-            # maybe consult http://img.chem.ucl.ac.uk/sgp/large/sgp.htm and 
-            # the setting choices in Bilbao & ISOTROPY
-        elseif system == "tetragonal"  # a=b & α=β=γ=90° (free: a,c)
+            # For the trigonal crystal system, a convention is adopted where 
+            # the crystal basis matches the a hexagonal one, even when the 
+            # Bravais type is rhombohedral (of course, the primitive basis 
+            # differs). The conventional cell is always chosen to have (triple
+            # obverse) hexagonal axes (see ITA7 Sec. 3.1.1.4, Tables 2.1.1.1, 
+            # & 3.1.2.2).
+            # For rhombohedral systems the primitive cell has a=b=c, α=β=γ<120°≠90°.
+            # Note that the hexagonal and trigonal crystal systems also share 
+            # the same crystal system abbreviation 'h' (see CRYSTALSYSTEM_ABBREV),
+            # which already suggests this choice.
+            # TODO: in principle, this means it would be more meaningful to 
+            # branch on `CRYSTALSYSTEM_ABBREV[dim][system]` than on `system`.
+        elseif system == "tetragonal"   # a=b & α=β=γ=90° (free: a,c)
             a = b = 1.0;        c = relrand(abclims)
             α = β = γ = °(90)
-        elseif system == "orthorhombic"# α=β=γ=90° (free: a,b,c)
+        elseif system == "orthorhombic" # α=β=γ=90° (free: a,b,c)
             a = 1.0;            b, c = relrand(abclims, 2)
             α = β = γ = °(90)
-        elseif system == "monoclinic"  # α=γ=90° (free: a,b,c,β≥90°)
+        elseif system == "monoclinic"   # α=γ=90° (free: a,b,c,β≥90°)
             a = 1.0;            b, c = relrand(abclims, 2)
             α = γ = °(90);      β = rand(Uniform(°(90), αβγlims[2]))
             while !isvalid_sphericaltriangle(α,β,γ)  # arbitrary combinations of α,β,γ may not correspond 
                 β = rand(Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
             end
-        elseif system == "triclinic"   # no conditions (free: a,b,c,α,β,γ)
+        elseif system == "triclinic"    # no conditions (free: a,b,c,α,β,γ)
             a = 1.0;            b, c = relrand(abclims, 2)
             α, β, γ = rand(Uniform(αβγlims...),3)
             while !isvalid_sphericaltriangle(α,β,γ)   # arbitrary combinations of α,β,γ may not correspond 
