@@ -1,5 +1,5 @@
 """
-    crystal(a,b,c,α,β,γ) -> Crystal{3}
+    crystal(a,b,c,α,β,γ) --> Crystal{3}
 
 Calculate basis vectors `R1`, `R2`, `R3` in a 3D Cartesian basis 
 for a right-handed coordinate system with specified basis vector lengths 
@@ -34,7 +34,7 @@ function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
 end
 
 """
-    crystal(a,b,γ) -> Crystal{2}
+    crystal(a,b,γ) --> Crystal{2}
 
 Calculate basis vectors `R1`, `R2` in a 2D Cartesian basis for a 
 right-handed coordinate system with specified basis vector lengths 
@@ -50,6 +50,12 @@ function crystal(a::Real,b::Real,γ::Real)
 
     return Crystal((R1,R2))
 end
+
+"""
+    crystal(a)  --> Crystal{1}
+Return a one-dimensional crystal with lattice period `a`.
+"""
+crystal(a::Real) = Crystal(([1.0,]))
 
 # For a three-axis system, α, β, and γ are subject to constraints: specifically, 
 # since they correspond to sides of a (unit-radius) spherical triangle, they 
@@ -72,7 +78,11 @@ const origin_markeropts = (marker="o", markerfacecolor="white", markeredgecolor=
 
 function plot(C::Crystal)
     R = basis(C)
-    if dim(C) == 2
+    if dim(C) == 1
+        plot([0, R[1]], [0, 0])
+        plot([0,], [0,]; origin_markeropts...) # origin
+
+    elseif dim(C) == 2
         corner = sum(R)
         for R′ in R
             plot([0, R′[1]], [0, R′[2]]; color="black") # basis vectors
@@ -128,7 +138,10 @@ crystal system can be further reduced into 5 Bravais types in 2D and
 14 in 3D.
 """
 function crystalsystem(C::Crystal)
-    if dim(C) == 2
+    if dim(C) == 1
+        # doesn't seem to exist a well-established convention for 1D? this is ours...
+        system = "linear"
+    elseif dim(C) == 2
         a,b = norms(C)
         γ = angles(C)
         if a≈b && γ≈°(90)
@@ -167,7 +180,12 @@ end
 
 
 function crystalsystem(sgnum::Integer, dim::Integer=3)
-    if dim == 2
+    if dim == 1
+        # doesn't seem to exist a well-established convention for 1D? this is ours...
+        if sgnum ∈ 1:2;        return "linear"       # lp
+        else    throw(DomainError(sgnum, "There are only 2 one-dimensional line groups."))
+        end
+    elseif dim == 2
         if      sgnum ∈ 1:2;   return "oblique"      # mp
         elseif  sgnum ∈ 3:9;   return "rectangular"  # op, oc
         elseif  sgnum ∈ 10:12; return "square"       # tp
@@ -232,7 +250,10 @@ function gen_crystal(sgnum::Integer, dim=3;
                      abclims::NTuple{2,Real}=(0.5,2.0), 
                      αβγlims::NTuple{2,Real}=(°(30),°(150)))
     system = crystalsystem(sgnum, dim)
-    if dim == 2
+    if dim == 1
+        a = 1.0
+        return crystal(a)
+    elseif dim == 2
         if     system == "square"      # a=b & γ=90° (free: a)
             a = b = 1.0
             γ = °(90)
@@ -321,17 +342,20 @@ end
 # (https://doi.org/10.1016/j.commatsci.2016.10.015) for details,
 # though note that they use different matrices for 'A' and complicate
 # the 'C' scenario (Table 3).
-const primitivematrix_3D = Dict(
-         'P'=>[1 0 0; 0 1 0; 0 0 1],
-         'F'=>[0 1 1; 1 0 1; 1 1 0]./2,
-         'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,
-         'R'=>[2 -1 -1; 1 1 -2; 1 1 1]./3,
-         'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,
-         'C'=>[1 1 0; -1 1 0; 0 0 2]./2
+const PRIMITIVE_BASIS_MATRICES = (
+    # 1D
+    ImmutableDict('p'=>fill(1.0,1,1)),                # primitive
+    # 2D
+    ImmutableDict('p'=>float.([1 0; 0 1]),            # primitive/simple
+                  'c'=>[1 1; -1 1]./2,),              # centered      
+    # 3D
+    ImmutableDict('P'=>float.([1 0 0; 0 1 0; 0 0 1]), # primitive/simple
+                  'F'=>[0 1 1; 1 0 1; 1 1 0]./2,      # face-centered
+                  'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,   # body-centered
+                  'R'=>[2 -1 -1; 1 1 -2; 1 1 1]./3,   # rhombohedrally-centered
+                  'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,     # base-centered (along x)
+                  'C'=>[1 1 0; -1 1 0; 0 0 2]./2)     # base-centered (along z)
          )
-const primitivematrix_2D = Dict(
-         'c'=>[1 1; -1 1]./2, 
-         'p'=>[1 0; 0 1])
 
 """
     primitivebasismatrix(cntr::Char, dim::Integer) -> ::matrix
@@ -340,19 +364,15 @@ Calculates a transformation matrix `P` from a conventional
 to a primitive unit cell, using dictionary lookup.
 """
 function primitivebasismatrix(cntr::Char, dim::Integer=3)
-    if dim == 3
-        return primitivematrix_3D[cntr];         
-    elseif dim == 2
-        return primitivematrix_2D[cntr];
-    elseif dim == 1
-        return fill(1.0,1,1)
+    if dim ∈ 1:3
+        return PRIMITIVE_BASIS_MATRICES[dim][cntr]
     else
         _throw_invaliddim(dim)
     end
 end
 
 function centeringtranslation(cntr::Char, dim::Integer=3)
-    if dim == 3      # pick the correct abbreviation from a Dict
+    if dim == 3
         if cntr == 'P';     return zeros(Float64,3)
         elseif cntr == 'I'; return [1,1,1]/2
         elseif cntr == 'F'; return [1,0,1]/2
@@ -374,6 +394,7 @@ function centeringtranslation(cntr::Char, dim::Integer=3)
 end
 @noinline _throw_invalidcntr(cntr::Char) = throw(DomainError(cntr, "input centering character must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
 @noinline _throw_invaliddim(dim::Integer) = throw(DomainError(dim, "input dimension must be 1, 2, or 3"))
+
 """ 
     primitivebasis(sgnum::Integer, C::Crystal) --> Cp::Crystal
 
