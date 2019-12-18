@@ -326,18 +326,25 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
                               ImmutableDict("oblique"=>'m', "rectangular"=>'o', "square"=>'t',         # 2D
                                    "hexagonal"=>'h'),
                               ImmutableDict("triclinic"=>'a', "monoclinic"=>'m', "orthorhombic"=>'o',  # 3D
-                                     "tetragonal"=>'t', "trigonal"=>'h', "hexagonal"=>'h', 
-                                     "cubic"=>'c')
+                                   "tetragonal"=>'t', "trigonal"=>'h', "hexagonal"=>'h', 
+                                   "cubic"=>'c')
                              )
 
 function bravaistype(sgnum::Integer, dim::Integer=3)
     cntr = centering(sgnum, dim)
     system = crystalsystem(sgnum, dim)
-    if dim == 3      # pick the correct abbreviation from a Dict
-        return CRYSTALSYSTEM_ABBREV_3D[system]*cntr
-    elseif dim == 2
-        return CRYSTALSYSTEM_ABBREV_2D[system]*cntr
-    end
+
+    # If the centering type is 'A', then we could in fact always pick
+    # the basis differently such that the centering would be 'B'; in 
+    # other words, base-centered lattices at 'A' and 'B' in fact describe
+    # the same Bravais lattice; there is no significance in trying to 
+    # differentiate them - if we do, we end up with 15 Bravais lattices in 
+    # 3D rather than 14: so we manually fix that here:
+    cntr = cntr == 'A' ? 'C' : cntr
+
+    # pick the correct crystal system abbreviation from CRYSTALSYSTEM_ABBREV 
+    # and return its concatenation with the (now-"normalized") centering type
+    return CRYSTALSYSTEM_ABBREV[dim][system]*cntr 
 end
 
 
@@ -367,7 +374,7 @@ const PRIMITIVE_BASIS_MATRICES = (
                   'R'=>[2 -1 -1; 1 1 -2; 1 1 1]./3,   # rhombohedrally-centered
                   'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,     # base-centered (along x)
                   'C'=>[1 1 0; -1 1 0; 0 0 2]./2)     # base-centered (along z)
-         )
+    )
 
 """
     primitivebasismatrix(cntr::Char, dim::Integer) -> ::matrix
