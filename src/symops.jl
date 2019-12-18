@@ -200,7 +200,22 @@ This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e.
 function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
     W′ = rotation(op1)*rotation(op2)
     w′ = translation(op1) .+ rotation(op1)*translation(op2)
-    if modτ; w′ .= mod.(w′, 1.0); end
+
+    if modτ
+        # naïve approach to achieve semi-robust reduction of integer-translation
+        # via a slightly awful "approximate" modulo approach; basically just the
+        # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
+        # around each integer.
+        w′ .= mod.(w′,1.0)
+        # sometimes, mod(w′, 1.0) can omit reducing values that are very nearly 1.0
+        # due to floating point errors: we use a tolerance here to round everything 
+        # close to 0.0 or 1.0 exactly to 0.0
+        @simd for i in eachindex(w′)
+            if isapprox(round(w′[i]), w′[i], atol=DEFAULT_ATOL)
+                w′[i] = zero(eltype(w′))
+            end
+        end
+    end
 
     return [W′ w′]
 end
@@ -489,13 +504,19 @@ a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
            w′ = P⁻¹(w+Wp-p)
 with the translation `w′` reduced to the range [0, 1). 
 
+By default, the translation part of `op′`, i.e. `w′`, is reduced to the range
+[0,1], i.e. computed modulo 1. This can be toggled off (or on) by the Boolean
+flag `modw` (enabled, i.e. `true`, by default).
+
 See also `primitivize` and `conventionalize`.
+
 """
 # translation (usually zero; can then be given as `nothing`)
 function transform(op::SymOperation, P::AbstractMatrix{<:Real}, 
-                   p::Union{AbstractVector{<:Real}, Nothing}=nothing)    
-    W′ = transform_rotation(op, P)       # = P⁻¹WP       (+ rounding)
-    w′ = transform_translation(op, P, p) # = P⁻¹(w+Wp-p)
+                   p::Union{AbstractVector{<:Real}, Nothing}=nothing,
+                   modw::Bool=true)    
+    W′ = transform_rotation(op, P)             # = P⁻¹WP       (+ rounding)
+    w′ = transform_translation(op, P, p, modw) # = P⁻¹(w+Wp-p)
                                          # with W ≡ rotation(op) and w ≡ translation(op)
 
     return SymOperation([W′ w′])
@@ -505,12 +526,14 @@ function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
     W = rotation(op)
     W′ = P\(W*P)        # = P⁻¹WP
     # clean up rounding-errors introduced by transformation (e.g. 
-    # occassionally produces -0.0). The rotational part should 
-    # always have integer coefficients in a valid lattice basis.
+    # occassionally produces -0.0). The rotational part will 
+    # always have integer coefficients if it is in the conventional
+    # or primitive basis of its lattice; if transformed to a nonstandard
+    # lattice, it might not have that though.
     @inbounds for (idx, el) in enumerate(W′) 
         rel = round(el)
         if !isapprox(el, rel, atol=DEFAULT_ATOL)
-            throw(ErrorException("The transformed operator must have integer coefficients in its rotational part; got $(W′)"))
+            rel = el # non-standard lattice transformation; fractional elements (this is why we need Float64 in SymOperation)
         end
         # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative
         # values x∈[-0.5,-0.0] to -0.0 -- and since it is bad for us to have
@@ -523,7 +546,8 @@ function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
 end
 
 function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real}, 
-                               p::Union{AbstractVector{<:Real}, Nothing}=nothing)
+                               p::Union{AbstractVector{<:Real}, Nothing}=nothing,
+                               modw::Bool=true)
     w = translation(op)
 
     if !isnothing(p)
@@ -531,13 +555,13 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     else
         w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
     end
-    w′ .= mod.(w′, 1.0)
+    if modw; w′ .= mod.(w′, 1.0); end
     return w′
 end
 
 function reduce_ops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim::Bool=true)
     P = primitivebasismatrix(cntr, dim(first(ops)))
-    ops′ = transform.(ops, Ref(P), nothing)         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
+    ops′ = transform.(ops, Ref(P))         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
     ops′_reduced = SymOperation.(uniquetol(matrix.(ops′), atol=SGOps.DEFAULT_ATOL))
 
