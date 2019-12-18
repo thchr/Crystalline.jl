@@ -6,6 +6,7 @@ using SGOps, Test
 
     # group checks
     include("littlegroup_orders.jl")
+    include("pointgroup.jl")
 
     # loading irreps from .jld files vs parsing of ISOTROPY
     include("parsed_vs_loaded_littlegroup_irreps.jl")
