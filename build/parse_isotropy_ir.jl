@@ -95,8 +95,6 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
             end
             irmatrix[i] = permutedims(irmatrix[i], (2,1)) # we loaded as column-major, but Stokes et al use row-major (unlike conventional Fortran)
             irmatrix[i] .= reprecision_data.(irmatrix[i])
-            
-            # TODO: ir_character[i] = tr(irmatrix[i]*irtranslation[i])
         end
 
         # --- STORE DATA IN VECTOR OF IRREPS ---
@@ -220,7 +218,7 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
-    lgirvec = Vector{Vector{LGIrrep{3}}}()
+    lgirsvec = Vector{Vector{LGIrrep{3}}}()
     curlab = nothing; accidx = Int64[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
         if curlab == klabel(ir)
@@ -231,7 +229,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirvec, lgirs)
+                push!(lgirsvec, lgirs)
             end
 
             curlab = klabel(ir)
@@ -246,9 +244,12 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
     for (pos, kidx) in enumerate(accidx)
         lgirs[pos] = littlegroupirrep(irvec[kidx])
     end
-    push!(lgirvec, lgirs)
+    push!(lgirsvec, lgirs)
 
     return lgirvec
+end
+
+    return lgirsvec
 end
 
 
@@ -291,12 +292,12 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
                         [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z
                         [1.0+0.0im 0.0+0.0im; 0.0+0.0im -1.0+0.0im],    # -x,-y+1/2,z
                         [CP CcQ; CP -CcQ],                              # z,x,y
-                        [CcP CcP; CQ -CQ],                             # y,z,x
-                        [CcP -CcP; CQ CQ],                               # -y+1/2,z,-x
-                        [CP CcQ; -CP CcQ],                             # -z,-x+1/2,y
-                        [CcP CcP; -CQ CQ],                             # -y,-z+1/2,x
+                        [CcP CcP; CQ -CQ],                              # y,z,x
+                        [CcP -CcP; CQ CQ],                              # -y+1/2,z,-x
+                        [CP CcQ; -CP CcQ],                              # -z,-x+1/2,y
+                        [CcP CcP; -CQ CQ],                              # -y,-z+1/2,x
                         [CP -CcQ; CP CcQ],                              # z,-x,-y+1/2
-                        [CQ -CQ; CcP CcP],                             # y,-z,-x+1/2
+                        [CQ -CQ; CcP CcP],                              # y,-z,-x+1/2
                         [CcQ CP; -CcQ CP]]                              # -z+1/2,x,-y
         elseif irlab == "P2" 
             # there is, as far as I can see, nothing wrong with ISOTROPY's (214,P2)
@@ -321,12 +322,12 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
                         [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z
                         [1.0+0.0im 0.0+0.0im; 0.0+0.0im -1.0+0.0im],    # -x,-y+1/2,z
                         [-CQ -CcP; -CQ CcP],                            # z,x,y
-                        [-CcQ -CcQ; -CP CP],                           # y,z,x
-                        [-CcQ CcQ; -CP -CP],                          # -y+1/2,z,-x
+                        [-CcQ -CcQ; -CP CP],                            # y,z,x
+                        [-CcQ CcQ; -CP -CP],                            # -y+1/2,z,-x
                         [-CQ -CcP; CQ -CcP],                            # -z,-x+1/2,y
-                        [-CcQ -CcQ; CP -CP],                           # -y,-z+1/2,x
+                        [-CcQ -CcQ; CP -CP],                            # -y,-z+1/2,x
                         [-CQ CcP; -CQ -CcP],                            # z,-x,-y+1/2
-                        [-CP CP; -CcQ -CcQ],                           # y,-z,-x+1/2
+                        [-CP CP; -CcQ -CcQ],                            # y,-z,-x+1/2
                         [-CcP -CQ; CcP -CQ]]                            # -z+1/2,x,-y
         else
             throw(DomainError((sgnum, irlab), "should not be called with these input; nothing to fix"))
