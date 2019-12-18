@@ -586,3 +586,27 @@ function findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Ch
 end
 
 
+"""
+    _findsubgroup(opsᴳ, opsᴴ) --> Bool, Vector{Int64}
+
+Determine whether the group H (with operators `opsᴴ`) is a subgroup
+of the group G (with operators `opsᴳ`), i.e. whether H<G, and returns
+an indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `false`), such
+that `opsᴳ[idxs] ≡ H`. 
+The first return argument is a Boolean (whether H<G); the second is `idxs`.
+
+"""
+function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation}
+    idxsᴳ²ᴴ = Vector{Int64}(undef, length(opsᴴ))
+    @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
+        idxᴳ = findfirst(==(opᴴ), opsᴳ)
+        if idxᴳ !== nothing
+            idxsᴳ²ᴴ[idxᴴ] = idxᴳ
+        else
+            return false, Int64[]
+        end
+    end
+    return true, idxsᴳ²ᴴ
+end
+_findsubgroup(G::T, H::T) where T<:SpaceGroup = _findsubgroup(operations(G), operations(H))
+

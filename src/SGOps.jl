@@ -4,6 +4,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       JSON2, StaticArrays, Makie, TimerOutputs, 
       DelimitedFiles, SmithNormalForm,
       Meshing, JLD2, PrettyTables, 
+      MetaGraphs, LightGraphs # for compatibility.jl
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==, ImmutableDict
@@ -78,6 +79,9 @@ export UnityFourierLattice, ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
        modulate, normscale, normscale!, calcfourier,
        plot
+
+include("compatibility.jl")
+export subduction_count, compatibility
 
 include("bandrep.jl")
 export crawlbandreps, dlm2struct, 
