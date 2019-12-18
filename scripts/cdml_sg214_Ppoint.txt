@@ -1,4 +1,6 @@
 Small irrep generators/info from CDML: space group 214, BZ label P
+Note that CDML has the same setting for 214 as ITA/Bilbao/ISOTROPY does; no need 
+to transform any of the operators
 ==================================================================
 
 {Rotation,Translation} | Characters (P1 P2 P3)

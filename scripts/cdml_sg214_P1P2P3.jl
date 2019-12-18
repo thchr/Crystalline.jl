@@ -19,6 +19,8 @@ M2  = ComplexF64[0.0 1.0; 1.0 0.0]
 M4  = ComplexF64[1.0 0.0; 0.0 -1.0]
 M16 = C*ComplexF64[P conj(Q); P -conj(Q)]
 
+# Note that CDML has the same setting for 214 as ITA/Bilbao/ISOTROPY does; no need 
+# to transform any of the operators
 R1  = SymOperation("x,y,z")         # rotations
 R2  = SymOperation("x,-y,-z")
 R3  = SymOperation("-x,y,-z")
