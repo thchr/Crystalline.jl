@@ -17,6 +17,9 @@ using SGOps, Test
     include("multtable.jl")
     include("irreps_reality.jl")
 
+    # additional k-vectors in Φ-Ω ("special" representation domain vectors)
+    include("holosymmetric.jl")
+
     # band representations
     include("classification.jl")  # does topo classification agree w/ Adrian?
     include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
