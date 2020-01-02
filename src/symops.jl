@@ -647,3 +647,88 @@ function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperatio
 end
 _findsubgroup(G::T, H::T) where T<:SpaceGroup = _findsubgroup(operations(G), operations(H))
 
+"""
+    issubgroup(opsᴳ::T, opsᴴ::T) --> Bool
+
+Determine whether the operations in group H are a subgroup of the group G (each with 
+operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation}`),
+i.e. whether H<G. Specifically, this requires that G and H are both groups and that 
+for every h∈H there exists an element g∈G such that h=g.
+
+Returns a Boolean answer (true if normal, false if not).
+
+**Note:** This compares space groups rather than space group types, i.e. the 
+comparison assumes a matching setting choice between H and G. To compare space 
+group types with different conventional settings, they must first be transformed
+to a shared setting.
+"""
+function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation}
+    Dᴳ = dim(first(opsᴳ)); Dᴴ = dim(first(opsᴴ))
+    Dᴳ ≠ Dᴴ && throw(DomainError((Dᴳ, Dᴴ), "Dimensions of opsᴳ and opsᴴ must agree"))
+
+    ΔW = Matrix{Float64}(undef, Dᴳ, Dᴳ) # work matrices
+    Δw = Vector{Float64}(undef, Dᴳ)
+    for h in opsᴴ
+        found = false
+        for g in opsᴳ
+            ΔW .= rotation(h) .- rotation(g)
+            Δw .= translation(h) .- translation(g)
+
+            @inbounds @simd for i in Base.OneTo(Dᴳ) # consider two operations identical if they differ by a near-integer translation
+                rΔwᵢ = round(Δw[i])
+                if isapprox(Δw[i], rΔwᵢ, atol=DEFAULT_ATOL)
+                    Δw[i] = zero(Float64)
+                end
+            end
+            
+            if norm(ΔW) < DEFAULT_ATOL && norm(Δw) < DEFAULT_ATOL
+                found = true
+                continue
+            end
+        end
+        if !found
+            return false
+        end
+    end
+    return true
+end
+issubgroup(G::T, H::T) where T<:SpaceGroup = issubgroup(operations(G), operations(H))
+
+
+"""
+    isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) --> Bool
+
+Determine whether the operations in group H are normal in the group G (each with 
+operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation}`),
+in the sense that 
+    
+    ghg⁻¹ ∈ H ∀ g∈G, h∈H
+
+Returns a Boolean answer (true if normal, false if not).
+
+**Note:** This that this compares space groups rather than space group types, i.e. the 
+comparison assumes a matching setting choice between H and G. To compare space 
+group types with different conventional settings, they must first be transformed
+to a shared setting.
+"""
+function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{SymOperation}  
+    for g in opsᴳ
+        g⁻¹ = inv(g)
+        for h in opsᴴ
+            # check if ghg⁻¹ ∉ G
+            h′ = g∘h∘g⁻¹
+            if !isapproxin(h′, opsᴴ, atol=SGOps.DEFAULT_ATOL)
+                if verbose
+                    println("\nNormality-check failure:\n",
+                            "Found h′ = ", seitz(h′), "\n",
+                            "But h′ should be an element of the group: ", 
+                            join(seitz.(opsᴴ), ", "))
+                end
+                return false
+            end
+        end
+    end
+    
+    return true
+end
+isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H))

@@ -53,9 +53,15 @@ export get_sgops, xyzt2matrix, matrix2xyzt,
        ∘, compose,
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
+<<<<<<< ffd8e367561d82f7efe5a95daef642190b9ce236
        pointgroup,
        primitivize, conventionalize,
        reduce_ops, transform
+=======
+       pointgroup, 
+       primitivize, conventionalize, 
+       issubgroup, isnormal 
+>>>>>>> special-points: add previously uncommitted issubgroup() and isnormal() methods
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export get_pgops
