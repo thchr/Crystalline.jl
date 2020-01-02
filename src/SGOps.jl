@@ -71,6 +71,9 @@ include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
        littlegroupirrep, klabel
 
+include("special_representation_domain_kpoints.jl")
+export ΦnotΩ_kvecs
+
 include("littlegroup_irreps.jl")
 export get_lgirreps, get_littlegroups,
        get_all_lgirreps
