@@ -4,6 +4,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       JSON2, StaticArrays, Makie, TimerOutputs,
       DelimitedFiles, SmithNormalForm,
       Meshing, JLD2, PrettyTables, 
+      CSV,                    # for special_representation_domain_kpoints 
       MetaGraphs, LightGraphs # for compatibility.jl
 import Base: getindex, lastindex, string, isapprox,
              length, readuntil, vec, show, 
