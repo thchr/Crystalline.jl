@@ -246,8 +246,35 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
     end
     push!(lgirsvec, lgirs)
 
-    return lgirvec
-end
+    #=
+    # TODO: We need to manually do things for the "special" k-points from the
+    #       representation domain Φ that do not exist in the basic domain Ω
+    #       i.e. for k∈Φ-Ω (labels like KA, ZA, etc.), which are not included 
+    #       in ISOTROPY. We can do this by following the prescription in CDML.
+    sgnum = num(first(irvec))
+    # tuple of tuples: (kᴮ∈Φ-Ω ::String, kᴬ∈Ω ::String, R::SymOperation)
+    kvmaps = ΦnotΩ_kvecs(sgnum, 3) 
+    if kvmaps !== nothing # contains KVecs in the representation domain Φ that 
+                                 # cannot be mapped to ones in the basic domain Ω 
+        for kvmap in kvmaps # loop over each "new" KVec
+            
+            cdmlᴮ = kvmap.kᴮlab # CDML label of "new" KVec kᴮ∈Φ-Ω
+            cdmlᴬ = kvmap.kᴮlab # CDML label of "old" KVec kᴬ∈Ω
+            R     = kvmap.op    # Mapping from kᴬ to kᴮ: kᴮ = Rkᴬ
+            # find index of kᴬ irreps in lgirsvec
+            idxᴬ = findfirst(lgirs->klabel(first(lgirs))==cdmlᴬ, lgirsvec)
+            lgirsᴬ = lgirsvec[idxᴬ]
+            # do stuff to get lgirsᴮ (the only kᴮ included in ISOTROPY is Z′=ZA for 
+            # sgs 195, 198, 200, 201, & 205: all other kᴮ∈Φ-Ω points are omitted)
+            # TODO: do the mapping described in CDML Sec. 4.1 / B&C Sec. 5.5.
+        end
+    
+    # Pa3 (Tₕ⁶), sg 205, cannot be treated by the above method and requires manual 
+    # treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is already  
+    # included in ISOTROPY.
+    elseif sgnum == 205 
+    end
+    =#
 
     return lgirsvec
 end
@@ -338,4 +365,17 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
     else
         throw(DomainError((sgnum, irlab), "should not be called with these input; nothing to fix"))
     end
+end
+
+
+function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
+    D ≠ 3 && throw_2d_not_yet_implemented(D)
+
+    sgnum = num(first(first(lgirvec)))
+
+    # does this space group contain any nontrivial k-vectors in Φ-Ω?
+    
+    # what is the method for adding in these missing k-vectors?
+    
+        
 end

@@ -1,7 +1,7 @@
 module SGOps
 # packages
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
-      JSON2, StaticArrays, Makie, TimerOutputs, 
+      JSON2, StaticArrays, Makie, TimerOutputs,
       DelimitedFiles, SmithNormalForm,
       Meshing, JLD2, PrettyTables, 
       MetaGraphs, LightGraphs # for compatibility.jl
@@ -36,8 +36,9 @@ export SymOperation, Crystal,               # types
        basis, dim, norms, angles,           # ::Crystal
        kstar, klabel, characters,           # ::AbstractIrrep
        label, type,
-       isspecial, translations, findirrep,  # ::SGIrrep
+       isspecial, translations,             # ::SGIrrep
        israyrep, kvec, irreps,              # ::LGIrrep
+       find_lgirreps,
        string, parts,                       # ::KVec
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
@@ -47,20 +48,20 @@ export schoenflies, hermannmauguin,
        iuc, centering, seitz
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export get_sgops, xyzt2matrix, matrix2xyzt, 
+export get_sgops, xyzt2matrix, matrix2xyzt,
        ∘, compose,
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
-       pointgroup, 
-       primitivize, conventionalize, 
-       reduce_ops
+       pointgroup,
+       primitivize, conventionalize,
+       reduce_ops, transform
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export get_pgops
 
 include("bravais.jl")
-export crystal, plot, crystalsystem, 
-       bravaistype, primitivebasis, 
+export crystal, plot, crystalsystem,
+       bravaistype, primitivebasis,
        gen_crystal, reciprocalbasis
 
 include("irreps_reality.jl")

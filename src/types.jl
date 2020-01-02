@@ -45,6 +45,7 @@ translation(m::Matrix{<:Real}) = @view m[:,end]  # translation part of an operat
 translation(op::SymOperation)  = translation(matrix(op))
 (==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
+unpack(op::SymOperation) = (rotation(op), translation(op))
 function show(io::IO, ::MIME"text/plain", op::SymOperation)
     print(io, seitz(op),":\n   (", xyzt(op), ")\n")
     Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
@@ -137,8 +138,6 @@ function string(kv::KVec)
     return String(take!(buf))
 end
 show(io::IO, ::MIME"text/plain", kv::KVec) = print(io, string(kv))
-
-
 
 """ 
     KVec(str::AbstractString) --> KVec
@@ -293,7 +292,8 @@ end
 LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, klab, ops)
 dim(lg::LittleGroup{D}) where D = D
 kvec(lg::LittleGroup) = lg.kv
-label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*string(kvec(lg))
+klabel(lg::LittleGroup) = lg.klab
+label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
 
 
 # Abstract group irreps
@@ -455,11 +455,12 @@ function show(io::IO, ::MIME"text/plain", lgirvec::Union{AbstractVector{LGIrrep}
     end
 end
 
-function findirrep(LGIR, sgnum::Integer, cdml::String)
-    kidx = findfirst(x->label(x[1])[1]==cdml[1], LGIR[sgnum])
-    irrepidx = findfirst(x->label(x)==cdml, LGIR[sgnum][kidx])
-    return LGIR[sgnum][kidx][irrepidx]
+function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, klab::String)
+    kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
+    return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
 end
+find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(get_lgirreps(sgnum, D), klab)
+
 
 # character table
 struct CharacterTable{D}

@@ -492,6 +492,19 @@ function conventionalize(op::SymOperation, cntr::Char)
     end
 end
 
+function primitivize(kv::KVec, cntr::Char)
+    k₀, kabc = parts(kv)
+    P = primitivebasismatrix(cntr, dim(kv))
+    # P transforms reciprocal coordinates as k′ = Pᵀk 
+    # while P transforms direct coordinates as r′=P⁻¹r,
+    # see ITA7 Sec. 1.5.1.2 and 1.5.2.1 (and note the 
+    # distinction between transforming the basis and
+    # the coordinates of a vector!).
+    k₀′ = P'*k₀
+    kabc′ = P'*kabc
+    return KVec(k₀′, kabc′)
+end
+
 """ 
     transform(op::SymOperation, P::Matrix{<:Real}, 
               p::Union{Vector{<:Real}, Nothing}=nothing) --> SymOperation
@@ -508,7 +521,7 @@ By default, the translation part of `op′`, i.e. `w′`, is reduced to the rang
 [0,1], i.e. computed modulo 1. This can be toggled off (or on) by the Boolean
 flag `modw` (enabled, i.e. `true`, by default).
 
-See also `primitivize` and `conventionalize`.
+See also `primitivize` and `conventionalize`. 
 
 """
 # translation (usually zero; can then be given as `nothing`)
@@ -517,7 +530,7 @@ function transform(op::SymOperation, P::AbstractMatrix{<:Real},
                    modw::Bool=true)    
     W′ = transform_rotation(op, P)             # = P⁻¹WP       (+ rounding)
     w′ = transform_translation(op, P, p, modw) # = P⁻¹(w+Wp-p)
-                                         # with W ≡ rotation(op) and w ≡ translation(op)
+                                               # with W ≡ rotation(op) and w ≡ translation(op)
 
     return SymOperation([W′ w′])
 end
