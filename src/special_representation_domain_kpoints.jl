@@ -392,56 +392,53 @@ find_map_from_Ω_to_ΦnotΩ(sgnum::Integer, D::Integer=3) = find_map_from_Ω_to_
 # a k-star or to a G-vector). 
 
 function find_new_kvecs(G::SpaceGroup)
-    cntr = centering(num(G), dim(G))
     Rs = find_map_from_Ω_to_ΦnotΩ(G)
-    Rs === nothing && return nothing
+    Rs === nothing && return nothing # holosymmetric case
+    cntr = centering(num(G), dim(G))
     
-    lg = get_littlegroups(num(G), dim(G))
-    kvs = kvec.(lg)
-    klabs = klabel.(lg)
-    Nk = length(lg)
+    # load the KVecs in Ω from the ISOTROPY dataset
+    lgs = get_littlegroups(num(G), dim(G))
+    # We are only interested in mapping kvs from the basic domain Ω; but ISOTROPY already 
+    # includes some of the ZA points that are in Φ-Ω, so we strip these already here (and
+    # so find these points anew effectively). Also, there is no point in trying to map the
+    # general point (also denoted Ω by us) to a new point, since it can be obtained by 
+    # parameter variation; so we filter that out as well.
+    filter!(lg-> length(klabel(lg)) == 1 && klabel(lg) != "Ω", lgs)
+    kvs = kvec.(lgs)
+    klabs = klabel.(lgs)
+    Nk = length(lgs)    
 
     newkvs = [KVec[] for _ in Base.OneTo(Nk)]
     newklabs = [String[] for _ in Base.OneTo(Nk)]
     for (kidx, (kv, klab)) in enumerate(zip(kvs, klabs))
-        # Go to next kv if kv already is in Φ-Ω (i.e. is not a one-letter label)
-        # or if kv is the general point (also denoted Ω, but different from the basic 
-        # domain), which will just generate trivial variations
-        (length(klab) != 1 || klab == "Ω") && continue
-
         for (Ridx, R) in enumerate(Rs)
             newkv = R∘kv
-            # compare newkv to the stars of all kv′ ∈ Ω (≡ kvs): if it is equivalent to any member 
-            # of star{kv′}, it is not a "new" k-vector. Naïvely, I would've suspected it would be
-            # enough to only compare against kv rather than kvs, but it seems there may be counter- 
-            # example in the rhombohedral lattices
-            newkv_bool_vs_Ω = true
-            for kv′ in kvs
-                kv′star = kstar(G, kv′)
-                if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), kv′star)
-                    newkv_bool_vs_Ω = false
-                    continue
-                end
+            # compare newkv to the stars of kv: if it is equivalent to any member of star{kv},
+            # it is not a "new" k-vector. We do not have to compare to _all_ kv′∈Ω (i.e. to all
+            # kvs), because they must have inequivalent stars to kv in the first place and also
+            # cannot be mapped to them by a point group operation of the isogonal parent lattice
+            kvstar = kstar(G, kv)
+            if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), kvstar)
+                continue # jump out of loop if newkv is equivalent to any star{kv′}
             end
-            !newkv_bool_vs_Ω && continue # jump out of loop if newkv is equivalent to any star{kv′}
     
             # if we are not careful we may now add a "new" k-vector which is equivalent 
             # to a previously added new k-vector (i.e. is equivalent to a k-vector in its 
-            # star): this can e.g. happen if R₁ and R₂ maps to the same KVec; which is a real
-            # possibility. We check against the k-star of the new k-vectors to avoid this.
+            # star): this can e.g. happen if R₁ and R₂ maps to the same KVec, which is a real
+            # possibility. We check against the k-star of the new k-vectors just added.
             newkv_bool_vs_ΦnotΩ = true
-            for newkv′ in Iterators.flatten(newkvs)
+            for newkv′ in newkvs[kidx]
                 newkv′star = kstar(G, newkv′) # k-star of previously added new k-vector
                 if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), newkv′star)
                     newkv_bool_vs_ΦnotΩ = false
                     continue
                 end
             end
-            !newkv_bool_vs_ΦnotΩ && continue # jump out of loop if newkv is equivalent to any previously added 
+            !newkv_bool_vs_ΦnotΩ && continue # jump out of loop if newkv is equivalent to any just added new KVec
 
-            # newkv is a bonafide new k-vector which is inequivalent to any original k-vector kv′∈Ω, 
-            # as well as elements in its star, and similarly inequivalent to any previously added
-            # new k-vectors newkv′∈Φ-Ω ⇒ add it to the list of new k-vectors!
+            # newkv must now be a bonafide "new" KVec which is inequivalent to any original KVecs
+            # kv′∈Ω, as well as any elements in their stars, and similarly inequivalent to any 
+            # previously added new KVecs newkv′∈Φ-Ω      ⇒      add it to the list of new KVecs!
             push!(newkvs[kidx],   newkv)
             push!(newklabs[kidx], klab*('@'+Ridx)*'′') # new labels, e.g. if klab = "Γ", then newklab = "ΓA′", "ΓB′", "ΓC′", ...
 
@@ -461,6 +458,10 @@ function find_new_kvecs(G::SpaceGroup)
             #           sgnum = 75
             #           v=SGOps.find_new_kvecs(sgnum, 3)
             #           [v[3] string.(v[1]) first.(v[4]) string.(first.(v[2]))] # (only shows "A" generated KVecs though...)
+            #
+            #       We also have some debugging code for this issue in test/holosymmetric.jl,
+            #       but at present it is not a priority to fix this, since we have the nominally
+            #       correct additions from CDML.
         end
     end
 
@@ -634,11 +635,10 @@ k-points in Φ-Ω in 2D.
 function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
     D ≠ 3 && throw_2d_not_yet_implemented(D)
 
-    # no new k-points for holosymmetric sgs where Φ = Ω
+    # No new k-points for holosymmetric sgs where Φ = Ω
     is_holosymmetric(sgnum, D) && return nothing 
 
-    # check if sg is an "orphan" type (if 0 ⇒ not an orphan),
-    # in the sense discussed in CDML p. 70-71.
+    # Check if sg is an "orphan" type (if 0 ⇒ not an orphan) in the sense discussed in CDML p. 70-71.
     orphantype = is_orphan_sg(sgnum, D)
     if orphantype == 3 # no new k-vectors after all (CDML p. 71, bullet (i))   [type (c)]
         return nothing
@@ -650,37 +650,42 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         return missing
         
     elseif orphantype ∈ (1,2) # supergroup case                                [types (a,b)]
-        # a supergroup G′ exists which contains some (but not all) necessary operations 
+        # A supergroup G′ exists which contains some (but not all) necessary operations 
         # that otherwise exist in the holosymmetric group; see table 4.1 of CDML; by exploiting
         # their connection to an isomorphic partner, we can get all the necessary operations
         # (see B&C).
         parent_sgnum = ORPHAN_AB_SUPERPARENT_SGNUM[sgnum]
     end
 
-    # if we reached here, orphantype is either 0 - in which case we can follow
+    # If we reached here, orphantype is either 0 - in which case we can follow
     # the holosymmetric parent space group (G₀) approach - or orphantype is 
     # 1 (a) or 2 (b); in that case, we should use the supergroup G′ to identify
     # the irrep mapping vectors {R|v}; but we can still use the point group operation
-    # R inferred from ISOGONAL_PARENT_GROUPS and ΦNOTΩ_KVECS_AND_MAPS
+    # R inferred from ISOGONAL_PARENT_GROUPS and ΦNOTΩ_KVECS_AND_MAPS (if featuring)
 
-    # we need the isogonal parent group to find the correct key in ΦNOTΩ_KVECS_AND_MAPS
+    # We need the isogonal parent group to find the correct key in ΦNOTΩ_KVECS_AND_MAPS
     # (since it only stores symmorphic space groups)
     isogonal_parent_sgnum = ISOGONAL_PARENT_GROUPS[D][sgnum]
 
-    # find the k-vector mappings from ΦNOTΩ_KVECS_AND_MAPS (a map of ALL the new k-vecs 
-    # and R mappings from CDML Table 3.11 )
-    # TODO: This assert is not true: there can be cases (specifically sgnums 1, 16, 22, 89, 148, 177, 207, & 211)
-    #       where there just are no bonafide new k-points in Φ-Ω since they either already feature in 
-    #       star{𝐤} or are equivalent (via a primitive reciprocal G-vector) to an existing KVec in Ω.
-    @assert haskey(ΦNOTΩ_KVECS_AND_MAPS, isogonal_parent_sgnum) "When reaching this point, isogonal_parent_sgnum should be referenced in CDML Tables 3.11"
-    kvmaps_pg = ΦNOTΩ_KVECS_AND_MAPS[isogonal_parent_sgnum] # only references point group operations R
+    # There are some space groups (i.e. some isogonal super groups) that just
+    # do not get truly new k-points in Φ-Ω since they either already feature in 
+    # star{𝐤} or are equivalent (either via a primitive reciprocal G-vector or 
+    # by trivial parameter variation) to an existing KVec in Ω. In that case,
+    # there is no entry for isogonal_parent_sgnum in ΦNOTΩ_KVECS_AND_MAPS and
+    # there is nothing to add. This is the case for sgnums 1, 16, 22, 89, 148,
+    # 177, 207, & 211). Terminate early in that case.
+    !haskey(ΦNOTΩ_KVECS_AND_MAPS, isogonal_parent_sgnum) && return nothing
+
+    # Now we know there is a matching set of mappings in ΦNOTΩ_KVECS_AND_MAPS 
+    # that contains ALL the new k-vecs and R mappings from CDML Table 3.11; get it
+    kvmaps_pg = ΦNOTΩ_KVECS_AND_MAPS[isogonal_parent_sgnum] # point group operations R
 
     # now we need to find the appropriate parent group: if not an orphan, 
     # this is the parent holosymmetric space group G₀; if an orphan of type
     # (a) or (b) it is the supergroup G′ (already stored then)
     if iszero(orphantype)
         parent_sg = find_holosymmetric_parent(sgnum, D)
-        if parent_sg === nothing; throw("Unexpected error"); end
+        parent_sg === nothing && throw("Unexpected error")
     else
         # TODO: load the orphan's parent_sg from parent_sgnum (maybe consolidate approaches?)
     end
@@ -690,13 +695,13 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
     # we now find that operation (this is the operation needed when mapping the irreps)
     # TODO: Continue implementation from here?
     kvmaps = Vector{KVecMapping}()
-    for kvmap_iso in kvmaps_iso
-        pgop = kvmap_iso.op                    # R in CDML notation
+    for kvmap_pg in kvmaps_pg
+        pgop = kvmap_pg.op                    # R in CDML notation
         matchidx = findfirst(op′->rotation(pgop)==rotation(op′), operations(parent_sg))
         if matchidx === nothing; throw("Should never happen: R = $(xyzt(pgop)) and parent_sgnum = $(num(parent_sg))"); end
         sgop = operations(parent_sg)[matchidx] # {R|v} in CDML notation
 
-        push!(kvmaps, KVecMapping(kvmap_iso.kᴬlab, kvmap_iso.kᴮlab, sgop))
+        push!(kvmaps, KVecMapping(kvmap_pg.kᴬlab, kvmap_pg.kᴮlab, sgop))
     end
 
     return kvmaps

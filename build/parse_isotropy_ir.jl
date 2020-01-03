@@ -224,7 +224,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
         if curlab == klabel(ir)
             push!(accidx, idx)
         else
-            if curlab != nothing
+            if curlab !== nothing
                 lgirs = Vector{LGIrrep{3}}(undef, length(accidx))
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
