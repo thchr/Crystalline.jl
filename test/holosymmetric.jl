@@ -2,7 +2,7 @@ using SGOps, Test
 
 
 @testset "Representation vs basic domain BZ" begin
-if false
+
 @testset "Identification of holosymmetric space groups" begin
     # Check that our cached values of the holosymmetric space group numbers
     # (stored in SGOps.HOLOSYMMETRIC_SGNUMS) agree with the results of 
@@ -78,26 +78,6 @@ end
     for D = 1:3
         @test !any(sgnum->isnothing(SGOps.find_holosymmetric_superpointgroup(sgnum, D)), 1:MAX_SGNUM[D])
     end
-end
-
-@testset "Every space group maps to a holosymmetric group or to a group included in Φ-Ω?" begin
-    D = 3
-    # only need to do anything if sg is nonholosymmetric
-    nonholo_sgnums = Iterators.filter(sgnum->!SGOps.is_holosymmetric(sgnum,D), Base.OneTo(MAX_SGNUM[D]))
-    # space group numbers of isogonal space groups that must exist as keys in SGOps.ΦNOTΩ_KVECS_AND_MAPS
-    needed_sgnums_in_ΦnotΩ = unique(getindex.(Ref(SGOps.ISOGONAL_PARENT_GROUPS[D]), nonholo_sgnums))
-    # actual keys in SGOps.ΦNOTΩ_KVECS_AND_MAPS
-    sgsums_in_ΦnotΩ = keys(SGOps.ΦNOTΩ_KVECS_AND_MAPS)
-    for needed_sgnum in needed_sgnums_in_ΦnotΩ
-        if needed_sgnum ∉ sgsums_in_ΦnotΩ
-            @test_broken needed_sgnum ∈ sgsums_in_ΦnotΩ
-            @info needed_sgnum
-        end
-        # TODO: This should not actually be an error! Some sgs just don't get "new" k-points
-        # in Φ-Ω since they already exist in kstar or are equivalent via a primitive G-vec. 
-        # We could verify that that is the case for the 8 "errors" here.
-    end
-end
 end
 
 @testset "Compare find_new_kvecs(sgnum, D) to \"new\" kvecs from CDML" begin
