@@ -1,4 +1,4 @@
-using SGOps, Test
+using SGOps, Test, LinearAlgebra
 
 
 @testset "Representation vs basic domain BZ" begin
@@ -95,7 +95,7 @@ end
 
         # look for new kvecs (and mapping) in CDML data; if nothing is there, return an empty 
         # array of SGOps.KVecMapping
-        arith_partner_sgnum = find_arithmetic_partner(sgnum,D)
+        arith_partner_sgnum = SGOps.find_arithmetic_partner(sgnum, D)
         kvmaps_CDML = get(SGOps.ΦNOTΩ_KVECS_AND_MAPS, arith_partner_sgnum, SGOps.KVecMapping[])
         newklabs_CDML = [getfield.(kvmaps_CDML, :kᴮlab)...]
 
