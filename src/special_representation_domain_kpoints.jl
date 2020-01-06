@@ -74,8 +74,8 @@ const HOLOSYMMETRIC_PG_FOR_BRAVAISTYPE = ImmutableDict(
 )
 
 # Mnemonized/cached data from calling 
-# Tuple(tuple(getindex.(get_arith_crystalclass_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
-const ISOGONAL_PARENT_GROUPS = (
+# Tuple(tuple(getindex.(_find_arithmetic_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
+const ARITH_PARTNER_GROUPS = (
     (1,2),                                                                                          # 1D
     (1,2,3,3,5,6,6,6,9,10,11,11,13,14,15,16,17),                                                    # 2D
     (1,2,3,3,5,6,6,8,8,10,10,12,10,10,12,16,16,16,16,21,21,22,23,23,25,25,25,25,25,25,25,25,25,25,  # 3D
@@ -98,11 +98,25 @@ const ORPHAN_SGNUMS = (
 )
 
 # The group to supergroups (G => G′) map from CDML Table 4.1; necessary to 
-# construct the irrep mapping for orphans of type (a) and (b)
+# construct the irrep mapping for orphans of type (a) and (b). In addition, 
+# we include a translation vector p that is necessary in order to ensure the 
+# same setting for group/supergroups (only relevant for sgnums 151-154).
 const ORPHAN_AB_SUPERPARENT_SGNUMS = ImmutableDict(
-    76=>91, 78=>95, 144=>178, 145=>179, 151=>181, 152=>178,
-    153=>180, 154=>179, 169=>178, 170=>179, 171=>180, 172=>181,
-    198=>212)
+    # group sgnum => (supergroup sgnum, transformation translation p [rotation P = "x,y,z" for all])
+    76  => (91,  zeros(3)), 
+    78  => (95,  zeros(3)), 
+    144 => (178, zeros(3)), 
+    145 => (179, zeros(3)), 
+    151 => (181, [0.0,0.0,1/3]), # cf. www.cryst.ehu.es/cryst/minsup.html
+    152 => (178, [0.0,0.0,1/6]),
+    153 => (180, [0.0,0.0,1/6]),
+    154 => (179, [0.0,0.0,1/3]),
+    169 => (178, zeros(3)), 
+    170 => (179, zeros(3)), 
+    171 => (180, zeros(3)), 
+    172 => (181, zeros(3)),
+    198 => (212, zeros(3))
+)
 
 # Dict of group (G) => supergroup (G₀) relations, along with their transformation operators,
 # for tricky corner cases that cannot be treated by a naïve subgroup check which 
@@ -155,9 +169,9 @@ end
 """
     _find_holosymmetric_sgnums(D::Integer)
 
-We compute the list of holosymmetric space group numbers by first finding the "maximum"
-isogonal point group of each Bravais type (looping through all the space groups
-in that Bravais type); then we subsequently compare the isogonal point groups of 
+We compute the list of holosymmetric space group numbers by first finding the "maximal"
+arithmetic point group of each Bravais type (looping through all the space groups
+in that Bravais type); then we subsequently compare the arithmetic point groups of 
 each space group to this maximal (Bravais-type-specific) point group; if they agree
 the space group is holosymmetric.
 
@@ -197,17 +211,17 @@ Return a Boolean answer for whether the representation domain Φ equals
 the basic domain Ω, i.e. whether the space group is holosymmetric (see
 CDML p. 31 and 56). Φ and Ω are defined such that the Brillouin zone BZ
 can be generated from Φ through the point group-parts of the space group
-operations g∈P (the "isogonal point group" is CDML) and from Ω through
-the crystal system's point group operations g∈P₀ (the "holosymmetric
-point group") i.e. BZ≡∑_(g∈Ḡ)gΦ and BZ≡∑_(r∈Gᶜʳʸˢ)rΦ. If Φ=Ω, we say 
-that the space group is holosymmetric; otherwise, Φ is an integer multiple
-of Ω and we say that the space group is non-holosymmetric.
+operations g∈F (the "isogonal point group" in CDML; just the "point group
+of G" in ITA) and from Ω through the lattice's point group operations 
+g∈P (the "holosymmetric point group") i.e. BZ≡∑_(r∈F)rΦ and BZ≡∑_(r∈P)rΦ. 
+If Φ=Ω, we say that the space group is holosymmetric; otherwise, Φ is an 
+integer multiple of Ω and we say that the space group is non-holosymmetric.
 
 In practice, rather than compute explicitly every time, we use a cache of
 holosymmetric space group numbers obtained from `_find_holosymmetric_sgnums`
 (from the `const` `HOLOSYMMERIC_SGNUMS`).
 """
-is_holosymmetric(sgnum::Integer, D::Integer=3) = (sgnum ∈ HOLOSYMMETRIC_SGNUMS[D])
+is_holosymmetric(sgnum::Integer, D::Integer=3)::Bool = (sgnum ∈ HOLOSYMMETRIC_SGNUMS[D])
 is_holosymmetric(sg::SpaceGroup) = is_holosymmetric(num(sg), dim(sg))
 
 
@@ -218,13 +232,13 @@ is_holosymmetric(sg::SpaceGroup) = is_holosymmetric(num(sg), dim(sg))
 
 Finds the minimal holosymmetric super point group `P` of a space group `G`
 (alternatively specified by its number `sgnum` and dimension `D`), such
-that the isogonal point group of `G`, denoted `F`, is a subgroup of `P`,
+that the (isogonal) point group of `G`, denoted `F`, is a subgroup of `P`,
 i.e. such that `F`≤`P` with `P` restricted to the lattice type of `G` (see
 `HOLOSYMMETRIC_PG_FOR_BRAVAISTYPE`). For holosymmetric space groups `F=P`.
 """
 function find_holosymmetric_superpointgroup(G::SpaceGroup)
     D = dim(G)
-    F = pointgroup(G) # isogonal point group of G (::Vector{SymOperation})
+    F = pointgroup(G) # (isogonal) point group of G (::Vector{SymOperation})
     if D == 3
         # In 3D there are cases (162, 163, 164, 165) where the distinctions
         # between hP and hR need to be accounted for explicitly, so there we
@@ -300,7 +314,7 @@ function find_holosymmetric_parent(sgnum::Integer, D::Integer=3)
                 # won't be a naïve subgroup if centerings are different (effectively, a cheap short-circuit check)
                 cntr ≠ cntr₀ && continue
                 # now check if G<G₀ operator-element-wise
-                issubgroup(G₀, G)[1] || continue
+                issubgroup(G₀, G) || continue
 
                 # check if G is an _invariant_ subgroup of G₀, i.e. if g₀gg₀⁻¹∈G
                 # for every g₀∈G₀ and g∈G
@@ -318,33 +332,44 @@ function find_holosymmetric_parent(sgnum::Integer, D::Integer=3)
             # we really want is to check for a normal supergroup TYPE (the notion of "space 
             # group type" differentiates from a concrete "space group", signifying a specific
             # choice of setting: usually, the distinction is ignored.).
-            # We manually found off the appropriate normal and holosymmetric supergroup by
-            # using Bilbao's MINSUP program, along with the appropriate transformation matrix;
-            # see data/cornercases_normal_subsupergroup_pairs_with_transformations.jl and 
-            # the constant Tuple `CORNERCASES_SUBSUPER_NORMAL_SGS`.
+            # We manually found the appropriate normal and holosymmetric supergroup by using
+            # Bilbao's MINSUP program, along with the appropriate transformation matrix; see
+            # data/cornercases_normal_subsupergroup_pairs_with_transformations.jl and the
+            # constant Tuple `CORNERCASES_SUBSUPER_NORMAL_SGS`.
             # So far only checked for 3D.
             sgnum₀, P₀, p₀ = CORNERCASES_SUBSUPER_NORMAL_SGS[sgnum]
 
-            G₀ = get_sgops(sgnum₀, 3)
+            opsG₀ = operations(get_sgops(sgnum₀, 3))
             # find the supergroup G₀ in its transformed setting using P₀ and p₀
-            opsG₀′ = transform.(operations(G₀), Ref(P₀), Ref(p₀))
-            G₀′ = SpaceGroup(sgnum₀, opsG₀′, D)
+            opsG₀ .= transform.(opsG₀, Ref(P₀), Ref(p₀))
+            G₀ = SpaceGroup(sgnum₀, opsG₀, D)
 
-            # verify that with G₀′ in this setting, G is a subgroup of G₀′, G is normal in G₀′
-            # and that G₀′ is a holosymmetric space group
-            @assert issubgroup(G₀′, G)
-            @assert isnormal(G₀′, G)
-            @assert is_holosymmetric(G₀′)
+            # with G₀ in this setting, G is a subgroup of G₀, G is normal in G₀
+            # and G₀ is a holosymmetric space group (see test/holosymmetric.jl)
 
-            return G₀′
+            return G₀
         end
 
         # G doesn't have a holosymmetric parent space group ⇒ one of the "orphans" from CDML/B&C
-        return nothing 
+        return nothing
     else # trivial case; a holosymmetric sg is its own parent
         return G
     end
 end
+
+"""
+    find_arithmetic_partner(sgnum::Integer, D::Integer=3)
+
+Find the arithmetic/isogonal parent group of a space group G with number `sgnum` 
+in dimension `D`.
+
+The arithmetic/isogonal parent group is the symmorphic group F that contains all 
+the rotation parts of G.
+
+See `_find_arithmetic_partner` which this method is a mnemonization interface to.
+"""
+find_arithmetic_partner(sgnum::Integer, D::Integer=3)::Int64 = ARITH_PARTNER_GROUPS[D][sgnum]
+
 
 """
     find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
@@ -352,15 +377,15 @@ end
 
 Find the point group operations `Rs` that map the basic domain Ω to the 
 "missing" domains in Φ-Ω for the space group `G`; this is akin to a coset
-decomposition of the isogonal point group `F` of `G` into the holosymmetric 
-super point group `P` of `G`
+decomposition of the (isogonal) point group `F` of `G` into the holosymmetric 
+super point group `P` of `G`.
 """
 function find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
     if is_holosymmetric(num(G), dim(G))
         return nothing
     else # G is not a holosymmetric sg, so Φ-Ω is finite
         P = operations(find_holosymmetric_superpointgroup(G)) # holosymmetric supergroup of G (::Vector{SymOperation})
-        F = pointgroup(G)                                     # isogonal point group of G     (::Vector{SymOperation})
+        F = pointgroup(G)                                     # (isogonal) point group of G   (::Vector{SymOperation})
 
         index::Int64 = length(P)/length(F) # index of F in P = 2^"number of needed maps"
         if index == 1; println(num(G)); return nothing; end
@@ -416,7 +441,7 @@ function find_new_kvecs(G::SpaceGroup)
             # compare newkv to the stars of kv: if it is equivalent to any member of star{kv},
             # it is not a "new" k-vector. We do not have to compare to _all_ kv′∈Ω (i.e. to all
             # kvs), because they must have inequivalent stars to kv in the first place and also
-            # cannot be mapped to them by a point group operation of the isogonal parent lattice
+            # cannot be mapped to them by a point group operation of the arithmetic/isogonal point group
             kvstar = kstar(G, kv)
             if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), kvstar)
                 continue # jump out of loop if newkv is equivalent to any star{kv′}
@@ -476,19 +501,23 @@ end
 find_new_kvecs(sgnum::Integer, D::Integer=3) = find_new_kvecs(get_sgops(sgnum, D))
 
 """
-    get_arith_crystalclass_partner(sg::SpaceGroup)
-    get_arith_crystalclass_partner(sgnum::Integer, D::Integer=3)
+    _find_arithmetic_partner(sg::SpaceGroup)
+    _find_arithmetic_partner(sgnum::Integer, D::Integer=3)
 
 Find the symmorphic partner space group `sg′` of a space group `sg`, i.e.
 find the space group `sg′` whose group embodies the arithmetic crystal class
 of `sg`. In practice, this means that they have the same point group operations
 and that they share the same Bravais lattice (i.e. centering) and Brillouin zone. 
 For symmorphic space groups, this is simply the space group itself.
-Another way of putting this is to find the isogonal parent group of `sg`.
+
+An equivalent terminonology (favored by B&C and CDML) for this operation is the
+"*isogonal* partner group" of `sg`. ITA doesn't appear to have a specific name
+for this operation, but we borrow the terminology from the notion of an "arithmetic
+crystal class".
 
 The answer is returned as a pair of space group numbers: `num(sg)=>num(sg′)`.
 """
-function get_arith_crystalclass_partner(sg::SpaceGroup)
+function _find_arithmetic_partner(sg::SpaceGroup)
     D = dim(sg)
 
     sgnum = num(sg)
@@ -500,7 +529,7 @@ function get_arith_crystalclass_partner(sg::SpaceGroup)
         pgops_sorted = sort(pointgroup(sg), by=xyzt)
         N_pgops = length(pgops_sorted)
         N_arith_crys_class = length(SYMMORPH_SGNUMS[D])
-        # exploit that the isogonal partner typically is close to the index
+        # exploit that the arithmetic partner typically is close to the index
         # of the space group, but is (at least for 3D space groups) always smaller
         idx₀ = findfirst(x->sgnum<x, SYMMORPH_SGNUMS[D])
         if idx₀ === nothing # no point group of smaller index than the provided sg
@@ -527,19 +556,19 @@ function get_arith_crystalclass_partner(sg::SpaceGroup)
     end
 
     # if we reached this point, no match was found ⇒ implies an error..!
-    throw(ErrorException("No isogonal partner group was found: this should"*
+    throw(ErrorException("No arithmetic/isogonal partner group was found: this should"*
                          "never happen for well-defined groups."))
 end
 
-function get_arith_crystalclass_partner(sgnum::Integer, D::Integer=3)
-    get_arith_crystalclass_partner(get_sgops(sgnum, D))
+function _find_arithmetic_partner(sgnum::Integer, D::Integer=3)
+    _find_arithmetic_partner(get_sgops(sgnum, D))
 end
 
 
 """
     _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
 
-Load the special k-points kᴮ∈Φ-Ω that live in the representation domain Φ, but not 
+Load the special k-points kᴮ∈Φ-Ω that live in the representation domain Φ, but not in
 the basic domain Ω, as well parent space group operation R that link them to a related
 k-point in the basic domain kᴬ∈Ω. Returns an `ImmutableDict` over `KVecMapping` `Tuple`s, 
 each a containing {kᴬ, kᴮ, R} triad, with kᴬ and kᴮ represented by their labels.
@@ -620,23 +649,37 @@ end
 """ 
     ΦnotΩ_kvecs(sgnum::Integer, D::Integer)
 
-For a given space group number `sgnum` and dimensionality `D`, find 
-the parent holosymmetric group - or, if an orphan, its parent supergroup, 
-and return the special representation domain Φ k-points kᴮ∈Φ-Ω that do
-not reside in the basic domain Ω. Return a tuple of kᴮs, their associated
-basic-domain kᴬs, and the transformation from one to the other R, such 
-that kᴮ = Rkᴬ.
+For a space group G with number `sgnum` and dimensionality `D`, find the
+"missing" k-vectors in Φ-Ω, denoted kᴮ, as well as a mapping operation {R|v}
+that links these operations to an operation in Ω, denoted kᴬ such that
+kᴮ = Rkᴬ. 
+The operation {R|v} is chosen from a parent space group. If possible, this
+parent space group is a holosymmetric parent group of which G is a normal 
+subgroup. For 24 so-called "orphans", such a choice is impossible, and we 
+instead have to make do with an ordinary non-holosymmetric parent (of which
+G is still a normal subgroup). Four "flavors" of orphans exist; 1, 2, 3, and
+4. For orphan type 4, no normal supergroup can be found.
 
-Returns `nothing` if there are no new special k-points in Φ-Ω.
+Only in-equivalent "missing" k-vectors are returned (i.e. kᴮs are inequivalent
+to all the stars of all kᴬ∈Ω): this listing is obtained from CDML, and 
+conveniently takes care of orphan types 3 and 4.
+If there are no "missing" k-vectors in Φ-Ω the method returns `nothing`.
+Otherwise, the method returns a `Vector` of `KVecMapping`s as well as the 
+orphan type (`0` if not an orphan).
 
 Presently only works in 3D, since CDML does not tabulate the special 
 k-points in Φ-Ω in 2D.
+
+This method should be used to subsequently generate the `LGIrrep`s of the 
+missing k-vectors in Φ-Ω from the tabulated `LGIrrep`s for kᴬ∈Ω. This is
+possible for all 3D space groups except for number 205, which requires 
+additional manual tabulation.
 """
 function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
     D ≠ 3 && throw_2d_not_yet_implemented(D)
 
     # No new k-points for holosymmetric sgs where Φ = Ω
-    is_holosymmetric(sgnum, D) && return nothing 
+    is_holosymmetric(sgnum, D) && return nothing
 
     # Check if sg is an "orphan" type (if 0 ⇒ not an orphan) in the sense discussed in CDML p. 70-71.
     orphantype = is_orphan_sg(sgnum, D)
@@ -644,67 +687,86 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         return nothing
 
     elseif orphantype == 4 # sgnum = 205 needs special treatment               [type (d)]
-        # TODO: Return ZA, AA, and BA irreps from CDML p. C491
-        #       ZA is already included in ISOTROPY, and we don't really need AA or BA?
-        @warn "not yet implemented"
-        return missing
+        # return the KVecMappings, which are handy to have even though the transformation
+        # procedure doesn't apply to sg 205. Below are the cached results of 
+        # ΦNOTΩ_KVECS_AND_MAPS[find_arithmetic_partner(205, 3)]. The actual irreps at 
+        # ZA, AA, and BA are given in CDML p. C491; ZA is already include in ISOTROPY
+        R₂₀₅ = SymOperation("y,x,z")
+        kvmaps = [KVecMapping("Z","ZA",R₂₀₅), KVecMapping("A","AA",R₂₀₅), KVecMapping("B","BA",R₂₀₅)]
+        return kvmaps, orphantype
         
     elseif orphantype ∈ (1,2) # supergroup case                                [types (a,b)]
         # A supergroup G′ exists which contains some (but not all) necessary operations 
         # that otherwise exist in the holosymmetric group; see table 4.1 of CDML; by exploiting
         # their connection to an isomorphic partner, we can get all the necessary operations
         # (see B&C).
-        parent_sgnum = ORPHAN_AB_SUPERPARENT_SGNUM[sgnum]
+        parent_sgnum, p = ORPHAN_AB_SUPERPARENT_SGNUMS[sgnum]
     end
 
     # If we reached here, orphantype is either 0 - in which case we can follow
     # the holosymmetric parent space group (G₀) approach - or orphantype is 
     # 1 (a) or 2 (b); in that case, we should use the supergroup G′ to identify
     # the irrep mapping vectors {R|v}; but we can still use the point group operation
-    # R inferred from ISOGONAL_PARENT_GROUPS and ΦNOTΩ_KVECS_AND_MAPS (if featuring)
+    # R inferred from find_arithmetic_partner and ΦNOTΩ_KVECS_AND_MAPS (if featuring)
 
-    # We need the isogonal parent group to find the correct key in ΦNOTΩ_KVECS_AND_MAPS
+    # We need the arithmetic parent group to find the correct key in ΦNOTΩ_KVECS_AND_MAPS
     # (since it only stores symmorphic space groups)
-    isogonal_parent_sgnum = ISOGONAL_PARENT_GROUPS[D][sgnum]
+    arith_parent_sgnum = find_arithmetic_partner(sgnum, D)
 
-    # There are some space groups (i.e. some isogonal super groups) that just
+    # There are some space groups (i.e. some isogonal partner groups) that just
     # do not get truly new k-points in Φ-Ω since they either already feature in 
     # star{𝐤} or are equivalent (either via a primitive reciprocal G-vector or 
     # by trivial parameter variation) to an existing KVec in Ω. In that case,
-    # there is no entry for isogonal_parent_sgnum in ΦNOTΩ_KVECS_AND_MAPS and
+    # there is no entry for arith_parent_sgnum in ΦNOTΩ_KVECS_AND_MAPS and
     # there is nothing to add. This is the case for sgnums 1, 16, 22, 89, 148,
-    # 177, 207, & 211). Terminate early in that case.
-    !haskey(ΦNOTΩ_KVECS_AND_MAPS, isogonal_parent_sgnum) && return nothing
+    # 177, 207, & 211). In that case, we set kvmaps_pg to `nothing`; otherwise
+    # we obtain the matching set of mappings from ΦNOTΩ_KVECS_AND_MAPS that
+    # contains ALL the new k-vecs and point-group mappings R from CDML Table 3.11
+    kvmaps_pg = get(ΦNOTΩ_KVECS_AND_MAPS, arith_parent_sgnum, nothing)
+    kvmaps_pg === nothing && return nothing
 
-    # Now we know there is a matching set of mappings in ΦNOTΩ_KVECS_AND_MAPS 
-    # that contains ALL the new k-vecs and R mappings from CDML Table 3.11; get it
-    kvmaps_pg = ΦNOTΩ_KVECS_AND_MAPS[isogonal_parent_sgnum] # point group operations R
-
-    # now we need to find the appropriate parent group: if not an orphan, 
+    # now we need to find the appropriate parent group Gᵖᵃʳ: if not an orphan, 
     # this is the parent holosymmetric space group G₀; if an orphan of type
-    # (a) or (b) it is the supergroup G′ (already stored then)
-    if iszero(orphantype)
-        parent_sg = find_holosymmetric_parent(sgnum, D)
-        parent_sg === nothing && throw("Unexpected error")
-    else
-        # TODO: load the orphan's parent_sg from parent_sgnum (maybe consolidate approaches?)
+    # (a) or (b) it is the supergroup G′
+    if iszero(orphantype)                       # ⇒ not an orphan
+        opsGᵖᵃʳ = operations(find_holosymmetric_parent(sgnum, D))
+    else                                        # ⇒ an orphan of type (a) or (b)
+        opsGᵖᵃʳ = operations(get_sgops(parent_sgnum, D))
+        if !iszero(p) # transform setting if it differs (origin only)
+            opsGᵖᵃʳ .= transform.(opsGᵖᵃʳ, Ref(Matrix{Float64}(I, 3, 3)), Ref(p))
+        end
     end
 
-    # The mapping kvmaps_isogonal refers to an operation {R|0} which may or may not 
-    # exist in the parent space group `parent_sg`; but an operation {R|v} _will_ exist:
-    # we now find that operation (this is the operation needed when mapping the irreps)
-    # TODO: Continue implementation from here?
+    # The mapping kvmaps_pg refers to a point operation {R|0} which may or may not 
+    # exist in the parent space group `Gᵖᵃʳ` with operations `opsGᵖᵃʳ`: but an operation
+    # {R|v} should exist. We now find that operation (which we need when mapping irreps)
     kvmaps = Vector{KVecMapping}()
     for kvmap_pg in kvmaps_pg
-        pgop = kvmap_pg.op                    # R in CDML notation
-        matchidx = findfirst(op′->rotation(pgop)==rotation(op′), operations(parent_sg))
-        if matchidx === nothing; throw("Should never happen: R = $(xyzt(pgop)) and parent_sgnum = $(num(parent_sg))"); end
-        sgop = operations(parent_sg)[matchidx] # {R|v} in CDML notation
+        R = kvmap_pg.op       # R in CDML notation
+        matchidx = findfirst(op′->rotation(R)==rotation(op′), opsGᵖᵃʳ)
+        # For orphans of type (a) or (b) there is the possibility of a situation
+        # where R is **not** in Gᵖᵃʳ, namely if R = SymOperation("-x,-y,-z"), see
+        # B&C p. 414-415.
+        # Despite this, for the KVecMappings included in CDML, this situation 
+        # never arises; this must mean that all those "new" KVecs generated by 
+        # inversion are equivalent to one of the "old" KVecs in Ω. We have verified 
+        # this explicitly, see below:
+        #       for otype = 1:2
+        #           arith_orphs = SGOps.find_arithmetic_partner.(SGOps.ORPHAN_SGNUMS[otype])
+        #           kvmaps_pg = get.(Ref(SGOps.ΦNOTΩ_KVECS_AND_MAPS), arith_orphs, Ref(nothing))
+        #           check = all.(xyzt.(getfield.(kvmap, :op)) .!= "-x,-y,-z" for kvmap in kvmaps_pg)
+        #           display(check) # ⇒ vector of `true`s
+        #       end
+        if matchidx === nothing
+            throw("Unexpected scenario encountered: please submit a bug-report.\n\t"*
+                  "R = $(xyzt(R)), parent_sgnum = $(parent_sgnum), orphantype = $(orphantype)")
+        end
+        sgop = opsGᵖᵃʳ[matchidx] # {R|v} symop from parent sg (CDML/B&C notation)
 
         push!(kvmaps, KVecMapping(kvmap_pg.kᴬlab, kvmap_pg.kᴮlab, sgop))
     end
 
-    return kvmaps
+    return kvmaps, orphantype
 end
 
 

@@ -164,13 +164,17 @@ issymmorph(sgnum::Integer, dim::Integer=3) = issymmorph(get_sgops(sgnum, dim))
 # ----- POINT GROUP ASSOCIATED WITH SPACE/PLANE GROUP (FULL OR LITTLE) ---
 """
     pointgroup(ops:AbstractVector{SymOperation})
+    pointgroup(sg::AbstractGroup)
+    pointgroup(sgnum::Integer, dim::Integer=3)
 
-Computes the point group associated with a space group SG (characterized by
+Computes the point group associated with a space group `sg` (characterized by
 a set of operators `ops`, which, jointly with lattice translations generate 
 the space group), obtained by "taking away" any translational parts and 
 then reducing to the resulting unique rotational operations.
 (technically, in the language of Bradley & Cracknell, this is the so-called
-isogonal point group of SG; see Sec. 1.5).
+isogonal point group of `sg`; see Sec. 1.5).
+
+Returns a `Vector` of `SymOperation`s.
 """
 function pointgroup(ops::AbstractVector{SymOperation})
     # find SymOperations that are unique with respect to their rotational parts
@@ -179,7 +183,7 @@ function pointgroup(ops::AbstractVector{SymOperation})
     return SymOperation.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, dim(first(ops))))))
 end
 pointgroup(sg::AbstractGroup) = pointgroup(operations(sg))
-pointgroup(pg::PointGroup) = operations(pg)
+pointgroup(pg::PointGroup) = operations(pg) # TODO: remove method?
 pointgroup(sgnum::Integer, dim::Integer=3) = pointgroup(get_sgops(sgnum, dim))
 
 # ----- GROUP ELEMENT COMPOSITION -----

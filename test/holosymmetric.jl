@@ -24,9 +24,9 @@ using SGOps, Test
 
     @test symmorph_nonholo_sgnums == sort([symmorph_nonholo_sgnums_CDML...])
 
-    # Check that our cached values for ISOGONAL_PARENT_GROUPS remain computed correctly:
-    isogonal_parent_groups′ = Tuple(tuple(getindex.(SGOps.get_arith_crystalclass_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
-    @test SGOps.ISOGONAL_PARENT_GROUPS == isogonal_parent_groups′
+    # Check that our cached values for ARITH_PARTNER_GROUPS remain computed correctly: (avoid bit-rotting)
+    arith_partner_groups′ = Tuple(tuple(getindex.(SGOps._find_arithmetic_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
+    @test SGOps.ARITH_PARTNER_GROUPS == arith_partner_groups′
 end
 
 
@@ -46,8 +46,8 @@ end
         G₀′ᵖ = reduce_ops(G₀′, cntr, false)    # G₀ in primitive basis of sgnum
 
         # verify that the G₀′ is indeed a normal, holosymmetric supergroup of G
-        @test SGOps.issubgroup(G₀′ᵖ, Gᵖ)
-        @test SGOps.isnormal(G₀′ᵖ, Gᵖ)
+        @test issubgroup(G₀′ᵖ, Gᵖ) && issubgroup(G₀′, G) # test for both conventional 
+        @test isnormal(G₀′ᵖ, Gᵖ)   && isnormal(G₀′, G)   # **and** primitive bases
         @test SGOps.is_holosymmetric(sgnum₀, 3)
     end
 end
@@ -64,11 +64,11 @@ end
 
 
 @testset "Test find_holosymmetric_superpointgroup" begin
-    # the minimal super point group P₀ of a holosymmetric space group G₀ should equal its isogonal point group F₀
+    # the minimal super point group P₀ of a holosymmetric space group G₀ should equal its isogonal/arithmetic point group F₀
     for D in 1:3
         for sgnum₀ in SGOps.HOLOSYMMETRIC_SGNUMS[D]
             G₀ = get_sgops(sgnum₀, D)
-            F₀ = pointgroup(G₀)                                            # isogonal point group of G₀
+            F₀ = pointgroup(G₀)                                            # isogonal/arithmetic point group of G₀
             P₀ = operations(SGOps.find_holosymmetric_superpointgroup(G₀))  # minimal holosymmetric super point group of G₀
             @test sort(xyzt.(F₀)) == sort(xyzt.(P₀))
         end
@@ -95,8 +95,8 @@ end
 
         # look for new kvecs (and mapping) in CDML data; if nothing is there, return an empty 
         # array of SGOps.KVecMapping
-        isogonal_parent_sgnum = SGOps.ISOGONAL_PARENT_GROUPS[D][sgnum]
-        kvmaps_CDML = get(SGOps.ΦNOTΩ_KVECS_AND_MAPS, isogonal_parent_sgnum, SGOps.KVecMapping[])
+        arith_partner_sgnum = find_arithmetic_partner(sgnum,D)
+        kvmaps_CDML = get(SGOps.ΦNOTΩ_KVECS_AND_MAPS, arith_partner_sgnum, SGOps.KVecMapping[])
         newklabs_CDML = [getfield.(kvmaps_CDML, :kᴮlab)...]
 
         # look for new kvecs using our own search implementation
@@ -129,6 +129,25 @@ end
         print("   Fewer KVecs in CDML:\n      "); join(stdout, fewer, ' '); println()
     end
 
+end
+
+@testset "Tabulated orphan parent groups are indeed normal supergroups" begin
+    Pᴵ = Matrix{Float64}(I, 3, 3) # trivial transformation rotation (only translation may be nontrivial here)
+    for (sgnum, (parent_sgnum, p)) in pairs(SGOps.ORPHAN_AB_SUPERPARENT_SGNUMS)
+        G  = operations(get_sgops(sgnum, 3))
+        G′ = operations(get_sgops(parent_sgnum, 3)) # basis setting may differ from G (sgs 151-154)
+
+        # G′ in conventional basis of G
+        if !iszero(p)
+            G′ .= transform.(G′, Ref(Pᴵ), Ref(p))
+            # Note: we don't have to bother with going to the primitive lattice since
+            #       all the group/supergroup pairs have the same bravais type.
+        end
+
+        # test that G◁G′
+        @test issubgroup(G′, G)
+        @test isnormal(G′, G)
+    end
 end
 
 end # outer @testset
