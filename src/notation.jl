@@ -230,10 +230,10 @@ function seitz(op::SymOperation)
             _throw_seitzerror(trW, detW)
         end
     elseif detW == -1 # improper rotations (rotoinversions)
-        if trW == -3    # inversion
+        if trW == -3     # inversion
             rot = -1
         elseif trW == -2 # 6-fold rotoinversion
-            rot= -6
+            rot = -6
         elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
             rot = trW - 3
         elseif trW == 1  # mirror, note that "m" == "-2" conceptually
@@ -272,15 +272,23 @@ function seitz(op::SymOperation)
         end
         norm = minimum(Base.Filter(x->x>DEFAULT_ATOL,abs.(u))) # minimum nonzero element
         u ./= norm # normalize
-        u′,  u  = u, round.(Int64, u) # convert from float to integer and check validity of conversion
+        u′, u  = u, round.(Int64, u) # convert from float to integer and check validity of conversion
         isapprox(u′, u, atol=DEFAULT_ATOL) || throw(ArgumentError("the rotation axis must be equivalent to an integer vector by appropriate normalization; got $(u′)"))
         # the sign of u is arbitrary: we adopt the convention of '-' elements
         # coming "before" '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1]
         # and [-1 1 -1] is picked over [1 -1 1]; note that this impacts the 
-        # sense of rotation which depends on the sign of the rotation axis
-        negidx = findfirst(x->x<0, u)
-        firstnonzero = findfirst(x-> abs(x) ≠ 0, u)
-        if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3); u .*= -1; end
+        # sense of rotation which depends on the sign of the rotation axis;
+        # finally, if all elements have the same sign (or zero), we pick a  
+        # positive overall sign ('+')
+        if all(x -> x≤0, u)
+            u .*= -1
+        else
+            negidx = findfirst(signbit, u)
+            firstnonzero = findfirst(x -> x≠0, u) # don't need to bother taking abs, as -0 = 0 for integers (and floats)
+            if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3)
+                u .*= -1 
+            end
+        end
 
         axis_str = subscriptify(join(string(u[i]) for i in 1:dim)) # for 2D, ignore z-component
     end
@@ -303,7 +311,6 @@ function seitz(op::SymOperation)
     # --- nonsymmorphic part ---
     w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:dim), ',') : "0"
         
-
     # --- combine labels ---
     return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
 end

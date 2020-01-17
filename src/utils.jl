@@ -14,6 +14,30 @@ function parsefraction(str::AbstractString)
     end
 end
 
+"""
+    fractionify!(io::IO, x::Real, forcesign::Bool=true, tol::Real=1e-4)
+
+Write a string representation of the nearest fraction (within a tolerance 
+`tol`) of `x` to `io`. If `forcesign` is true, the sign character of `x` 
+is printed whether `+` or `-` (otherwise, only printed if `-`).
+"""
+function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
+    if forcesign || signbit(x)
+        write(io, signaschar(x))
+    end
+    t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
+    if !isinteger(t)
+        write(io, string(abs(numerator(t)), '/', denominator(t)))
+    else
+        write(io, string(abs(numerator(t))))
+    end
+    return nothing
+end
+function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-4)
+    buf = IOBuffer()
+    fractionify!(buf, x, forcesign, tol)
+    return String(take!(buf))
+end
 
 """
     isapproxin(x, itr) --> Bool
@@ -143,7 +167,7 @@ function printboxchar(io, i, N)
     if i == 1
         print(io, "╭") #┌
     elseif i == N
-        print(io, "╰") #┕
+        print(io, "╰") #└
     else
         print(io, "│")
     end
@@ -164,6 +188,29 @@ function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     return String(take!(buf))
 end
 
+
+"""
+    compact_print_matrix(io)
+
+Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow` input.
+
+Should never be used for printing very large matrices, as it will not wrap or abbreviate
+rows/columns.
+"""
+function compact_print_matrix(io, X::Matrix, prerow, elformat=(x->round(x,digits=2)), sep="")
+    X_formatted = elformat.(X) # allocates; can't be bothered... (could be fixed using MappedArrays)
+    screenheight = screenwidth = typemax(Int)
+    rowsA, colsA = UnitRange(axes(X,1)), UnitRange(axes(X,2))
+
+    A = Base.alignment(io, X_formatted, rowsA, colsA, screenwidth, screenwidth, length(sep))
+    for i in rowsA
+        i != first(rowsA) && print(io, prerow)
+        print(io, i == first(rowsA) ? '┌' : (i == last(rowsA) ? '└' : '│'), ' ')
+        Base.print_matrix_row(IOContext(io, :compact=>true), X_formatted, A, i, colsA, sep)
+        print(io, ' ', i == first(rowsA) ? '┐' : (i == last(rowsA) ? '┘' : '│'))
+        if i != last(rowsA); println(io); end
+    end
+end
 
 
 

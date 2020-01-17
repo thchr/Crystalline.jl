@@ -120,9 +120,7 @@ function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
         # nonsymmorphic/fractional translation part
         if size(O,2) == dim+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
             if !iszero(row[end])
-                write(buf, signaschar(row[end]))
-                t = rationalize(float(row[end]), tol=1e-4) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
-                write(buf, string(abs(numerator(t)), '/', denominator(t)))
+                fractionify!(buf, row[end])
             end
         end
         if i != dim; write(buf, ','); end
@@ -130,6 +128,7 @@ function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
 
     return String(take!(buf))
 end
+
 
 
 """

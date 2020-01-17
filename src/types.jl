@@ -47,13 +47,36 @@ translation(op::SymOperation)  = translation(matrix(op))
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
 unpack(op::SymOperation) = (rotation(op), translation(op))
 function show(io::IO, ::MIME"text/plain", op::SymOperation)
-    print(io, seitz(op),":\n   (", xyzt(op), ")\n")
-    Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
+    opseitz, opxyzt = seitz(op), xyzt(op)
+    print(io, "├─ ", opseitz, " ")
+    printstyled(io, repeat('─',36-length(opseitz)-length(opxyzt)), " (", opxyzt, ")"; color=:light_black)
+    #Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
+    ((D = dim(op)) == 1 && return) || println(io) # no need to print a matrix if 1D
+    # info that is needed before we start writing by column
+    τstrs = fractionify.(translation(op), false)
+    Nsepτ = maximum(length, τstrs)
+    firstcol_hasnegative = any(signbit, @view op.matrix[:,1])
+    for i in 1:D
+        print(io, "│  ")
+        printstyled(io, i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
+        for j in 1:D
+            c = op.matrix[i,j]
+            cᴵ = convert(Int64, op.matrix[i,j])
+            # we exploit that a valid symop never has an entry that is more than
+            # two characters long (namely, -1) in its rotation parts
+            sep = repeat(' ', 1+(j ≠ 1 || firstcol_hasnegative)-signbit(cᴵ))
+            printstyled(io, sep, cᴵ, color=:light_black)
+        end
+        printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
+        printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
+        i ≠ D && println(io)
+    end
+    return
 end
 function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
     for (i,op) in enumerate(ops)
         show(io, "text/plain", op)
-        if i < length(ops); print(io, "\n"); end
+        if i < length(ops); println(io, "\n│"); end
     end
 end
 
@@ -248,7 +271,7 @@ lastindex(g::AbstractGroup, d::Int64) = size(operations(g), d)  # allows using `
 
 function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
     if isa(g, SpaceGroup)
-        groupprefix = dim(g) == 3 ? "Space group" : (dim(g) == 2 ? "Plane group" : nothing)
+        groupprefix = dim(g) == 3 ? "Space group" : (dim(g) == 2 ? "Plane group" : "Line group")
     elseif isa(g, PointGroup)
         groupprefix = "Point group"
     else
@@ -310,8 +333,13 @@ matrices(ir::AbstractIrrep) = ir.matrices
 type(ir::AbstractIrrep) = ir.type
 translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
-klabel(ir::AbstractIrrep) = klabel(label(ir))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
+klabel(ir::AbstractIrrep) = klabel(label(ir))
+function klabel(cdml::String)
+    idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
+    previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
+    return cdml[firstindex(cdml):previdx]
+end
 
 # 3D Space group irreps
 struct SGIrrep{T} <: AbstractIrrep where T
@@ -399,12 +427,6 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     return P
 end
 
-function klabel(cdml::String)
-    idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
-    return cdml[firstindex(cdml):prevind(cdml,idx)]
-end
-
-
 """
     israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
 
@@ -433,31 +455,141 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
 end
 
-function show(io::IO, ::MIME"text/plain", lgir::LGIrrep)
-    Nₒₚ = order(lgir)
-    print(io, label(lgir))
-    indent = " "^length(label(lgir))
-    for (i,(op,ir)) in enumerate(zip(operations(lgir), irreps(lgir))); 
-        if    i == 1; print(io, " ╮ "); 
-        else          print(io, indent, " │ "); end
-        print(io, xyzt(op), ":\n")
-        Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
-        if i < Nₒₚ; print(io, '\n'); end
+# methods to print LGIrreps ...
+function prettyprint(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString="")
+    # unpack
+    k₀, kabc = parts(lgir.lg.kv)
+    P = lgir.matrices[i]
+    τ = lgir.translations[i]
+
+    # phase contributions
+    ϕ₀ = dot(k₀, τ)                                   # constant phase
+    ϕabc = [dot(kabcⱼ, τ) for kabcⱼ in eachcol(kabc)] # variable phase
+    ϕabc_contrib = norm(ϕabc) > sqrt(dim(lgir))*DEFAULT_ATOL
+
+    # print the constant part of the irrep that is independent of α,β,γ
+    printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cis(2π*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
+    if size(printP) == (1,1) # scalar case
+        v = printP[1]
+        if isapprox(v, real(v), atol=DEFAULT_ATOL)          # real scalar
+            if ϕabc_contrib && abs(real(v)) ≈ 1.0
+                signbit(real(v)) && print(io, '-')
+            else
+                print(io, real(v))
+            end
+        elseif isapprox(v, imag(v)*im, atol=DEFAULT_ATOL)   # imaginary scalar
+            if ϕabc_contrib && abs(imag(v)) ≈ 1.0
+                signbit(imag(v)) && print(io, '-')
+            else
+                print(io, imag(v))
+            end
+            print(io, "i")
+        else                                                # complex scalar (print as polar)
+            vρ, vθ = abs(v), angle(v)
+            vθ /= π
+            print(io, vρ  ≈ 1.0 ? "" : vρ, "exp(") 
+            if abs(vθ) ≈ 1.0
+                signbit(vθ) && print(io, '-')
+            else
+                print(io, vθ)
+            end
+            print(io, "iπ)")
+            #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
+        end
+
+    else # matrix case
+        formatter = x->(xr = real(x); xi = imag(x);
+                        ComplexF64(abs(xr) > DEFAULT_ATOL ? xr : 0.0,
+                                   abs(xi) > DEFAULT_ATOL ? xi : 0.0)) # round small complex components to zero
+
+        compact_print_matrix(io, printP, prefix, formatter) # not very optimal; e.g. makes a whole copy and doesn't handle displaysize
+    end
+
+    # print the variable phase part that depends on the free parameters α,β,γ 
+    if ϕabc_contrib
+        nnzabc = sum(c->abs(c)>DEFAULT_ATOL, ϕabc)
+        print(io, "exp")
+        if nnzabc == 1
+            print(io, "(")
+            i = findfirst(c->abs(c)>DEFAULT_ATOL, ϕabc)
+            c = ϕabc[i]
+            signbit(c) && print(io, "-")
+            abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+
+            print(io, "iπ", 'ΰ'+i, ")") # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
+
+        else
+            print(io, "[iπ(")
+            first_nzidx = true
+            for (i,c) in enumerate(ϕabc)
+                if abs(c) > DEFAULT_ATOL
+                    if first_nzidx 
+                        signbit(c) && print(io, '-')
+                        first_nzidx = false
+                    else
+                        print(io, signaschar(c))
+                    end
+                    abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+                    print(io, 'ΰ'+i) # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
+                end
+            end
+            print(io, ")]")
+        end
+
     end
 end
-function show(io::IO, ::MIME"text/plain", lgirvec::Union{AbstractVector{LGIrrep}, NTuple{N,LGIrrep} where N})
-    print(io, "LGIrrep(#", num(lgirvec[1]), ") at ", klabel(lgirvec[1]), " = ")
-    show(io,"text/plain", kvec(lgirvec[1])); println(io)
-    Nᵢᵣ = length(lgirvec)
-    for (i,lgir) in enumerate(lgirvec)
+function show(io::IO, ::MIME"text/plain", lgir::LGIrrep)
+    Nₒₚ = order(lgir)
+    lgirlab = formatirreplabel(label(lgir))
+    lablen = length(lgirlab)
+    indent = repeat(" ", lablen+1)
+    kvstr = string(lgir.lg.kv)
+    boxdelims = repeat("─", 35)
+
+    println(io, lgirlab, " ─┬", boxdelims, " ", kvstr); 
+    linelen = length(boxdelims) + 5 + length(kvstr) + length(lgirlab)
+    for (i,op) in enumerate(operations(lgir)) # enumerate(zip(operations(lgir), irreps(lgir))))
+        print(io, indent, " ├─ ")
+        opseitz, opxyzt  = seitz(op), xyzt(op)
+        printstyled(io, opseitz, ": ", 
+                        repeat("─", linelen-11-lablen-length(opseitz)-length(opxyzt)), 
+                        " (", opxyzt, ")\n"; 
+                        color=:light_black)
+        #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
+        print(io, indent, " │     ")
+        prettyprint(io, lgir, i, indent*" │     ")
+        if i < Nₒₚ; println(io, '\n', indent, " │     "); end
+    end
+    print(io, "\n", indent, " └", repeat("─", length(boxdelims)+1+length(kvstr)))
+end
+function show(io::IO, ::MIME"text/plain", lgirs::AbstractVector{<:LGIrrep})
+    print(io, "LGIrrep(#", num(lgirs[1]), ") at ", klabel(lgirs[1]), " = ")
+    show(io,"text/plain", kvec(lgirs[1])); println(io)
+    Nᵢᵣ = length(lgirs)
+    for (i,lgir) in enumerate(lgirs)
         show(io, "text/plain", lgir)
         if i != Nᵢᵣ; println(io); end
     end
 end
+function show(io::IO, ::MIME"text/plain", lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}})
+    for lgirs in lgirsvec
+        show(io, "text/plain", lgirs)
+        println(io)
+    end
+end
 
-function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, klab::String)
+function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, klab::String, verbose::Bool=false)
     kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
-    return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
+    if kidx === nothing
+        if verbose
+            println("Didn't find any matching k-label in lgirsvec: "*
+                    "the label may be specified incorrectly, or the irrep is missing (e.g. the irrep could be a axes-dependent irrep)")
+            @info klab klabel.(first.(lgirsvec))
+        end
+        return nothing 
+    else
+        return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
+    end
 end
 find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(get_lgirreps(sgnum, D), klab)
 
@@ -467,6 +599,9 @@ struct CharacterTable{D}
     ops::Vector{SymOperation}
     irlabs::Vector{String}
     chartable::Matrix{ComplexF64}
+    # TODO: for LGIrreps and SGIrreps, it might be nice to keep this more versatile and
+    #       include the translations and kvec as well; then we could print a result that
+    #       doesn't specialize on a given αβγ choice (see also chartable(::LGirrep))
     tag::String
 end
 CharacterTable{D}(ops::Vector{SymOperation}, 
@@ -489,10 +624,10 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
                       : c)
         end
     end
-    pretty_table(stdout, 
+    pretty_table(io, 
                  [formatirreplabel.(labels(ct)) chars_formatted],  # first column of table = irrep labels; then formatted character table
-                 [tag(ct) seitz.(operations(ct))...], # table header = seitz operations and table tag
-                  unicode_rounded,
+                 [tag(ct) seitz.(operations(ct))...]; # table header = seitz operations and table tag
+                  tf = unicode,
                   highlighters=Highlighter((data,i,j)->i==1 || j==1; bold = true),
                   #screen_size =(250,100)
                   )
