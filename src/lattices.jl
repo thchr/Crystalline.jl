@@ -44,16 +44,47 @@ end
 #   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
 # and 
 #   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
-function levelsetlattice(sgnum::Int64, dim::Int64=2, 
-                         idxmax::NTuple=ntuple(i->2,dim))
+"""
+    levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,dim))
+        --> UnityFourierLattice{D}
+
+Compute a "neutral"/uninitialized Fourier lattice basis, a UnityFourierLattice, consistent
+with the symmetries of the space group `sgnum` in dimension `D`. The resulting lattice
+`flat` is expanded in a Fourier basis split into symmetry-derived orbits, with intra-orbit 
+coefficients constrained by the symmetries of the space-group. The inter-orbit coefficients
+are, however, free and unconstrained.
+
+The Fourier resolution along each reciprocal lattice vector is controlled by `idxmax`:
+e.g., if `D = 2` and `idxmax = (2, 3)`, the resulting Fourier lattice may contain 
+reciprocal lattice vectors (k₁, k₂) with k₁∈[0,±1,±2] and k₂∈[0,±1,±2,±3], referred 
+to a 𝐆-basis.
+
+This "neutral" lattice can, and usually should, be subsequently modulated by `modulate`
+(modulates the inter-orbit coefficients, which will often eliminate symmetries that may
+remain in the "neutral" configuration, where all inter-orbit coefficients are unity).
+
+# Examples
+
+Compute a UnityFourierLattice, modulate it with random inter-orbit coefficients via `modulate`,
+and finally plot it:
+
+```julia-repl
+julia> uflat = levelsetlattice(16, 2)
+julia> flat  = modulate(uflat)
+julia> Rs    = directbasis(16, 2) 
+julia> plot(flat, Rs)
+```
+"""
+function levelsetlattice(sgnum::Integer, D::Integer=2, 
+                         idxmax::NTuple=ntuple(i->2, D))
     # check validity of inputs
     (sgnum < 1)               && throw(DomainError(sgnum, "sgnum must be greater than 1"))
-    !(dim == 2 || dim == 3)   && throw(DomainError(dim, "dim must be equal to 2 or 3"))
-    dim ≠ length(idxmax)      && throw(DomainError((dim, idxmax), "dim must equal length(idxmax): got (dim = $dim) ≠ (length(idxmax) = $(length(idxmax)))"))
-    (dim == 2 && sgnum > 17)  || (dim == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
+    !(D == 2 || D == 3)   && throw(DomainError(D, "D must be equal to 2 or 3"))
+    D ≠ length(idxmax)      && throw(DomainError((D, idxmax), "D must equal length(idxmax): got (D = $D) ≠ (length(idxmax) = $(length(idxmax)))"))
+    (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
 
     # prepare
-    sg = get_sgops(sgnum, dim)
+    sg = get_sgops(sgnum, D)
     sgops = operations(sg)
     Ws = rotation.(sgops) # operations W in R-basis (point group part)
     ws = translation.(sgops)
@@ -72,9 +103,9 @@ function levelsetlattice(sgnum::Int64, dim::Int64=2,
     reviter = Iterators.product(reverse((:).(.-idxmax, idxmax))...)
 
     # --- compute orbits ---
-    orbits = Vector{Vector{SVector{dim,Int64}}}() # vector to store orbits of G-vectors (in G-basis)
+    orbits = Vector{Vector{SVector{D,Int64}}}() # vector to store orbits of G-vectors (in G-basis)
     for rG in reviter  
-        G = SVector{dim,Int64}(reverse(rG)) # fix order and convert to SVector{dim,Int64} from Tuple
+        G = SVector{D,Int64}(reverse(rG)) # fix order and convert to SVector{D,Int64} from Tuple
 
         skip = false # if G already contained in an orbit; go to next G
         for orb in orbits
