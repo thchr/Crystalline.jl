@@ -10,7 +10,7 @@ dim = 2
 flat = levelsetlattice(sgnum, dim, ntuple(_->2, dim))
 mflat = modulate(flat)
 smflat = normscale(mflat,1);
-C = gen_crystal(sgnum, dim)
+Rs = directbasis(sgnum, dim)
 
 epsin = 10.0
 epsout = 1.0
@@ -24,7 +24,7 @@ smflat′ = deepcopy(smflat)
 fig = plt.figure()
 for (step, filling) in pairs(range(0.2, .8, length=2))
     # plot
-    plot(smflat′, C, filling=filling, fig=fig, repeat=1)
+    plot(smflat′, Rs, filling=filling, fig=fig, repeat=1)
     pause(.01)
     
     # write to file to disk
@@ -33,7 +33,7 @@ for (step, filling) in pairs(range(0.2, .8, length=2))
         for runtype in ("tm", "te")
             filename = SGOps.mpb_calcname(dim, sgnum, id′, res, runtype)
             open(write_dir*filename*".sh", "w") do io
-                calcname = prepare_mpbcalc!(io, sgnum, smflat, C, filling, epsin, epsout, kvecs, id′, res, runtype)
+                calcname = prepare_mpbcalc!(io, sgnum, smflat, Rs, filling, epsin, epsout, kvecs, id′, res, runtype)
             end
         end
     end

@@ -1,26 +1,36 @@
-# Crystalline lattice
-struct Crystal{D}
-    Rs::NTuple{D,Vector{Float64}}
+# DirectBasis and ReciprocalBasis for crystalline lattices
+abstract type Basis{D} <: AbstractVector{Vector{Float64}} end
+for T in (:DirectBasis, :ReciprocalBasis)
+    @eval struct $T{D} <: Basis{D}
+              vecs::NTuple{D,Vector{Float64}}
+          end
+    @eval $T(Rs::NTuple{D,Vector{<:Real}}) where D = $T{D}(float.(Rs))
+    @eval $T(Rs::AbstractVector{<:Real}...) = $T(Rs)
 end
-Crystal(Rs) = Crystal{length(Rs)}(Rs)
-Crystal(Rs...) = Crystal(Rs)
-basis(C::Crystal) = C.Rs
-dim(C::Crystal{D}) where D = D
-function show(io::IO, ::MIME"text/plain", C::Crystal)
-    print(io, "$(dim(C))D Crystal:")
-    print(io, " ($(crystalsystem(C)))");
-    for (i,R) in enumerate(basis(C))
-        print(io, "\n   R$(i): "); print(io, R); 
+
+vecs(Vs::Basis) = Vs.vecs
+# define the AbstractArray interface for DirectBasis{D}
+getindex(Vs::Basis, i::Int) = vecs(Vs)[i] 
+firstindex(::Basis) = 1
+lastindex(::Basis{D}) where D = D
+setindex!(Vs::Basis, vec::Vector{Float64}, i::Int) = (Vs[i] .= vec)
+size(::Basis{D}) where D = (D,)
+IndexStyle(::Basis) = IndexLinear()
+function show(io::IO, ::MIME"text/plain", Vs::DirectBasis) # cannot use for ReciprocalBasis at the moment (see TODO in `crystalsystem`)
+    print(io, typeof(Vs))
+    print(io, " ($(crystalsystem(Vs))):")
+    for (i,V) in enumerate(Vs)
+        print(io, "\n   ", V)
     end
 end
-norms(C::Crystal) = norm.(basis(C))
+norms(Rs::Basis) = norm.(Rs)
 _angle(rA,rB) = acos(dot(rA,rB)/(norm(rA)*norm(rB)))
-function angles(C::Crystal{D}) where D
-    R = basis(C)
-    γ = _angle(R[1], R[2])
+function angles(Rs::Basis{D}) where D
+    D == 1 && return nothing
+    γ = _angle(Rs[1], Rs[2])
     if D == 3
-        α = _angle(R[2], R[3])
-        β = _angle(R[3], R[1])
+        α = _angle(Rs[2], Rs[3])
+        β = _angle(Rs[3], Rs[1])
         return α,β,γ
     end
     return γ

@@ -32,7 +32,7 @@ end
         for lgirvec in lgirs
             sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
             ops = operations(first(lgirvec))              # ops in conventional basis
-            primitive_ops = SGOps.primitivize.(ops, cntr) # ops in primitive basis
+            primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
             checkmt = @test isgroup(mt) 
             
@@ -51,7 +51,7 @@ for dim in 2:3
         for sgnum in sgnums[dim-1]
             cntr = centering(sgnum, dim);
             ops = operations(get_sgops(sgnum, dim))      # ops in conventional basis
-            primitive_ops = SGOps.primitivize.(ops, cntr) # ops in primitive basis
+            primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
             checkmt = @test isgroup(mt) 
         end
@@ -65,7 +65,7 @@ end
         for lgirvec in lgirs
             sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
             ops = operations(first(lgirvec))              # ops in conventional basis
-            primitive_ops = SGOps.primitivize.(ops, cntr) # ops in primitive basis
+            primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
 
             for lgir in lgirvec

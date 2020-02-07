@@ -6,7 +6,8 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       Meshing, JLD2, PrettyTables, 
       CSV,                    # for special_representation_domain_kpoints 
       MetaGraphs, LightGraphs # for compatibility.jl
-import Base: getindex, lastindex, string, isapprox,
+import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, # indexing interface
+             string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==, ImmutableDict
 using Compat
@@ -24,7 +25,8 @@ include("utils.jl") # useful utility methods (seldom needs exporting)
 export get_kvpath
 
 include("types.jl") # defines useful types for space group symmetry analysis
-export SymOperation, Crystal,               # types
+export SymOperation,                        # types
+       DirectBasis, ReciprocalBasis,
        SGIrrep, MultTable, LGIrrep, KVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
@@ -34,13 +36,13 @@ export SymOperation, Crystal,               # types
        getindex, rotation, translation, 
        issymmorph, ==,
        num, order,                          # ::AbstractGroup
-       basis, dim, norms, angles,           # ::Crystal
+       norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, type,
        isspecial, translations,             # ::SGIrrep
        israyrep, kvec, irreps,              # ::LGIrrep
        find_lgirreps,
-       string, parts,                       # ::KVec
+       dim, string, parts,                  # ::KVec
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
 
@@ -63,8 +65,8 @@ export get_pgops
 
 include("bravais.jl")
 export crystal, plot, crystalsystem,
-       bravaistype, primitivebasis,
-       gen_crystal, reciprocalbasis
+       bravaistype,
+       directbasis, reciprocalbasis
 
 include("irreps_reality.jl")
 export herring, realify

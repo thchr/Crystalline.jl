@@ -9,7 +9,7 @@ dim = 2
 flat = levelsetlattice(sgnum, dim, ntuple(_->2, dim))
 mflat = modulate(flat)
 smflat = normscale(mflat,0);
-C = gen_crystal(sgnum, dim)
+Rs = directbasis(sgnum, dim)
 filling = .5
 epsin = 10.0
 epsout = 1.0
@@ -24,7 +24,7 @@ fig = plt.figure()
 for (step, ϕ) in pairs(range(0, 2π, length=80))
     # plot
     smflat′.orbitcoefs .= smflat.orbitcoefs.*cis(ϕ)
-    plot(smflat′, C, filling=filling, fig=fig, repeat=1)
+    plot(smflat′, Rs, filling=filling, fig=fig, repeat=1)
     pause(.01)
     
     # write to file to disk
@@ -33,7 +33,7 @@ for (step, ϕ) in pairs(range(0, 2π, length=80))
         for runtype in ("tm", "te")
             filename = SGOps.mpb_calcname(dim, sgnum, id′, res, runtype)
             open(write_dir*filename*".sh", "w") do io
-                calcname = prepare_mpbcalc!(io, sgnum, smflat′, C, filling, epsin, epsout, kvecs, id′, res, runtype)
+                calcname = prepare_mpbcalc!(io, sgnum, smflat′, Rs, filling, epsin, epsout, kvecs, id′, res, runtype)
             end
         end
     end

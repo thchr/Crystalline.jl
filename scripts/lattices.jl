@@ -11,10 +11,10 @@ if false
 
     for sgnum = 1:17
         flat = levelsetlattice(sgnum, dim, idxmax)
-        C = gen_crystal(sgnum, dim) 
+        Rs = directbasis(sgnum, dim) 
         for n = 1:3
             mflat = normscale!(modulate(flat), expon)
-            plot(mflat, C; N=N, filling=filling, repeat=repeat)
+            plot(mflat, Rs; N=N, filling=filling, repeat=repeat)
             display(plt.gcf().show());
             if false
                 PyPlot.savefig((@__DIR__)*"\\figures\\planegroup$(sgnum)_$(n).png")
@@ -33,10 +33,10 @@ if true
     expon = .5 # exponent for coefficient fall-off
     filling = 0.5
 
-    C = gen_crystal(sgnum, dim)
+    Rs = directbasis(sgnum, dim)
     flat = levelsetlattice(sgnum, dim, idxmax)
     mflat = normscale!(modulate(flat), expon)
-    xyz,vals,isoval=plot(mflat, C; N=N, filling=filling)
+    xyz,vals,isoval=plot(mflat, Rs; N=N, filling=filling)
     #display(AbstractPlotting.current_scene());
 
     if save2matlab

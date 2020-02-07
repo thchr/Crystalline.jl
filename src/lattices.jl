@@ -271,10 +271,10 @@ function calcfourier(xyz, orbits, orbitcoefs)
 end
 
 """
-    plot(flat::AbstractFourierLattice, C::Crystal)
+    plot(flat::AbstractFourierLattice, Rs::DirectBasis)
 
-Plots an lattice `flat::AbstractFourierLattice` with lattice vectors
-given by `C::Crystal`. Possible kwargs are (default in brackets) 
+Plots a lattice `flat::AbstractFourierLattice` with lattice vectors
+given by `Rs::DirectBasis`. Possible kwargs are (default in brackets) 
 
 - `N`: resolution [`100`]
 - `filling`: determine isovalue from relative filling fraction [`0.5`]
@@ -285,7 +285,7 @@ given by `C::Crystal`. Possible kwargs are (default in brackets)
 If both `filling` and `isoval` kwargs simultaneously not equal 
 to `nothing`, then `isoval` takes precedence.
 """
-function plot(flat::AbstractFourierLattice, C::Crystal;
+function plot(flat::AbstractFourierLattice, Rs::DirectBasis;
               N::Integer=100, 
               filling::Union{Real, Nothing}=0.5, 
               isoval::Union{Real, Nothing}=nothing,
@@ -297,7 +297,7 @@ function plot(flat::AbstractFourierLattice, C::Crystal;
     if isnothing(isoval)
         isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
     end
-    plotiso(xyz,vals,isoval,basis(C),repeat,fig)
+    plotiso(xyz,vals,isoval,Rs,repeat,fig)
 
     return xyz,vals,isoval
 end
@@ -325,16 +325,16 @@ end
 ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
 # show isocontour of data
 function plotiso(xyz, vals, isoval::Real=0.0, 
-                 R=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
+                 Rs=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
                  repeat::Union{Integer, Nothing}=nothing, 
                  fig=nothing)  
     dim = ndims(vals)
     if dim == 2
         # convert to a cartesian coordinate system rather than direct basis of Ri
         N = length(xyz) 
-        X = broadcast((x,y) -> x*R[1][1] + y*R[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-        Y = broadcast((x,y) -> x*R[1][2] + y*R[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-        uc = [[0 0]; R[1]'; (R[1]+R[2])'; (R[2])'; [0 0]] .- (R[1]+R[2])'./2
+        X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        uc = [[0 0]; Rs[1]'; (Rs[1]+Rs[2])'; (Rs[2])'; [0 0]] .- (Rs[1]+Rs[2])'./2
         pad = abs((-)(extrema(uc)...))/25
 
         if isnothing(fig)
@@ -354,7 +354,7 @@ function plotiso(xyz, vals, isoval::Real=0.0,
             for r1 in -repeat:repeat
                 for r2 in -repeat:repeat
                     if r1 == r2 == 0; continue; end
-                    offset = R[1].*r1 .+ R[2].*r2
+                    offset = Rs[1].*r1 .+ Rs[2].*r2
                     fig.gca().contourf(X.+offset[1],Y.+offset[2],vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
                     fig.gca().contour(X.+offset[1],Y.+offset[2],vals,levels=[isoval], colors="w", linestyles="solid")
                 end
@@ -367,6 +367,7 @@ function plotiso(xyz, vals, isoval::Real=0.0,
         end
         fig.gca().set_aspect("equal", adjustable="box")
         fig.gca().set_axis_off()
+
     elseif dim == 3
         scene=Scene()
         Makie.contour!(scene, xyz,xyz,xyz, vals,

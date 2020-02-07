@@ -20,12 +20,12 @@ function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 end
 
 """ 
-    get_sgops(sgnum::Integer, dim::Integer=3) --> SpaceGroup
+    get_sgops(sgnum::Integer, D::Integer=3) --> SpaceGroup
 
 Obtains the space group symmetry operations in xyzt and matrix format
-for a given space group number (`= sgnum`). The symmetry operations  
-are specified relative to the conventional basis vector choices, i.e.
-not necessarily primitive. 
+for a given space group number (`= sgnum`) and dimensionality `D`.
+The symmetry operations are specified relative to the conventional basis
+vector choices, i.e. not necessarily primitive. 
 If desired, operations on a primitive unit cell can be subsequently 
 generated using `primitivize(...)` and `reduce_ops(...)`.
 
@@ -37,17 +37,17 @@ The default choices for basis vectors are specified in Bilbao as:
     centrosymmetric space groups for which there are two origin
     choices, within the orthorhombic, tetragonal and cubic systems.
 """
-function get_sgops(sgnum::Integer, dim::Integer=3)
-    sgops_str = read_sgops_xyzt(sgnum, dim)
+function get_sgops(sgnum::Integer, D::Integer=3)
+    sgops_str = read_sgops_xyzt(sgnum, D)
     sgops = SymOperation.(sgops_str)
 
-    return SpaceGroup(sgnum, sgops, dim)
+    return SpaceGroup(sgnum, sgops, D)
 end
 
 function xyzt2matrix(s::String)
     ssub = split(s, ',')
-    dim = length(ssub)
-    xyzt2matrix!(zeros(Float64, dim, dim+1), ssub)
+    D = length(ssub)
+    xyzt2matrix!(zeros(Float64, D, D+1), ssub)
 end
 
 function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, AbstractVector{T}} where T<:AbstractString)
@@ -101,13 +101,13 @@ signaschar(x::Number) = signbit(x) ? '-' : '+'
 const IDX2XYZ = ('x', 'y', 'z')
 
 function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
-    dim = size(O,1)
+    D = size(O,1)
     buf = IOBuffer()
     # rotation/inversion/reflection part
     for (i, row) in enumerate(eachrow(O))
         # rotation/inversion/reflection part
         firstchar = true
-        for j = 1:dim
+        for j = 1:D
             if !iszero(row[j])
                 if !firstchar || signbit(row[j])
                     write(buf, signaschar(row[j]))
@@ -118,12 +118,12 @@ function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
         end
 
         # nonsymmorphic/fractional translation part
-        if size(O,2) == dim+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
+        if size(O,2) == D+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
             if !iszero(row[end])
                 fractionify!(buf, row[end])
             end
         end
-        if i != dim; write(buf, ','); end
+        if i != D; write(buf, ','); end
     end
 
     return String(take!(buf))
@@ -153,18 +153,18 @@ nonsymmorphic (false).
 issymmorph(g::AbstractGroup) = all(op->issymmorph(op, centering(num(g), dim(g))), operations(g))
 
 """
-    issymmorph(sgnum::Integer, dim::Integer=3) --> Bool
+    issymmorph(sgnum::Integer, D::Integer=3) --> Bool
 
-Checks whether a given space group `sgnum` is symmorphic (true) or
-nonsymmorphic (false).
+Checks whether a given space group `sgnum` (of dimensionality `D`)
+is symmorphic (true) or nonsymmorphic (false).
 """
-issymmorph(sgnum::Integer, dim::Integer=3) = issymmorph(get_sgops(sgnum, dim))
+issymmorph(sgnum::Integer, D::Integer=3) = issymmorph(get_sgops(sgnum, D))
 
 # ----- POINT GROUP ASSOCIATED WITH SPACE/PLANE GROUP (FULL OR LITTLE) ---
 """
     pointgroup(ops:AbstractVector{SymOperation})
     pointgroup(sg::AbstractGroup)
-    pointgroup(sgnum::Integer, dim::Integer=3)
+    pointgroup(sgnum::Integer, D::Integer=3)
 
 Computes the point group associated with a space group `sg` (characterized by
 a set of operators `ops`, which, jointly with lattice translations generate 
@@ -183,7 +183,7 @@ function pointgroup(ops::AbstractVector{SymOperation})
 end
 pointgroup(sg::AbstractGroup) = pointgroup(operations(sg))
 pointgroup(pg::PointGroup) = operations(pg) # TODO: remove method?
-pointgroup(sgnum::Integer, dim::Integer=3) = pointgroup(get_sgops(sgnum, dim))
+pointgroup(sgnum::Integer, D::Integer=3) = pointgroup(get_sgops(sgnum, D))
 
 # ----- GROUP ELEMENT COMPOSITION -----
 """ 
@@ -254,7 +254,7 @@ end
 """
     inv(op::SymOperation) --> SymOperation
 
-Compute the inverse {W|w}⁻¹ of an operator `op`≡{W|w}.
+Compute the inverse {W|w}⁻¹ ≡ {W⁻¹|-W⁻¹w} of an operator `op` ≡ {W|w}.
 """
 function inv(op::SymOperation)
     W = rotation(op)
@@ -394,11 +394,11 @@ function littlegroup(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char='P'
     k₀, kabc = parts(kv)
     checkabc = !iszero(kabc)
     idxlist = [1]
-    dim = length(k₀)
+    D = dim(kv)
     for (idx, op) in enumerate(@view ops[2:end]) # note: `idx` is offset by 1 relative to position of op in ops
         k₀′, kabc′ = parts(compose(op, kv, checkabc)) # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)  
         diff = k₀′ .- k₀
-        diff = primitivebasismatrix(cntr, dim)'*diff 
+        diff = primitivebasismatrix(cntr, D)'*diff 
         kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
         abcbool = checkabc ? isapprox(kabc′, kabc, atol=DEFAULT_ATOL) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
@@ -417,7 +417,7 @@ function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(kv.kabc)
-    d = dim(kv)
+    D = dim(kv)
     for op in (@view ops[2:end])
         k₀′, kabc′ = parts(compose(op, kv, checkabc))
 
@@ -425,7 +425,7 @@ function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
         for kv′′ in kstar
             k₀′′, kabc′′ = parts(kv′′)
             diff = k₀′ .- k₀′′
-            diff = primitivebasismatrix(cntr, d)'*diff
+            diff = primitivebasismatrix(cntr, D)'*diff
             kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff)    # check if k₀ and k₀′ differ by a _primitive_ G-vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=DEFAULT_ATOL) : true # check if kabc == kabc′ (no need to check for difference by G-vectors, since kabc ∈ interior of BZ)
 
@@ -588,7 +588,7 @@ function reduce_ops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim:
     end
 end
 reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg), centering(num(sg), dim(sg)), conv_or_prim)
-reduce_ops(sgnum::Int64, dim::Int64=3, conv_or_prim::Bool=true) = reduce_ops(get_sgops(sgnum, dim), conv_or_prim)
+reduce_ops(sgnum::Int64, D::Int64=3, conv_or_prim::Bool=true) = reduce_ops(get_sgops(sgnum, D), conv_or_prim)
 
 
 """

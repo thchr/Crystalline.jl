@@ -27,7 +27,7 @@ function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsam
     return quantile(itr, filling)
 end
 
-crystal2mpb(C::Crystal) = _vecofvecs2ctl(basis(C))
+crystal2mpb(Rs::DirectBasis) = _vecofvecs2ctl(Rs)
 
 function mpb_calcname!(io, dim, sgnum, id, res, runtype="all")
     write(io, "dim",  string(dim),
@@ -67,7 +67,7 @@ end
     prepare_mpbcalc!(...)
 
 Formats a set of parameters that uniquely specify an MPB calculation, given a 
-space group number `sgnum`, a Fourier lattice `flat`, a crystal `C`, a filling
+space group number `sgnum`, a Fourier lattice `flat`, a DirectBasis `Rs`, a filling
 fraction `filling` for `flat`, interior and exterior (above, below the contour)
 permittivities `εin` and `εout`, as well as a list of k-vectors `kvecs`, an 
 identifying tag `id` (to label the calculation for book-keeping purposes), a 
@@ -93,13 +93,13 @@ Locally, in `mpb-ctl` we have a file `run-fourier-lattice.sh` which performs the
 above, with `calcname` specified as an input parameter (assumed to be a subfolder
 `/input/`).
 """
-function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D}, C::Crystal{D}, 
+function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D}, Rs::DirectBasis{D}, 
                                   filling::Real=0.5, εin::Real=10.0, εout::Real=1.0, 
                                   kvecs=(zeros(D),), id=1, res::Integer=32, runtype::String="all") where D
 
     # --- work to actually call mpb ---
     calcname = mpb_calcname(D, sgnum, id, res, runtype)
-    rvecs = crystal2mpb(C)
+    rvecs = crystal2mpb(Rs)
     uc_gvecs, uc_coefs = lattice2mpb(flat)
     uc_level = filling2isoval(flat, filling)
     # symops = symops2mpb(...)   TODO
@@ -128,11 +128,11 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
     return nothing
 end
 
-function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, C::Crystal{D}, 
+function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, Rs::DirectBasis{D}, 
                   filling::Real, epsin::Real=10.0, epsout::Real=1.0,
                   kvecs=(zeros(D),), id=1, res::Integer=32, runtype::String="all") where D
     io = IOBuffer()
-    prepare_mpbcalc!(io, sgnum, flat, C, filling, epsin, epsout, kvecs, id, res, runtype)
+    prepare_mpbcalc!(io, sgnum, flat, Rs, filling, epsin, epsout, kvecs, id, res, runtype)
     return String(take!(io))
 end
 
@@ -145,7 +145,7 @@ by `prepare_mpbcalc(!)` and return the associated lattice as Julia objects.
 
 Output:
 ```
-    C::Crystal, flat::ModulatedFourierLattice, 
+    Rs::DirectBasis, flat::ModulatedFourierLattice, 
     isoval::Float64, epsin::Float64, epsout::Float64
 ```
 Note that `flat` does not retain information about orbit groupings, since we 
@@ -162,13 +162,13 @@ function lattice_from_mpbparams(io::IO)
     # --- basis vectors ---
     readuntil(io, "rvecs=")
     if eof(io); reset(io); readuntil(io, "rvecs="); end # try to be robust to arbitrary ordering
-    Rs = Tuple(Vector{Float64}(undef, D) for _ in Base.OneTo(D))
-    for R in Rs
+    vecs = Tuple(Vector{Float64}(undef, D) for _ in Base.OneTo(D))
+    for R in vecs
         readuntil(io, "(vector3 ")
         coords = split.(readuntil(io, ')'))
         R .= parse.(Ref(Float64), coords)
     end
-    C = Crystal{D}(Rs)
+    Rs = DirectBasis{D}(vecs)
 
     # --- ("flattened") orbits ---
     readuntil(io, "uc-gvecs=")
@@ -211,12 +211,12 @@ function lattice_from_mpbparams(io::IO)
     epsout = parse(Float64, readline(io))
 
     unmark(io)
-    return C, flat, isoval, epsin, epsout
+    return Rs, flat, isoval, epsin, epsout
 end
 lattice_from_mpbparams(filepath::String) = open(filepath) do io; lattice_from_mpbparams(io); end
 
 function plot_lattice_from_mpbparams(filepath::String; kwargs...)
-    C, flat, isoval, epsin, epsout = lattice_from_mpbparams(filepath)
-    plot(flat, C; isoval=isoval, kwargs...)
+    Rs, flat, isoval, epsin, epsout = lattice_from_mpbparams(filepath)
+    plot(flat, Rs; isoval=isoval, kwargs...)
     return nothing
 end
