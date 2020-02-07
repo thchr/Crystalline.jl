@@ -197,7 +197,7 @@ using the composition rule (in Seitz notation)
 for symmetry operations opᵢ = {Wᵢ|wᵢ}. By default, the translation part of
 the {W₁*W₂|w₁+W₁*w₂} is reduced to the range [0,1], i.e. computed modulo 1.
 This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e. 
-`true` by default). Returns another `SymOperation`.
+`true`, by default). Returns another `SymOperation`.
 """
 (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation = SymOperation((∘)(matrix(op1), matrix(op2), modτ))
 function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
@@ -205,26 +205,30 @@ function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64
     w′ = translation(op1) .+ rotation(op1)*translation(op2)
 
     if modτ
-        # naïve approach to achieve semi-robust reduction of integer-translation
-        # via a slightly awful "approximate" modulo approach; basically just the
-        # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
-        # around each integer.
-        w′ .= mod.(w′,1.0)
-        # sometimes, mod(w′, 1.0) can omit reducing values that are very nearly 1.0
-        # due to floating point errors: we use a tolerance here to round everything 
-        # close to 0.0 or 1.0 exactly to 0.0
-        @simd for i in eachindex(w′)
-            if isapprox(round(w′[i]), w′[i], atol=DEFAULT_ATOL)
-                w′[i] = zero(eltype(w′))
-            end
-        end
+        reduce_translation_to_unitrange!(w′)
     end
 
     return [W′ w′]
 end
 const compose = ∘
 
-
+function reduce_translation_to_unitrange!(w::AbstractVector{Float64}) # mutates w; reduces components to range [0.0, 1.0[
+    # naïve approach to achieve semi-robust reduction of integer-translation
+    # via a slightly awful "approximate" modulo approach; basically just the
+    # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
+    # around each integer.
+    w .= mod.(w, 1.0)
+    # sometimes, mod(w′, 1.0) can omit reducing values that are very nearly 1.0
+    # due to floating point errors: we use a tolerance here to round everything 
+    # close to 0.0 or 1.0 exactly to 0.0
+    @simd for i in eachindex(w)
+        if isapprox(round(w[i]), w[i], atol=DEFAULT_ATOL)
+            w[i] = zero(eltype(w))
+        end
+    end
+    return w
+end
+reduce_translation_to_unitrange(w::AbstractVector{Float64}) = reduce_translation_to_unitrange!(copy(w)) # non-mutating variant
 
 """
     (⊚)(op1::T, op2::T) where T<:SymOperation -->  Vector{Float64}
@@ -241,14 +245,11 @@ Note that ⊚ can be auto-completed in Julia via \\circledcirc+[tab]
 function (⊚)(op1::T, op2::T) where T<:SymOperation
     # Translation result _without_ taking `mod`
     w′ = translation(op1) .+ rotation(op1)*translation(op2)  
-    # Below, we combine `mod` and `rem` to ensure correctness in 
-    # case any component `τ[i] < 0` (since `mod`, as used in ∘, 
-    # is not the "partner" of `div`; `rem` is, in the sense 
-    # `div(x,1) + rem(x,1) = x`, while `div(x,1) + mod(x,1) = x`
-    # is only true for x ≥ 0).
-    w′_lattice = div.(w′, 1.0) + rem.(w′, 1.0) .- mod.(w′, 1.0) 
-
-    return w′_lattice
+    # Then we take w′ modulo lattice vectors
+    w′′ = reduce_translation_to_unitrange(w′)
+    # Then we subtract the two (reuse w′′ to avoid additional allocations)
+    w′′ .= w′ .- w′′
+    return w′′
 end
 
 """
@@ -458,7 +459,7 @@ transformations are requested).
 """
 @inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
     k₀, kabc = parts(kv)
-    k₀′ = rotation(op)'\k₀      
+    k₀′ = rotation(op)'\k₀
     kabc′ = checkabc ? rotation(op)'\kabc : kabc
     return KVec(k₀′, kabc′)
 end
