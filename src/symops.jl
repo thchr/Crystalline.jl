@@ -499,7 +499,7 @@ end
 function primitivize(kv::KVec, cntr::Char)
     k₀, kabc = parts(kv)
     P = primitivebasismatrix(cntr, dim(kv))
-    # P transforms reciprocal coordinates as k′ = Pᵀk 
+    # P transforms reciprocal coordinates as 𝐤′ = Pᵀ𝐤
     # while P transforms direct coordinates as r′=P⁻¹r,
     # see ITA7 Sec. 1.5.1.2 and 1.5.2.1 (and note the 
     # distinction between transforming the basis and

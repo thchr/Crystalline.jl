@@ -15,10 +15,10 @@ all orbit coefficients is unity. The G-orbits `orbits` (& associated
 coefficients) are sorted in order of increasing |G| (low to high).
 """
 struct UnityFourierLattice{D} <: AbstractFourierLattice{D}
-    orbits::Vector{Vector{SVector{D, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
-    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit; unit norm
+    orbits::Vector{Vector{SVector{D, Int}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
+    orbitcoefs::Vector{Vector{ComplexF64}}  # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit; unit norm
 end
-UnityFourierLattice(orbits, orbitcoefs) = begin
+function UnityFourierLattice(orbits, orbitcoefs)
     D = length(first(first(orbits)))
     UnityFourierLattice{D}(orbits, orbitcoefs)
 end
@@ -32,8 +32,8 @@ a UnityFourierLattice by scaling/modulating its orbit coefficients
 by complex numbers; in general, the coefficients do not have unit norm.
 """
 struct ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
-    orbits::Vector{Vector{SVector{D, Int64}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
-    orbitcoefs::Vector{Vector{ComplexF64}}    # Vector of coefficients of 𝐆-plane waves within an orbit
+    orbits::Vector{Vector{SVector{D, Int}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
+    orbitcoefs::Vector{Vector{ComplexF64}}  # Vector of coefficients of 𝐆-plane waves within an orbit
 end
 
 
@@ -175,6 +175,75 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
         end
     end
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
+end
+
+"""
+    primitivize(flat::AbstractFourierLattice, cntr::Char) --> AbstractFourierLattice
+
+Given `flat` referred to a conventional basis with centering `cntr`, compute the 
+derived (but physically equivalent) lattice `flat′` referred to the associated 
+primitive basis. 
+
+Specifically, if `flat` refers to a direct conventional basis Rs≡(𝐚 𝐛 𝐜) [with 
+coordinate-vectors 𝐫≡(r₁, r₂, r₃)ᵀ] then `flat′` refers to a direct primitive 
+basis Rs′≡(𝐚′ 𝐛′ 𝐜′)≡(𝐚 𝐛 𝐜)P [with coordinate-vectors 𝐫′≡(r₁′, r₂′, r₃′)ᵀ=P⁻¹𝐫],
+where P denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
+
+To compute the associated primitive basis vectors, see `primitivize(::DirectBasis)`
+[specifically, `Rs′ = primitivize(Rs, cntr)`].
+
+
+# Examples
+
+A centered ('c') lattice from plane group 5 in 2D, plotted in its 
+conventional and primitive basis:
+
+```julia-repl
+julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
+
+julia> Rs   = directbasis(sgnum, D)     # conventional basis (rectangular)
+julia> flat = levelsetlattice(sgnum, D) # Fourier lattice in basis of Rs
+julia> flat = modulate(flat)            # modulate the lattice coefficients
+julia> plot(flat, Rs)
+
+julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
+julia> flat′ = primitivize(flat, cntr)  # Fourier lattice in basis of Rs′
+julia> plot(flat′, Rs′)
+```
+
+"""
+function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
+    # Short-circuit for lattices that have trivial transformation matrices
+    (D == 3 && cntr == 'P') && return flat
+    (D == 2 && cntr == 'p') && return flat
+    D == 1 && return flat
+
+    # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred
+    # to the conventional 𝐆-basis (𝐚* 𝐛* 𝐜*), and we want to instead express it as a coordinate
+    # vector 𝐤′≡(k₁′,k₂′,k₃′)ᵀ referred to the primitive 𝐆-basis (𝐚*′ 𝐛*′ 𝐜*′)≡(𝐚* 𝐛* 𝐜*)(P⁻¹)ᵀ,
+    # where P is the transformation matrix. This is achieved by transforming according to 𝐤′ = Pᵀ𝐤
+    # or, equivalently, (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ. See also `primitivize(::KVec)` and 
+    # `primitivize(::ReciprocalBasis)`.
+    P = primitivebasismatrix(cntr, D)
+
+    orbits = getorbits(flat) # vec of vec of G-vectors (in a **conventional** 𝐆-basis)
+    orbits′ = [[SVector{D, Int}(ntuple(_->0,D)) for j in eachindex(orb)] for orb in orbits] # prealloc. a vec of vec of G-vecs (to be filled in the **primitive** 𝐆-basis)
+    for (i, orb) in enumerate(orbits)
+        for (j, k) in enumerate(orb)
+            # Note that, because the primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) is "larger"
+            # vectors than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks
+            # when we go to a primitive basis), not every conventional reciprocal lattice 
+            # coordinate vector 𝐤 has a primitive integer-coordinate vector 𝐤′ (i.e. kᵢ∈ℕ does 
+            # not imply kᵢ′∈ℕ). However, since `flat` is derived consistent with the symmetries 
+            # in a conventional basis, the necessary restrictions will already have been imposed
+            # in the creation of `flat` to the primivized version will contain only integers in 
+            # coefficients (otherwise the lattice would not be periodic in the primitive cell).
+            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
+        end
+    end
+
+    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
+    return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
 end
 
 """

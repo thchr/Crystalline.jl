@@ -507,8 +507,8 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
         return ReciprocalBasis{D}(tuple(eachcol(Gs′)...))
     end 
 end
-# Note that the 𝑐𝑜𝑒𝑓𝑓𝑒𝑐𝑖𝑒𝑛𝑡𝑠 of a general 𝐤-vector transform
-# differently than the reciprocal basis, which transforms
+# Note that the _coefficients_ of a general 𝐤-vector transform
+# differently than the reciprocal _basis_, which transforms
 # from non-primed to primed variants via a basis matrix 𝐏
 # according to (see also `primitivize(Gs::ReciprocalBasis)`):
 # Specifically, a 𝐤-vector is specified by a product of a
