@@ -233,10 +233,10 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
             # Note that, because the primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) is "larger"
             # vectors than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks
             # when we go to a primitive basis), not every conventional reciprocal lattice 
-            # coordinate vector 𝐤 has a primitive integer-coordinate vector 𝐤′ (i.e. kᵢ∈ℕ does 
+            # coordinate vector 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does 
             # not imply kᵢ′∈ℕ). However, since `flat` is derived consistent with the symmetries 
             # in a conventional basis, the necessary restrictions will already have been imposed
-            # in the creation of `flat` to the primivized version will contain only integers in 
+            # in the creation of `flat` so that the primivized version will have only integer
             # coefficients (otherwise the lattice would not be periodic in the primitive cell).
             orbits′[i][j] = convert(SVector{D, Int}, P'*k)
         end
