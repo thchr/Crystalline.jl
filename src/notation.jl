@@ -7,40 +7,45 @@ space groups, not plane groups, so this notation is only relevant
 in three dimensions.
 """
 schoenflies(sgnum::Integer) = SCHOENFLIES_TABLE[sgnum]
+schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
 
 """
-    hermannmauguin(sgnum::Integer, dim::Integer=3) --> String
+    hermannmauguin(sgnum::Integer, D::Integer=3) --> String
 
 Returns the Hermann-Mauguin notation for a given space group number
-`sgnum` and dimensionality `dim`, sometimes also called the IUC 
+`sgnum` and dimensionality `D`, sometimes also called the IUC 
 (International Union of Crystallography) or international notation 
 (since it is used in the International Tables of Crystallography); 
-accordingly, the functionality is aliased by `iuc(sgnum, dim)`. 
+accordingly, the functionality is aliased by `iuc(sgnum, D)`. 
 Hermann-Mauguin notation applies in two and three-dimensions.
 
 For additional information see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
-hermannmauguin(sgnum::Integer, dim::Integer=3) = HERMANNMAUGUIN_TABLE[dim][sgnum]
+@inline hermannmauguin(sgnum::Integer, D::Integer=3) = HERMANNMAUGUIN_TABLE[D][sgnum]
+@inline hermannmauguin(sg::SpaceGroup{D}) where D = hermannmauguin(num(sg), D)
 const iuc = hermannmauguin # alias
 
 """ 
-    centering(sgnum::Integer, dim::Integer=3) --> Char
+    centering(sg::SpaceGroup) --> Char
+    centering(sgnum::Integer, D::Integer=3) --> Char
 
-Determines the conventional centering type of a given space/plane group number
-`sgnum` by comparison with the Hermann-Mauguin notation's first letter. 
+Determines the conventional centering type of a given space/plane group `sg` (alternatively
+specified by its conventional number `sgnum` and dimensionality `D` by comparison with the
+Hermann-Mauguin notation's first letter. 
 
-Possible output values, depending on dimensionality `dim`, are (see ITA Sec. 9.1.4):
+Possible output values, depending on dimensionality `D`, are (see ITA Sec. 9.1.4):
 
-    dim=2 ┌ 'p': no centring (primitive)
-          └ 'c': face centered
+    D=2 ┌ 'p': no centring (primitive)
+        └ 'c': face centered
 
-    dim=3 ┌ 'P': no centring (primitive)
-          ├ 'I': body centred (innenzentriert)
-          ├ 'F': all-face centred
-          ├ 'A', 'B', 'C': one-face centred, (b,c) or (c,a) or (a,b)
-          └ 'R': hexagonal cell rhombohedrally centred
+    D=3 ┌ 'P': no centring (primitive)
+        ├ 'I': body centred (innenzentriert)
+        ├ 'F': all-face centred
+        ├ 'A', 'B', 'C': one-face centred, (b,c) or (c,a) or (a,b)
+        └ 'R': hexagonal cell rhombohedrally centred
 """
-centering(sgnum::Integer, dim::Integer=3) = first(hermannmauguin(sgnum, dim))
+centering(sgnum::Integer, D::Integer=3) = first(hermannmauguin(sgnum, D))
+centering(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = first(centering(num(sg), D))
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]

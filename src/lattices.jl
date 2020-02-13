@@ -84,7 +84,7 @@ function levelsetlattice(sgnum::Integer, D::Integer=2,
     (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
 
     # prepare
-    sg = get_sgops(sgnum, D)
+    sg = spacegroup(sgnum, D)
     sgops = operations(sg)
     Ws = rotation.(sgops) # operations W in R-basis (point group part)
     ws = translation.(sgops)

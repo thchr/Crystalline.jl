@@ -2,8 +2,9 @@ using SGOps, Test, LinearAlgebra, Printf
 
 debug = false
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = parselittlegroupirreps()
+    LGIRS = get_all_lgirreps() # ≡ parselittlegroupirreps()
 end
+#SGOps.add_ΦnotΩ_lgirs!.(LGIRS)
 
 @testset "Irrep orthogonality (complex little groups)" begin
 

@@ -38,10 +38,10 @@ end
         P, p = info[2:3] # transformation pair (P,p)
         cntr = centering(sgnum, 3)
 
-        G  = operations(get_sgops(sgnum,  3))  # G in conventional basis of sgnum
+        G  = operations(spacegroup(sgnum,  3))  # G in conventional basis of sgnum
         Gᵖ = reduce_ops(G, cntr, false)        # G in primitive basis of sgnum
         
-        G₀ = operations(get_sgops(sgnum₀, 3))  # G₀ in conventional basis of sgnum₀    
+        G₀ = operations(spacegroup(sgnum₀, 3))  # G₀ in conventional basis of sgnum₀    
         G₀′ = transform.(G₀, Ref(P), Ref(p))   # G₀ in conventional basis of sgnum
         G₀′ᵖ = reduce_ops(G₀′, cntr, false)    # G₀ in primitive basis of sgnum
 
@@ -67,7 +67,7 @@ end
     # the minimal super point group P₀ of a holosymmetric space group G₀ should equal its isogonal/arithmetic point group F₀
     for D in 1:3
         for sgnum₀ in SGOps.HOLOSYMMETRIC_SGNUMS[D]
-            G₀ = get_sgops(sgnum₀, D)
+            G₀ = spacegroup(sgnum₀, D)
             F₀ = pointgroup(G₀)                                            # isogonal/arithmetic point group of G₀
             P₀ = operations(SGOps.find_holosymmetric_superpointgroup(G₀))  # minimal holosymmetric super point group of G₀
             @test sort(xyzt.(F₀)) == sort(xyzt.(P₀))
@@ -134,8 +134,8 @@ end
 @testset "Tabulated orphan parent groups are indeed normal supergroups" begin
     Pᴵ = Matrix{Float64}(I, 3, 3) # trivial transformation rotation (only translation may be nontrivial here)
     for (sgnum, (parent_sgnum, p)) in pairs(SGOps.ORPHAN_AB_SUPERPARENT_SGNUMS)
-        G  = operations(get_sgops(sgnum, 3))
-        G′ = operations(get_sgops(parent_sgnum, 3)) # basis setting may differ from G (sgs 151-154)
+        G  = operations(spacegroup(sgnum, 3))
+        G′ = operations(spacegroup(parent_sgnum, 3)) # basis setting may differ from G (sgs 151-154)
 
         # G′ in conventional basis of G
         if !iszero(p)

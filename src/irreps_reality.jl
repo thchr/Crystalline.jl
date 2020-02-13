@@ -15,7 +15,7 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Nops = order(first(irs)) # order of little group (= # of operations)
 
     cntr = centering(sgnum, D)
-    sgops = operations(get_sgops(sgnum, D))
+    sgops = operations(spacegroup(sgnum, D))
 
     verbose && print(klabel(first(irs)), " │ ")
 
@@ -176,7 +176,7 @@ Computes the Herring criterion for a little group irrep `ir`, from
 over symmetry operations {β,b} that take k → -k.
 
 The provided space group operations `sgops` **must** be the set reduced by 
-primitive translation vectors; i.e. using `get_sgops(...)` directly is **not** 
+primitive translation vectors; i.e. using `spacegroup(...)` directly is **not** 
 allowable in general. Using the operations from the Γ point of ISOTROPY's 
 dataset is, however, fine.
 

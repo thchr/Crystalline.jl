@@ -1,4 +1,4 @@
-# DirectBasis and ReciprocalBasis for crystalline lattices
+# --- DirectBasis and ReciprocalBasis for crystalline lattices ---
 abstract type Basis{D} <: AbstractVector{Vector{Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
     @eval struct $T{D} <: Basis{D}
@@ -35,20 +35,36 @@ function angles(Rs::Basis{D}) where D
     end
     return γ
 end
+"""
+    basis2matrix(Vs::Basis{D}) where D
+
+Compute a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::Basis{D}`, i.e. a matrix whose columns
+are the basis vectors in `Vs`. 
+
+Note: Trying to use the iteration interface via `hcat(Vs...)` does not lead to a correctly
+      inferred type Matrix::Float64 (and a type-assertion does not improve speed much).
+      Instead, we just use the .vec field of `Vs` directly, which achieves good performance.
+"""
+basis2matrix(Vs::Basis{D}) where D  = hcat(vecs(Vs)...)
 
 
-# Symmetry operations
-struct SymOperation
+# --- Symmetry operations ---
+struct SymOperation <: AbstractMatrix{Float64}
     xyzt::String
     matrix::Matrix{Float64}
 end
-SymOperation(s::AbstractString) = SymOperation(string(s), xyzt2matrix(s))
+SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(string(s), m))
 SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), float(m))
 matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
+# define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+firstindex(::SymOperation) = 1
 lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
+IndexStyle(::SymOperation) = IndexLinear()
+size(op::SymOperation) = size(matrix(op))
+
 rotation(m::Matrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 rotation(op::SymOperation)  = rotation(matrix(op))
 translation(m::Matrix{<:Real}) = @view m[:,end]  # translation part of an operation
@@ -90,7 +106,7 @@ function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
     end
 end
 
-# Multiplication table
+# --- Multiplication table ---
 struct MultTable
     operations::Vector{SymOperation}
     indices::Matrix{Int64}
@@ -109,7 +125,7 @@ end
 getindex(mt::MultTable, keys...) = indices(mt)[keys...]
 lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
 
-# K-vectors
+# --- 𝐤-vectors ---
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
 #       𝐤 = ∑³ᵢ₌₁ (k₀ᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)
 # here the matrix kabc is columns of the vectors (𝐚,𝐛,𝐜) while α,β,γ are free
@@ -270,14 +286,19 @@ end
 
 
 
-# Abstract spatial group
-abstract type AbstractGroup end
+# --- Abstract spatial group ---
+abstract type AbstractGroup{D} <: AbstractVector{SymOperation} end
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
-dim(g::AbstractGroup) = g.dim
-order(g::AbstractGroup) = length(operations(g))
+dim(g::AbstractGroup{D}) where D = D
+# define the AbstractArray interface for AbstractGroup
 getindex(g::AbstractGroup, keys...) = operations(g)[keys...]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+firstindex(::AbstractGroup) = 1
 lastindex(g::AbstractGroup, d::Int64) = size(operations(g), d)  # allows using `end` in indices
+setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
+size(g::AbstractGroup) = (length(operations(g)),)
+IndexStyle(::AbstractGroup) = IndexLinear()
+order(g::AbstractGroup) = length(g)
 
 function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
     if isa(g, SpaceGroup)
@@ -298,38 +319,39 @@ function show(io::IO, ::MIME"text/plain", gs::AbstractVector{<:AbstractGroup})
     end
 end
 
-# Space group
-struct SpaceGroup <: AbstractGroup
+# --- Space group ---
+struct SpaceGroup{D} <: AbstractGroup{D}
     num::Int64
     operations::Vector{SymOperation}
-    dim::Int64
 end
-label(sg::SpaceGroup) = iuc(num(sg), dim(sg))
+dim(sg::SpaceGroup{D}) where D = D
+label(sg::SpaceGroup) = iuc(sg)
 
-# Point group
-struct PointGroup <: AbstractGroup
+
+# --- Point group ---
+struct PointGroup{D} <: AbstractGroup{D}
     num::Int64
     label::String
     operations::Vector{SymOperation}
-    dim::Int64
 end
 label(pg::PointGroup) = pg.label
 
-# Little group
-struct LittleGroup{D} <: AbstractGroup
+# --- Little group ---
+struct LittleGroup{D} <: AbstractGroup{D}
     num::Int64
     kv::KVec
     klab::String
     operations::Vector{SymOperation}
 end
 LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, klab, ops)
+LittleGroup(num::Int64, kv::KVec, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, "", ops)
 dim(lg::LittleGroup{D}) where D = D
 kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
 
 
-# Abstract group irreps
+# --- Abstract group irreps ---
 """ 
     AbstractIrrep (abstract type)
 
@@ -351,7 +373,7 @@ function klabel(cdml::String)
     return cdml[firstindex(cdml):previdx]
 end
 
-# 3D Space group irreps
+# --- 3D Space group irreps ---
 struct SGIrrep{T} <: AbstractIrrep where T
     iridx::Int64    # sequential index assigned to ir by Stokes et al
     cdml::String    # CDML label of irrep (including 𝐤-point label)
@@ -378,7 +400,7 @@ kstar(sgir::SGIrrep) = sgir.pmkstar
 irdim(sgir::SGIrrep) = sgir.irdim
 dim(sgir::SGIrrep) = 3
 
-# Little group irreps
+# --- Little group irreps ---
 struct LGIrrep{D} <: AbstractIrrep
     cdml::String # CDML label of irrep (including k-point label)
     lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
@@ -401,7 +423,7 @@ order(lgir::LGIrrep) = order(littlegroup(lgir))
 kvec(lgir::LGIrrep)  = kvec(littlegroup(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(littlegroup(lgir))
-kstar(lgir::LGIrrep) = kstar(get_sgops(num(lgir), dim(lgir)), kvec(lgir), centering(num(lgir), dim(lgir)))
+kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), kvec(lgir), centering(num(lgir), dim(lgir)))
 function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = lgir.matrices
     τ = lgir.translations
@@ -604,7 +626,7 @@ end
 find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(get_lgirreps(sgnum, D), klab)
 
 
-# character table
+# --- Character table ---
 struct CharacterTable{D}
     ops::Vector{SymOperation}
     irlabs::Vector{String}
@@ -614,7 +636,7 @@ struct CharacterTable{D}
     #       doesn't specialize on a given αβγ choice (see also chartable(::LGirrep))
     tag::String
 end
-CharacterTable{D}(ops::Vector{SymOperation}, 
+CharacterTable{D}(ops::AbstractVector{SymOperation}, 
                   irlabs::Vector{String}, 
                   chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
 operations(ct::CharacterTable) = ct.ops
@@ -643,7 +665,7 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
                   )
 end
 
-# band representations
+# --- Band representations ---
 struct BandRep
     wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)

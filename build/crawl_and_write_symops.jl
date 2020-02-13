@@ -14,14 +14,14 @@ end
 
 # ----- NOW-REDUNANT FUNCTIONS FOR CRAWLING 3D SPACE GROUPS FROM BILBAO -----
 """ 
-    crawl_sgops_xyzt(sgnum::Integer, dim::Integer=3)
+    crawl_sgops_xyzt(sgnum::Integer, D::Integer=3)
 
 Obtains the symmetry operations in xyzt format for a given space group
-number `sgnum` by crawling the Bilbao server; see `get_sgops` for 
-additional details. Only works for `dim = 3`.
+number `sgnum` by crawling the Bilbao server; see `spacegroup` for 
+additional details. Only works for `D = 3`.
 """
-function crawl_sgops_xyzt(sgnum::Integer, dim::Integer=3)
-    htmlraw = crawl_sgops_html(sgnum, dim)
+function crawl_sgops_xyzt(sgnum::Integer, D::Integer=3)
+    htmlraw = crawl_sgops_html(sgnum, D)
 
     ops_html = children.(children(last(children(htmlraw.root)))[4:2:end])
     Nops = length(ops_html)
@@ -33,11 +33,11 @@ function crawl_sgops_xyzt(sgnum::Integer, dim::Integer=3)
     return sgops_str
 end
 
-function crawl_sgops_html(sgnum::Integer, dim::Integer=3)
-    if dim != 3; error("We do not crawl plane group data; see json files instead; manually crawled.") end
+function crawl_sgops_html(sgnum::Integer, D::Integer=3)
+    if D != 3; error("We do not crawl plane group data; see json files instead; manually crawled.") end
     if sgnum < 1 || sgnum > 230; error(DomainError(sgnum)); end
 
-    if dim == 3
+    if D == 3
         baseurl = "http://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
         contents = HTTP.request("GET", baseurl * string(sgnum))
         return parsehtml(String(contents.body))

@@ -153,7 +153,7 @@ flatten the orbits into a single vector in `lattice2mpb`. This doesn't matter
 as we typically just want to plot the saved lattice (see `plot_lattice_from_mpbparams`).
 """
 function lattice_from_mpbparams(io::IO)
-    mark(io) # mark the begging of stream so we can return to it (otherwise we must assume a fixed order of parameters in input)
+    mark(io) # mark the beginning of stream so we can return to it (otherwise we must assume a fixed order of parameters in input)
 
     # --- dimension ---
     readuntil(io, "dim=")

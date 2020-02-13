@@ -51,7 +51,7 @@ export schoenflies, hermannmauguin,
        iuc, centering, seitz
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export get_sgops, xyzt2matrix, matrix2xyzt,
+export spacegroup, xyzt2matrix, matrix2xyzt,
        ∘, compose,
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
@@ -61,7 +61,7 @@ export get_sgops, xyzt2matrix, matrix2xyzt,
        issubgroup, isnormal
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export get_pgops
+export pointgroup
 
 include("bravais.jl")
 export crystal, plot, crystalsystem,

@@ -50,7 +50,7 @@ for dim in 2:3
     @testset "Space groups (Bilbao: $(dim)D)" begin
         for sgnum in sgnums[dim-1]
             cntr = centering(sgnum, dim);
-            ops = operations(get_sgops(sgnum, dim))      # ops in conventional basis
+            ops = operations(spacegroup(sgnum, dim))      # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
             checkmt = @test isgroup(mt) 

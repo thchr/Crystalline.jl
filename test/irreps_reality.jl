@@ -9,7 +9,7 @@ end
 @testset "Herring criterion" begin
     #= error_count = 0 =#       # for debugging
     for sgnum = 1:230
-        sgops = operations(LGIRS[sgnum][1][1]) # this is important: we may _not_ use trivial repeated sets, i.e. get_sgops would not work generally
+        sgops = operations(LGIRS[sgnum][1][1]) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
         for kidx = 1:length(LGIRS[sgnum])
             for iridx = 1:length(LGIRS[sgnum][kidx])
                 iso_rawtype = type(LGIRS[sgnum][kidx][iridx])

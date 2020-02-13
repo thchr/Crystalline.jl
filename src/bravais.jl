@@ -478,7 +478,7 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
         return Rs
     else         
         P = primitivebasismatrix(cntr, D)
-        Rs′ = (hcat(Rs...)::Matrix{Float64})*P # Rs′ = Rs*P (w/ Rs a matrix w/ columns of conventional direct basis vecs Rᵢ)
+        Rs′ = basis2matrix(Rs)*P # Rs′ = Rs*P (w/ Rs a matrix w/ columns of conventional direct basis vecs Rᵢ)
         return DirectBasis{D}(tuple(eachcol(Rs′)...))
     end  
 end

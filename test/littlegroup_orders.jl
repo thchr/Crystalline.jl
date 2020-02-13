@@ -11,7 +11,7 @@ for sgnum = 1:230
     cntr = centering(sgnum, 3)  
     # the "macroscopic" order is defined simply as the length of the 
     # point group associated with the space group
-    sgops = operations(get_sgops(sgnum, 3)) # from crawling Bilbao
+    sgops = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
     order_macroscopic = length(pointgroup(sgops))
     
     for kidx = 1:length(LGIRS[sgnum])
@@ -40,7 +40,7 @@ end
 
 @testset "Macroscopic order, Bilbao vs. ISOTROPY" begin
     for sgnum = 1:230
-        sgops_bilbao = operations(get_sgops(sgnum, 3))         # from crawling Bilbao
+        sgops_bilbao = operations(spacegroup(sgnum, 3))         # from crawling Bilbao
         sgops_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
 
         # note that we don't have to worry about whether the operations 

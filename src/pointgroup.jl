@@ -8,20 +8,20 @@ function read_pgops_xyzt(iuclab::String, D::Integer=2)
     return symops_str
 end
 
-function get_pgops(iuclab::String, D::Integer=2)
+function pointgroup(iuclab::String, D::Integer=2)
     if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
     pgnum = pointgroup_iuc2num(iuclab, D)  # this is not generally a particularly meaningful or even well-established numbering
-    sgops_str = read_pgops_xyzt(iuclab, D)
+    ops_str = read_pgops_xyzt(iuclab, D)
     
-    return PointGroup(pgnum, iuclab, SymOperation.(sgops_str), D)
+    return PointGroup{D}(pgnum, iuclab, SymOperation.(ops_str))
 end
 
-function get_pgops(pgnum::Integer, D::Integer=3)
+function pointgroup(pgnum::Integer, D::Integer=3)
     if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
     iuclab = pointgroup_num2iuc(pgnum, D)
-    sgops_str = read_pgops_xyzt(iuclab, D)
+    ops_str = read_pgops_xyzt(iuclab, D)
 
-    return PointGroup(pgnum, iuclab, SymOperation.(sgops_str), D)
+    return PointGroup{D}(pgnum, iuclab, SymOperation.(ops_str))
 end
 
 # We include several axes settings; as a result, there are more than 32 point groups 
@@ -80,8 +80,8 @@ function find_parent_pointgroup(g::AbstractGroup)
     xyzt_pgops = sort(xyzt.(pointgroup(g)))
 
     @inbounds for iuclab in NUM2IUC_PGS[D]
-        P = get_pgops(iuclab, D)
-        if sort(xyzt.(operations(P)))==(xyzt_pgops)
+        P = pointgroup(iuclab, D)
+        if sort(xyzt.(P))==(xyzt_pgops)
             return P
         end
     end

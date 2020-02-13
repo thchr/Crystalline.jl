@@ -6,7 +6,7 @@ debug = false
     for sgnum = 1:230
         cntr = centering(sgnum, 3)
         # sgops from Bilbao (BCD)
-        ops = operations(get_sgops(sgnum))
+        ops = operations(spacegroup(sgnum))
         reduce_ops
         # go to primitive basis ⇒ reduce to unique set ⇒ go back to conventional basis
         ops′ = reduce_ops(ops, cntr, true)
@@ -17,7 +17,7 @@ debug = false
         end
         
         Nops_ISO = length(operations(LGIRS[sgnum][1][1]))
-        @test Nops_ISO == length(ops′) # test that ISOTROPY get_sgops indeed excludes trivial translation sets
+        @test Nops_ISO == length(ops′) # test that ISOTROPY spacegroup(..) indeed excludes trivial translation sets
     end
 end
 
@@ -26,7 +26,7 @@ let count = 0, failures = Int[]
     for sgnum = 1:230
         cntr = centering(sgnum, 3)
         # sgops from Bilbao (BCD)
-        ops_BCD  = operations(get_sgops(sgnum))
+        ops_BCD  = operations(spacegroup(sgnum))
         ops_BCD′ = reduce_ops(ops_BCD, cntr, true) # go to primitive basis ⇒ reduce to unique 
                                                    # set ⇒ go back to conventional basis
 

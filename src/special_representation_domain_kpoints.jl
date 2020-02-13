@@ -185,7 +185,7 @@ function _find_holosymmetric_sgnums(D::Integer)
     # find maximum point groups for each bravais type
     maxpointgroups = Dict(ubt=>Vector{SymOperation}() for ubt in uniquebravaistypes)
     for (sgnum,bt) in enumerate(bravaistypes)
-        pg = sort(pointgroup(get_sgops(sgnum,D)), by=xyzt)
+        pg = sort(pointgroup(spacegroup(sgnum,D)), by=xyzt)
         if length(pg) > length(maxpointgroups[bt])
             maxpointgroups[bt] = pg;
         end
@@ -195,7 +195,7 @@ function _find_holosymmetric_sgnums(D::Integer)
     # then accumulate the `sgnum`s of the holosymmetric space groups
     holosymmetric_sgnums = Vector{Int64}()
     for (sgnum,bt) in enumerate(bravaistypes)
-        pg = sort(pointgroup(get_sgops(sgnum,D)), by=xyzt)
+        pg = sort(pointgroup(spacegroup(sgnum,D)), by=xyzt)
         if length(pg) == length(maxpointgroups[bt])
             push!(holosymmetric_sgnums, sgnum)
         end
@@ -228,7 +228,7 @@ is_holosymmetric(sg::SpaceGroup) = is_holosymmetric(num(sg), dim(sg))
 """
     find_holosymmetric_supergroup(G::SpaceGroup)
     find_holosymmetric_supergroup(sgnum::Integer, D::Integer)
-                --> PointGroup
+                --> PointGroup{D}
 
 Finds the minimal holosymmetric super point group `P` of a space group `G`
 (alternatively specified by its number `sgnum` and dimension `D`), such
@@ -247,7 +247,7 @@ function find_holosymmetric_superpointgroup(G::SpaceGroup)
         bt = bravaistype(num(G), D)
         for pglab in HOLOSYMMETRIC_PG_FOR_BRAVAISTYPE[bt]
             # this check is actually redunant for everything except the hR groups; we do it anyway
-            P = get_pgops(pglab, D) # holosymmetric point group (::PointGroup)
+            P = pointgroup(pglab, D) # holosymmetric point group (::PointGroup)
             if issubgroup(operations(P), F)
                 return P
             end
@@ -259,7 +259,7 @@ function find_holosymmetric_superpointgroup(G::SpaceGroup)
         # supergroup, because we already sorted HOLOSYMMETRIC_PGS_IUCLAB 
         # by the point group order      
         for pglab in HOLOSYMMETRIC_PGS_IUCLAB[D]
-            P = get_pgops(pglab, D) # holosymmetric point group (::PointGroup)
+            P = pointgroup(pglab, D) # holosymmetric point group (::PointGroup)
             if issubgroup(operations(P), F)
                 return P
             end
@@ -267,12 +267,13 @@ function find_holosymmetric_superpointgroup(G::SpaceGroup)
     end
     throw("Did not find a holosymmetric super point group: if the setting is conventional, this should never happen")
 end
-find_holosymmetric_superpointgroup(sgnum::Integer, D::Integer=3) = find_holosymmetric_superpointgroup(get_sgops(sgnum, D))
+find_holosymmetric_superpointgroup(sgnum::Integer, D::Integer=3) = find_holosymmetric_superpointgroup(spacegroup(sgnum, D))
 
 
 """
+    find_holosymmetric_parent(G::SpaceGroup{D})
     find_holosymmetric_parent(sgnum::Integer, D::Integer)
-                --> Union{SpaceGroup, Nothing}
+                --> Union{SpaceGroup{D}, Nothing}
 
 Find a holosymmetric space group G₀ such that the space group G with number `sgnum`
 is an invariant subgroup of G₀, i.e. G◁G₀: a "holosymmetric parent spacegroup" of G, 
@@ -294,10 +295,10 @@ tested in 3D.
 If we find no match, we return `nothing`: the space groups for which this is true
 should agree with those in `ORPHAN_SGNUMS`.
 """
-function find_holosymmetric_parent(sgnum::Integer, D::Integer=3)
+find_holosymmetric_parent(sgnum::Integer, D::Integer=3) = find_holosymmetric_parent(spacegroup(sgnum, D))
+function find_holosymmetric_parent(G::SpaceGroup{D}) where D
     D ≠ 3 && throw_2d_not_yet_implemented()
-    G = get_sgops(sgnum, D)
-
+    sgnum = num(G)
     if !is_holosymmetric(sgnum, D) # nontrivial case: find invariant subgroup
         cntr = centering(sgnum, D)
 
@@ -307,8 +308,8 @@ function find_holosymmetric_parent(sgnum::Integer, D::Integer=3)
             # Basically, this naïve approach assumes that the crystal setting between 
             # G and its supergroup G⁰ agrees: it does not in general.
             for sgnum₀ in HOLOSYMMETRIC_SGNUMS[D]
-                G₀ = get_sgops(sgnum₀, D)
-                cntr₀ = centering(sgnum₀, D)
+                G₀ = spacegroup(sgnum₀, D)
+                cntr₀ = centering(G₀)
 
                 # === check whether G is a subgroup of G₀, G<G₀ ===
                 # won't be a naïve subgroup if centerings are different (effectively, a cheap short-circuit check)
@@ -339,10 +340,10 @@ function find_holosymmetric_parent(sgnum::Integer, D::Integer=3)
             # So far only checked for 3D.
             sgnum₀, P₀, p₀ = CORNERCASES_SUBSUPER_NORMAL_SGS[sgnum]
 
-            opsG₀ = operations(get_sgops(sgnum₀, 3))
+            opsG₀ = operations(spacegroup(sgnum₀, 3))
             # find the supergroup G₀ in its transformed setting using P₀ and p₀
             opsG₀ .= transform.(opsG₀, Ref(P₀), Ref(p₀))
-            G₀ = SpaceGroup(sgnum₀, opsG₀, D)
+            G₀ = SpaceGroup{D}(sgnum₀, opsG₀)
 
             # with G₀ in this setting, G is a subgroup of G₀, G is normal in G₀
             # and G₀ is a holosymmetric space group (see test/holosymmetric.jl)
@@ -406,7 +407,7 @@ function find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
         return Rs
     end
 end
-find_map_from_Ω_to_ΦnotΩ(sgnum::Integer, D::Integer=3) = find_map_from_Ω_to_ΦnotΩ(get_sgops(sgnum, D))
+find_map_from_Ω_to_ΦnotΩ(sgnum::Integer, D::Integer=3) = find_map_from_Ω_to_ΦnotΩ(spacegroup(sgnum, D))
 # A sanity check for the above implementation, is to compare the number of distinct maps
 # obtained by first defining 
 #   Nmaps = [length(ops) for ops in SGOps.find_map_from_Ω_to_ΦnotΩ.(keys(SGOps.ΦNOTΩ_KVECS_AND_MAPS),3)]
@@ -416,13 +417,15 @@ find_map_from_Ω_to_ΦnotΩ(sgnum::Integer, D::Integer=3) = find_map_from_Ω_to_
 # Then, Nmaps .> Nmapsᶜᵈᵐˡ (not equal, necessarily, because some maps might be trivially related to
 # a k-star or to a G-vector). 
 
-function find_new_kvecs(G::SpaceGroup)
+
+
+function find_new_kvecs(G::SpaceGroup{D}) where D
     Rs = find_map_from_Ω_to_ΦnotΩ(G)
     Rs === nothing && return nothing # holosymmetric case
-    cntr = centering(num(G), dim(G))
+    cntr = centering(G)
     
     # load the KVecs in Ω from the ISOTROPY dataset
-    lgs = get_littlegroups(num(G), dim(G))
+    lgs = get_littlegroups(num(G), D)
     # We are only interested in mapping kvs from the basic domain Ω; but ISOTROPY already 
     # includes some of the ZA points that are in Φ-Ω, so we strip these already here (and
     # so find these points anew effectively). Also, there is no point in trying to map the
@@ -498,7 +501,7 @@ function find_new_kvecs(G::SpaceGroup)
     # return arrays of {original KVec in Ω}, {new KVec(s) in Φ-Ω}, {original KVec label in Ω}, {new KVec label(s) in Φ-Ω},
     return mappedkvs, newkvs, mappedklabs, newklabs
 end
-find_new_kvecs(sgnum::Integer, D::Integer=3) = find_new_kvecs(get_sgops(sgnum, D))
+find_new_kvecs(sgnum::Integer, D::Integer=3) = find_new_kvecs(spacegroup(sgnum, D))
 
 """
     _find_arithmetic_partner(sg::SpaceGroup)
@@ -540,7 +543,7 @@ function _find_arithmetic_partner(sg::SpaceGroup)
             # We have to take the `pointgroup(...)` operation here even though `sgops′` 
             # is symmorphic, because the `SymOperation`s are in a conventional basis 
             # and may contain contain trivial primitive translations if `cntr′ ≠ 'P'`
-            sgops′ = sort(pointgroup(get_sgops(sgnum′, D)), by=xyzt)
+            sgops′ = sort(pointgroup(spacegroup(sgnum′, D)), by=xyzt)
             if (length(sgops′) == N_pgops &&
                 all(sgops′ .== pgops_sorted) && # ... this assumes the coordinate setting
                                                 # is the same between sg and sg′ (not
@@ -561,7 +564,7 @@ function _find_arithmetic_partner(sg::SpaceGroup)
 end
 
 function _find_arithmetic_partner(sgnum::Integer, D::Integer=3)
-    _find_arithmetic_partner(get_sgops(sgnum, D))
+    _find_arithmetic_partner(spacegroup(sgnum, D))
 end
 
 
@@ -731,7 +734,7 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
     if iszero(orphantype)                       # ⇒ not an orphan
         opsGᵖᵃʳ = operations(find_holosymmetric_parent(sgnum, D))
     else                                        # ⇒ an orphan of type (a) or (b)
-        opsGᵖᵃʳ = operations(get_sgops(parent_sgnum, D))
+        opsGᵖᵃʳ = operations(spacegroup(parent_sgnum, D))
         if !iszero(p) # transform setting if it differs (origin only)
             opsGᵖᵃʳ .= transform.(opsGᵖᵃʳ, Ref(Matrix{Float64}(I, 3, 3)), Ref(p))
         end

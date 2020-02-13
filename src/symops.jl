@@ -2,7 +2,7 @@
     read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 
 Obtains the symmetry operations in xyzt format for a given space group
-number `sgnum` by reading from json files; see `get_sgops` for additional
+number `sgnum` by reading from json files; see `spacegroup` for additional
 details. Much faster than crawling; generally preferred.
 """
 function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
@@ -20,7 +20,7 @@ function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 end
 
 """ 
-    get_sgops(sgnum::Integer, D::Integer=3) --> SpaceGroup
+    spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup
 
 Obtains the space group symmetry operations in xyzt and matrix format
 for a given space group number (`= sgnum`) and dimensionality `D`.
@@ -37,11 +37,11 @@ The default choices for basis vectors are specified in Bilbao as:
     centrosymmetric space groups for which there are two origin
     choices, within the orthorhombic, tetragonal and cubic systems.
 """
-function get_sgops(sgnum::Integer, D::Integer=3)
+function spacegroup(sgnum::Integer, D::Integer=3)
     sgops_str = read_sgops_xyzt(sgnum, D)
     sgops = SymOperation.(sgops_str)
 
-    return SpaceGroup(sgnum, sgops, D)
+    return SpaceGroup{D}(sgnum, sgops)
 end
 
 function xyzt2matrix(s::String)
@@ -150,7 +150,7 @@ end
 Checks whether a given space group `sg` is symmorphic (true) or
 nonsymmorphic (false).
 """
-issymmorph(g::AbstractGroup) = all(op->issymmorph(op, centering(num(g), dim(g))), operations(g))
+issymmorph(g::Union{SpaceGroup,LittleGroup}) = all(op->issymmorph(op, centering(g)), operations(g))
 
 """
     issymmorph(sgnum::Integer, D::Integer=3) --> Bool
@@ -158,7 +158,7 @@ issymmorph(g::AbstractGroup) = all(op->issymmorph(op, centering(num(g), dim(g)))
 Checks whether a given space group `sgnum` (of dimensionality `D`)
 is symmorphic (true) or nonsymmorphic (false).
 """
-issymmorph(sgnum::Integer, D::Integer=3) = issymmorph(get_sgops(sgnum, D))
+issymmorph(sgnum::Integer, D::Integer=3) = issymmorph(spacegroup(sgnum, D))
 
 # ----- POINT GROUP ASSOCIATED WITH SPACE/PLANE GROUP (FULL OR LITTLE) ---
 """
@@ -180,10 +180,10 @@ function pointgroup(ops::AbstractVector{SymOperation})
     unique_rotation_ops = unique(rotation, ops) 
     # return rotation-only SymOperations from the above unique set
     return SymOperation.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, dim(first(ops))))))
+    # TODO: Return a PointGroup?
 end
-pointgroup(sg::AbstractGroup) = pointgroup(operations(sg))
-pointgroup(pg::PointGroup) = operations(pg) # TODO: remove method?
-pointgroup(sgnum::Integer, D::Integer=3) = pointgroup(get_sgops(sgnum, D))
+pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
+pointgroup(sgnum::Integer, D::Integer=3) = pointgroup(spacegroup(sgnum, D))
 
 # ----- GROUP ELEMENT COMPOSITION -----
 """ 
@@ -269,9 +269,9 @@ end
 
 
 """
-    multtable(ops::T) where T<:Union{Vector{SymOperation}, SpaceGroup}
+    multtable(ops::AbstractVector{SymOperation})
 
-Computes the multiplication table of a set of symmetry operations.
+Compute the multiplication (or Cayley) table of a set of symmetry operations.
 A MultTable is returned, which contains symmetry operations 
 resulting from composition of `row ∘ col` operators; the table of 
 indices give the symmetry operators relative to the ordering of 
@@ -297,7 +297,6 @@ function multtable(ops::AbstractVector{SymOperation}; verbose::Bool=false)
     end
     return MultTable(ops, indices, !havewarned)
 end
-multtable(g::AbstractGroup) = multtable(operations(g))
 
 
 checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = begin
@@ -410,8 +409,8 @@ function littlegroup(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char='P'
     return idxlist, view(ops, idxlist)
 end
 function littlegroup(sg::SpaceGroup, kv::KVec) 
-    _, lgops = littlegroup(operations(sg), kv, centering(num(sg), dim(sg)))
-    return LittleGroup{dim(sg)}(num(sg), kv, lgops)
+    _, lgops = littlegroup(operations(sg), kv, centering(sg))
+    return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
 
 function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
@@ -442,7 +441,7 @@ function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
     end
     return kstar
 end
-kstar(sg::SpaceGroup, kv::KVec) = kstar(operations(sg), kv, centering(num(sg), dim(sg)))
+kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
@@ -511,24 +510,22 @@ end
 
 """ 
     transform(op::SymOperation, P::Matrix{<:Real}, 
-              p::Union{Vector{<:Real}, Nothing}=nothing) --> SymOperation
+              p::Union{Vector{<:Real}, Nothing}=nothing,
+              modw::Bool=true)                          --> SymOperation
 
 Transforms a symmetry operation `op = {W|w}` by a rotation matrix `P` and 
 a translation vector `p` (can be `nothing` for zero-translations), producing
 a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
-    {W′|w′} = {P|p}⁻¹{W|w}{P|p}
-    with   W′ =  P⁻¹WP
-           w′ = P⁻¹(w+Wp-p)
-with the translation `w′` reduced to the range [0, 1). 
 
-By default, the translation part of `op′`, i.e. `w′`, is reduced to the range
-[0,1], i.e. computed modulo 1. This can be toggled off (or on) by the Boolean
-flag `modw` (enabled, i.e. `true`, by default).
+        {W′|w′} = {P|p}⁻¹{W|w}{P|p}
+        with   W′ = P⁻¹WP and w′ = P⁻¹(w+Wp-p)
+
+By default, the translation part of `op′`, i.e. `w′`, is reduced to the range 
+[0,1), i.e. computed modulo 1 (corresponding to `modw=true`). This can be 
+disabled by setting `modw=false`.
 
 See also `primitivize` and `conventionalize`. 
-
 """
-# translation (usually zero; can then be given as `nothing`)
 function transform(op::SymOperation, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
                    modw::Bool=true)    
