@@ -45,7 +45,7 @@ Note: Trying to use the iteration interface via `hcat(Vs...)` does not lead to a
       inferred type Matrix::Float64 (and a type-assertion does not improve speed much).
       Instead, we just use the .vec field of `Vs` directly, which achieves good performance.
 """
-basis2matrix(Vs::Basis{D}) where D  = hcat(vecs(Vs)...)
+basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 
 
 # --- Symmetry operations ---
@@ -59,9 +59,9 @@ matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
 dim(op::SymOperation) = size(matrix(op),1)
 # define the AbstractArray interface for SymOperation
-getindex(op::SymOperation, keys...) = matrix(op)[keys...]   # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+getindex(op::SymOperation, keys...) = matrix(op)[keys...]
 firstindex(::SymOperation) = 1
-lastindex(op::SymOperation, d::Int64) = size(matrix(op), d) # allows using `end` in indices
+lastindex(op::SymOperation, d::Int64) = size(matrix(op), d)
 IndexStyle(::SymOperation) = IndexLinear()
 size(op::SymOperation) = size(matrix(op))
 
@@ -87,11 +87,17 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation)
         printstyled(io, i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
         for j in 1:D
             c = op.matrix[i,j]
-            cᴵ = convert(Int64, op.matrix[i,j])
-            # we exploit that a valid symop never has an entry that is more than
-            # two characters long (namely, -1) in its rotation parts
-            sep = repeat(' ', 1+(j ≠ 1 || firstcol_hasnegative)-signbit(cᴵ))
-            printstyled(io, sep, cᴵ, color=:light_black)
+            # assume and exploit that a valid symop (in the lattice basis only!) never has an 
+            # entry that is more than two characters long (namely, -1) in its rotation parts
+            sep = repeat(' ', 1+(j ≠ 1 || firstcol_hasnegative)-signbit(c))
+            if isinteger(c)
+                cᴵ = convert(Int64, op.matrix[i,j])
+                printstyled(io, sep, cᴵ, color=:light_black)
+            else
+                # just use the same sep even if the symop is specified in a nonstandard basis (e.g.
+                # cartesian); probably isn't a good general solution, but good enough for now
+                printstyled(io, sep, round(c, digits=4), color=:light_black)
+            end
         end
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char

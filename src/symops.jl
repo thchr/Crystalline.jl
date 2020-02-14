@@ -37,12 +37,13 @@ The default choices for basis vectors are specified in Bilbao as:
     centrosymmetric space groups for which there are two origin
     choices, within the orthorhombic, tetragonal and cubic systems.
 """
-function spacegroup(sgnum::Integer, D::Integer=3)
+@inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     sgops_str = read_sgops_xyzt(sgnum, D)
     sgops = SymOperation.(sgops_str)
 
     return SpaceGroup{D}(sgnum, sgops)
 end
+@inline spacegroup(sgnum::Integer, D::Integer=3) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 
 function xyzt2matrix(s::String)
     ssub = split(s, ',')
@@ -573,6 +574,7 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     return w′
 end
 
+# TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
 function reduce_ops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim::Bool=true)
     P = primitivebasismatrix(cntr, dim(first(ops)))
     ops′ = transform.(ops, Ref(P))         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
@@ -585,9 +587,37 @@ function reduce_ops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim:
         return ops′_reduced
     end
 end
-reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg), centering(num(sg), dim(sg)), conv_or_prim)
-reduce_ops(sgnum::Int64, D::Int64=3, conv_or_prim::Bool=true) = reduce_ops(get_sgops(sgnum, D), conv_or_prim)
+reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg), centering(sg), conv_or_prim)
+primitivize(sg::SpaceGroup{D}) where D = SpaceGroup{D}(num(sg), reduce_ops(sg, false))
 
+"""
+    cartesianize(op::SymOperation, Rs::DirectBasis) --> Vector{SymOperation}
+
+Convert a `SymOperation` `opˡ` from the lattice basis to a Cartesian basis, by computing the
+transformed operators `opᶜ = 𝐑*opˡ*𝐑⁻¹` via the Cartesian basis matrix 𝐑 (whose columns are
+the `DirectBasis` vectors `Rs[i]`). 
+
+# Note 1
+The matrix 𝐑 maps vectors coefficients in a lattice basis 𝐯ˡ to coefficients in a Cartesian
+basis 𝐯ᶜ as 𝐯ˡ = 𝐑⁻¹𝐯ᶜ and vice versa as 𝐯ᶜ = 𝐑𝐯ˡ. Since a general transformation P 
+transforms an "original" vectors with coefficients 𝐯 to new coefficients 𝐯′ via 𝐯′ = P⁻¹𝐯
+and since we here here consider the lattice basis as the "original" bais we have P = 𝐑⁻¹. 
+As such, the transformation of the operator `op` transforms as `opᶜ = P⁻¹*opˡ*P`, i.e.
+`opᶜ = transform(opˡ,P) = transform(opˡ,𝐑⁻¹)`.
+
+# Note 2
+The display (e.g. Seitz and xyzt notation) of `SymOperation`s e.g. in the REPL implicitly
+assumes integer coefficients for its point-group matrix: as a consequence, displaying 
+`SymOperation`s in a Cartesian basis may yield undefine behavior. The matrix representation
+remains valid, however.
+"""
+function cartesianize(op::SymOperation, Rs::DirectBasis)
+    𝐑 = basis2matrix(Rs)
+    # avoids inv(𝐑) by not calling out to transform(opˡ, inv(𝐑))
+    op′ = SymOperation([𝐑*rotation(op)/𝐑 𝐑\translation(op)]) 
+    return op′
+end
+cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
 
 """
     findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Char) 
