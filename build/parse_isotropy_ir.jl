@@ -103,7 +103,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
                            irtype,   opnum,      
                            knum,     pmknum,   kspecial,
                            KVec.(k, kabc),  
-                           SymOperation.(opxyzt, opmatrix),
+                           SymOperation{3}.(opxyzt, opmatrix),
                            irtranslation, irmatrix)
         if length(irreps) < sgnum; push!(irreps, Vector{SGIrrep{T}}()); end # new space group idx
         push!(irreps[sgnum], irrep)
@@ -338,6 +338,7 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
 end
 
 
+#=
 # TODO:
 # 
 # We need to manually do things for the "special" k-points kᴮ from the
@@ -379,3 +380,4 @@ function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:Abstr
     # what is the method for adding in these missing k-vectors?
             
 end
+=#

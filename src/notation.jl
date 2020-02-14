@@ -202,12 +202,12 @@ and the conventions have not been explicated in ITA6.
 For 2D operations, we elevate the operation to one in 3D that leaves the 
 3rd coordinate invariant, and then compute results using the 3D procedure.
 """
-function seitz(op::SymOperation)
-    W = rotation(op); w = translation(op); dim = size(W,1)
-    if dim == 2 # we just augment the 2D case by leaving z invariant
+function seitz(op::SymOperation{D}) where D
+    W = rotation(op); w = translation(op);
+    if D == 2 # we just augment the 2D case by leaving z invariant
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w; 0]
-    elseif dim == 1
+    elseif D == 1
         w_str = !iszero(w[1]) ? unicode_frac(w[1]) : "0"
         if isone(W[1])
             return "{1|"*w_str*"}"
@@ -257,9 +257,9 @@ function seitz(op::SymOperation)
     # 𝐘ₖ(𝐖) ≡ (d𝐖)ᵏ⁻¹+(d𝐖)ᵏ⁻² + ... + (d𝐖) + 𝐈 where d ≡ det(𝐖) 
     # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮
     # [cf. ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(b)]
-    if dim == 3 && order == 1 || dim == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
+    if D == 3 && order == 1 || D == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
         axis_str = ""                                 # (w/ in plane normals; otherwise along [001])
-        u = dim == 2 ? [0, 0, 1] : [0, 0, 0]
+        u = D == 2 ? [0, 0, 1] : [0, 0, 0]
     else
         Yₖ = Matrix{Float64}(I, 3, 3) # calculate Yₖ by iteration
         for j=1:order-1
@@ -295,7 +295,7 @@ function seitz(op::SymOperation)
             end
         end
 
-        axis_str = subscriptify(join(string(u[i]) for i in 1:dim)) # for 2D, ignore z-component
+        axis_str = subscriptify(join(string(u[i]) for i in 1:D)) # for 2D, ignore z-component
     end
     
     # --- rotation sense (for order > 2}) ---
@@ -314,7 +314,7 @@ function seitz(op::SymOperation)
     end
 
     # --- nonsymmorphic part ---
-    w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:dim), ',') : "0"
+    w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:D), ',') : "0"
         
     # --- combine labels ---
     return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'

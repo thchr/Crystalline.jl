@@ -5,13 +5,13 @@ Obtains the symmetry operations in xyzt format for a given space group
 number `sgnum` by reading from json files; see `spacegroup` for additional
 details. Much faster than crawling; generally preferred.
 """
-function read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
-    if dim ∉ (1,2,3); throw(DomainError(dim, "dim must be 1, 2, or 3")); end
-    if sgnum < 1 || dim == 3 && sgnum > 230 || dim == 2 && sgnum > 17 || dim == 1 && sgnum > 2
+function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
+    if D ∉ (1,2,3); throw(DomainError(D, "dim must be 1, 2, or 3")); end
+    if sgnum < 1 || D == 3 && sgnum > 230 || D == 2 && sgnum > 17 || D == 1 && sgnum > 2
         throw(DomainError(sgnum, "sgnum must be in range 1:2 in 1D, 1:17 in 2D, and in 1:230 in 3D")) 
     end
 
-    filepath = (@__DIR__)*"/../data/symops/"*string(dim)*"d/"*string(sgnum)*".json"
+    filepath = (@__DIR__)*"/../data/symops/"*string(D)*"d/"*string(sgnum)*".json"
     sgops_str::Vector{String} = open(filepath) do io
         JSON2.read(io)
     end
@@ -39,11 +39,11 @@ The default choices for basis vectors are specified in Bilbao as:
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     sgops_str = read_sgops_xyzt(sgnum, D)
-    sgops = SymOperation.(sgops_str)
+    sgops = SymOperation{D}.(sgops_str)
 
     return SpaceGroup{D}(sgnum, sgops)
 end
-@inline spacegroup(sgnum::Integer, D::Integer=3) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
+@inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 
 function xyzt2matrix(s::String)
     ssub = split(s, ',')
@@ -119,7 +119,7 @@ function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
         end
 
         # nonsymmorphic/fractional translation part
-        if size(O,2) == D+1 # for size(O) = dim×dim+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
+        if size(O,2) == D+1 # for size(O) = D×D+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
             if !iszero(row[end])
                 fractionify!(buf, row[end])
             end
@@ -163,9 +163,8 @@ issymmorph(sgnum::Integer, D::Integer=3) = issymmorph(spacegroup(sgnum, D))
 
 # ----- POINT GROUP ASSOCIATED WITH SPACE/PLANE GROUP (FULL OR LITTLE) ---
 """
-    pointgroup(ops:AbstractVector{SymOperation})
+    pointgroup(ops:AbstractVector{SymOperation{D}})
     pointgroup(sg::AbstractGroup)
-    pointgroup(sgnum::Integer, D::Integer=3)
 
 Computes the point group associated with a space group `sg` (characterized by
 a set of operators `ops`, which, jointly with lattice translations generate 
@@ -176,15 +175,14 @@ isogonal point group of `sg`; see Sec. 1.5).
 
 Returns a `Vector` of `SymOperation`s.
 """
-function pointgroup(ops::AbstractVector{SymOperation})
+function pointgroup(ops::AbstractVector{SymOperation{D}}) where D
     # find SymOperations that are unique with respect to their rotational parts
     unique_rotation_ops = unique(rotation, ops) 
     # return rotation-only SymOperations from the above unique set
-    return SymOperation.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, dim(first(ops))))))
+    return SymOperation{D}.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, D))))
     # TODO: Return a PointGroup?
 end
 pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
-pointgroup(sgnum::Integer, D::Integer=3) = pointgroup(spacegroup(sgnum, D))
 
 # ----- GROUP ELEMENT COMPOSITION -----
 """ 
@@ -200,7 +198,9 @@ the {W₁*W₂|w₁+W₁*w₂} is reduced to the range [0,1], i.e. computed modu
 This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e. 
 `true`, by default). Returns another `SymOperation`.
 """
-(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation = SymOperation((∘)(matrix(op1), matrix(op2), modτ))
+function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
+    T((∘)(matrix(op1), matrix(op2), modτ))
+end
 function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
     W′ = rotation(op1)*rotation(op2)
     w′ = translation(op1) .+ rotation(op1)*translation(op2)
@@ -254,23 +254,23 @@ function (⊚)(op1::T, op2::T) where T<:SymOperation
 end
 
 """
-    inv(op::SymOperation) --> SymOperation
+    inv(op::SymOperation{D}) --> SymOperation{D}
 
 Compute the inverse {W|w}⁻¹ ≡ {W⁻¹|-W⁻¹w} of an operator `op` ≡ {W|w}.
 """
-function inv(op::SymOperation)
+function inv(op::T) where T<:SymOperation
     W = rotation(op)
     w = translation(op)
 
     W⁻¹ = inv(W)
     w⁻¹ = -W⁻¹*w
 
-    return SymOperation([W⁻¹ w⁻¹])
+    return T([W⁻¹ w⁻¹])
 end
 
 
 """
-    multtable(ops::AbstractVector{SymOperation})
+    multtable(ops::AbstractVector{<:SymOperation{D}})
 
 Compute the multiplication (or Cayley) table of a set of symmetry operations.
 A MultTable is returned, which contains symmetry operations 
@@ -278,7 +278,7 @@ resulting from composition of `row ∘ col` operators; the table of
 indices give the symmetry operators relative to the ordering of 
 `ops`.
 """
-function multtable(ops::AbstractVector{SymOperation}; verbose::Bool=false)
+function multtable(ops::AbstractVector{SymOperation{D}}; verbose::Bool=false) where D
     havewarned = false
     N = length(ops)
     indices = Matrix{Int64}(undef, N,N)
@@ -296,13 +296,13 @@ function multtable(ops::AbstractVector{SymOperation}; verbose::Bool=false)
             @inbounds indices[row,col] = match
         end
     end
-    return MultTable(ops, indices, !havewarned)
+    return MultTable{D}(ops, indices, !havewarned)
 end
 
 
-checkmulttable(lgir::LGIrrep, αβγ=nothing; verbose::Bool=false) = begin
+function checkmulttable(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) where D
     ops = operations(lgir)
-    sgnum = num(lgir); cntr = centering(sgnum, dim(first(ops)))
+    sgnum = num(lgir); cntr = centering(sgnum, D)
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices for composition/∘
     checkmulttable(multtable(primitive_ops), lgir, αβγ; verbose=verbose)
 end
@@ -391,11 +391,10 @@ end
 # [      v(C) = P(𝐗)v(𝐗)
 # [    while an operator O(𝐗) corresponds to a Cartesian operator O(C)≡O via
 # [      O(C) = P(𝐗)O(𝐗)P(𝐗)⁻¹
-function littlegroup(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char='P')
+function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char='P') where D
     k₀, kabc = parts(kv)
     checkabc = !iszero(kabc)
     idxlist = [1]
-    D = dim(kv)
     for (idx, op) in enumerate(@view ops[2:end]) # note: `idx` is offset by 1 relative to position of op in ops
         k₀′, kabc′ = parts(compose(op, kv, checkabc)) # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)  
         diff = k₀′ .- k₀
@@ -414,11 +413,10 @@ function littlegroup(sg::SpaceGroup, kv::KVec)
     return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
 
-function kstar(ops::AbstractVector{SymOperation}, kv::KVec, cntr::Char)
+function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where D
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(kv.kabc)
-    D = dim(kv)
     for op in (@view ops[2:end])
         k₀′, kabc′ = parts(compose(op, kv, checkabc))
 
@@ -478,20 +476,22 @@ associated with the coordinate transformation.
 
 For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
 """
-function primitivize(op::SymOperation, cntr::Char)
-    if cntr === 'P' || cntr === 'p' # primitive basis: identity-transform, short circuit
+function primitivize(op::SymOperation{D}, cntr::Char) where D
+    if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
+        # primitive basis: identity-transform, short circuit
         return op
     else
-        P = primitivebasismatrix(cntr, dim(op))
+        P = primitivebasismatrix(cntr, D)
         return transform(op, P, nothing)
     end
 end
 
-function conventionalize(op::SymOperation, cntr::Char)
-    if cntr === 'P' || cntr === 'p' # primitive basis: identity-transform, short circuit
+function conventionalize(op::SymOperation{D}, cntr::Char) where D
+    if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
+        # primitive basis: identity-transform, short circuit
         return op
     else
-        P = primitivebasismatrix(cntr, dim(op))
+        P = primitivebasismatrix(cntr, D)
         return transform(op, inv(P), nothing)
     end
 end
@@ -527,14 +527,14 @@ disabled by setting `modw=false`.
 
 See also `primitivize` and `conventionalize`. 
 """
-function transform(op::SymOperation, P::AbstractMatrix{<:Real}, 
+function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
-                   modw::Bool=true)    
+                   modw::Bool=true) where D
     W′ = transform_rotation(op, P)             # = P⁻¹WP       (+ rounding)
     w′ = transform_translation(op, P, p, modw) # = P⁻¹(w+Wp-p)
                                                # with W ≡ rotation(op) and w ≡ translation(op)
 
-    return SymOperation([W′ w′])
+    return SymOperation{D}([W′ w′])
 end
 
 function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
@@ -545,10 +545,11 @@ function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
     # always have integer coefficients if it is in the conventional
     # or primitive basis of its lattice; if transformed to a nonstandard
     # lattice, it might not have that though.
-    @inbounds for (idx, el) in enumerate(W′) 
+    @inbounds for (idx, el) in enumerate(W′)
         rel = round(el)
         if !isapprox(el, rel, atol=DEFAULT_ATOL)
-            rel = el # non-standard lattice transformation; fractional elements (this is why we need Float64 in SymOperation)
+            rel = el # non-standard lattice transformation; fractional elements 
+                     # (this is why we need Float64 in SymOperation{D})
         end
         # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative
         # values x∈[-0.5,-0.0] to -0.0 -- and since it is bad for us to have
@@ -575,11 +576,11 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
 end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
-function reduce_ops(ops::AbstractVector{SymOperation}, cntr::Char, conv_or_prim::Bool=true)
-    P = primitivebasismatrix(cntr, dim(first(ops)))
+function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, conv_or_prim::Bool=true) where D
+    P = primitivebasismatrix(cntr, D)
     ops′ = transform.(ops, Ref(P))         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
-    ops′_reduced = SymOperation.(uniquetol(matrix.(ops′), atol=SGOps.DEFAULT_ATOL))
+    ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=SGOps.DEFAULT_ATOL))
 
     if conv_or_prim # (true) return in conventional basis
         return transform.(ops′_reduced, Ref(inv(P))) # equiv. to conventionalize.(ops′_reduced, cntr)
@@ -591,7 +592,7 @@ reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg),
 primitivize(sg::SpaceGroup{D}) where D = SpaceGroup{D}(num(sg), reduce_ops(sg, false))
 
 """
-    cartesianize(op::SymOperation, Rs::DirectBasis) --> Vector{SymOperation}
+    cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) --> SymOperation{D}
 
 Convert a `SymOperation` `opˡ` from the lattice basis to a Cartesian basis, by computing the
 transformed operators `opᶜ = 𝐑*opˡ*𝐑⁻¹` via the Cartesian basis matrix 𝐑 (whose columns are
@@ -611,16 +612,16 @@ assumes integer coefficients for its point-group matrix: as a consequence, displ
 `SymOperation`s in a Cartesian basis may yield undefine behavior. The matrix representation
 remains valid, however.
 """
-function cartesianize(op::SymOperation, Rs::DirectBasis)
+function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
     𝐑 = basis2matrix(Rs)
     # avoids inv(𝐑) by not calling out to transform(opˡ, inv(𝐑))
-    op′ = SymOperation([𝐑*rotation(op)/𝐑 𝐑\translation(op)]) 
+    op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑\translation(op)]) 
     return op′
 end
 cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
 
 """
-    findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Char) 
+    findequiv(op::SymOperation, ops::AbstractVector{SymOperation{D}}, cntr::Char) 
                                                 --> Tuple{Int, Vector{Float64}}
 
 Search for an operator `op′` in `ops` which is equivalent, modulo differences
@@ -631,11 +632,11 @@ returns `(nothing, nothing)`.
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
 """
-function findequiv(op::SymOperation, ops::AbstractVector{SymOperation}, cntr::Char)
+function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}}, cntr::Char) where D
     W = rotation(op)
     w = translation(op)
 
-    P = primitivebasismatrix(cntr, dim(op))
+    P = primitivebasismatrix(cntr, D)
     w′ = P\w    # `w` in its primitive basis
 
     for (j, opⱼ) in enumerate(ops)
@@ -664,7 +665,7 @@ that `opsᴳ[idxs] ≡ H`.
 The first return argument is a Boolean (whether H<G); the second is `idxs`.
 
 """
-function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation}
+function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{<:SymOperation{<:Any}}
     idxsᴳ²ᴴ = Vector{Int64}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
         idxᴳ = findfirst(==(opᴴ), opsᴳ)
@@ -682,7 +683,7 @@ _findsubgroup(G::T, H::T) where T<:SpaceGroup = _findsubgroup(operations(G), ope
     issubgroup(opsᴳ::T, opsᴴ::T) --> Bool
 
 Determine whether the operations in group H are a subgroup of the group G (each with 
-operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation}`),
+operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation{D}}`),
 i.e. whether H<G. Specifically, this requires that G and H are both groups and that 
 for every h∈H there exists an element g∈G such that h=g.
 
@@ -693,19 +694,16 @@ comparison assumes a matching setting choice between H and G. To compare space
 group types with different conventional settings, they must first be transformed
 to a shared setting.
 """
-function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation}
-    Dᴳ = dim(first(opsᴳ)); Dᴴ = dim(first(opsᴴ))
-    Dᴳ ≠ Dᴴ && throw(DomainError((Dᴳ, Dᴴ), "Dimensions of opsᴳ and opsᴴ must agree"))
-
-    ΔW = Matrix{Float64}(undef, Dᴳ, Dᴳ) # work matrices
-    Δw = Vector{Float64}(undef, Dᴳ)
+function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D}} where D
+    ΔW = Matrix{Float64}(undef, D, D) # work matrices
+    Δw = Vector{Float64}(undef, D)
     for h in opsᴴ
         found = false
         for g in opsᴳ
             ΔW .= rotation(h) .- rotation(g)
             Δw .= translation(h) .- translation(g)
 
-            @inbounds @simd for i in Base.OneTo(Dᴳ) # consider two operations identical if they differ by a near-integer translation
+            @inbounds @simd for i in Base.OneTo(D) # consider two operations identical if they differ by a near-integer translation
                 rΔwᵢ = round(Δw[i])
                 if isapprox(Δw[i], rΔwᵢ, atol=DEFAULT_ATOL)
                     Δw[i] = zero(Float64)
@@ -730,7 +728,7 @@ issubgroup(G::T, H::T) where T<:SpaceGroup = issubgroup(operations(G), operation
     isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) --> Bool
 
 Determine whether the operations in group H are normal in the group G (each with 
-operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation}`),
+operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation{D}}`),
 in the sense that 
     
     ghg⁻¹ ∈ H ∀ g∈G, h∈H
@@ -742,7 +740,7 @@ comparison assumes a matching setting choice between H and G. To compare space
 group types with different conventional settings, they must first be transformed
 to a shared setting.
 """
-function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{SymOperation}  
+function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{<:SymOperation{<:Any}}
     for g in opsᴳ
         g⁻¹ = inv(g)
         for h in opsᴴ

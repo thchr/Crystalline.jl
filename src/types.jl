@@ -16,6 +16,7 @@ lastindex(::Basis{D}) where D = D
 setindex!(Vs::Basis, vec::Vector{Float64}, i::Int) = (Vs[i] .= vec)
 size(::Basis{D}) where D = (D,)
 IndexStyle(::Basis) = IndexLinear()
+eltype(Vs::Basis) = typeof(vecs(Vs))
 function show(io::IO, ::MIME"text/plain", Vs::DirectBasis) # cannot use for ReciprocalBasis at the moment (see TODO in `crystalsystem`)
     print(io, typeof(Vs))
     print(io, " ($(crystalsystem(Vs))):")
@@ -49,35 +50,39 @@ basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 
 
 # --- Symmetry operations ---
-struct SymOperation <: AbstractMatrix{Float64}
+struct SymOperation{D} <: AbstractMatrix{Float64}
     xyzt::String
     matrix::Matrix{Float64}
 end
+SymOperation(s::String, m::Matrix{<:Real}) = SymOperation{size(m,1)}(s, float(m))
 SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(string(s), m))
-SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), float(m))
+SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(string(s), m))
+SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), m)
+SymOperation{D}(m::Matrix{<:Real}) where D = SymOperation{D}(matrix2xyzt(m), float(m))
 matrix(op::SymOperation) = op.matrix
 xyzt(op::SymOperation) = op.xyzt
-dim(op::SymOperation) = size(matrix(op),1)
+dim(::SymOperation{D}) where D = D
 # define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]
 firstindex(::SymOperation) = 1
-lastindex(op::SymOperation, d::Int64) = size(matrix(op), d)
+lastindex(op::SymOperation, d::Int64) = lastindex(matrix(op), d)
 IndexStyle(::SymOperation) = IndexLinear()
-size(op::SymOperation) = size(matrix(op))
+size(::SymOperation{D}) where D = (D,D+1)
+eltype(::SymOperation) = Float64
 
 rotation(m::Matrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 rotation(op::SymOperation)  = rotation(matrix(op))
 translation(m::Matrix{<:Real}) = @view m[:,end]  # translation part of an operation
 translation(op::SymOperation)  = translation(matrix(op))
-(==)(op1::SymOperation, op2::SymOperation) = (xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
-isapprox(op1::SymOperation, op2::SymOperation; kwargs...) = isapprox(matrix(op1), matrix(op2); kwargs...)
+(==)(op1::SymOperation, op2::SymOperation) = (dim(op1) == dim(op2) && xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
+isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
 unpack(op::SymOperation) = (rotation(op), translation(op))
-function show(io::IO, ::MIME"text/plain", op::SymOperation)
+function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, "├─ ", opseitz, " ")
     printstyled(io, repeat('─',36-length(opseitz)-length(opxyzt)), " (", opxyzt, ")"; color=:light_black)
     #Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
-    ((D = dim(op)) == 1 && return) || println(io) # no need to print a matrix if 1D
+    (D == 1 && return) || println(io) # no need to print a matrix if 1D
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
@@ -105,7 +110,8 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation)
     end
     return
 end
-function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
+# TODO: This is bad style, afaik...
+function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation{<:Any}})
     for (i,op) in enumerate(ops)
         show(io, "text/plain", op)
         if i < length(ops); println(io, "\n│"); end
@@ -113,8 +119,8 @@ function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
 end
 
 # --- Multiplication table ---
-struct MultTable
-    operations::Vector{SymOperation}
+struct MultTable{D} <: AbstractMatrix{Int64}
+    operations::Vector{SymOperation{D}}
     indices::Matrix{Int64}
     isgroup::Bool
 end
@@ -129,6 +135,7 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     end
 end
 getindex(mt::MultTable, keys...) = indices(mt)[keys...]
+firstindex(mt::MultTable, d) = 1
 lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
 
 # --- 𝐤-vectors ---
@@ -293,7 +300,7 @@ end
 
 
 # --- Abstract spatial group ---
-abstract type AbstractGroup{D} <: AbstractVector{SymOperation} end
+abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
 dim(g::AbstractGroup{D}) where D = D
@@ -304,6 +311,7 @@ lastindex(g::AbstractGroup, d::Int64) = size(operations(g), d)  # allows using `
 setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
 size(g::AbstractGroup) = (length(operations(g)),)
 IndexStyle(::AbstractGroup) = IndexLinear()
+eltype(::AbstractGroup{D}) where D = SymOperation{D}
 order(g::AbstractGroup) = length(g)
 
 function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
@@ -328,7 +336,7 @@ end
 # --- Space group ---
 struct SpaceGroup{D} <: AbstractGroup{D}
     num::Int64
-    operations::Vector{SymOperation}
+    operations::Vector{SymOperation{D}}
 end
 dim(sg::SpaceGroup{D}) where D = D
 label(sg::SpaceGroup) = iuc(sg)
@@ -338,7 +346,7 @@ label(sg::SpaceGroup) = iuc(sg)
 struct PointGroup{D} <: AbstractGroup{D}
     num::Int64
     label::String
-    operations::Vector{SymOperation}
+    operations::Vector{SymOperation{D}}
 end
 label(pg::PointGroup) = pg.label
 
@@ -347,10 +355,10 @@ struct LittleGroup{D} <: AbstractGroup{D}
     num::Int64
     kv::KVec
     klab::String
-    operations::Vector{SymOperation}
+    operations::Vector{SymOperation{D}}
 end
-LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, klab, ops)
-LittleGroup(num::Int64, kv::KVec, ops::AbstractVector{SymOperation}) = LittleGroup{dim(kv)}(num, kv, "", ops)
+LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
+LittleGroup(num::Int64, kv::KVec, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
 dim(lg::LittleGroup{D}) where D = D
 kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
@@ -391,10 +399,10 @@ struct SGIrrep{T} <: AbstractIrrep where T
     knum::Int64     # number of 𝐤-vecs in star
     pmknum::Int64   # number of ±𝐤-vecs in star
     special::Bool   # whether star{𝐤} describes high-symmetry points
-    pmkstar::Vector{KVec}       # star{𝐤} for Complex, star{±𝐤} for Real
-    ops::Vector{SymOperation}   # every symmetry operation in space group
+    pmkstar::Vector{KVec}        # star{𝐤} for Complex, star{±𝐤} for Real
+    ops::Vector{SymOperation{3}} # every symmetry operation in space group
     translations::Vector{Vector{Float64}} # translations assoc with matrix repres of symops in irrep
-    matrices::Vector{Matrix{T}} # non-translation assoc with matrix repres of symops in irrep
+    matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of symops in irrep
 end
 num(sgir::SGIrrep) = sgir.sgnum
 irreps(sgir::SGIrrep) = sgir.matrices
@@ -634,7 +642,7 @@ find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(get_lg
 
 # --- Character table ---
 struct CharacterTable{D}
-    ops::Vector{SymOperation}
+    ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
     chartable::Matrix{ComplexF64}
     # TODO: for LGIrreps and SGIrreps, it might be nice to keep this more versatile and
@@ -642,7 +650,7 @@ struct CharacterTable{D}
     #       doesn't specialize on a given αβγ choice (see also chartable(::LGirrep))
     tag::String
 end
-CharacterTable{D}(ops::AbstractVector{SymOperation}, 
+CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, 
                   irlabs::Vector{String}, 
                   chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
 operations(ct::CharacterTable) = ct.ops

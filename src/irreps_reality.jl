@@ -49,7 +49,7 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         else
             # This is a bit silly: if k_equiv_kv₋ = true, we will never use g₋; but I'm not sure if 
             # the compiler will figure that out, or if it will needlessly guard against missing g₋?
-            g₋ = SymOperation(hcat(I, zeros(D))) # ... the unit element I
+            g₋ = SymOperation{D}(hcat(I, zeros(D))) # ... the unit element I
         end
 
         # -𝐤 is part of star{𝐤}; we infer reality of irrep from ISOTROPY's data (could also 
@@ -167,7 +167,7 @@ end
 
 
 """
-    herring(ir::LGIrrep, sgops::AbstractVector{SymOperation},
+    herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}},
             αβγ::Union{Vector{<:Real},Nothing}=nothing)        --> Tuple{Int, Int}
 
 Computes the Herring criterion for a little group irrep `ir`, from 
@@ -189,13 +189,12 @@ See e.g. Inui's Eq. (13.48), Dresselhaus, p. 618, and
 and Herring's original paper at https://doi.org/10.1103/PhysRev.52.361.
 We mainly followed Cornwell, p. 150-152 & 187-188.
 """
-function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation}, αβγ::Union{Vector{<:Real},Nothing}=nothing)
+function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
 
     lgops = operations(ir)
     kv = kvec(ir)
     kv₋ = -kv
-    dim = length(kv.k₀)
-    cntr = centering(num(ir), dim)
+    cntr = centering(num(ir), D)
     Ds = irreps(ir, αβγ) # irrep matrices
     kv_αβγ = kv(αβγ)
 

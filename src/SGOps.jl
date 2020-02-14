@@ -6,7 +6,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
       Meshing, JLD2, PrettyTables, 
       CSV,                    # for special_representation_domain_kpoints 
       MetaGraphs, LightGraphs # for compatibility.jl
-import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, # indexing interface
+import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, eltype, # indexing interface
              string, isapprox,
              length, readuntil, vec, show, 
              +, -, ∘, ==, ImmutableDict

@@ -21,22 +21,22 @@ M16 = C*ComplexF64[P conj(Q); P -conj(Q)]
 
 # Note that CDML has the same setting for 214 as ITA/Bilbao/ISOTROPY does; no need 
 # to transform any of the operators
-R1  = SymOperation("x,y,z")         # rotations
-R2  = SymOperation("x,-y,-z")
-R3  = SymOperation("-x,y,-z")
-R4  = SymOperation("-x,-y,z")
-R5  = SymOperation("y,z,x")
-R6  = SymOperation("y,-z,-x")
-R7  = SymOperation("-y,z,-x")
-R8  = SymOperation("-y,-z,x")
-R9  = SymOperation("z,x,y")
-R10 = SymOperation("z,-x,-y")
-R11 = SymOperation("-z,x,-y")
-R12 = SymOperation("-z,-x,y")
+R1  = SymOperation{3}("x,y,z")         # rotations
+R2  = SymOperation{3}("x,-y,-z")
+R3  = SymOperation{3}("-x,y,-z")
+R4  = SymOperation{3}("-x,-y,z")
+R5  = SymOperation{3}("y,z,x")
+R6  = SymOperation{3}("y,-z,-x")
+R7  = SymOperation{3}("-y,z,-x")
+R8  = SymOperation{3}("-y,-z,x")
+R9  = SymOperation{3}("z,x,y")
+R10 = SymOperation{3}("z,-x,-y")
+R11 = SymOperation{3}("-z,x,-y")
+R12 = SymOperation{3}("-z,-x,y")
 
-T1  = SymOperation("x,y+1/2,z")     # translations
-T2  = SymOperation("x,y,z+1/2")
-T3  = SymOperation("x+1/2,y,z")
+T1  = SymOperation{3}("x,y+1/2,z")     # translations
+T2  = SymOperation{3}("x,y,z+1/2")
+T3  = SymOperation{3}("x+1/2,y,z")
 
 # Generators (elements and irreps) at k-point P in sgnum = 214
 opsgen = [R4∘T1, R2∘T2, R9]; 

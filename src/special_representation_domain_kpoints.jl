@@ -129,27 +129,27 @@ const ORPHAN_AB_SUPERPARENT_SGNUMS = ImmutableDict(
 # Abbreviations below: min-sup-sg ≡ minimal (normal and holosymmetric) supergroup
 const CORNERCASES_SUBSUPER_NORMAL_SGS = SGOps.ImmutableDict(
      # group sgnum => (supergroup sgnum, transformation rotation P, transformation translation p)
-     17 => (51,  copy.(unpack(SymOperation("z,x,y")))...),            # min-sup-sg
-     26 => (51,  copy.(unpack(SymOperation("z,x,y")))...),            # min-sup-sg
-     28 => (51,  copy.(unpack(SymOperation("x,-z,y")))...),           # min-sup-sg
-     29 => (54,  copy.(unpack(SymOperation("-z,y,x+1/4")))...),       # min-sup-sg
-     30 => (52,  copy.(unpack(SymOperation("z,x+1/4,y+1/4")))...),    # min-sup-sg
-     33 => (52,  copy.(unpack(SymOperation("x+1/4,z,-y+1/4")))...),   # min-sup-sg
-     38 => (63,  copy.(unpack(SymOperation("y,z,x+1/4")))...),        # min-sup-sg
-     39 => (64,  copy.(unpack(SymOperation("y+1/4,z,x+1/4")))...),    # min-sup-sg
-     40 => (63,  copy.(unpack(SymOperation("-z,y,x")))...),           # min-sup-sg
-     41 => (64,  copy.(unpack(SymOperation("-z,y,x")))...),           # min-sup-sg
-     43 => (70,  copy.(unpack(SymOperation("z,x+3/8,y+3/8")))...),    # min-sup-sg
-     46 => (72,  copy.(unpack(SymOperation("-z,y,x+1/4")))...),       # min-sup-sg
-     80 => (141, copy.(unpack(SymOperation("x+1/2,y+3/4,z")))...),    # NOT min-sup-sg: instead, a cycle through 88=>141 which ensures normality/invariance 
-     86 => (133, copy.(unpack(SymOperation("x,y+1/2,z")))...),        # min-sup-sg
-     88 => (141, copy.(unpack(SymOperation("x,y+1/2,z")))...),        # min-sup-sg
-     90 => (127, copy.(unpack(SymOperation("x,y+1/2,z")))...),        # min-sup-sg
-     98 => (141, copy.(unpack(SymOperation("x,y+1/4,z+3/8")))...),    # min-sup-sg
-    109 => (141, copy.(unpack(SymOperation("x,y+1/4,z")))...),        # min-sup-sg
-    110 => (142, copy.(unpack(SymOperation("x,y+1/4,z")))...),        # min-sup-sg
-    122 => (141, copy.(unpack(SymOperation("x,y+1/4,z+3/8")))...),    # min-sup-sg
-    210 => (227, copy.(unpack(SymOperation("x+3/8,y+3/8,z+3/8")))...) # min-sup-sg
+     17 => (51,  copy.(unpack(SymOperation{3}("z,x,y")))...),            # min-sup-sg
+     26 => (51,  copy.(unpack(SymOperation{3}("z,x,y")))...),            # min-sup-sg
+     28 => (51,  copy.(unpack(SymOperation{3}("x,-z,y")))...),           # min-sup-sg
+     29 => (54,  copy.(unpack(SymOperation{3}("-z,y,x+1/4")))...),       # min-sup-sg
+     30 => (52,  copy.(unpack(SymOperation{3}("z,x+1/4,y+1/4")))...),    # min-sup-sg
+     33 => (52,  copy.(unpack(SymOperation{3}("x+1/4,z,-y+1/4")))...),   # min-sup-sg
+     38 => (63,  copy.(unpack(SymOperation{3}("y,z,x+1/4")))...),        # min-sup-sg
+     39 => (64,  copy.(unpack(SymOperation{3}("y+1/4,z,x+1/4")))...),    # min-sup-sg
+     40 => (63,  copy.(unpack(SymOperation{3}("-z,y,x")))...),           # min-sup-sg
+     41 => (64,  copy.(unpack(SymOperation{3}("-z,y,x")))...),           # min-sup-sg
+     43 => (70,  copy.(unpack(SymOperation{3}("z,x+3/8,y+3/8")))...),    # min-sup-sg
+     46 => (72,  copy.(unpack(SymOperation{3}("-z,y,x+1/4")))...),       # min-sup-sg
+     80 => (141, copy.(unpack(SymOperation{3}("x+1/2,y+3/4,z")))...),    # NOT min-sup-sg: instead, a cycle through 88=>141 which ensures normality/invariance 
+     86 => (133, copy.(unpack(SymOperation{3}("x,y+1/2,z")))...),        # min-sup-sg
+     88 => (141, copy.(unpack(SymOperation{3}("x,y+1/2,z")))...),        # min-sup-sg
+     90 => (127, copy.(unpack(SymOperation{3}("x,y+1/2,z")))...),        # min-sup-sg
+     98 => (141, copy.(unpack(SymOperation{3}("x,y+1/4,z+3/8")))...),    # min-sup-sg
+    109 => (141, copy.(unpack(SymOperation{3}("x,y+1/4,z")))...),        # min-sup-sg
+    110 => (142, copy.(unpack(SymOperation{3}("x,y+1/4,z")))...),        # min-sup-sg
+    122 => (141, copy.(unpack(SymOperation{3}("x,y+1/4,z+3/8")))...),    # min-sup-sg
+    210 => (227, copy.(unpack(SymOperation{3}("x+3/8,y+3/8,z+3/8")))...) # min-sup-sg
 )
 
 # Transformation matrices from CDML to ITA settings
@@ -183,7 +183,7 @@ function _find_holosymmetric_sgnums(D::Integer)
     uniquebravaistypes = unique(bravaistypes) # Bravais types (1, 5, & 14 in 1D, 2D, & 3D)
 
     # find maximum point groups for each bravais type
-    maxpointgroups = Dict(ubt=>Vector{SymOperation}() for ubt in uniquebravaistypes)
+    maxpointgroups = Dict(ubt=>Vector{SymOperation{D}}() for ubt in uniquebravaistypes)
     for (sgnum,bt) in enumerate(bravaistypes)
         pg = sort(pointgroup(spacegroup(sgnum,D)), by=xyzt)
         if length(pg) > length(maxpointgroups[bt])
@@ -238,7 +238,7 @@ i.e. such that `F`≤`P` with `P` restricted to the lattice type of `G` (see
 """
 function find_holosymmetric_superpointgroup(G::SpaceGroup)
     D = dim(G)
-    F = pointgroup(G) # (isogonal) point group of G (::Vector{SymOperation})
+    F = pointgroup(G) # (isogonal) point group of G (::Vector{SymOperation{D}})
     if D == 3
         # In 3D there are cases (162, 163, 164, 165) where the distinctions
         # between hP and hR need to be accounted for explicitly, so there we
@@ -385,13 +385,13 @@ function find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
     if is_holosymmetric(num(G), dim(G))
         return nothing
     else # G is not a holosymmetric sg, so Φ-Ω is finite
-        P = operations(find_holosymmetric_superpointgroup(G)) # holosymmetric supergroup of G (::Vector{SymOperation})
-        F = pointgroup(G)                                     # (isogonal) point group of G   (::Vector{SymOperation})
+        P = operations(find_holosymmetric_superpointgroup(G)) # holosymmetric supergroup of G (::Vector{SymOperation{D}})
+        F = pointgroup(G)                                     # (isogonal) point group of G   (::Vector{SymOperation{D}})
 
         index::Int64 = length(P)/length(F) # index of F in P = 2^"number of needed maps"
         if index == 1; println(num(G)); return nothing; end
         N::Int64 = log2(index)
-        Rs = Vector{SymOperation}(undef, N)
+        Rs = Vector{SymOperation{dim(G)}}(undef, N)
         matchidx = 0
         # Find N coset representatives
         for i in 1:N
@@ -596,16 +596,16 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
         loadpath = baseloadpath*loadtype*".csv"
         if loadtype == "MonoOrthTetraCubic"
             # Monoclinic, cubic, tetragonal, orthorhombic
-            num2ops = Dict( 2=>SymOperation("x,-y,-z"), 3=>SymOperation("-x,y,-z"), 
-                            4=>SymOperation("-x,-y,z"), 16=>SymOperation("y,x,-z"), 
-                            26=>SymOperation("-x,y,z"), 28=>SymOperation("x,y,-z"),
-                            37=>SymOperation("y,x,z") )
+            num2ops = Dict( 2=>SymOperation{3}("x,-y,-z"), 3=>SymOperation{3}("-x,y,-z"), 
+                            4=>SymOperation{3}("-x,-y,z"), 16=>SymOperation{3}("y,x,-z"), 
+                            26=>SymOperation{3}("-x,y,z"), 28=>SymOperation{3}("x,y,-z"),
+                            37=>SymOperation{3}("y,x,z") )
         elseif loadtype == "TriHex"
             # Trigonal & hexagonal
-            num2ops = Dict( 2=>SymOperation("x-y,x,z"),    6=>SymOperation("y,-x+y,z"), 
-                            8=>SymOperation("x,x-y,-z"),   9=>SymOperation("y,x,-z"), 
-                            10=>SymOperation("-x+y,y,-z"), 16=>SymOperation("x,y,-z"),
-                            23=>SymOperation("x,x-y,z"),   24=>SymOperation("y,x,z") )
+            num2ops = Dict( 2=>SymOperation{3}("x-y,x,z"),    6=>SymOperation{3}("y,-x+y,z"), 
+                            8=>SymOperation{3}("x,x-y,-z"),   9=>SymOperation{3}("y,x,-z"), 
+                            10=>SymOperation{3}("-x+y,y,-z"), 16=>SymOperation{3}("x,y,-z"),
+                            23=>SymOperation{3}("x,x-y,z"),   24=>SymOperation{3}("y,x,z") )
         end
 
         # read data from csv file
@@ -629,7 +629,7 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
                 if haskey(TRANSFORMS_CDML2ITA, cur_sgnum) 
                     P, p = TRANSFORMS_CDML2ITA[cur_sgnum]
                     if verbose
-                        Pstr = xyzt(SymOperation(hcat(P, p)))
+                        Pstr = xyzt(SymOperation{3}(hcat(P, p)))
                         println("SG $(cur_sgnum): transforming from CDML to ITA setting via P = $(Pstr):\n",
                                 "    From R = $(xyzt(R))\t= $(seitz(R))")
                     end
@@ -694,7 +694,7 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         # procedure doesn't apply to sg 205. Below are the cached results of 
         # ΦNOTΩ_KVECS_AND_MAPS[find_arithmetic_partner(205, 3)]. The actual irreps at 
         # ZA, AA, and BA are given in CDML p. C491; ZA is already include in ISOTROPY
-        R₂₀₅ = SymOperation("y,x,z")
+        R₂₀₅ = SymOperation{D}("y,x,z")
         kvmaps = [KVecMapping("Z","ZA",R₂₀₅), KVecMapping("A","AA",R₂₀₅), KVecMapping("B","BA",R₂₀₅)]
         return kvmaps, orphantype
         
@@ -748,7 +748,7 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         R = kvmap_pg.op       # R in CDML notation
         matchidx = findfirst(op′->rotation(R)==rotation(op′), opsGᵖᵃʳ)
         # For orphans of type (a) or (b) there is the possibility of a situation
-        # where R is **not** in Gᵖᵃʳ, namely if R = SymOperation("-x,-y,-z"), see
+        # where R is **not** in Gᵖᵃʳ, namely if R = SymOperation{3}("-x,-y,-z"), see
         # B&C p. 414-415.
         # Despite this, for the KVecMappings included in CDML, this situation 
         # never arises; this must mean that all those "new" KVecs generated by 

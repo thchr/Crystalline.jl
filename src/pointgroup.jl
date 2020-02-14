@@ -1,4 +1,4 @@
-function read_pgops_xyzt(iuclab::String, D::Integer=2)
+function read_pgops_xyzt(iuclab::String, D::Integer=3)
     if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
     
     filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*replace(iuclab, "/"=>"_slash_")*".json"
@@ -13,18 +13,18 @@ end
     pgnum = pointgroup_iuc2num(iuclab, D)  # this is not generally a particularly meaningful or even well-established numbering
     ops_str = read_pgops_xyzt(iuclab, D)
     
-    return PointGroup{D}(pgnum, iuclab, SymOperation.(ops_str))
+    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
 end
-@inline pointgroup(iuclab::String, D::Integer=3) = pointgroup(iuclab, Val{D}())
+@inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val{D}())
 
 @inline function pointgroup(pgnum::Integer, ::Val{D}=Val(3)) where D
     if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
     iuclab = pointgroup_num2iuc(pgnum, D)
     ops_str = read_pgops_xyzt(iuclab, D)
 
-    return PointGroup{D}(pgnum, iuclab, SymOperation.(ops_str))
+    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
 end
-@inline pointgroup(pgnum::Integer, D::Integer=3) = pointgroup(pgnum, Val{D}())
+@inline pointgroup(pgnum::Integer, D::Integer) = pointgroup(pgnum, Val{D}())
 
 # We include several axes settings; as a result, there are more than 32 point groups 
 # under the 3D case, because some variations are "setting-degenerate" (but are needed

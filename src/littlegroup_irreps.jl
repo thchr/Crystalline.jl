@@ -1,37 +1,37 @@
-function get_littlegroups(sgnum::Integer, dim::Integer=3,
+function get_littlegroups(sgnum::Integer, D::Integer=3,
                           jldfile::Union{Nothing,JLD2.JLDFile}=nothing)
-    sgops, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, dim, jldfile)
+    sgops, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, D, jldfile)
     Nk = length(klabs)
-    lgs = Vector{LittleGroup{dim}}(undef, Nk)
+    lgs = Vector{LittleGroup{D}}(undef, Nk)
     @inbounds for kidx in Base.OneTo(Nk)
-        lgs[kidx] = LittleGroup{dim}(sgnum, KVec(kstrs[kidx]), klabs[kidx], sgops[opsidxs[kidx]])
+        lgs[kidx] = LittleGroup{D}(sgnum, KVec(kstrs[kidx]), klabs[kidx], sgops[opsidxs[kidx]])
     end
     return lgs
 end
 
-function get_all_littlegroups(dim::Integer=3)
-    if dim == 3
+function get_all_littlegroups(D::Integer=3)
+    if D == 3
         sgnums = 1:230
     else 
-        throw_2d_not_yet_implemented(dim)
+        throw_2d_not_yet_implemented(D)
     end
     JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
-        return [get_littlegroups(sgnum, dim, lgfile) for sgnum in sgnums]; 
+        return [get_littlegroups(sgnum, D, lgfile) for sgnum in sgnums]; 
     end
 end
 
-function get_lgirreps(sgnum::Integer, dim::Integer=3,
+function get_lgirreps(sgnum::Integer, D::Integer=3,
                       lgs_jldfile::Union{Nothing,JLD2.JLDFile}=nothing,
                       irs_jldfile::Union{Nothing,JLD2.JLDFile}=nothing)
-    lgs = get_littlegroups(sgnum, dim, lgs_jldfile)
-    Ps_list, τs_list, type_list, cdml_list = _load_irreps_data(sgnum, dim, irs_jldfile)
+    lgs = get_littlegroups(sgnum, D, lgs_jldfile)
+    Ps_list, τs_list, type_list, cdml_list = _load_irreps_data(sgnum, D, irs_jldfile)
 
-    lgirsvec = Vector{Vector{LGIrrep{dim}}}(undef, length(lgs))
+    lgirsvec = Vector{Vector{LGIrrep{D}}}(undef, length(lgs))
     @inbounds for (kidx, lg) in enumerate(lgs)
         Nirr = length(type_list[kidx])
-        lgirsvec[kidx] = Vector{LGIrrep{dim}}(undef, Nirr)
+        lgirsvec[kidx] = Vector{LGIrrep{D}}(undef, Nirr)
         @inbounds for iridx in Base.OneTo(Nirr)
-            lgirsvec[kidx][iridx] = LGIrrep{dim}(cdml_list[kidx][iridx],
+            lgirsvec[kidx][iridx] = LGIrrep{D}(cdml_list[kidx][iridx],
                                                  lg, 
                                                  Ps_list[kidx][iridx], 
                                                  τs_list[kidx][iridx], 
@@ -42,16 +42,16 @@ function get_lgirreps(sgnum::Integer, dim::Integer=3,
     return lgirsvec
 end
 
-function get_all_lgirreps(dim::Integer=3)
-    if dim == 3
+function get_all_lgirreps(D::Integer=3)
+    if D == 3
         sgnums = 1:230
     else 
-        throw_2d_not_yet_implemented(dim)
+        throw_2d_not_yet_implemented(D)
     end
 
     JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
         JLD2.jldopen(SGOps.DATA_PATH_LGIRREPS_3D,"r") do irfile;
-            return [get_lgirreps(sgnum, dim, lgfile, irfile) for sgnum in sgnums]; 
+            return [get_lgirreps(sgnum, D, lgfile, irfile) for sgnum in sgnums]; 
         end
     end
 end
@@ -59,13 +59,13 @@ end
 # ===== utility functions (does the actual loading from the harddisk) =====
 const DATA_PATH_LITTLEGROUPS_3D = (@__DIR__)*"/../data/lgirreps/3d/littlegroups_data.jld2"
 const DATA_PATH_LGIRREPS_3D = (@__DIR__)*"/../data/lgirreps/3d/irreps_data.jld2"
-function _load_littlegroups_data(sgnum::Integer, dim::Integer, ::Nothing)    
+function _load_littlegroups_data(sgnum::Integer, D::Integer, ::Nothing)    
     JLD2.jldopen(DATA_PATH_LITTLEGROUPS_3D, "r") do jldfile
-        return _load_littlegroups_data(sgnum, dim, jldfile)
+        return _load_littlegroups_data(sgnum, D, jldfile)
     end   
 end
-function _load_littlegroups_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
-    dim ≠ 3 && throw_2d_not_yet_implemented(dim)
+function _load_littlegroups_data(sgnum::Integer, D::Integer, jldfile::JLD2.JLDFile)
+    D ≠ 3 && throw_2d_not_yet_implemented(D)
     
     jldgroup = jldfile[string(sgnum)]
     sgops_str::Vector{String}      = jldgroup["sgops"]
@@ -73,16 +73,16 @@ function _load_littlegroups_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLD
     kstrs::Vector{String}          = jldgroup["kstr_list"]
     opsidxs::Vector{Vector{Int16}} = jldgroup["opsidx_list"]
 
-    return SymOperation.(sgops_str), klabs, kstrs, opsidxs
+    return SymOperation{D}.(sgops_str), klabs, kstrs, opsidxs
 end
 
-function _load_irreps_data(sgnum::Integer, dim::Integer, ::Nothing)
+function _load_irreps_data(sgnum::Integer, D::Integer, ::Nothing)
     JLD2.jldopen(DATA_PATH_LGIRREPS_3D, "r") do jldfile
-        return _load_irreps_data(sgnum, dim, jldfile)
+        return _load_irreps_data(sgnum, D, jldfile)
     end
 end
-function _load_irreps_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
-    dim ≠ 3 && throw_2d_not_yet_implemented(dim)
+function _load_irreps_data(sgnum::Integer, D::Integer, jldfile::JLD2.JLDFile)
+    D ≠ 3 && throw_2d_not_yet_implemented(D)
 
     jldgroup = jldfile[string(sgnum)] 
     # ≈ 70% of the time in loading all irreps is spent in getting Ps_list and τs_list
@@ -94,7 +94,7 @@ function _load_irreps_data(sgnum::Integer, dim::Integer, jldfile::JLD2.JLDFile)
     return Ps_list, τs_list, type_list, cdml_list
 end
 
-throw_2d_not_yet_implemented(dim) = throw(DomainError(dim, "Only dim=3 little groups are supported at this time"))
+throw_2d_not_yet_implemented(D) = throw(DomainError(D, "Only D=3 little groups are supported at this time"))
 
 # character table construction
 function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
@@ -106,8 +106,8 @@ function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
     return CharacterTable{D}(operations(first(lgirs)), label.(lgirs), table, tag)
 end
 
-function chartable(klab::String, sgnum::Integer, dim::Integer)
-    lgirsvec = get_lgirreps(sgnum, dim)
+function chartable(klab::String, sgnum::Integer, D::Integer)
+    lgirsvec = get_lgirreps(sgnum, D)
     kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
     if kidx === nothing
         throw(DomainError(klab, "Could not find the input klabel `klab` in the requested space group"))
@@ -116,8 +116,8 @@ function chartable(klab::String, sgnum::Integer, dim::Integer)
     end
 end
 
-function chartable(kv::KVec, sgnum::Integer, dim::Integer)
-    lgirsvec = get_lgirreps(sgnum, dim)
+function chartable(kv::KVec, sgnum::Integer, D::Integer)
+    lgirsvec = get_lgirreps(sgnum, D)
     # TODO: Implement matching to generic KVec format, so that 
     #       we can specify `kv` at concrete non-special momenta 
     #       and still match
