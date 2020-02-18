@@ -571,8 +571,12 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     else
         w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
     end
-    if modw; w′ .= mod.(w′, 1.0); end
-    return w′
+    
+    if modw
+        return mod.(w′, 1.0)
+    else
+        return w′
+    end
 end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases

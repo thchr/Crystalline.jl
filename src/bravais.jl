@@ -17,8 +17,8 @@ function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
         throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
     end
     # R₁ and R₂ are easy
-    R₁ = Float64[a, 0, 0] 
-    R₂ = b.*[cos(γ), sin(γ), 0]
+    R₁ = SVector{3,Float64}(a, 0.0, 0.0)
+    R₂ = SVector{3,Float64}(b.*(cos(γ), sin(γ), 0.0))
     # R3 is harder
     cosα = cos(α)
     cosβ = cos(β)
@@ -27,9 +27,9 @@ function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
     θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 -2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
     sinθ,cosθ = sincos(θ)
     sinϕ,cosϕ = sincos(ϕ)
-    R₃ = c.*[sinθ*cosϕ, sinθ*sinϕ, cosθ]
+    R₃ = SVector{3,Float64}(c.*(sinθ*cosϕ, sinθ*sinϕ, cosθ))
 
-    Rs = DirectBasis((R₁,R₂,R₃))
+    Rs = DirectBasis(R₁,R₂,R₃)
     return Rs
 end
 
@@ -45,17 +45,17 @@ For definiteness, the `R₁` basis vector is oriented along the
 x-axis of the Cartesian coordinate system.
 """
 function crystal(a::Real,b::Real,γ::Real) 
-    R₁ = Float64[a, 0] 
-    R₂ = b.*[cos(γ), sin(γ)]
+    R₁ = SVector{2,Float64}(a, 0.0)
+    R₂ = SVector{2,Float64}(b.*(cos(γ), sin(γ)))
 
-    return DirectBasis((R₁,R₂))
+    return DirectBasis(R₁,R₂)
 end
 
 """
     crystal(a)  --> DirectBasis{1}
 Return a one-dimensional crystal with lattice period `a`.
 """
-crystal(a::Real) = DirectBasis(([1.0,]))
+crystal(a::Real) = DirectBasis(SVector{1,Float64}(1.0))
 
 # For a three-axis system, α, β, and γ are subject to constraints: specifically, 
 # since they correspond to sides of a (unit-radius) spherical triangle, they 
@@ -74,12 +74,13 @@ function isvalid_sphericaltriangle(α,β,γ)
 end
 
 
-const origin_markeropts = (marker="o", markerfacecolor="white", markeredgecolor="black", markeredgewidth=1.5, markersize=4.5)
+const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor="black", 
+                            markeredgewidth=1.5, markersize=4.5)
 
 function plot(Rs::DirectBasis{D}) where D
     if D == 1
         plot([0, Rs[1]], [0, 0])
-        plot([0,], [0,]; origin_markeropts...) # origin
+        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
 
     elseif D == 2
         corner = sum(Rs)
@@ -87,7 +88,7 @@ function plot(Rs::DirectBasis{D}) where D
             plot([0, R[1]], [0, R[2]]; color="black") # basis vectors
             plot([R[1], corner[1]], [R[2], corner[2]]; color="grey") # remaining unit cell boundaries
         end
-        plot([0,], [0,]; origin_markeropts...) # origin
+        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
     elseif D == 3
         corners = (Rs[1]+Rs[3], Rs[1]+Rs[2], Rs[2]+Rs[3])
         dirs = ((-1,1,-1), (-1,-1,1), (1,-1,-1))
@@ -99,7 +100,7 @@ function plot(Rs::DirectBasis{D}) where D
                        [corner[3], corner[3]+dir[i]*R[3]]; color="grey")
             end
         end
-        plot3D([0,], [0,], [0,]; origin_markeropts...) # origin
+        plot3D([0,], [0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
         plt.gca().set_zlabel("z")
     end
     plt.gca().set_xlabel("x"); plt.gca().set_ylabel("y")
@@ -144,6 +145,7 @@ function crystalsystem(Rs::DirectBasis{D}) where D
     if D == 1
         # doesn't seem to exist a well-established convention for 1D? this is ours...
         system = "linear"
+        
     elseif D == 2
         a,b = norms(Rs)
         γ = angles(Rs)
@@ -190,7 +192,7 @@ end
 function crystalsystem(sgnum::Integer, D::Integer=3)
     if D == 1
         # doesn't seem to exist a well-established convention for 1D? this is ours...
-        if sgnum ∈ 1:2;        return "linear"       # lp
+        if      sgnum ∈ 1:2;   return "linear"       # lp
         else    throw(DomainError(sgnum, "There are only 2 one-dimensional line groups."))
         end
     elseif D == 2
@@ -227,7 +229,7 @@ This is useful for ensuring an even sampling of numbers that are
 either smaller or larger than unity. Eg. for `x=relrand((0.2,5.0))`,
 `x` is equally probable to fall in inv(x)∈[1,5] or x∈[1,5].
 """
-function relrand(lims::NTuple{2,Real})
+function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
     lowthres = (invlow - 1.0)/(invlow + high - 2.0)
     if rand() < lowthres && low < 1.0   # smaller than 1.0
@@ -238,7 +240,7 @@ function relrand(lims::NTuple{2,Real})
         return rand(Uniform(low,high))
     end
 end
-relrand(lims::NTuple{2,Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
+relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
     directbasis(sgnum, D=3; abclims, αβγlims) ---> DirectBasis{D}
@@ -256,7 +258,7 @@ can be specified as 2-tuple kwarg `abclims`; similarly, limits on
 the angles `α`, `β`, `γ` can be set via αβγlims (only affects 
 oblique, monoclinic, & triclinic lattices).
 """
-function directbasis(sgnum::Integer, D=3;
+function directbasis(sgnum::Integer, D::Integer=3;
                      abclims::NTuple{2,Real}=(0.5,2.0), 
                      αβγlims::NTuple{2,Real}=(°(30),°(150)))
     system = crystalsystem(sgnum, D)
@@ -337,7 +339,7 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
                                    "cubic"=>'c')
                              )
 
-function bravaistype(sgnum::Integer, D::Integer=3)
+@inline function bravaistype(sgnum::Integer, D::Integer=3)
     cntr = centering(sgnum, D)
     system = crystalsystem(sgnum, D)
 
@@ -370,17 +372,18 @@ end
 # the 'C' scenario (Table 3).
 const PRIMITIVE_BASIS_MATRICES = (
     # 1D
-    ImmutableDict('p'=>fill(1.0,1,1)),                # primitive
+    ImmutableDict('p'=>SMatrix{1,1,Float64}(1)),                # primitive
     # 2D
-    ImmutableDict('p'=>float.([1 0; 0 1]),            # primitive/simple
-                  'c'=>[1 1; -1 1]./2,),              # centered      
+    ImmutableDict('p'=>SMatrix{2,2,Float64}([1 0; 0 1]),        # primitive/simple
+                  'c'=>SMatrix{2,2,Float64}([1 1; -1 1]./2)),   # centered      
     # 3D
-    ImmutableDict('P'=>float.([1 0 0; 0 1 0; 0 0 1]), # primitive/simple
-                  'F'=>[0 1 1; 1 0 1; 1 1 0]./2,      # face-centered
-                  'I'=>[-1 1 1; 1 -1 1; 1 1 -1]./2,   # body-centered
-                  'R'=>[2 -1 -1; 1 1 -2; 1 1 1]./3,   # rhombohedrally-centered
-                  'A'=>[2 0 0; 0 1 -1; 0 1 1]./2,     # base-centered (along x)
-                  'C'=>[1 1 0; -1 1 0; 0 0 2]./2)     # base-centered (along z)
+    ImmutableDict(
+        'P'=>SMatrix{3,3,Float64}([1 0 0; 0 1 0; 0 0 1]),       # primitive/simple
+        'F'=>SMatrix{3,3,Float64}([0 1 1; 1 0 1; 1 1 0]./2),    # face-centered
+        'I'=>SMatrix{3,3,Float64}([-1 1 1; 1 -1 1; 1 1 -1]./2), # body-centered
+        'R'=>SMatrix{3,3,Float64}([2 -1 -1; 1 1 -2; 1 1 1]./3), # rhombohedrally-centered
+        'A'=>SMatrix{3,3,Float64}([2 0 0; 0 1 -1; 0 1 1]./2),   # base-centered (along x)
+        'C'=>SMatrix{3,3,Float64}([1 1 0; -1 1 0; 0 0 2]./2))   # base-centered (along z)
     )
 
 """
@@ -390,31 +393,28 @@ Given a centering type `cntr` and a dimensionality `D`, calculates a
 transformation matrix `P` from a conventional to a primitive unit cell,
 using dictionary lookup.
 """
-function primitivebasismatrix(cntr::Char, D::Integer=3)
-    if D ∈ 1:3
-        return PRIMITIVE_BASIS_MATRICES[D][cntr]
-    else
-        _throw_invaliddim(D)
-    end
+@inline function primitivebasismatrix(cntr::Char, D::Integer=3)
+    D∉1:3 && _throw_invaliddim(D)
+    return PRIMITIVE_BASIS_MATRICES[D][cntr]
 end
 
-function centeringtranslation(cntr::Char, D::Integer=3)
+@inline function centeringtranslation(cntr::Char, D::Integer=3)
     if D == 3
-        if cntr == 'P';     return zeros(Float64,3)
-        elseif cntr == 'I'; return [1,1,1]/2
-        elseif cntr == 'F'; return [1,0,1]/2
-        elseif cntr == 'R'; return [2,1,1]/3
-        elseif cntr == 'A'; return [0,1,1]/2
-        elseif cntr == 'C'; return [1,1,0]/2
+        if cntr == 'P';     return zeros(SVector{3})
+        elseif cntr == 'I'; return SVector((1,1,1)./2)
+        elseif cntr == 'F'; return SVector((1,0,1)./2)
+        elseif cntr == 'R'; return SVector((2,1,1)./3)
+        elseif cntr == 'A'; return SVector((0,1,1)./2)
+        elseif cntr == 'C'; return SVector((1,1,0)./2)
         else;               _throw_invalidcntr(cntr)
         end
     elseif D == 2
-        if cntr == 'p';     return zeros(Float64,2)
-        elseif cntr == 'c'; return [1,1]/2
+        if cntr == 'p';     return zeros(SVector{2})
+        elseif cntr == 'c'; return SVector((1,1)./2)
         else;               _throw_invalidcntr(cntr)
         end
     elseif D == 1
-        return zeros(Float64, 1)
+        return zeros(SVector{1})
     else 
         _throw_invaliddim(D)
     end
@@ -431,21 +431,23 @@ Calculates the reciprocal basis associated with a `DirectBasis` `Rs`
 """
 function reciprocalbasis(Rs::Union{DirectBasis{D}, NTuple{D, Vector{<:Real}}}) where D
     if D == 3
-        pref = 2π/dot(Rs[1], (Rs[2]×Rs[3]))
-        vecs = pref .* (Rs[2]×Rs[3], Rs[3]×Rs[1], Rs[1]×Rs[2])
+        G₁′ = Rs[2]×Rs[3]
+        pref = 2π/dot(Rs[1], G₁′)
+        vecs = pref .* (G₁′, Rs[3]×Rs[1], Rs[1]×Rs[2])
     elseif D == 2
-        pref = 2π/dot(Rs[1], [-Rs[2][2], Rs[2][1]])
-        vecs = pref .* ([-Rs[2][2], Rs[2][1]], [Rs[1][2], -Rs[1][1]])
+        G₁′ = (@SVector [-Rs[2][2], Rs[2][1]])
+        pref = 2π/dot(Rs[1], G₁′)
+        vecs = pref .* (G₁′, (@SVector [Rs[1][2], -Rs[1][1]]))
     elseif D == 1
-        vecs = (2π/first(Rs[1]),)
+        vecs = (SVector{1,Float64}(2π/first(Rs[1])),)
     else
-        # the general definition of the reciprocal basis is 
-        # [G₁ G₂ ... Gₙ]ᵀ = 2π[R₁ R₂ ... Rₙ]⁻¹; that form is
-        # a bit slower than the above specific variants, 
-        # however, cf. the inversion operation, so we only 
-        # use it as a high-dimensional fallback (i.e. breadcrumbs)
-        Rs_matrix::Matrix{Float64} = hcat(Rs...)
-        vecs = tuple(eachrow(2π*I/Rs_matrix)...)
+        # The general definition of the reciprocal basis is [G₁ ... Gₙ]ᵀ = 2π[R₁ ... Rₙ]⁻¹; 
+        # that form should generally be a bit slower than the above specific variants, cf. 
+        # the inversion operation, so we only use it as a high-dimensional fallback. Since 
+        # we use SVectors, however, either approach will probably have the same performance.
+        Rm = basis2matrix(Rs)
+        Gm = 2π.*inv(transpose(Rm))
+        vecs = ntuple(i->Gm[:,i], D)
     end
 
     return ReciprocalBasis{D}(vecs)
@@ -460,8 +462,8 @@ into its primitive equivalent `Vs′`, provided that its centering differs from
 the conventional (P or p), by inferring the Bravais type from the space group number
 `sgnum` and applying an applying an appropriate (Basis-type specific) transformation. 
 """
-function primitivize(Vs::Basis, sgnum::Integer)
-    cntr = centering(sgnum)
+function primitivize(Vs::Basis{D}, sgnum::Integer) where D
+    cntr = centering(sgnum, D)
     return primitivize(Vs, cntr)
 end
 
@@ -478,8 +480,9 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
         return Rs
     else         
         P = primitivebasismatrix(cntr, D)
-        Rs′ = basis2matrix(Rs)*P # Rs′ = Rs*P (w/ Rs a matrix w/ columns of conventional direct basis vecs Rᵢ)
-        return DirectBasis{D}(tuple(eachcol(Rs′)...))
+        Rm′ = basis2matrix(Rs)*P # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional 
+                                 # direct basis vecs Rᵢ)
+        return DirectBasis{D}(ntuple(i->Rm′[:,i], D))
     end  
 end
 
@@ -495,16 +498,14 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
     else         
         # While the direct basis (𝐚 𝐛 𝐜) transforms like 
         #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
-        # under a basis change matrix 𝐏, the reciprocal basis
-        # (𝐚* 𝐛* 𝐜*) transforms like 
+        # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
         #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
-        # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved
-        # after the basis change
+        # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
         P = primitivebasismatrix(cntr, D)
-        Gs′ = (hcat(Gs...)::Matrix{Float64})/P' # Gs′ = Gs*(P⁻¹)ᵀ = Gs*(Pᵀ)⁻¹ 
-                             # (w/ Gs a matrix w/ columns of conventional reciprocal vecs Gᵢ)
+        Gm′ = basis2matrix(Gs)/P' # Gm′ = Gm(P⁻¹)ᵀ = Gm(Pᵀ)⁻¹, w/ Gm a matrix w/ columns of
+                                  # conventional reciprocal vecs Gᵢ)
         
-        return ReciprocalBasis{D}(tuple(eachcol(Gs′)...))
+        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], D))
     end 
 end
 # Note that the _coefficients_ of a general 𝐤-vector transform

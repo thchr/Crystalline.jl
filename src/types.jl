@@ -1,11 +1,13 @@
 # --- DirectBasis and ReciprocalBasis for crystalline lattices ---
-abstract type Basis{D} <: AbstractVector{Vector{Float64}} end
+abstract type Basis{D} <: AbstractVector{SVector{D,Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
     @eval struct $T{D} <: Basis{D}
-              vecs::NTuple{D,Vector{Float64}}
+              vecs::NTuple{D,SVector{D,Float64}}
           end
-    @eval $T(Rs::NTuple{D,Vector{<:Real}}) where D = $T{D}(float.(Rs))
+    @eval $T(Rs::NTuple{D,AbstractVector{<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
+    @eval $T(Rs::NTuple{D,NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
     @eval $T(Rs::AbstractVector{<:Real}...) = $T(Rs)
+    @eval $T(Rs::NTuple{D,<:Real}...) where D = $T{D}(SVector{D,Float64}.(Rs))
 end
 
 vecs(Vs::Basis) = Vs.vecs
@@ -16,7 +18,6 @@ lastindex(::Basis{D}) where D = D
 setindex!(Vs::Basis, vec::Vector{Float64}, i::Int) = (Vs[i] .= vec)
 size(::Basis{D}) where D = (D,)
 IndexStyle(::Basis) = IndexLinear()
-eltype(Vs::Basis) = typeof(vecs(Vs))
 function show(io::IO, ::MIME"text/plain", Vs::DirectBasis) # cannot use for ReciprocalBasis at the moment (see TODO in `crystalsystem`)
     print(io, typeof(Vs))
     print(io, " ($(crystalsystem(Vs))):")
