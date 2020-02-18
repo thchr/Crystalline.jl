@@ -23,13 +23,15 @@ is printed whether `+` or `-` (otherwise, only printed if `-`).
 """
 function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
     if forcesign || signbit(x)
-        write(io, signaschar(x))
+        print(io, signaschar(x))
     end
     t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
     if !isinteger(t)
-        write(io, string(abs(numerator(t)), '/', denominator(t)))
+        show(io, abs(numerator(t)))
+        print(io, '/')
+        show(io, denominator(t))
     else
-        write(io, string(abs(numerator(t))))
+        show(io, abs(numerator(t)))
     end
     return nothing
 end

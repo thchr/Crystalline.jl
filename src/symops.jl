@@ -101,30 +101,31 @@ end
 signaschar(x::Number) = signbit(x) ? '-' : '+'
 const IDX2XYZ = ('x', 'y', 'z')
 
-function matrix2xyzt(O::AbstractMatrix{T}) where T<:Real
+function matrix2xyzt(O::AbstractMatrix{<:Real})
     D = size(O,1)
     buf = IOBuffer()
-    # rotation/inversion/reflection part
-    for (i, row) in enumerate(eachrow(O))
-        # rotation/inversion/reflection part
+    @inbounds for i in Base.OneTo(D)
+        # point group part
         firstchar = true
-        for j = 1:D
-            if !iszero(row[j])
-                if !firstchar || signbit(row[j])
-                    write(buf, signaschar(row[j]))
+        for j in Base.OneTo(D)
+            Oᵢⱼ = O[i,j]
+            if !iszero(Oᵢⱼ)
+                if !firstchar || signbit(Oᵢⱼ)
+                    print(buf, signaschar(Oᵢⱼ))
                 end
-                write(buf, IDX2XYZ[j]) 
+                print(buf, IDX2XYZ[j]) 
                 firstchar = false
             end
         end
 
         # nonsymmorphic/fractional translation part
-        if size(O,2) == D+1 # for size(O) = D×D+1, interpret as a space-group operation and check for nonsymmorphic parts; otherwise, assume a point-group operation
-            if !iszero(row[end])
-                fractionify!(buf, row[end])
+        if size(O,2) == D+1 # for size(O) = D×D+1, interpret as a space-group operation and 
+                            # check for nonsymmorphic parts
+            if !iszero(O[i,D+1])
+                fractionify!(buf, O[i,D+1])
             end
         end
-        if i != D; write(buf, ','); end
+        i != D && print(buf, ',')
     end
 
     return String(take!(buf))
