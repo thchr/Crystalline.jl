@@ -99,5 +99,5 @@ end
 
 # --- plot connectivity of special k-vectors ---
 for sgnum in 1:230
-    plot_connectivity(get_lgirreps(sgnum, 3))
+    plot_connectivity(get_lgirreps(sgnum, Val(3)))
 end

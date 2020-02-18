@@ -21,7 +21,7 @@ The reduction formula [e.g. Eq. (15) of https://arxiv.org/pdf/1706.09272.pdf] is
 As an example, consider space group 135 and the two compatible k-vectors 
 Γ (a point) and Σ (a plane):
 ```
-    lgirvec = get_lgirreps(135)
+    lgirvec = get_lgirreps(135, Val(3))
     Γ_lgirs = lgirvec[1] # at Γ ≡ [0.0, 0.0, 0.0]
     Σ_lgirs = lgirvec[4] # at Σ ≡ [α, α, 0.0]
 ```

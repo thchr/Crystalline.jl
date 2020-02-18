@@ -52,16 +52,24 @@ basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 
 # --- Symmetry operations ---
 struct SymOperation{D} <: AbstractMatrix{Float64}
-    xyzt::String
     matrix::Matrix{Float64}
+    # It doesn't seem to be possible to convert `matrix` from ::Matrix{Float64} to
+    # ::SMatrix{D,D+1,Float64,D*(D+1)} in a nice way, as it is currently impossible to do
+    # computations on type parameters in type definitions, as discussed e.g. in 
+    #   https://github.com/JuliaLang/julia/issues/18466 
+    #   https://discourse.julialang.org/t/addition-to-parameter-of-parametric-type/20059
+    # It doesn't help to split `matrix` into a point `R` and a translation part `τ`, since
+    # declaring `R::SMatrix{D,D,Float64,D*D}` also isn't possible; so we'd need to include
+    # a useless `L` type, which would be forced to equal `D*D` in the struct constructor.
+    # Overall, it doesn't seem worth it at this point: could maybe be done for Julia 2.0.
 end
-SymOperation(s::String, m::Matrix{<:Real}) = SymOperation{size(m,1)}(s, float(m))
-SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(string(s), m))
-SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(string(s), m))
-SymOperation(m::Matrix{<:Real}) = SymOperation(matrix2xyzt(m), m)
-SymOperation{D}(m::Matrix{<:Real}) where D = SymOperation{D}(matrix2xyzt(m), float(m))
+SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(m))
+# type-unstable convenience constructors; avoid for anything non-REPL related, if possible
+SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))   
+SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m)) 
+
 matrix(op::SymOperation) = op.matrix
-xyzt(op::SymOperation) = op.xyzt
+xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
 dim(::SymOperation{D}) where D = D
 # define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]
@@ -638,7 +646,8 @@ function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, kl
         return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
     end
 end
-find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(get_lgirreps(sgnum, D), klab)
+find_lgirreps(sgnum::Integer, klab::String, Dᵛ::Val{D}) where D = find_lgirreps(get_lgirreps(sgnum, Dᵛ, klab))
+find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(sgnum, Val(D), klab)
 
 
 # --- Character table ---

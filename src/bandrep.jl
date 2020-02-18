@@ -307,7 +307,7 @@ end
 
 function matching_lgirreps(BRS::BandRepSet)
     # all lgirreps from ISOTROPY as a flat vector
-    lgirs = collect(Iterators.flatten(get_lgirreps(num(BRS)))) 
+    lgirs = collect(Iterators.flatten(get_lgirreps(num(BRS), Val(3))))  # TODO: generalize to D≠3
 
     # find all the irreps in lgirs that feature in the BandRepSet, and 
     # sort them according to BandRepSet's sorting

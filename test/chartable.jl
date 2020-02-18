@@ -1,7 +1,7 @@
 using SGOps, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS′)
-    LGIRS = get_all_lgirreps(3)  # loaded from our saved .jld2 files
+    LGIRS = get_all_lgirreps(Val(3))  # loaded from our saved .jld2 files
 end
 
 @testset "CharacterTable and orthogonality theorems" begin

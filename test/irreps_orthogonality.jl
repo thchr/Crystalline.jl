@@ -2,7 +2,7 @@ using SGOps, Test, LinearAlgebra, Printf
 
 debug = false
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = get_all_lgirreps() # ≡ parselittlegroupirreps()
+    LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
 end
 #SGOps.add_ΦnotΩ_lgirs!.(LGIRS)
 
