@@ -2,6 +2,7 @@ using SGOps, Test
 
 @testset "SGOps" begin
     # basic symmetry operations
+    include("basisvecs.jl")
     include("symops.jl")
 
     # group checks

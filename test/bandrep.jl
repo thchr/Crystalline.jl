@@ -7,7 +7,7 @@ end
 @testset "k-vectors required by BandRepSet analysis" begin
 allpaths = false
 spinful  = false
-showmissing = true
+verbose = false
 
 @testset "Complex (no TR) irreps" begin
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
@@ -22,7 +22,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
         klab_BRS = klabel(irlab_BRS)
         if irlab_BRS ∉ irlabs_ISO
-            if showmissing
+            if verbose
                 @info "Cannot find complex irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
             end
             @test_broken false
@@ -44,7 +44,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
             @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))
-            if showmissing
+            if verbose
                 if BRS.kvs[kidx_BRS] ≠ kvec(first(lgirsvec[kidx_ISO]))
                     println("Different definitions of k-point labels in space group ", sgnum)
                     println("   BRS, ", klab_BRS, ": ",string(BRS.kvs[kidx_BRS]))
@@ -78,7 +78,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
         klab_BRS = klabel(irlab_BRS)
         if irlab_BRS ∉ realirlabs_ISO
-            if showmissing
+            if verbose
                 @info "Cannot find real irrep $(irlab_BRS) in ISOTROPY dataset (sgnum = $sgnum)"
             end
             @test_broken false
