@@ -303,9 +303,11 @@ The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling
 of a `ModulatedFourierLattice`.
 """
 function modulate(flat::UnityFourierLattice,
-                  modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
+                  modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
                   expon::Union{Nothing, Real}=nothing)
-
+    if isnothing(modulation)
+        modulation = rand(ComplexF64, length(getcoefs(flat)))
+    end
     orbits = getorbits(flat); orbitcoefs = getcoefs(flat); # unpacking ...
     
     # `expon ≠ 0` is provided, we will interpret it as a penalty term on 
