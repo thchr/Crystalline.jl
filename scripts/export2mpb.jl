@@ -17,10 +17,11 @@ runtype = "tm"
 id = 1
 
 if write_to_file
-    write_dir = (@__DIR__)*"/../../../mpb-ctl/input/"
+    write_dir = (@__DIR__)*"/../../mpb-ctl/input/"
     filename = SGOps.mpb_calcname(D, sgnum, id, res, runtype)
     open(write_dir*filename*".sh", "w") do io
-        calcname = prepare_mpbcalc!(io, sgnum, mflat, Rs, filling, epsin, epsout, kvecs, id, res, runtype)
+        prepare_mpbcalc!(io, sgnum, mflat, Rs, filling, epsin, epsout, runtype;
+                             res=res, kvecs=kvecs, id=id)
     end
 end
 

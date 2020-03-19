@@ -27,8 +27,6 @@ function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsam
     return quantile(itr, filling)
 end
 
-crystal2mpb(Rs::DirectBasis) = _vecofvecs2ctl(Rs)
-
 function mpb_calcname!(io, dim, sgnum, id, res, runtype="all")
     write(io, "dim",  string(dim),
               "-sg",  string(sgnum), 
@@ -45,19 +43,32 @@ function mpb_calcname(dim, sgnum, id, res, runtype="all")
     return String(take!(io))
 end
 
-function _vecofvecs2ctl(vs)
-    io = IOBuffer()
+
+function _vec2list(io::IO, f, vs::AbstractVector)
     write(io, "(list")
-    dim = 0
     for v in vs
-        if dim ≠ 0 && dim ≠ length(v)
-            throw("All vectors must have identical size, when writing to a list of vector3 files; either two- or three-dimensional")
-        elseif dim == 0
-            dim = length(v)
-        end
-        write(io, " (vector3 ")
-        join(io, v, ' ')
-        write(io, ')')
+        print(io, ' ', f(v))
+    end
+    write(io, ')')
+    return io
+end
+_vec2list(io::IO, vs::AbstractVector) = _vec2list(io, identity, vs)
+_vec2list(f, vs::AbstractArray) = String(take!(_vec2list(IOBuffer(), f, vs)))
+_vec2list(vs::AbstractArray) = _vec2list(identity, vs)
+
+function _vec2vector3(v::AbstractVector)
+    length(v) > 3 && throw(DomainError(v, "A vector3 must be either one-, two-, or three-dimensional"))
+
+    return "(vector3 "*join(v, ' ')*')'
+end
+
+function _mat2matrix3x3(m)
+    size(m) ≠ (3,3) && throw(DomainError(m, "A matrix3x3 must be of size (3,3)"))
+    # TODO: We should probably allow feeding in 2D and 1D matrices as well.
+    io = IOBuffer()
+    write(io, "(matrix3x3")
+    for i in 1:3
+        write(io, ' ', _vec2vector3(@view m[:,i]))
     end
     write(io, ')')
     return String(take!(io))
@@ -93,48 +104,101 @@ Locally, in `mpb-ctl` we have a file `run-fourier-lattice.sh` which performs the
 above, with `calcname` specified as an input parameter (assumed to be a subfolder
 `/input/`).
 """
-function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D}, Rs::DirectBasis{D}, 
-                                  filling::Real=0.5, εin::Real=10.0, εout::Real=1.0, 
-                                  kvecs=(zeros(D),), id=1, res::Integer=32, runtype::String="all") where D
+function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D},
+                          Rs::DirectBasis{D},
+                          filling::Real=0.5, εin::Real=10.0, εout::Real=1.0,
+                          runtype::String="all";
+                          # kwargs
+                          id=1,
+                          res::Integer=32,
+                          kvecs::Union{Nothing, AbstractVector{<:Vector{Number}}}=nothing,
+                          lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing) where D
 
     # --- work to actually call mpb ---
     calcname = mpb_calcname(D, sgnum, id, res, runtype)
-    rvecs = crystal2mpb(Rs)
+    rvecs = _vec2list(_vec2vector3, Rs)
     uc_gvecs, uc_coefs = lattice2mpb(flat)
     uc_level = filling2isoval(flat, filling)
-    # symops = symops2mpb(...)   TODO
 
-    # prepare all mpb param-inputs in a single tuple
-    input_tuple = (# run-type ("all", "te", or "tm")
-                   "run-type=\""*runtype*"\"",
-                   # dimension, space group, resolution, and prefix name
-                   "dim="*string(D), "sgnum="*string(sgnum), "res="*string(res),
-                   "prefix=\""*calcname*"\"",
-                   # crystal (basis vectors)
-                   "rvecs="*rvecs,  
-                   # unitcell/lattice shape
-                   "uc-gvecs="*uc_gvecs, "uc-coefs="*uc_coefs, 
-                   "uc-level="*string(uc_level),
-                   # permittivities
-                   "epsin="*string(εin), "epsout="*string(εout),
-                   # TODO: k-points
-                   "kvecs="*_vecofvecs2ctl(kvecs),
-                   # TODO: little group symmetry operations at each k-point (a list of lists)
-                   # "symops=\""*symops*"\""
-                  )
-    # write inputs to io, separated by newlines and tabs
-    join(io, input_tuple, "\n")
+    # prepare and write all runtype, structural, and identifying inputs
+    print(io, # run-type ("all", "te", or "tm")
+              "run-type", "=",  "\"", runtype,  "\"",  "\n",
+              # dimension, space group, resolution, and prefix name
+              "dim",      "=",        D,               "\n",
+              "sgnum",    "=",        sgnum,           "\n",
+              "res",      "=",        res,             "\n",
+              "prefix",   "=",  "\"", calcname, "\"",  "\n",
+              # crystal (basis vectors)
+              "rvecs",    "=",        rvecs,           "\n",
+              # unitcell/lattice shape
+              "uc-gvecs", "=",        uc_gvecs,        "\n",
+              "uc-coefs", "=",        uc_coefs,        "\n",
+              "uc-level", "=",        uc_level,        "\n",
+              # permittivities
+              "epsin",    "=",        εin,             "\n",
+              "epsout",   "=",        εout,            "\n")
+
+    # prepare and write k-vecs and possibly also little group operations
+    if lgs !== nothing
+        # if `lgs` is supplied, we interpret it as a request to do symmetry eigenvalue
+        # calculations at requested little group k-points
+        kvecs !== nothing && throw(ArgumentError("One of kvecs or lgs must be nothing"))
+        
+        # build a unique set of all SymOperations across `lgs` and then find the indices
+        # into this set for each lg
+        ops = unique(Iterators.flatten(operations.(lgs)))
+        idxs2ops = [[findfirst(==(op), ops) for op in operations(lg)] for lg in lgs] 
+
+        # write little group symmetry operations at each k-point (as indexing list of lists)
+        write(io, "Ws",     "=");  _vec2list(io, _mat2matrix3x3∘rotation,  ops); println(io)
+        write(io, "ws",     "=");  _vec2list(io, _vec2vector3∘translation, ops); println(io)
+        write(io, "opidxs", "=");  _vec2list(io, _vec2list, idxs2ops);           println(io)
+
+        # define the k-points across `lgs`, evaluated with (α,β,γ) = (0.25,0.25,0.25)
+        αβγ = fill(0.25, D)
+        kvecs = map(lg->kvec(lg)(αβγ), lgs)
+    end
+    write(io, "kvecs",     " ="); _vec2list(io, _vec2vector3, kvecs)
 
     return nothing
 end
 
-function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, Rs::DirectBasis{D}, 
-                  filling::Real, epsin::Real=10.0, epsout::Real=1.0,
-                  kvecs=(zeros(D),), id=1, res::Integer=32, runtype::String="all") where D
+function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, 
+                         Rs::DirectBasis{D}, 
+                         filling::Real=0.5, epsin::Real=10.0, epsout::Real=1.0,
+                         runtype::String="all";
+                         # kwargs
+                         id=1, 
+                         res::Integer=32, 
+                         kvecs::Union{Nothing, AbstractVector{<:Vector{Number}}}=nothing, 
+                         lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing) where D
     io = IOBuffer()
-    prepare_mpbcalc!(io, sgnum, flat, Rs, filling, epsin, epsout, kvecs, id, res, runtype)
+    prepare_mpbcalc!(io, sgnum, flat, Rs, filling, epsin, epsout, runtype; 
+                         res=res, id=id, kvecs=kvecs, lgs=lgs)
     return String(take!(io))
 end
+
+function gen_symeig_mpbcalc(sgnum, D; res::Integer=32, id=1)
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
+
+    brs  = bandreps(sgnum, false, false, "Elementary TR")
+    lgs  = matching_lgs(brs)
+
+    cntr = centering(sgnum, D)
+    flat = modulate(levelsetlattice(sgnum, D, (1,1,1)))
+    Rs   = directbasis(sgnum, D)
+
+    # go to a primitive basis (the lgs from ISOTROPY do not include operations that are 
+    # equivalent in a primitive basis, so we _must_ go to the primitive basis)
+    lgs′  = primitivize.(lgs)
+    flat′ = primitivize(flat, cntr)
+    println(length(collect(Iterators.flatten(flat.orbits))))
+    println(length(collect(Iterators.flatten(flat′.orbits))))
+    Rs′   = primitivize(Rs, cntr)
+
+    prepare_mpbcalc(sgnum, flat′, Rs′; res=res, lgs=lgs, id=id)
+end
+    
 
 
 """
