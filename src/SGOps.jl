@@ -3,12 +3,10 @@ module SGOps
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs,
       DelimitedFiles, SmithNormalForm,
-      Meshing, JLD2, PrettyTables, 
-      CSV,                    # for special_representation_domain_kpoints 
-      MetaGraphs, LightGraphs # for compatibility.jl
-import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, eltype, # indexing interface
+import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, 
+             eltype, length,                                            # indexing interface
              string, isapprox,
-             length, readuntil, vec, show, 
+             readuntil, vec, show, 
              +, -, ∘, ==, ImmutableDict
 using Compat
 import LinearAlgebra: inv
@@ -27,7 +25,9 @@ export get_kvpath
 include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
-       SGIrrep, MultTable, LGIrrep, KVec,
+       SGIrrep, MultTable, LGIrrep, 
+       PGIrrep,
+       KVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
@@ -38,7 +38,7 @@ export SymOperation,                        # types
        num, order,                          # ::AbstractGroup
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
-       label, type,
+       label, type, group,
        isspecial, translations,             # ::SGIrrep
        israyrep, kvec, irreps,              # ::LGIrrep
        find_lgirreps,
@@ -47,8 +47,8 @@ export SymOperation,                        # types
        isspinful
 
 include("notation.jl")
-export schoenflies, hermannmauguin, 
-       iuc, centering, seitz
+export schoenflies, hermannmauguin, iuc,
+       centering, seitz
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export spacegroup, xyzt2matrix, matrix2xyzt,
@@ -61,7 +61,7 @@ export spacegroup, xyzt2matrix, matrix2xyzt,
        issubgroup, isnormal
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export pointgroup
+export pointgroup, get_pgirreps
 
 include("bravais.jl")
 export crystal, plot, crystalsystem,

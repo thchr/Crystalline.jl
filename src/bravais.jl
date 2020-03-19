@@ -419,8 +419,6 @@ end
         _throw_invaliddim(D)
     end
 end
-@noinline _throw_invalidcntr(cntr::Char) = throw(DomainError(cntr, "input centering character must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
-@noinline _throw_invaliddim(D::Integer) = throw(DomainError(D, "input dimension must be 1, 2, or 3"))
 
 
 """

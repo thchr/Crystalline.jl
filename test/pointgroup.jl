@@ -4,8 +4,8 @@ using SGOps, Test
     for D = 1:3
         for sgnum in 1:MAX_SGNUM[D]
             G = spacegroup(sgnum)
-            pg_iuclab = SGOps.find_parent_pointgroup(G)
-            @test pg_iuclab !== nothing
+            pg = SGOps.find_parent_pointgroup(G)
+            @test pg !== nothing
         end
     end
 end

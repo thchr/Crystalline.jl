@@ -358,6 +358,7 @@ struct PointGroup{D} <: AbstractGroup{D}
     operations::Vector{SymOperation{D}}
 end
 label(pg::PointGroup) = pg.label
+iuc(pg::PointGroup) = label(pg)
 
 # --- Little group ---
 struct LittleGroup{D} <: AbstractGroup{D}
@@ -390,10 +391,29 @@ translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.tra
 characters(ir::AbstractIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
+order(ir::AbstractIrrep) = order(group(ir))
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
+end
+
+# --- Point group irreps ---
+struct PGIrrep{D} <: AbstractIrrep
+    cdml::String
+    pg::PointGroup{D}
+    matrices::Vector{Matrix{ComplexF64}}
+    type::Int64
+end
+irreps(pgir::PGIrrep, αβγ=nothing) = pgir.matrices
+group(pgir::PGIrrep) = pgir.pg
+operations(pgir::PGIrrep) = operations(group(pgir))
+num(pgir::PGIrrep) = num(group(pgir))
+
+# printing
+function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
+    P = pgir.matrices[i]
+    prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
 # --- 3D Space group irreps ---
@@ -410,13 +430,13 @@ struct SGIrrep{T} <: AbstractIrrep where T
     special::Bool   # whether star{𝐤} describes high-symmetry points
     pmkstar::Vector{KVec}        # star{𝐤} for Complex, star{±𝐤} for Real
     ops::Vector{SymOperation{3}} # every symmetry operation in space group
-    translations::Vector{Vector{Float64}} # translations assoc with matrix repres of symops in irrep
-    matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of symops in irrep
+    translations::Vector{Vector{Float64}} # translations assoc with matrix repres of ops in irrep
+    matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of ops in irrep
 end
 num(sgir::SGIrrep) = sgir.sgnum
 irreps(sgir::SGIrrep) = sgir.matrices
 order(sgir::SGIrrep) = sgir.order
-hermannmauguin(sgir::SGIrrep) = sgir.sglabel
+iuc(sgir::SGIrrep) = sgir.sglabel
 operations(sgir::SGIrrep) = sgir.ops
 isspecial(sgir::SGIrrep) = sgir.special
 kstar(sgir::SGIrrep) = sgir.pmkstar
@@ -438,15 +458,15 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     translations = [zeros(Float64,D) for _=Base.OneTo(order(lg))]
     return LGIrrep{D}(cdml, lg, matrices, translations, type)
 end
-littlegroup(lgir::LGIrrep) = lgir.lg
-num(lgir::LGIrrep) = num(littlegroup(lgir))
+group(lgir::LGIrrep) = lgir.lg
+num(lgir::LGIrrep) = num(group(lgir))
 dim(lgir::LGIrrep{D}) where D = D
-operations(lgir::LGIrrep)  = operations(littlegroup(lgir))
-order(lgir::LGIrrep) = order(littlegroup(lgir))
-kvec(lgir::LGIrrep)  = kvec(littlegroup(lgir))
+operations(lgir::LGIrrep)  = operations(group(lgir))
+kvec(lgir::LGIrrep)  = kvec(group(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
-issymmorph(lgir::LGIrrep) = issymmorph(littlegroup(lgir))
-kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), kvec(lgir), centering(num(lgir), dim(lgir)))
+issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
+kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), 
+                             kvec(lgir), centering(num(lgir), dim(lgir)))
 function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = lgir.matrices
     τ = lgir.translations
@@ -510,20 +530,9 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
 end
 
-# methods to print LGIrreps ...
-function prettyprint(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString="")
-    # unpack
-    k₀, kabc = parts(lgir.lg.kv)
-    P = lgir.matrices[i]
-    τ = lgir.translations[i]
-
-    # phase contributions
-    ϕ₀ = dot(k₀, τ)                                   # constant phase
-    ϕabc = [dot(kabcⱼ, τ) for kabcⱼ in eachcol(kabc)] # variable phase
-    ϕabc_contrib = norm(ϕabc) > sqrt(dim(lgir))*DEFAULT_ATOL
-
-    # print the constant part of the irrep that is independent of α,β,γ
-    printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cis(2π*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
+# methods to print PGIrreps and LGIrreps ...
+function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
+                                      ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
         v = printP[1]
         if isapprox(v, real(v), atol=DEFAULT_ATOL)          # real scalar
@@ -559,6 +568,21 @@ function prettyprint(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString="
 
         compact_print_matrix(io, printP, prefix, formatter) # not very optimal; e.g. makes a whole copy and doesn't handle displaysize
     end
+end
+function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
+    # unpack
+    k₀, kabc = parts(lgir.lg.kv)
+    P = lgir.matrices[i]
+    τ = lgir.translations[i]
+
+    # phase contributions
+    ϕ₀ = dot(k₀, τ)                                   # constant phase
+    ϕabc = [dot(kabcⱼ, τ) for kabcⱼ in eachcol(kabc)] # variable phase
+    ϕabc_contrib = norm(ϕabc) > sqrt(dim(lgir))*DEFAULT_ATOL
+
+    # print the constant part of the irrep that is independent of α,β,γ
+    printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cis(2π*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
+    prettyprint_scalar_or_matrix(io, printP, prefix, ϕabc_contrib)
 
     # print the variable phase part that depends on the free parameters α,β,γ 
     if ϕabc_contrib
@@ -593,36 +617,40 @@ function prettyprint(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString="
 
     end
 end
-function show(io::IO, ::MIME"text/plain", lgir::LGIrrep)
-    Nₒₚ = order(lgir)
-    lgirlab = formatirreplabel(label(lgir))
-    lablen = length(lgirlab)
-    indent = repeat(" ", lablen+1)
-    kvstr = string(lgir.lg.kv)
-    boxdelims = repeat("─", 35)
-
-    println(io, lgirlab, " ─┬", boxdelims, " ", kvstr); 
-    linelen = length(boxdelims) + 5 + length(kvstr) + length(lgirlab)
-    for (i,op) in enumerate(operations(lgir)) # enumerate(zip(operations(lgir), irreps(lgir))))
+function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
+                                  nindent::Integer, nboxdelims::Integer=45)  
+    indent = repeat(" ", nindent)
+    boxdelims = repeat("─", nboxdelims)
+    linelen = nboxdelims + 4 + nindent
+    Nₒₚ = order(plgir)
+    for (i,op) in enumerate(operations(plgir))
         print(io, indent, " ├─ ")
         opseitz, opxyzt  = seitz(op), xyzt(op)
         printstyled(io, opseitz, ": ", 
-                        repeat("─", linelen-11-lablen-length(opseitz)-length(opxyzt)), 
-                        " (", opxyzt, ")\n"; 
-                        color=:light_black)
+                        repeat("─", linelen-11-nindent-length(opseitz)-length(opxyzt)),
+                        " (", opxyzt, ")\n"; color=:light_black)
         #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
-        prettyprint(io, lgir, i, indent*" │     ")
+        prettyprint_irrep_matrix(io, plgir, i, indent*" │     ")
         if i < Nₒₚ; println(io, '\n', indent, " │     "); end
     end
-    print(io, "\n", indent, " └", repeat("─", length(boxdelims)+1+length(kvstr)))
+    print(io, "\n", indent, " └", boxdelims)
 end
-function show(io::IO, ::MIME"text/plain", lgirs::AbstractVector{<:LGIrrep})
-    print(io, "LGIrrep(#", num(lgirs[1]), ") at ", klabel(lgirs[1]), " = ")
-    show(io,"text/plain", kvec(lgirs[1])); println(io)
-    Nᵢᵣ = length(lgirs)
-    for (i,lgir) in enumerate(lgirs)
-        show(io, "text/plain", lgir)
+function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Integer=45)
+    println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
+end
+function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
+    lgirlab = formatirreplabel(label(plgir))
+    lablen = length(lgirlab)
+    nindent = lablen+1
+    prettyprint_header(io, lgirlab)
+    prettyprint_irrep_matrices(io, plgir, nindent)
+end
+function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
+    println(io, "$T: #", num(first(plgirs)), "/", label(group(first(plgirs))))
+    Nᵢᵣ = length(plgirs)
+    for (i,plgir) in enumerate(plgirs)
+        show(io, "text/plain", plgir)
         if i != Nᵢᵣ; println(io); end
     end
 end

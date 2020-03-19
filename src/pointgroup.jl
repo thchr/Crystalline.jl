@@ -1,62 +1,31 @@
-function read_pgops_xyzt(iuclab::String, D::Integer=3)
-    if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
-    
-    filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*replace(iuclab, "/"=>"_slash_")*".json"
-    symops_str = open(filepath) do io
-        JSON2.read(io)
-    end
-    return symops_str
-end
-
-@inline function pointgroup(iuclab::String, ::Val{D}=Val(3)) where D
-    if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
-    pgnum = pointgroup_iuc2num(iuclab, D)  # this is not generally a particularly meaningful or even well-established numbering
-    ops_str = read_pgops_xyzt(iuclab, D)
-    
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val{D}())
-
-@inline function pointgroup(pgnum::Integer, ::Val{D}=Val(3)) where D
-    if D ∉ (1,2,3); throw(DomainError(D, "dimension D must be 1, 2, or 3")); end
-    iuclab = pointgroup_num2iuc(pgnum, D)
-    ops_str = read_pgops_xyzt(iuclab, D)
-
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(pgnum::Integer, D::Integer) = pointgroup(pgnum, Val{D}())
+# ===== CONSTANTS =====
 
 # We include several axes settings; as a result, there are more than 32 point groups 
 # under the 3D case, because some variations are "setting-degenerate" (but are needed
 # to properly match all space group settings)
-const NUM2IUC_PGS = (
-    ("1", "m"),                                                         # 1D
-    ("1", "2", "m", "mm2", "4", "4mm", "3", "3m1", "31m", "6", "6mm"),  # 2D 
-    ("1", "-1", "2", "m", "2/m", "222", "mm2", "mmm", "4", "-4", "4/m", # 3D
-     "422", "4mm", 
-     "-42m", "-4m2",                             # D2d setting variations
-     "4/mmm", "3", "-3", 
-     "312", "321", "3m1", "31m", "-31m", "-3m1", # hexagonal lattices w/ setting variations
-     "6", "-6", "6/m", "622", "6mm", 
-     "-62m", "-6m2",                             # D3d setting variations
-     "6/mmm", "23", "m-3", "432", 
-     "-43m", "m-3m")
+const PGS_NUM2IUC = (
+    (["1"], ["m"]),                                           # 1D
+    (["1"], ["2"], ["m"], ["mm2"], ["4"], ["4mm"], ["3"],     # 2D
+     ["3m1", "31m"],       # C3v setting variations
+     ["6"], ["6mm"]),
+    (["1"], ["-1"], ["2"], ["m"], ["2/m"], ["222"], ["mm2"],  # 3D
+     ["mmm"], ["4"], ["-4"], ["4/m"], ["422"], ["4mm"], 
+     ["-42m", "-4m2"],     # D2d setting variations
+     ["4/mmm"], ["3"], ["-3"],
+     ["312", "321"],       # D3 setting variations  (hexagonal axes)
+     ["3m1", "31m"],       # C3v setting variations (hexagonal axes)
+     ["-31m", "-3m1"],     # D3d setting variations (hexagonal axes)
+     ["6"], ["-6"], ["6/m"], ["622"], ["6mm"], 
+     ["-62m", "-6m2"],     # D3h setting variations
+     ["6/mmm"], ["23"], ["m-3"], ["432"], ["-43m"], ["m-3m"])
 )
-
-pointgroup_num2iuc(pgnum::Integer, D::Integer) = NUM2IUC_PGS[D][pgnum]
-function pointgroup_iuc2num(iuclab::String, D::Integer)
-    # could use Unrolled.jl to make this as fast as a direct lookup 
-    # (not sure if it can unroll through `findfirst`)
-    @inbounds for (idx, iuclab′) in enumerate(NUM2IUC_PGS[D])
-        iuclab′ == iuclab && return idx
-    end
-    return nothing
-end
-
-pointgroup_iuc2schoenflies(iuclab::String) = IUC2SCHOENFLIES_PGS[iuclab]
-
+# a flat tuple-listing of all the iuc labels in PGS_NUM2IUC; sliced across dimensions
+const PGS_IUCs = map(x->tuple(Iterators.flatten(x)...), PGS_NUM2IUC)
+# a tuple of ImmutableDicts, giving maps from iuc label to point group number
+const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(x->lab∈x, PGS_NUM2IUC[D])
+                           for lab in PGS_IUCs[D]]...) for D = Base.OneTo(3)]...)
 # The IUC notation for point groups can be mapped to the Schoenflies notation, but the 
-# mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C3c but 
+# mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C3v but 
 # correspond to different axis orientations. 
 # When there is a choice of either hexagonal vs. rhombohedral or unique axes b vs unique
 # axes a/c we choose hexagonal and unique axes b, respectively.
@@ -77,11 +46,60 @@ const IUC2SCHOENFLIES_PGS = ImmutableDict(
     "m-3"   => "Th",   "432"   => "O",    "-43m"  => "Td",   "m-3m" => "Oh"
 )
 
+
+# ===== METHODS =====
+
+# --- Notation ---
+function pointgroup_iuc2num(iuclab::String, D::Integer)
+    return get(PGS_IUC2NUM[D], iuclab, nothing)
+end
+
+pointgroup_iuc2schoenflies(iuclab::String) = IUC2SCHOENFLIES_PGS[iuclab]
+
+# --- Point groups & operators ---
+unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
+
+function read_pgops_xyzt(iuclab::String, ::Val{D}=Val(3)) where D
+    D ∉ (1,2,3) && _throw_invaliddim(D)
+    iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database"))
+
+    filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".json"
+    ops_str = open(filepath) do io
+        JSON2.read(io)
+    end
+    return ops_str
+end
+read_pgops_xyzt(iuclab::String, D::Integer) = read_pgops_xyzt(iuclab, Val(D))
+
+@inline function pointgroup(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
+    D ∉ (1,2,3) && _throw_invaliddim(D)
+    pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
+    ops_str = read_pgops_xyzt(iuclab, Dᵛ)
+    
+    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
+end
+@inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
+
+@inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
+    iucs = PGS_NUM2IUC[D][pgnum]
+    length(iucs) < setting && throw(DomainError(setting, "invalid setting request"))
+    return iucs[setting]
+end
+@inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Int=1) where D
+    D ∉ (1,2,3) && _throw_invaliddim(D)
+    iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
+    ops_str = read_pgops_xyzt(iuclab, Dᵛ)
+
+    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
+end
+@inline pointgroup(pgnum::Integer, D::Integer, setting::Integer=1) = pointgroup(pgnum, Val(D), setting)
+
+# --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup)
     D = dim(g)
     xyzt_pgops = sort(xyzt.(pointgroup(g)))
 
-    @inbounds for iuclab in NUM2IUC_PGS[D]
+    @inbounds for iuclab in PGS_IUCs[D]
         P = pointgroup(iuclab, D)
         if sort(xyzt.(P))==(xyzt_pgops)
             return P
@@ -90,3 +108,28 @@ function find_parent_pointgroup(g::AbstractGroup)
     return nothing
 
 end
+
+# --- POINT GROUP IRREPS ---
+const DATA_PATH_PGIRREPS_3D = (@__DIR__)*"/../data/pgirreps/3d/irreps_data.jld2"
+
+function _load_pgirreps_data(iuclab::String, jldfile::JLD2.JLDFile)
+    jldgroup = jldfile[unmangle_pgiuclab(iuclab)] 
+    matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
+    types::Vector{Int64}                         = jldgroup["types"]
+    cdmls::Vector{String}                        = jldgroup["cdmls"]
+
+    return matrices, types, cdmls
+end
+
+function get_pgirreps(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
+
+    pg = pointgroup(iuclab, Dᵛ) # operations
+
+    matrices, types, cdmls = JLD2.jldopen(DATA_PATH_PGIRREPS_3D, "r") do irs_jldfile
+        _load_pgirreps_data(iuclab, irs_jldfile) # irrep matrices, types, & labels
+    end
+    
+    return PGIrrep{D}.(cdmls, Ref(pg), matrices, types)
+end
+get_pgirreps(iuclab::String, D::Integer) = get_pgirreps(iuclab, Val(D))

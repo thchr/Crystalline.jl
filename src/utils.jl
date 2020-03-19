@@ -1,3 +1,13 @@
+# === frequent error messages ===
+
+@noinline _throw_1d2d_not_yet_implemented(D::Integer) = 
+    throw(DomainError(D, "dimensions D≠3 not yet supported"))
+@noinline _throw_invaliddim(D::Integer) = 
+    throw(DomainError(D, "dimension must be 1, 2, or 3"))
+@noinline _throw_invalidcntr(cntr::Char) = 
+    throw(DomainError(cntr, "centering must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
+
+# === string manipulation ===
 """ 
     parsefraction(str::AbstractString)
 
@@ -17,9 +27,9 @@ end
 """
     fractionify!(io::IO, x::Real, forcesign::Bool=true, tol::Real=1e-4)
 
-Write a string representation of the nearest fraction (within a tolerance 
-`tol`) of `x` to `io`. If `forcesign` is true, the sign character of `x` 
-is printed whether `+` or `-` (otherwise, only printed if `-`).
+Write a string representation of the nearest fraction (within a tolerance `tol`) of `x` to 
+`io`. If `forcesign` is true, the sign character of `x` is printed whether `+` or `-` 
+(otherwise, only printed if `-`).
 """
 function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
     if forcesign || signbit(x)
@@ -40,15 +50,6 @@ function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-4)
     fractionify!(buf, x, forcesign, tol)
     return String(take!(buf))
 end
-
-"""
-    isapproxin(x, itr) --> Bool
-
-Determine whether `x` ∈ `itr` with approximate equality.
-"""
-isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; kwargs...), itr)
-
-
 
 # --- UNICODE FUNCTIONALITY ---
 const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>'₅',  # digits
@@ -214,7 +215,14 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=(x->round(x,digits
     end
 end
 
+# === misc functionality ===
 
+"""
+    isapproxin(x, itr) --> Bool
+
+Determine whether `x` ∈ `itr` with approximate equality.
+"""
+isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; kwargs...), itr)
 
 
 """
@@ -234,6 +242,7 @@ function uniquetol(A::AbstractArray{T}; kwargs...) where T
     end
     return S
 end
+
 
 """
     get_kvpath(kvs::T, Ninterp::Integer) 
@@ -265,12 +274,14 @@ function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Inte
     return kvpath
 end
 
+
 """
     ImmutableDict(ps::Pair...)
 
-Construct an `ImmutableDict` from any number of `Pair`s; a convenience function
-that extends `Base.ImmutableDict` which otherwise only allows construction by
-iteration.
+Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
+`Base.ImmutableDict` which otherwise only allows construction by iteration.
+
+# TODO: Will be included in Base at some point? Maybe v1.4?
 """
 function ImmutableDict(ps::Pair{K,V}...) where {K,V}
     d = ImmutableDict{K,V}()

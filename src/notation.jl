@@ -10,20 +10,19 @@ schoenflies(sgnum::Integer) = SCHOENFLIES_TABLE[sgnum]
 schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
 
 """
-    hermannmauguin(sgnum::Integer, D::Integer=3) --> String
+    iuc(sgnum::Integer, D::Integer=3) --> String
 
-Returns the Hermann-Mauguin notation for a given space group number
-`sgnum` and dimensionality `D`, sometimes also called the IUC 
-(International Union of Crystallography) or international notation 
-(since it is used in the International Tables of Crystallography); 
-accordingly, the functionality is aliased by `iuc(sgnum, D)`. 
-Hermann-Mauguin notation applies in two and three-dimensions.
+Returns the IUC (International Union of Crystallography) notation for space group number
+`sgnum` and dimensionality `D`, as used in the International Tables of Crystallography. 
+The notation is sometimes also known as the Hermann-Mauguin notation; the functionality
+is consequently aliased by `hermannmauguin(sgnum, D)`. 
+IUC/Hermann-Mauguin notation applies in one, two, and three-dimensions.
 
-For additional information see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
+For more information, see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
-@inline hermannmauguin(sgnum::Integer, D::Integer=3) = HERMANNMAUGUIN_TABLE[D][sgnum]
-@inline hermannmauguin(sg::SpaceGroup{D}) where D = hermannmauguin(num(sg), D)
-const iuc = hermannmauguin # alias
+@inline iuc(sgnum::Integer, D::Integer=3) = SGS_IUC_NOTATION[D][sgnum]
+@inline iuc(sg::SpaceGroup{D}) where D = iuc(num(sg), D)
+const hermannmauguin = iuc # alias
 
 """ 
     centering(sg::SpaceGroup) --> Char
@@ -44,7 +43,7 @@ Possible output values, depending on dimensionality `D`, are (see ITA Sec. 9.1.4
         ├ 'A', 'B', 'C': one-face centred, (b,c) or (c,a) or (a,b)
         └ 'R': hexagonal cell rhombohedrally centred
 """
-centering(sgnum::Integer, D::Integer=3) = first(hermannmauguin(sgnum, D))
+centering(sgnum::Integer, D::Integer=3) = first(iuc(sgnum, D))
 centering(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = first(centering(num(sg), D))
 
 # Schoenflies notation, ordered relative to space group number
@@ -101,8 +100,8 @@ const SCHOENFLIES_TABLE = (
 "Oₕ⁵",     "Oₕ⁶",    "Oₕ⁷",    "Oₕ⁸",    "Oₕ⁹",    "Oₕ¹⁰"
 )
 
-# Hermann-Mauguin notation, ordered relative to space/plane group number
-const HERMANNMAUGUIN_TABLE = (
+# IUC/Hermann-Mauguin notation, ordered relative to space/plane group number
+const SGS_IUC_NOTATION = (
 # ------------------------------------------------------------------------------------------
 # line-group notation (one dimension) [see https://en.wikipedia.org/wiki/Line_group]
 # ------------------------------------------------------------------------------------------    

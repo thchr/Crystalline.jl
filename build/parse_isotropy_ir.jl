@@ -248,9 +248,9 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
 end
 
 
-const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need dim ≠ 3 as well
-@inline function is_erroneous_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
-    dim ≠ 3 && throw(DomainError(dim, "Didn't implement any manual corrections in 2D yet"))
+const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
+@inline function is_erroneous_lgir(sgnum::Integer, irlab::String, D::Integer=3)
+    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
     @simd for ps in ERRONEOUS_LGIRS
         (ps[1]==sgnum && ps[2]==irlab) && return true
     end 
@@ -369,7 +369,7 @@ end
 # manual treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is  
 # already included in ISOTROPY.
 function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    D ≠ 3 && throw_2d_not_yet_implemented(D)
+    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
 
     sgnum = num(first(first(lgirvec)))
 

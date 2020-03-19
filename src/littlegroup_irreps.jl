@@ -3,7 +3,7 @@ const JldOrNothing = Union{Nothing,JLD2.JLDFile}
 # Little group operations loading
 function get_littlegroups(sgnum::Integer, ::Val{D},
                           jldfile::JldOrNothing=nothing) where D
-    D ≠ 3 && throw_2d_not_yet_implemented(D)
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
     sgops_str, klabs, kstrs, opsidxs = if isnothing(jldfile)
         JLD2.jldopen(DATA_PATH_LITTLEGROUPS_3D, "r") do jldfile
@@ -35,16 +35,16 @@ get_all_littlegroups(D::Integer=3) = get_all_littlegroups(Val(D))
 # Little group irrep loading
 function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=nothing,
                       irs_jldfile::JldOrNothing=nothing) where D
-    D ≠ 3 && throw_2d_not_yet_implemented(D)
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
     Ps_list, τs_list, type_list, cdml_list = if isnothing(irs_jldfile)
         JLD2.jldopen(DATA_PATH_LGIRREPS_3D, "r") do irs_jldfile
-            _load_irreps_data(sgnum, irs_jldfile)
+            _load_lgirreps_data(sgnum, irs_jldfile)
         end
     else
-        _load_irreps_data(sgnum, irs_jldfile)
+        _load_lgirreps_data(sgnum, irs_jldfile)
     end
 
     lgirsvec = Vector{Vector{LGIrrep{D}}}(undef, length(lgs))
@@ -89,7 +89,7 @@ function _load_littlegroups_data(sgnum::Integer, jldfile::JLD2.JLDFile)
     return sgops_str, klabs, kstrs, opsidxs
 end
 
-function _load_irreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
+function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
     jldgroup = jldfile[string(sgnum)] 
     # ≈ 70% of the time in loading all irreps is spent in getting Ps_list and τs_list
     Ps_list::Vector{Vector{Vector{Matrix{ComplexF64}}}}             = jldgroup["matrices_list"]
@@ -99,8 +99,6 @@ function _load_irreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
 
     return Ps_list, τs_list, type_list, cdml_list
 end
-
-throw_2d_not_yet_implemented(D) = throw(DomainError(D, "Only D=3 little groups and irreps are supported at this time"))
 
 
 
