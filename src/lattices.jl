@@ -75,16 +75,16 @@ julia> Rs    = directbasis(16, 2)
 julia> plot(flat, Rs)
 ```
 """
-function levelsetlattice(sgnum::Integer, D::Integer=2, 
-                         idxmax::NTuple=ntuple(i->2, D))
+levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2, D)) = levelsetlattice(sgnum, Val(D), idxmax)
+function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) where D
     # check validity of inputs
-    (sgnum < 1)               && throw(DomainError(sgnum, "sgnum must be greater than 1"))
-    !(D == 2 || D == 3)   && throw(DomainError(D, "D must be equal to 2 or 3"))
+    (sgnum < 1)             && throw(DomainError(sgnum, "sgnum must be greater than 1"))
+    D ∉ (1,2,3)             && _throw_invaliddim(D)
     D ≠ length(idxmax)      && throw(DomainError((D, idxmax), "D must equal length(idxmax): got (D = $D) ≠ (length(idxmax) = $(length(idxmax)))"))
     (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
 
     # prepare
-    sg = spacegroup(sgnum, D)
+    sg = spacegroup(sgnum, Dᵛ)
     sgops = operations(sg)
     Ws = rotation.(sgops) # operations W in R-basis (point group part)
     ws = translation.(sgops)
@@ -169,7 +169,7 @@ function levelsetlattice(sgnum::Integer, D::Integer=2,
     permute!(orbits, perm)
     permute!(orbitcoefs, perm)
 
-    return UnityFourierLattice(orbits, orbitcoefs)
+    return UnityFourierLattice{D}(orbits, orbitcoefs)
 end
 
 
@@ -302,11 +302,13 @@ If `expon = nothing`, no rescaling is performed.
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
 of a `ModulatedFourierLattice`.
 """
-function modulate(flat::UnityFourierLattice,
+function modulate(flat::UnityFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
-                  expon::Union{Nothing, Real}=nothing)
+                  expon::Union{Nothing, Real}=nothing) where D
     if isnothing(modulation)
-        modulation = rand(ComplexF64, length(getcoefs(flat)))
+        Ncoefs = length(getcoefs(flat))
+        mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
+        modulation = mod_r .* cis(mod_ϕ) # ≡ reⁱᵠ (pick modulus and phase uniformly random)
     end
     orbits = getorbits(flat); orbitcoefs = getcoefs(flat); # unpacking ...
     
@@ -324,7 +326,7 @@ function modulate(flat::UnityFourierLattice,
     # scale the orbit coefficients by the overall `modulation` vector
     modulated_orbitcoefs = orbitcoefs.*modulation
 
-    return ModulatedFourierLattice(orbits, modulated_orbitcoefs)
+    return ModulatedFourierLattice{D}(orbits, modulated_orbitcoefs)
 end
 
 """ 
@@ -412,7 +414,7 @@ function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice,
     if dim(flat) == 2
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
     elseif dim(flat) == 3
-        # VERIFY: unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
+        # TODO: verify--unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
         broadcast!(f, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
     end
     return vals
