@@ -6,12 +6,12 @@ number `sgnum` by reading from json files; see `spacegroup` for additional
 details. Much faster than crawling; generally preferred.
 """
 function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
-    if D ∉ (1,2,3); throw(DomainError(D, "dim must be 1, 2, or 3")); end
+    D ∉ (1,2,3) && _throw_invaliddim(D)
     if sgnum < 1 || D == 3 && sgnum > 230 || D == 2 && sgnum > 17 || D == 1 && sgnum > 2
         throw(DomainError(sgnum, "sgnum must be in range 1:2 in 1D, 1:17 in 2D, and in 1:230 in 3D")) 
     end
 
-    filepath = (@__DIR__)*"/../data/symops/"*string(D)*"d/"*string(sgnum)*".json"
+    filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".json"
     sgops_str::Vector{String} = open(filepath) do io
         JSON2.read(io)
     end
@@ -20,7 +20,7 @@ function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
 end
 
 """ 
-    spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup
+    spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
 Obtains the space group symmetry operations in xyzt and matrix format
 for a given space group number (`= sgnum`) and dimensionality `D`.
@@ -593,8 +593,16 @@ function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, conv_or_pr
         return ops′_reduced
     end
 end
-reduce_ops(sg::SpaceGroup, conv_or_prim::Bool=true) = reduce_ops(operations(sg), centering(sg), conv_or_prim)
-primitivize(sg::SpaceGroup{D}) where D = SpaceGroup{D}(num(sg), reduce_ops(sg, false))
+@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, conv_or_prim::Bool=true)
+    return reduce_ops(operations(slg), centering(slg), conv_or_prim)
+end
+primitivize(sg::T) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false))
+function primitivize(lg::T) where T<:LittleGroup 
+    cntr = centering(lg)
+    kv′  = primitivize(kvec(lg), cntr)              # transform both k-point and operations
+    ops′ = reduce_ops(operations(lg), cntr, false)
+    return T(num(lg), kv′, klabel(lg), ops′)
+end
 
 """
     cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) --> SymOperation{D}

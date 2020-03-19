@@ -1,4 +1,4 @@
-using JSON2, SGOps
+using JSON2, SGOps, HTTP, Gumbo
 
 #= Small convenience script to crawl and subsequently write all the xyzt
    forms of the symmetry operations of the 230 three-dimensional space-
@@ -6,7 +6,7 @@ using JSON2, SGOps
    rather than constantly querying the Bilbao server =#
 for i = 1:230
     sgops_str = SGOps.crawl_sgops_xyzt(i)
-    filename = (@__DIR__)*"/../data/symops/3d/sg"*string(i)*".json"
+    filename = (@__DIR__)*"/../data/sgops/3d/"*string(i)*".json"
     open(filename; write=true, create=true, truncate=true) do io
         JSON2.write(io, sgops_str)
     end 
