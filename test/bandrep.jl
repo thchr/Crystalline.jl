@@ -33,11 +33,10 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             # just equal to minus the kvector in the (P,K,W,H) variant (i.e. without the 'A' postscript)
             @test -BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO_related]))
 
-            # TODO:
-            # ... to get the irreps of these variants, we need to follow the prescription 
-            # detailed in CDML p. 69-73 (though that won't work, presumably, for sgnum = 205)
-            # Pretty sure this is the subject of Cracknell & Davies 1976b (On the completeness
-            # of tables of irreducible representations of the classical space groups)
+            # TODO: to get the irreps of these variants, we need to follow the prescription 
+            # detailed in CDML p. 69-73 (though that won't work, presumably, for sgnum=205)
+            # This is the subject of Cracknell & Davies 1976b (On the completeness of tables
+            # of irreducible representations of the classical space groups)
         else
             kidx_BRS = findfirst(==(klab_BRS), klabs_BRS)
             kidx_ISO = findfirst(==(klab_BRS), klabs_ISO)

@@ -666,7 +666,8 @@ function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, kl
     if kidx === nothing
         if verbose
             println("Didn't find any matching k-label in lgirsvec: "*
-                    "the label may be specified incorrectly, or the irrep is missing (e.g. the irrep could be a axes-dependent irrep)")
+                    "the label may be specified incorrectly, or the irrep is missing "*
+                    "(e.g. the irrep could be a axes-dependent irrep)")
             @info klab klabel.(first.(lgirsvec))
         end
         return nothing 
@@ -674,8 +675,9 @@ function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, kl
         return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
     end
 end
-find_lgirreps(sgnum::Integer, klab::String, Dᵛ::Val{D}) where D = find_lgirreps(get_lgirreps(sgnum, Dᵛ, klab))
-find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(sgnum, Val(D), klab)
+find_lgirreps(sgnum::Integer, klab::String, Dᵛ::Val{D}) where D = find_lgirreps(get_lgirreps(sgnum, Dᵛ), klab)
+find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(sgnum, klab, Val(D))
+
 
 
 # --- Character table ---
@@ -718,7 +720,7 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
 end
 
 # --- Band representations ---
-struct BandRep
+struct BandRep <: AbstractVector{Int64}
     wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
@@ -742,13 +744,21 @@ function show(io::IO, ::MIME"text/plain", BR::BandRep)
 end
 """
     dim(BR::BandRep) --> Int64
-Computes how many states, at minimum (could be multiples), resides in
-the band representations BR; i.e. the "band filling" ν discussed e.g.
-in the papers by Po.
+
+Get the number of bands included in a single BandRep `BR`; i.e. the "band filling"
+ν discussed in Po's papers.
 """
 dim(BR::BandRep)     = BR.dim
 
-struct BandRepSet
+# define the AbstractArray interface for BandRep
+size(BR::BandRep)    = (length(vec(BR)),) # number of irreps samplable by BandRep
+getindex(BR::BandRep, keys...) = vec(BR)[keys...]
+firstindex(::BandRep) = 1
+lastindex(BR::BandRep) = length(vec(BR))
+IndexStyle(::BandRep) = IndexLinear()
+eltype(::BandRep) = Int64
+
+struct BandRepSet <: AbstractVector{BandRep}
     sgnum::Integer          # space group number, sequential
     bandreps::Vector{BandRep}
     kvs::Vector{KVec}       # Vector of 𝐤-points
@@ -758,18 +768,33 @@ struct BandRepSet
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
     timeinvar::Bool         # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
-num(BRS::BandRepSet)    = BRS.sgnum
-klabels(BRS::BandRepSet) = BRS.klabs
-kvecs(BRS::BandRepSet)  = BRS.kvs
-hasnonmax(BRS::BandRepSet) = BRS.allpaths
+num(BRS::BandRepSet)         = BRS.sgnum
+klabels(BRS::BandRepSet)     = BRS.klabs
+kvecs(BRS::BandRepSet)       = BRS.kvs
+hasnonmax(BRS::BandRepSet)   = BRS.allpaths
 irreplabels(BRS::BandRepSet) = BRS.irreplabs
-isspinful(BRS::BandRepSet) = BRS.spinful
+isspinful(BRS::BandRepSet)   = BRS.spinful
 istimeinvar(BRS::BandRepSet) = BRS.timeinvar
-reps(BRS::BandRepSet)   = BRS.bandreps
-length(BRS::BandRepSet) = length(reps(BRS))
-getindex(BRS::BandRepSet, keys...) = reps(BRS)[keys...]
-lastindex(BRS::BandRepSet, d::Int64) = length(BRS)
+reps(BRS::BandRepSet)        = BRS.bandreps
 
+# define the AbstractArray interface for BandRepSet
+size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
+getindex(BRS::BandRepSet, keys...) = reps(BRS)[keys...]
+firstindex(::BandRepSet) = 1
+lastindex(BRS::BandRepSet) = length(reps(BRS))
+IndexStyle(::BandRepSet) = IndexLinear()
+eltype(::BandRepSet) = BandRep
+
+# matrix representation of a BandRepSet, with band reps along rows and irreps along columns
+function matrix(BRS::BandRepSet)
+    M = Matrix{Int64}(undef, length(BRS), length(BRS[1]))
+    @inbounds for (i, BR) in enumerate(BRS)
+        for (j, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 
+            M[i,j] = v                   # broadcasting/iterator interface (why!?)
+        end
+    end
+    return M
+end 
 
 function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     Nirreps = length(irreplabels(BRS))

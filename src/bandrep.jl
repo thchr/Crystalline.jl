@@ -180,7 +180,6 @@ end
 
 
 # main "getter" function; reads data from csv files
-# TODO: Should probably rename to get_bandreps
 # TODO: Write documentation/method description.
 function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brtype::String="Elementary TR")
     paths_str = allpaths ? "allpaths" : "maxpaths"
@@ -189,20 +188,6 @@ function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brt
         BRS = dlm2struct(io, sgnum, allpaths, spinful, brtype, BandRepTrait())
     end 
 end
-
-
-
-# Converts a BandRepSet into a matrix representation, with distinct band reps
-# along the rows, and irreducible representations along the columns
-function matrix(BRS::BandRepSet)
-    M = Matrix{Int64}(undef, length(BRS), length(irreplabels(BRS)))
-    @inbounds for (i,BR) in enumerate(reps(BRS))
-        for (j,v) in enumerate(vec(BR))
-            M[i,j] = v
-        end
-    end
-    return M
-end 
 
 
 """
@@ -354,7 +339,7 @@ function matching_lgirreps(BRS::BandRepSet)
         if matchidx !== nothing
             find_and_sort_idxs[idx] = matchidx
         else
-            throw(DomainError("$(brlab) could not be found in ISOTROPY dataset"))
+            throw(DomainError(brlab, "could not be found in ISOTROPY dataset"))
         end
     end
 
