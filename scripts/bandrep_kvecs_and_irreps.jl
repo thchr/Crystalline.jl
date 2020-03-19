@@ -12,6 +12,7 @@ showmissing = true
 @testset "Are all the k-vectors from bandreps in ISOTROPY?" begin
 incomplete_sgs = Vector{Int64}()
 incomplete_lgirs = Dict{Int64,Array{String}}()
+incomplete_symind = Dict{Int64,String}() # the BRS classification of missing sgs (Z1 = trivial)
 for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths, spinful, brtype)
     irlabs_BRS = BRS.irreplabs
@@ -39,6 +40,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             sgnum ∉ incomplete_sgs && push!(incomplete_sgs, sgnum)
             if !haskey(incomplete_lgirs, sgnum)
                 incomplete_lgirs[sgnum] = [irlab_BRS]
+                incomplete_symind[sgnum] = classification(BRS)
             else
                 push!(incomplete_lgirs[sgnum], irlab_BRS)
             end
@@ -57,6 +59,7 @@ end
 if !isempty(incomplete_sgs)
     print(stdout, "The following space groups have incomplete little group (TR-invariant) irreps in ISOTROPY:\n\t")
     join(stdout, incomplete_sgs, ", "); println()
+    [println(k, "=>", v, "\n") for (k,v) in incomplete_symind if v≠"Z₁"]; println()
     sorted_incomplete_lgirs = sort(keys(incomplete_lgirs) .=> values(incomplete_lgirs), by=x->getfield(x,1))
     display(sorted_incomplete_lgirs)
 end
