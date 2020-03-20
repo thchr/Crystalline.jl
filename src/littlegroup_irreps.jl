@@ -144,6 +144,56 @@ end
 chartable(kv::KVec, sgnum::Integer, D::Integer=3) = chartable(kv, sgnum, Val(D))
 
 
+# plotting of kvecs in little group
+function plot(kvs::AbstractVector{KVec})
+    D = dim(first(kvs))
+    ax = plt.figure().gca(projection= D==3 ? "3d" : "rectilinear")
+    for kv in kvs
+        plot(kv, ax)
+    end
+    return ax
+end
+plot(lgs::AbstractVector{<:LittleGroup}) = plot(kvec.(lgs))
+
+function plot(kv::KVec, 
+              ax=plt.figure().gca(projection= dim(kv)==3 ? "3d" : "rectilinear"))   
+    D = dim(kv)
+    freeαβγ = freeparams(kv)
+    nαβγ = sum(freeαβγ)
+    nαβγ == 3 && return ax # general point/volume (nothing to plot)
+
+    _scatter = D == 3 ? ax.scatter3D : ax.scatter
+    _plot    = D == 3 ? ax.plot3D : ax.plot
+ 
+    if nαβγ == 0 # point
+        k = kv()
+        _scatter(k...)
+    elseif nαβγ == 1 # line
+        k⁰, k¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
+        ks = [[k⁰[i], k¹[i]] for i in 1:D]
+        _plot(ks...)
+    elseif nαβγ == 2 && D > 2 # plane
+        k⁰⁰, k¹¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
+        αβγ, j = (zeros(3), zeros(3)), 1
+        for i = 1:3
+            if freeαβγ[i]
+                αβγ[j][i] = 0.5
+                j += 1
+            end
+        end
+        k⁰¹, k¹⁰ = kv(αβγ[1]), kv(αβγ[2])
+        # calling Poly3DCollection is not so straightforward: follow the advice
+        # at https://discourse.julialang.org/t/3d-polygons-in-plots-jl/9761/3
+        verts = ([tuple(k⁰⁰...); tuple(k¹⁰...); tuple(k¹¹...); tuple(k⁰¹...)],)
+        plane = PyPlot.PyObject(art3D).Poly3DCollection(verts, alpha = 0.15)
+        PyPlot.PyCall.pycall(plane.set_facecolor, PyPlot.PyCall.PyAny, [52, 152, 219]./255)
+        PyPlot.PyCall.pycall(ax.add_collection3d, PyPlot.PyCall.PyAny, plane)
+    end
+    return ax
+end
+
+
+
 # old attempt at trying to have the data files open all the time, whenever the 
 # module is called, and then closed afterwards. Ultimately, this only worked 
 # rather sporadically and seemed quite buggy (though it was faster, since

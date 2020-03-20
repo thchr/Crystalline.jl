@@ -22,6 +22,7 @@ import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 # using TimerOutputs # retoggle to time execution of code
+using3D() # explicitly load mplot3d from PyPlot
 
 # included files and exports
 include("constants.jl")

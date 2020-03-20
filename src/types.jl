@@ -76,7 +76,8 @@ dim(::SymOperation{D}) where D = D
 # define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]
 firstindex(::SymOperation) = 1
-lastindex(op::SymOperation, d::Int64) = lastindex(matrix(op), d)
+lastindex(op::SymOperation{D}) where D = D*(D+1)
+lastindex(op::SymOperation{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D+1 : 1)
 IndexStyle(::SymOperation) = IndexLinear()
 size(::SymOperation{D}) where D = (D,D+1)
 eltype(::SymOperation) = Float64
@@ -162,8 +163,11 @@ end
 KVec(k₀::AbstractVector{<:Real}) = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
 KVec(k₀s::T...) where T<:Real = KVec([float.(k₀s)...])
 parts(kv::KVec) = (kv.k₀, kv.kabc)
-isspecial(kv::KVec) = iszero(kv.kabc)
 dim(kv::KVec) = length(kv.k₀)
+isspecial(kv::KVec) = iszero(kv.kabc)
+# returns a vector whose entries are true (false) if α,β,γ, respectively, are free parameters (not featured) in `kv`
+freeparams(kv::KVec)  = map(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) 
+nfreeparams(kv::KVec) = sum(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) # total number of free parameters in `kv`
 function (kv::KVec)(αβγ::AbstractVector{<:Real})
     k₀, kabc = parts(kv)
     return k₀ + kabc*αβγ
