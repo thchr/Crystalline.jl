@@ -1,7 +1,36 @@
-# magic numbers
+# --- Magic numbers ---
 const BYTES_PER_KCHAR = 3
 const BYTES_PER_KVEC  = 16*BYTES_PER_KCHAR;
 
+# --- 3D Space group irrep struct ---
+struct SGIrrep3D{T} <: AbstractIrrep{3} where T
+    iridx::Int64    # sequential index assigned to ir by Stokes et al
+    cdml::String    # CDML label of irrep (including 𝐤-point label)
+    irdim::Int64    # dimensionality of irrep (i.e. size)
+    sgnum::Int64    # space group number
+    sglabel::String # Hermann-Mauguin label of space group
+    type::Int64     # real, pseudo-real, or complex (1, 2, or 3)
+    order::Int64    # number of operations
+    knum::Int64     # number of 𝐤-vecs in star
+    pmknum::Int64   # number of ±𝐤-vecs in star
+    special::Bool   # whether star{𝐤} describes high-symmetry points
+    pmkstar::Vector{KVec}        # star{𝐤} for Complex, star{±𝐤} for Real
+    ops::Vector{SymOperation{3}} # every symmetry operation in space group
+    translations::Vector{Vector{Float64}} # translations assoc with matrix repres of ops in irrep
+    matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of ops in irrep
+end
+num(sgir::SGIrrep3D) = sgir.sgnum
+irreps(sgir::SGIrrep3D) = sgir.matrices
+order(sgir::SGIrrep3D) = sgir.order
+iuc(sgir::SGIrrep3D) = sgir.sglabel
+operations(sgir::SGIrrep3D) = sgir.ops
+isspecial(sgir::SGIrrep3D) = sgir.special
+kstar(sgir::SGIrrep3D) = sgir.pmkstar
+irdim(sgir::SGIrrep3D) = sgir.irdim
+dim(sgir::SGIrrep3D) = 3
+
+
+# --- Parsing ---
 
 parseisoir(T::Type{Real}) = parseisoir(Float64)         # just for being able to call it with Real or Complex
 parseisoir(T::Type{Complex}) = parseisoir(ComplexF64)   # as input rather than Float64 and ComplexF64
@@ -10,7 +39,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
     datatag = if T <: Real; "PIR"; elseif T <: Complex; "CIR"; end   
     io = open((@__DIR__)*"/../data/ISOTROPY/"*datatag*"_data.txt","r") # open file for reading
 
-    irreps = Vector{Vector{SGIrrep{T}}}()
+    irreps = Vector{Vector{SGIrrep3D{T}}}()
     while !eof(io)
         # --- READ BASIC INFO, LIKE SG & IR #, NAMES, DIMENSIONALITY, ORDER ---
         irnum = parse(Int64, String(read(io, 5))) # read IR# (next 5 characters)
@@ -96,14 +125,14 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
         end
 
         # --- STORE DATA IN VECTOR OF IRREPS ---
-        irrep = SGIrrep{T}(irnum,    irlabel,    irdim,
-                           sgnum,    sglabel,
-                           irtype,   opnum,      
-                           knum,     pmknum,   kspecial,
-                           KVec.(k, kabc),  
-                           SymOperation{3}.(opmatrix),
-                           irtranslation, irmatrix)
-        if length(irreps) < sgnum; push!(irreps, Vector{SGIrrep{T}}()); end # new space group idx
+        irrep = SGIrrep3D{T}(irnum,    irlabel,    irdim,
+                             sgnum,    sglabel,
+                             irtype,   opnum,      
+                             knum,     pmknum,   kspecial,
+                             KVec.(k, kabc),  
+                             SymOperation{3}.(opmatrix),
+                             irtranslation, irmatrix)
+        length(irreps) < sgnum && push!(irreps, Vector{SGIrrep3D{T}}()) # new space group idx
         push!(irreps[sgnum], irrep)
       
         # --- FINISHED READING CURRENT IRREP; MOVE TO NEXT ---
@@ -194,7 +223,7 @@ function reprecision_data(x::T) where T<:Real
 end
 reprecision_data(z::T) where T<:Complex = complex(reprecision_data(real(z)), reprecision_data(imag(z)))
 
-function littlegroupirrep(ir::SGIrrep{<:Complex})
+function littlegroupirrep(ir::SGIrrep3D{<:Complex})
     lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1], centering(num(ir),3))
     lgirdim′ = irdim(ir)/ir.knum; lgirdim = div(irdim(ir), ir.knum)
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
@@ -215,7 +244,7 @@ function littlegroupirrep(ir::SGIrrep{<:Complex})
 end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
-function parselittlegroupirreps(irvec::Vector{SGIrrep{ComplexF64}})
+function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     lgirsvec = Vector{Vector{LGIrrep{3}}}()
     curlab = nothing; accidx = Int64[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
@@ -268,14 +297,23 @@ matrices themselves. To that end, we manually replace these small irreps with
 those listed by CDML (read off from their tables). 
 Those irreps are manually extracted in the scripts/cdml_sg214_P1P2P3.jl file.
 
-The fix is made in littlegroupirrep(ir::SGIrrep{<:Complex}), using the check 
+The fix is made in littlegroupirrep(ir::SGIrrep3D{<:Complex}), using the check 
 in is_erroneous_lgir(...), with the constant "erroneous" tuple ERRONEOUS_LGIRS.
 
 Emailed Stokes & Campton regarding the issue on Sept. 26, 2019; did not yet 
 hear back.
 """
-function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
-    dim ≠ 3 && throw(DomainError(dim, "Didn't implement any manual corrections in 2D yet"))
+function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
+    # TODO: Use their new and corrected dataset (from February 17, 2020) instead of manually
+    #       fixing the old dataset.
+    #       I already verified that their new dataset is correct (and parses), and that P1
+    #       and P3 pass tests. Their P1 and P3 (and P2) irreps are not the same as those we
+    #       had below, but differ by a transformation R(THEIRS)R⁻¹ = (OURS) with 
+    #       R = [1 1; 1 -1]/√2.
+    #       Thus, we should remove this method (here and from other callers), update and
+    #       commit the new datasets and then finally regenerate/refresh our own saved format
+    #       of the irreps (from build/write_littlegroup_irreps_from_ISOTROPY.jl)
+    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
     if sgnum == 214
         CP  = cis(π/12)/√2   # C*P       ≈ 0.683013 + 0.183013im
         CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im

@@ -353,9 +353,7 @@ struct SpaceGroup{D} <: AbstractGroup{D}
     num::Int64
     operations::Vector{SymOperation{D}}
 end
-dim(sg::SpaceGroup{D}) where D = D
 label(sg::SpaceGroup) = iuc(sg)
-
 
 # --- Point group ---
 struct PointGroup{D} <: AbstractGroup{D}
@@ -375,7 +373,6 @@ struct LittleGroup{D} <: AbstractGroup{D}
 end
 LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
 LittleGroup(num::Int64, kv::KVec, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
-dim(lg::LittleGroup{D}) where D = D
 kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
@@ -383,21 +380,24 @@ label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(k
 
 # --- Abstract group irreps ---
 """ 
-    AbstractIrrep (abstract type)
+    AbstractIrrep{D} (abstract type)
 
-Abstract supertype for irreps: must have fields cdml, matrices, 
-and type (and possibly translations). Must implement a function
-`irreps` that return the associated irrep matrices.
+Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `matrices`,
+and `type` (and possibly `translations`). Must implement a function `irreps` that returns
+the associated irrep matrices.
 """
-abstract type AbstractIrrep end
+abstract type AbstractIrrep{D} end
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
 type(ir::AbstractIrrep) = ir.type
 translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
-characters(ir::AbstractIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
+characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
-order(ir::AbstractIrrep) = order(group(ir))
+order(ir::AbstractIrrep)  = order(group(ir))
+operations(ir::AbstractIrrep) = operations(group(ir))
+num(ir::AbstractIrrep) = num(group(ir))
+dim(ir::AbstractIrrep{D}) where D = D
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
@@ -405,16 +405,14 @@ function klabel(cdml::String)
 end
 
 # --- Point group irreps ---
-struct PGIrrep{D} <: AbstractIrrep
+struct PGIrrep{D} <: AbstractIrrep{D}
     cdml::String
     pg::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
     type::Int64
 end
-irreps(pgir::PGIrrep, αβγ=nothing) = pgir.matrices
+irreps(pgir::PGIrrep, αβγ::Nothing=nothing) = pgir.matrices
 group(pgir::PGIrrep) = pgir.pg
-operations(pgir::PGIrrep) = operations(group(pgir))
-num(pgir::PGIrrep) = num(group(pgir))
 
 # printing
 function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
@@ -422,35 +420,8 @@ function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::Abs
     prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
-# --- 3D Space group irreps ---
-struct SGIrrep{T} <: AbstractIrrep where T
-    iridx::Int64    # sequential index assigned to ir by Stokes et al
-    cdml::String    # CDML label of irrep (including 𝐤-point label)
-    irdim::Int64    # dimensionality of irrep (i.e. size)
-    sgnum::Int64    # space group number
-    sglabel::String # Hermann-Mauguin label of space group
-    type::Int64     # real, pseudo-real, or complex (1, 2, or 3)
-    order::Int64    # number of operations
-    knum::Int64     # number of 𝐤-vecs in star
-    pmknum::Int64   # number of ±𝐤-vecs in star
-    special::Bool   # whether star{𝐤} describes high-symmetry points
-    pmkstar::Vector{KVec}        # star{𝐤} for Complex, star{±𝐤} for Real
-    ops::Vector{SymOperation{3}} # every symmetry operation in space group
-    translations::Vector{Vector{Float64}} # translations assoc with matrix repres of ops in irrep
-    matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of ops in irrep
-end
-num(sgir::SGIrrep) = sgir.sgnum
-irreps(sgir::SGIrrep) = sgir.matrices
-order(sgir::SGIrrep) = sgir.order
-iuc(sgir::SGIrrep) = sgir.sglabel
-operations(sgir::SGIrrep) = sgir.ops
-isspecial(sgir::SGIrrep) = sgir.special
-kstar(sgir::SGIrrep) = sgir.pmkstar
-irdim(sgir::SGIrrep) = sgir.irdim
-dim(sgir::SGIrrep) = 3
-
 # --- Little group irreps ---
-struct LGIrrep{D} <: AbstractIrrep
+struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
     lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
     matrices::Vector{Matrix{ComplexF64}}
@@ -465,9 +436,6 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     return LGIrrep{D}(cdml, lg, matrices, translations, type)
 end
 group(lgir::LGIrrep) = lgir.lg
-num(lgir::LGIrrep) = num(group(lgir))
-dim(lgir::LGIrrep{D}) where D = D
-operations(lgir::LGIrrep)  = operations(group(lgir))
 kvec(lgir::LGIrrep)  = kvec(group(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
@@ -691,9 +659,9 @@ struct CharacterTable{D}
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
     chartable::Matrix{ComplexF64}
-    # TODO: for LGIrreps and SGIrreps, it might be nice to keep this more versatile and
-    #       include the translations and kvec as well; then we could print a result that
-    #       doesn't specialize on a given αβγ choice (see also chartable(::LGirrep))
+    # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
+    #       translations and kvec as well; then we could print a result that doesn't  
+    #       specialize on a given αβγ choice (see also chartable(::LGirrep))
     tag::String
 end
 CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, 

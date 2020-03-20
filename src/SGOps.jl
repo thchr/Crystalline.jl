@@ -34,22 +34,21 @@ export get_kvpath
 include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
-       SGIrrep, MultTable, LGIrrep, 
-       PGIrrep,
+       MultTable, LGIrrep, PGIrrep,
        KVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
-       matrix, xyzt, operations,            # ::SymOperation
+       matrix, xyzt,                        # ::SymOperation
        getindex, rotation, translation, 
        issymmorph, ==,
-       num, order,                          # ::AbstractGroup
+       num, order, operations,              # ::AbstractGroup
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, type, group,
-       isspecial, translations,             # ::SGIrrep
        israyrep, kvec, irreps,              # ::LGIrrep
+       isspecial, translations,
        find_lgirreps,
        dim, string, parts,                  # ::KVec
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
