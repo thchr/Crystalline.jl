@@ -5,20 +5,20 @@ if !isdefined(Main, :LGIRS′)
 end
 
 @testset "CharacterTable and orthogonality theorems" begin
-    for lgirsvec in LGIRS[23:24]
-        for (idx, lgirs) in enumerate(lgirsvec)
-            
-            ct=SGOps.chartable(lgirs)
-            χs = characters(ct) # matrix of characters; each row is a different representation
-            Nₒₚ = length(operations(ct))
+    @testset "Little group irreps" begin
+        for lgirsvec in LGIRS
+            for (idx, lgirs) in enumerate(lgirsvec)
+                
+                ct=SGOps.CharacterTable(lgirs)
+                χs = characters(ct) # matrix of characters; each row is a different representation
+                Nₒₚ = length(operations(ct))
 
-            # 1ˢᵗ orthogonality theorem (characters): 
-            #       ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
-            @test all(sum(abs2, χs, dims=2) .== Nₒₚ)
+                # 1ˢᵗ orthogonality theorem (characters):    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
+                @test all(n->isapprox.(n, Nₒₚ, atol=1e-15), sum(abs2, χs, dims=2))
 
-            # 2ⁿᵈ orthogonality theorem (characters): 
-            #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
-            @test conj(χs)*transpose(χs) ≈ Nₒₚ*I
+                # 2ⁿᵈ orthogonality theorem (characters):    ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
+                @test conj(χs)*transpose(χs) ≈ Nₒₚ*I
+            end
         end
     end
 end

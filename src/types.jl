@@ -312,6 +312,43 @@ function (==)(kv1::KVec, kv2::KVec)
     return k₀1 == k₀2 && kabc1 == kabc2
 end
 
+# mostly a utility function for visualizing the `KVec`s in a `LittleGroup`
+function plot(kv::KVec, 
+              ax=plt.figure().gca(projection= dim(kv)==3 ? "3d" : "rectilinear"))   
+    D = dim(kv)
+    freeαβγ = freeparams(kv)
+    nαβγ = sum(freeαβγ)
+    nαβγ == 3 && return ax # general point/volume (nothing to plot)
+
+    _scatter = D == 3 ? ax.scatter3D : ax.scatter
+    _plot    = D == 3 ? ax.plot3D : ax.plot
+ 
+    if nαβγ == 0 # point
+        k = kv()
+        _scatter(k...)
+    elseif nαβγ == 1 # line
+        k⁰, k¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
+        ks = [[k⁰[i], k¹[i]] for i in 1:D]
+        _plot(ks...)
+    elseif nαβγ == 2 && D > 2 # plane
+        k⁰⁰, k¹¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
+        αβγ, j = (zeros(3), zeros(3)), 1
+        for i = 1:3
+            if freeαβγ[i]
+                αβγ[j][i] = 0.5
+                j += 1
+            end
+        end
+        k⁰¹, k¹⁰ = kv(αβγ[1]), kv(αβγ[2])
+        # calling Poly3DCollection is not so straightforward: follow the advice
+        # at https://discourse.julialang.org/t/3d-polygons-in-plots-jl/9761/3
+        verts = ([tuple(k⁰⁰...); tuple(k¹⁰...); tuple(k¹¹...); tuple(k⁰¹...)],)
+        plane = PyPlot.PyObject(art3D).Poly3DCollection(verts, alpha = 0.15)
+        PyPlot.PyCall.pycall(plane.set_facecolor, PyPlot.PyCall.PyAny, [52, 152, 219]./255)
+        PyPlot.PyCall.pycall(ax.add_collection3d, PyPlot.PyCall.PyAny, plane)
+    end
+    return ax
+end
 
 
 # --- Abstract spatial group ---
@@ -377,6 +414,16 @@ kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
 
+# plotting of `KVec`s in a `LittleGroup`
+function plot(kvs::AbstractVector{KVec})
+    D = dim(first(kvs))
+    ax = plt.figure().gca(projection= D==3 ? "3d" : "rectilinear")
+    for kv in kvs
+        plot(kv, ax)
+    end
+    return ax
+end
+plot(lgs::AbstractVector{<:LittleGroup}) = plot(kvec.(lgs))
 
 # --- Abstract group irreps ---
 """ 
@@ -661,7 +708,7 @@ struct CharacterTable{D}
     chartable::Matrix{ComplexF64}
     # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
     #       translations and kvec as well; then we could print a result that doesn't  
-    #       specialize on a given αβγ choice (see also chartable(::LGirrep))
+    #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
     tag::String
 end
 CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, 
@@ -691,6 +738,22 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
                   highlighters=Highlighter((data,i,j)->i==1 || j==1; bold = true),
                   #screen_size =(250,100)
                   )
+end
+
+"""
+    CharacterTable(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)
+
+Return a `CharacterTable` associated with vector of `AbstractIrrep`s `irs` a vector of irreps.
+"""
+function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
+                        αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
+    table = Array{ComplexF64}(undef, length(irs), order(first(irs)))
+    for (i,row) in enumerate(eachrow(table))
+    row .= characters(irs[i], αβγ)
+    end
+    g = group(first(irs))
+    tag = "#"*string(num(g))*"/"*label(g)
+    return CharacterTable{D}(operations(first(irs)), label.(irs), table, tag)
 end
 
 # --- Band representations ---

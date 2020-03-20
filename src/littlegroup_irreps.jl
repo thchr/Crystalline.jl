@@ -102,96 +102,31 @@ end
 
 
 
-
-# character table construction
-function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
-    table = Array{ComplexF64}(undef, length(lgirs), order(first(lgirs)))
-    for (i,row) in enumerate(eachrow(table))
-        # TODO: This implicitly assumes α=β=γ=0, which may not generally be desirable.
-        row .= characters(lgirs[i])
-    end
-    tag = join(["#", string(num(first(lgirs)))])
-    return CharacterTable{D}(operations(first(lgirs)), label.(lgirs), table, tag)
-end
-
-function chartable(klab::String, sgnum::Integer, Dᵛ::Val)
+# unexported character table convenience constructors (see also chartable(::AbstractVector{<:AbstractIrrep})))
+function chartable(klab::String, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
     lgirsvec = get_lgirreps(sgnum, Dᵛ)
     kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
     if kidx === nothing
         throw(DomainError(klab, "Could not find the input klabel `klab` in the requested space group"))
     else
-        return chartable(lgirsvec[kidx])
+        return CharacterTable(lgirsvec[kidx], αβγ)
     end
 end
-chartable(klab::String, sgnum::Integer, D::Integer=3) = chartable(klab, sgnum, Val(D))
+chartable(klab::String, sgnum::Integer, D::Integer=3, αβγ=nothing) = 
+    chartable(klab, sgnum, Val(D), αβγ)
 
 
-function chartable(kv::KVec, sgnum::Integer, Dᵛ::Val)
+function chartable(kv::KVec, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
     lgirsvec = get_lgirreps(sgnum, Dᵛ)
-    # TODO: Would be nice to be able to match to generic (but concrete!) KVecs format, at
-    #       non-special momenta, e.g. to KVec(α,β,0) for some fixed non-special value of 
-    #       α and β. Right now, we can match if α and β are specified as free; but then we 
-    #       later on evaluate the character table with α=β=γ=0
-    #       we can specify `kv` at concrete non-special momenta 
-    #       and still match
     kidx = findfirst(x->kvec(first(x))==kv, lgirsvec)
     if kidx === nothing
-        throw(DomainError(kv, "Could not find the input k-vector `kv` in the requested space group"))
+        throw(DomainError(kv, "Could not find input `kv` in the requested space group"))
     else
-        return chartable(lgirsvec[kidx])
+        return CharacterTable(lgirsvec[kidx], αβγ)
     end
 end
-chartable(kv::KVec, sgnum::Integer, D::Integer=3) = chartable(kv, sgnum, Val(D))
-
-
-# plotting of kvecs in little group
-function plot(kvs::AbstractVector{KVec})
-    D = dim(first(kvs))
-    ax = plt.figure().gca(projection= D==3 ? "3d" : "rectilinear")
-    for kv in kvs
-        plot(kv, ax)
-    end
-    return ax
-end
-plot(lgs::AbstractVector{<:LittleGroup}) = plot(kvec.(lgs))
-
-function plot(kv::KVec, 
-              ax=plt.figure().gca(projection= dim(kv)==3 ? "3d" : "rectilinear"))   
-    D = dim(kv)
-    freeαβγ = freeparams(kv)
-    nαβγ = sum(freeαβγ)
-    nαβγ == 3 && return ax # general point/volume (nothing to plot)
-
-    _scatter = D == 3 ? ax.scatter3D : ax.scatter
-    _plot    = D == 3 ? ax.plot3D : ax.plot
- 
-    if nαβγ == 0 # point
-        k = kv()
-        _scatter(k...)
-    elseif nαβγ == 1 # line
-        k⁰, k¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
-        ks = [[k⁰[i], k¹[i]] for i in 1:D]
-        _plot(ks...)
-    elseif nαβγ == 2 && D > 2 # plane
-        k⁰⁰, k¹¹ = kv(zeros(D)), kv(freeαβγ.*0.5)
-        αβγ, j = (zeros(3), zeros(3)), 1
-        for i = 1:3
-            if freeαβγ[i]
-                αβγ[j][i] = 0.5
-                j += 1
-            end
-        end
-        k⁰¹, k¹⁰ = kv(αβγ[1]), kv(αβγ[2])
-        # calling Poly3DCollection is not so straightforward: follow the advice
-        # at https://discourse.julialang.org/t/3d-polygons-in-plots-jl/9761/3
-        verts = ([tuple(k⁰⁰...); tuple(k¹⁰...); tuple(k¹¹...); tuple(k⁰¹...)],)
-        plane = PyPlot.PyObject(art3D).Poly3DCollection(verts, alpha = 0.15)
-        PyPlot.PyCall.pycall(plane.set_facecolor, PyPlot.PyCall.PyAny, [52, 152, 219]./255)
-        PyPlot.PyCall.pycall(ax.add_collection3d, PyPlot.PyCall.PyAny, plane)
-    end
-    return ax
-end
-
+chartable(kv::KVec, sgnum::Integer, D::Integer=3, αβγ=nothing) = 
+    chartable(kv, sgnum, Val(D), αβγ)
 
 
 # old attempt at trying to have the data files open all the time, whenever the 
