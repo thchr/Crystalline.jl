@@ -45,11 +45,11 @@ end
 end
 
 
-## Grand orthogonality theorem (irreps): 
+## Great orthogonality theorem of irreps: 
 #       ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ = δₐᵦδₙⱼδₘₖNₒₚ⁽ᵃ⁾/dim(D⁽ᵃ⁾)
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
-@testset "Great orthogonality theorem" begin
+@testset "Great orthogonality theorem (little group irreps)" begin
     αβγ = nothing#[1,1,1]*1e-1
     debug = false# true
     count = total = 0 # counters
