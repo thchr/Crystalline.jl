@@ -6,6 +6,12 @@ module SGOps
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
       JSON2, StaticArrays, Makie, TimerOutputs,
       DelimitedFiles, SmithNormalForm,
+      Meshing, JLD2, PrettyTables, PyPlot,
+      CSV,                    # → special_representation_domain_kpoints.jl
+      MetaGraphs, LightGraphs # → compatibility.jl
+# time-sinks here are PyPlot (15 s), Makie (17 s), Distributions (3 s), & CSV (5 s),
+# (compare with total load time of SGOps of ~92 s)
+# 
 import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, 
              eltype, length,                                            # indexing interface
              string, isapprox,
