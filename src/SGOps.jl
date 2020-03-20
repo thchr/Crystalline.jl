@@ -1,3 +1,6 @@
+#__precompile__() # TODO: enable if we ever want to officially ship this - not worthwhile
+                  #       while we're actively developing (increases time of "fresh" compiles)
+
 module SGOps
 # packages
 using HTTP, Gumbo, LinearAlgebra, Distributions, 
@@ -12,8 +15,7 @@ using Compat
 import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
-
-
+# using TimerOutputs # retoggle to time execution of code
 
 # included files and exports
 include("constants.jl")

@@ -1,6 +1,5 @@
 using SGOps, Test, LinearAlgebra, Printf
 
-debug = false
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
     LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
 end
@@ -106,7 +105,7 @@ end
 end
 end
 
-if debug
+if false
 	println() 
 
 	## Comparison with Bilbao's REPRES for P1 and P3 of sg 214

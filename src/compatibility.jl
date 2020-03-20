@@ -75,7 +75,6 @@ end
 """
 function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     !isspecial(kv) && throw(DomainError(kv, "input kv must be a special k-point"))
-    
 
     compat_idxs = Vector{Int64}()
     compat_αβγs = Vector{Vector{Float64}}()
@@ -92,9 +91,12 @@ function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
 end
 
 function is_compatible_kvec(kv::KVec, kv′::KVec)
-    # TODO: I think we need to do this in the primitive basis!
+    # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
+    #       if we match k-points across a G-vector, we also need to transform the irrep
+    #       with a suitable phase factor.
 
-    k₀, _  = parts(kv) # for now, we don't allow finding a compatible plane to a line (TODO)
+    # TODO: this cannot treat finding a compatible plane to a line
+    k₀, _  = parts(kv) 
     k₀′, kabc′ = parts(kv′)
 
     # least squares solve via QR factorization; equivalent to pinv(kabc)*(k₀-k₀′) but faster

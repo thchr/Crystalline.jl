@@ -107,6 +107,7 @@ end
 function chartable(lgirs::AbstractVector{LGIrrep{D}}) where D
     table = Array{ComplexF64}(undef, length(lgirs), order(first(lgirs)))
     for (i,row) in enumerate(eachrow(table))
+        # TODO: This implicitly assumes α=β=γ=0, which may not generally be desirable.
         row .= characters(lgirs[i])
     end
     tag = join(["#", string(num(first(lgirs)))])
@@ -127,7 +128,10 @@ chartable(klab::String, sgnum::Integer, D::Integer=3) = chartable(klab, sgnum, V
 
 function chartable(kv::KVec, sgnum::Integer, Dᵛ::Val)
     lgirsvec = get_lgirreps(sgnum, Dᵛ)
-    # TODO: Implement matching to generic KVec format, so that 
+    # TODO: Would be nice to be able to match to generic (but concrete!) KVecs format, at
+    #       non-special momenta, e.g. to KVec(α,β,0) for some fixed non-special value of 
+    #       α and β. Right now, we can match if α and β are specified as free; but then we 
+    #       later on evaluate the character table with α=β=γ=0
     #       we can specify `kv` at concrete non-special momenta 
     #       and still match
     kidx = findfirst(x->kvec(first(x))==kv, lgirsvec)

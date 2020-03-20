@@ -105,7 +105,7 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         # efficiently: specifically, Dᵢ* and Dⱼ are equivalent irreps if 
                         #     χⁱ(g)* = χʲ(g₋⁻¹gg₋) ∀g ∈ G(k)
                         # with g₋ an element of G that takes 𝐤 to -𝐤, and where χⁱ (χʲ) denotes
-                        # the characters the respective irreps.
+                        # the characters of the respective irreps.
                         χⱼ = tr.(irreps(irs[j], TEST_αβγ))
                         match = true
                         for n in Base.OneTo(Nops)
@@ -172,8 +172,14 @@ end
 
 Computes the Herring criterion for a little group irrep `ir`, from 
 
-        ∑ χ({β|b}²) 
-over symmetry operations {β,b} that take k → -k.
+    [∑ χ({β|b}²)]/[g₀/M(k)] 
+
+over symmetry operations {β,b} that take k → -k. Here g₀ is the order of the point group
+of the space group and M(k) is the order of the star(k) [both in a primitive basis].
+
+The returned value, [∑ χ({β|b}²)]/[g₀/M(k)], is one of three integers in {1,-1,0} 
+corresponding to {real, pseudoreal, complex} reality. We remind that ISOTROPY's indication
+of the same reality types i {1,2,3}.
 
 The provided space group operations `sgops` **must** be the set reduced by 
 primitive translation vectors; i.e. using `spacegroup(...)` directly is **not** 
@@ -218,7 +224,8 @@ function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Un
     Mk = length(kstar(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
     normalization = round(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
     if !isapprox(normalization, g₀/Mk)
-        throw(ErrorException("The little group is not factored by its point group and star{k}: this should never happen"))
+        throw(ErrorException("The little group is not factored by its point group and"*
+                             "star{k}: this should never happen"))
     end
 
     # check that output is a real integer and then convert to that for output...

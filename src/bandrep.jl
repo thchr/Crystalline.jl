@@ -251,12 +251,66 @@ function wyckbasis(BRS::BandRepSet)
 
     # If we apply T⁻¹ to a given set of (integer) symmetry data 𝐧, the result 
     # should be  the (integer) factors qᵢCᵢ (Cᵢ=Λᵢ here) discussed in Tang, Po,
-    # [...], Nature Physics 15, 470 (2019). Conversely, the rows of T gives the
-    # generators of all gapped band structures, while the rows of diagm(Λ)*T  
+    # [...], Nature Physics 15, 470 (2019). Conversely, the rows of T gives an integer-
+    # coefficient basis for all gapped band structures, while the rows of diagm(Λ)*T  
     # generates all atomic insulator band structures (assuming integer coefficients).
     # TODO: Verify this and check your notes from meetings with Adrian Po.
+    # See also your notes in scripts/derive_sg2_bandrep.jl
     return T[nzidxs, :], diagm(F)[:,nzidxs], T⁻¹[nzidxs, :]
 end
+# ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+# ==============================   Some context   ==============================
+# The thing to remember here is that if A ≡ matrix(BRS), then A is in general a 
+# linearly dependent basis for all atomic insulators. Suppose the symmetry data 
+# vector is 𝐧, then this means that there exists a coefficient vector ("into" the
+# rows of A) 𝐜, such that Aᵀ𝐜 = 𝐧, where 𝐜 has strictly positive integer coefficients 
+# (corresponding to "stacking" of atomic bands). To get a linearly independent basis,
+# we seek the column space of A: this generates all possible 𝐧; the price we pay, 
+# though, is that in general the column space of A would also allow negative 
+# coefficients ("subtraction" of atomic bands). We could of course just get the 
+# column space from the SVD, but that would give us non-integral coefficients in 
+# general. Instead, we can use the Smith normal form noted above. Specifically,
+# the column space of A is T[:,1:r] with r number of nonzero λⱼ. This column 
+# space in fact generates both all atomic insulators and all fragile topological 
+# insulators (effectively, additions and subtractions of rows of A).
+# The trouble with distinguishing fragile and atomic insulators is that the rows of 
+# A are linearly dependent; and the span of A obtained from T[:,1:r] may already 
+# have included several subtractions. What we want to know is whether, for given 
+# 𝐧, there a positive-integer coefficient solution exists to Aᵀ𝐜 = 𝐧 or not: if we
+# just find *some* negative-integer coefficient solution, then that doesn't mean
+# that there couldn't also be a positive-integer coefficient solution as well, simply
+# because the rows of A are linearly dependent.
+# One approach could be to find some solution 𝐜′, such that Aᵀ𝐜′=𝐧, which may contain
+# negative coefficients. From this particular solution, we can generate all possible
+# solutions by adding elements from the null space A to 𝐜′: if we can identify an 
+# element from the null space to add into 𝐜′ such that the result is positive, 
+# we have found solution (= an atomic insulator).
+# ==============================================================================
+# In searching on this topic, I came across the following KEY WORDS:
+#   - Linear system of Diophantine equations: any system Aᵀx=b with integer Aᵀ and b.
+#       See e.g. https://en.wikipedia.org/wiki/Diophantine_equation#Linear_Diophantine
+#   - Integer linear programming: concerned with solving integer-coefficient equations
+#       subject to conditions. We might phrase our problem as a "standard form linear
+#       programming" problem:
+#           minimize    𝐭ᵀ𝐜
+#           subject to  Aᵀ𝐜 = 𝐧
+#                       cᵢ ≥ 0
+#                       𝐜 ∈ 𝐙ⁿ
+#       where we would choose 𝐭 = (1,1,1,1, ...) with the idea of finding the solution
+#       that involves the fewest band representations. Not sure this choice is actually 
+#       meaningful; we already have to constrain the total number of bands involved
+#       (by adding a (column to A) = dim.(BRS) and a (row to 𝐧) = the number of included
+#       bands).
+#       It seems like this can be done in JuMP with GLPKSolverLP(). (or via GLPK.jl)
+#   - Semirings: technically, the problem is that the set of natural numbers ℕ = 0,1,...
+#       is not a ring, but a semiring (no additive inverse). There may be some packages
+#       out there that deal specifically with semirings?
+#   - The monoid paper from Bernevig: https://arxiv.org/pdf/1905.03262.pdf
+#       This actually seems to be a very worthwhile starting point; they're attacking 
+#       exactly this point.
+# ==============================================================================
+
+
 
 # misc minor utility functions
 isspinful(br::AbstractVector{T} where T<:AbstractString) = any(x->occursin(r"\\bar|ˢ", x), br)

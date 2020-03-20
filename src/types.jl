@@ -62,6 +62,8 @@ struct SymOperation{D} <: AbstractMatrix{Float64}
     # declaring `R::SMatrix{D,D,Float64,D*D}` also isn't possible; so we'd need to include
     # a useless `L` type, which would be forced to equal `D*D` in the struct constructor.
     # Overall, it doesn't seem worth it at this point: could maybe be done for Julia 2.0.
+    # TODO: Splitting `matrix` into a point-group/rotation and a translation part would 
+    # probably be worthwhile though, since we only every really deal with them seperately.
 end
 SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(m))
 # type-unstable convenience constructors; avoid for anything non-REPL related, if possible
@@ -122,7 +124,7 @@ end
 # TODO: This is bad style, afaik...
 function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation{<:Any}})
     for (i,op) in enumerate(ops)
-        show(io, "text/plain", op)
+        show(io, MIME"text/plain"(), op)
         if i < length(ops); println(io, "\n│"); end
     end
 end

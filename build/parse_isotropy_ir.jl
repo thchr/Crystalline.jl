@@ -336,15 +336,13 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
 end
 
 
-#=
-# TODO:
-# 
-# We need to manually do things for the "special" k-points kᴮ from the
-# representation domain Φ that do not exist in the basic domain kᴬ∈Ω
-# i.e. for kᴮ∈Φ-Ω (labels like KA, ZA, etc.), which are not included 
-# in ISOTROPY. We can do this by first finding a transformation R such 
-# that kᴮ = Rkᴬ, and then transforming the LGIrrep of kᴬ appropriately
-# (see CDMLSec. 4.1 / B&C Sec. 5.5.). Parts of the steps are like this:
+
+# TODO: We need to manually do things for the "special" k-points kᴮ from
+# the representation domain Φ that do not exist in the basic domain kᴬ∈Ω
+# i.e. for kᴮ∈Φ-Ω (labels like KA, ZA, etc.), which are not included in
+# ISOTROPY. We can do this by first finding a transformation R such that
+# kᴮ = Rkᴬ, and then transforming the LGIrrep of kᴬ appropriately (see
+# CDML Sec. 4.1 or B&C Sec. 5.5.). Parts of the steps are like this:
 #
 #       kvmaps = ΦnotΩ_kvecs(sgnum, D) # from src/special_representation_domain_kpoints.jl
 #       if kvmaps !== nothing # contains KVecs in the representation domain Φ that 
@@ -368,6 +366,7 @@ end
 # Pa3 (Tₕ⁶), sg 205, cannot be treated by the transformation method and requires  
 # manual treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is  
 # already included in ISOTROPY.
+#=
 function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
     D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
 
