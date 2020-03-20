@@ -237,5 +237,13 @@ function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Un
     if norm(sInt-real(s)) > DEFAULT_ATOL 
         throw(error("Herring criterion should yield an integer; obtained s=$(s)"))
     end
-    return sInt, normalization # this is ∑ χ({β|b}²) and g₀/M(k) in Cornwell's Eq. (7.18)
+
+    # sInt = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
+    herring_type = Int64(sInt/normalization)
+    if herring_type ∉ (0,1,-1)
+        throw(DomainError(herring_type, "Calculation of the Herring criterion incorrectly"*
+                                        "produced a value ∉ (0,1,-1)"))
+    end
+
+    return Int64(sInt/normalization) # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end

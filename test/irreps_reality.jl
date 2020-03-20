@@ -15,8 +15,7 @@ end
                 iso_rawtype = type(LGIRS[sgnum][kidx][iridx])
                 iso_type = iso_rawtype == 1 ? 1 : (iso_rawtype == 2 ? -1 : 0) # map ISOTROPY's types from {1,2,3} to {1,-1,0} = {real, pseudoreal, complex}
                 #= try =#       # for debugging
-                herring_sum, herring_norm = herring(LGIRS[sgnum][kidx][iridx], sgops)
-                herring_type = herring_sum ≠ 0 ? herring_sum/herring_norm : 0
+                herring_type = herring(LGIRS[sgnum][kidx][iridx], sgops)
                 @test iso_type ≈ herring_type
                 #= catch err    # for debugging
                     if true
