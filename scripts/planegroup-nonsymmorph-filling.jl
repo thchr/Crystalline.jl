@@ -17,7 +17,7 @@ epsout = 1.0
 res = 64
 id = 1
 
-write_dir = (@__DIR__)*"/../../../mpb-ctl/input/"
+write_dir = (@__DIR__)*"/../../mpb-ctl/input/"
 
 # create continuously varied variations of the initial lattice, by complex rotation
 smflat′ = deepcopy(smflat)
@@ -33,7 +33,8 @@ for (step, filling) in pairs(range(0.2, .8, length=2))
         for runtype in ("tm", "te")
             filename = SGOps.mpb_calcname(dim, sgnum, id′, res, runtype)
             open(write_dir*filename*".sh", "w") do io
-                calcname = prepare_mpbcalc!(io, sgnum, smflat, Rs, filling, epsin, epsout, kvecs, id′, res, runtype)
+                calcname = prepare_mpbcalc!(io, sgnum, smflat, Rs, filling, epsin, epsout, 
+                                            runtype; res=res, kvecs=kvecs, id=id′)
             end
         end
     end

@@ -28,6 +28,8 @@
 # └───────┴─────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────────────────────────┘
 # Of course, in principle, we might consider trying to create ALL the missing points from Φ-Ω,
 # but for what we need, this is sufficient.
+# Of these space groups, only sg 82 has a nontrivial symmetry indicator classification for 
+# bosons with TR.
 
 # --- STRUCTS ---
 
@@ -159,7 +161,7 @@ include((@__DIR__)*"/../data/transformation_matrices_CDML2ITA.jl") # ⇒ defines
 # --- FUNCTIONS ---
 
 function is_orphan_sg(sgnum::Integer, D::Integer=3)
-    D ≠ 3 && throw_2d_not_yet_implemented(D)  # 2D not considered in CDML
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)  # 2D not considered in CDML
     for orphantypeidx in eachindex(ORPHAN_SGNUMS)
         sgnum ∈ ORPHAN_SGNUMS[orphantypeidx] && return orphantypeidx
     end
@@ -297,7 +299,7 @@ should agree with those in `ORPHAN_SGNUMS`.
 """
 find_holosymmetric_parent(sgnum::Integer, D::Integer=3) = find_holosymmetric_parent(spacegroup(sgnum, D))
 function find_holosymmetric_parent(G::SpaceGroup{D}) where D
-    D ≠ 3 && throw_2d_not_yet_implemented()
+    D ≠ 3 && _throw_1d2d_not_yet_implemented()
     sgnum = num(G)
     if !is_holosymmetric(sgnum, D) # nontrivial case: find invariant subgroup
         cntr = centering(sgnum, D)
@@ -425,7 +427,7 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     cntr = centering(G)
     
     # load the KVecs in Ω from the ISOTROPY dataset
-    lgs = get_littlegroups(num(G), D)
+    lgs = get_littlegroups(num(G), Val(D))
     # We are only interested in mapping kvs from the basic domain Ω; but ISOTROPY already 
     # includes some of the ZA points that are in Φ-Ω, so we strip these already here (and
     # so find these points anew effectively). Also, there is no point in trying to map the
@@ -647,6 +649,9 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     return d
 end
 
+# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` 
+# (in 3D only) as an ImmutableDict
+const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()
 
 
 """ 
@@ -679,7 +684,7 @@ possible for all 3D space groups except for number 205, which requires
 additional manual tabulation.
 """
 function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
-    D ≠ 3 && throw_2d_not_yet_implemented(D)
+    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
     # No new k-points for holosymmetric sgs where Φ = Ω
     is_holosymmetric(sgnum, D) && return nothing
