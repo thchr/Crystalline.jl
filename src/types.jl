@@ -314,7 +314,7 @@ end
 
 # mostly a utility function for visualizing the `KVec`s in a `LittleGroup`
 function plot(kv::KVec, 
-              ax=plt.figure().gca(projection= dim(kv)==3 ? "3d" : "rectilinear"))   
+              ax=plt.figure().gca(projection= dim(kv)==3 ? (using3D(); "3d") : "rectilinear"))   
     D = dim(kv)
     freeαβγ = freeparams(kv)
     nαβγ = sum(freeαβγ)
@@ -417,7 +417,7 @@ label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(k
 # plotting of `KVec`s in a `LittleGroup`
 function plot(kvs::AbstractVector{KVec})
     D = dim(first(kvs))
-    ax = plt.figure().gca(projection= D==3 ? "3d" : "rectilinear")
+    ax = plt.figure().gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
     for kv in kvs
         plot(kv, ax)
     end
