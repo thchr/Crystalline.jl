@@ -121,15 +121,48 @@ function _load_pgirreps_data(iuclab::String, jldfile::JLD2.JLDFile)
     return matrices, types, cdmls
 end
 
-function get_pgirreps(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
-    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
-
-    pg = pointgroup(iuclab, Dᵛ) # operations
+# 3D
+function get_pgirreps(iuclab::String, ::Val{3})
+    pg = pointgroup(iuclab, Val(3)) # operations
 
     matrices, types, cdmls = JLD2.jldopen(DATA_PATH_PGIRREPS_3D, "r") do irs_jldfile
         _load_pgirreps_data(iuclab, irs_jldfile) # irrep matrices, types, & labels
     end
     
-    return PGIrrep{D}.(cdmls, Ref(pg), matrices, types)
+    return PGIrrep{3}.(cdmls, Ref(pg), matrices, types)
 end
+# 2D
+function get_pgirreps(iuclab::String, ::Val{2})
+    pg = pointgroup(iuclab, Val(2)) # operations
+
+    # Because the operator sorting and setting is identical* between the shared point groups
+    # of 2D and 3D, we can just do a whole-sale transfer of shared irreps from 3D to 2D.
+    # (*) Actually, "2" and "m" have different settings in 2D and 3D; but they just have two
+    #     operators and irreps each, so the setting difference doesn't matter.
+    #     That the settings and sorting indeed agree between 2D and 3D is tested in 
+    #     scripts/compare_pgops_3dvs2d.jl
+    matrices, types, cdmls = JLD2.jldopen(DATA_PATH_PGIRREPS_3D, "r") do irs_jldfile
+        _load_pgirreps_data(iuclab, irs_jldfile) # irrep matrices, types, & labels
+    end
+    
+    return PGIrrep{2}.(cdmls, Ref(pg), matrices, types)
+end
+# 1D
+function get_pgirreps(iuclab::String, ::Val{1})
+    pg = pointgroup(iuclab, Val(1))
+    # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
+    # a disk; just branch on one of the two possibilities
+    if iuclab == "1"
+        matrices = [[fill(one(ComplexF64), 1, 1)]]
+        cdmls    = ["Γ₁"]
+    elseif iuclab == "m"
+        matrices = [[fill(one(ComplexF64), 1, 1),  fill(one(ComplexF64), 1, 1)], # even
+                    [fill(one(ComplexF64), 1, 1), -fill(one(ComplexF64), 1, 1)]] # odd
+        cdmls    = ["Γ₁", "Γ₂"]
+    else
+        throw(DomainError(iuclab, "invalid 1D point group IUC label"))
+    end
+    return PGIrrep{1}.(cdmls, Ref(pg), matrices, Ref(1))
+end
+get_pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D)
 get_pgirreps(iuclab::String, D::Integer) = get_pgirreps(iuclab, Val(D))

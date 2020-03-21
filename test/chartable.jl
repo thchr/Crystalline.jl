@@ -23,17 +23,19 @@ end
     end
 
     @testset "Point group irreps" begin
-        for pgiuc in SGOps.PGS_IUCs[3]
-            pgirs = get_pgirreps(pgiuc, Val(3))
-            ct = CharacterTable(pgirs)
-            χs = characters(ct) # matrix of characters; each row is a different representation
-            Nₒₚ = length(operations(ct))
-
-            # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
-            @test all(n->isapprox.(n, Nₒₚ, atol=1e-14), sum(abs2, χs, dims=2))
+        for D in 1:3
+            for pgiuc in SGOps.PGS_IUCs[D]
+                pgirs = get_pgirreps(pgiuc, Val(D))
+                ct = CharacterTable(pgirs)
+                χs = characters(ct) # matrix of characters; each row is a different representation
+                Nₒₚ = length(operations(ct))
             
-            # 2ⁿᵈ orthogonality theorem:    ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
-            @test conj(χs)*transpose(χs) ≈ Nₒₚ*I
+                # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
+                @test all(n->isapprox.(n, Nₒₚ, atol=1e-14), sum(abs2, χs, dims=2))
+                
+                # 2ⁿᵈ orthogonality theorem:    ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
+                @test conj(χs)*transpose(χs) ≈ Nₒₚ*I
+            end
         end
     end
 end

@@ -1,0 +1,1 @@
+1D and 2D data is not explicitly stored: both can be transferred directly from a subset of the 3D data.
