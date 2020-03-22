@@ -3,7 +3,7 @@ f(x) = SymOperation(hcat(vcat(hcat(rotation(x), [0; 0]), [0 0 1]),
                          vcat(translation(x), [0])))
 
 println("Identical sorting and setting of point group operators in 3D vs. 2D?")
-for pgiuc in SGOps.PGS_IUCs[2]
+for pgiuc in PGS_IUCs[2]
     ops3d = operations(pointgroup(pgiuc, Val(3)))
     ops2d = operations(pointgroup(pgiuc, Val(2)))
     ops2d′ = f.(ops2d)

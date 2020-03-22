@@ -101,12 +101,12 @@ function find_parent_pointgroup(g::AbstractGroup)
 
     @inbounds for iuclab in PGS_IUCs[D]
         P = pointgroup(iuclab, D)
-        if sort(xyzt.(P))==(xyzt_pgops)
+        if sort(xyzt.(P)) == xyzt_pgops # the sorting/xyzt isn't strictly needed; belts & buckles...
             return P
         end
     end
-    return nothing
 
+    return nothing
 end
 
 # --- POINT GROUP IRREPS ---

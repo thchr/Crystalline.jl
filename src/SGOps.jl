@@ -68,7 +68,8 @@ export spacegroup, xyzt2matrix, matrix2xyzt,
        issubgroup, isnormal
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export pointgroup, get_pgirreps
+export pointgroup, get_pgirreps,
+       PGS_IUCs
 
 include("bravais.jl")
 export crystal, plot, crystalsystem,

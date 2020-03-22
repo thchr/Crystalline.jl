@@ -1,11 +1,28 @@
 using SGOps, Test
 
 @testset "Find a point group for every space group" begin
-    for D = 1:3
+    for D in 1:3
         for sgnum in 1:MAX_SGNUM[D]
             G = spacegroup(sgnum)
             pg = SGOps.find_parent_pointgroup(G)
             @test pg !== nothing
+        end
+    end
+end
+
+@testset "Matching operator-sorting between symmorphic space groups & point groups" begin
+    for D in 1:3
+        for sgnum in 1:MAX_SGNUM[D]
+            G = spacegroup(sgnum)
+            # get isogonal point group of G: strip away translational parts and retain 
+            # unique rotation parts; does not change ordering (except for stripping out
+            # non-unique rotational parts) and retains conventional lattice vectors
+            isogonal_G = pointgroup(G)
+            # find a matching point group from those stored obtained directly from
+            # pointgroup(iuclab, D), via find_parent_pointgroup
+            pg = SGOps.find_parent_pointgroup(G)
+            # compare operator sorting and setting; equivalent in the database
+            @test pg == isogonal_G
         end
     end
 end
@@ -17,7 +34,7 @@ end
 @testset "Great orthogonoality theorem (point group irreps)" begin
     αβγ = nothing
     for D in 1:3
-        for pgiuc in SGOps.PGS_IUCs[D]
+        for pgiuc in PGS_IUCs[D]
             pgirs = get_pgirreps(pgiuc, Val(D))
             Nₒₚ = length(operations(group(first(pgirs))))
             for (a, pgir⁽ᵃ⁾) in enumerate(pgirs) 

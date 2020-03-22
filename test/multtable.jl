@@ -44,14 +44,12 @@ end
     #!isempty(numset) && println("The multiplication tables of $(length(numset)) little groups are faulty:\n   # = ", numset)
 end
 
-
-sgnums = (1:17, 1:230)
-for dim in 2:3
-    @testset "Space groups (Bilbao: $(dim)D)" begin
-        for sgnum in sgnums[dim-1]
-            cntr = centering(sgnum, dim);
-            ops = operations(spacegroup(sgnum, dim))      # ops in conventional basis
-            primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
+for D in 1:3
+    @testset "Space groups (Bilbao: $(D)D)" begin
+        for sgnum in 1:MAX_SGNUM[D]
+            cntr = centering(sgnum, D);
+            ops = operations(spacegroup(sgnum, Val(D)))  # ops in conventional basis
+            primitive_ops = primitivize.(ops, cntr)      # ops in primitive basis
             mt = multtable(primitive_ops)
             checkmt = @test isgroup(mt) 
         end
@@ -61,10 +59,10 @@ end
 
 @testset "Complex LGIrreps" begin
     #failcount = 0
-    for lgirs in LGIRS#[[230]]
+    for lgirs in LGIRS
         for lgirvec in lgirs
             sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
-            ops = operations(first(lgirvec))              # ops in conventional basis
+            ops = operations(first(lgirvec))        # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
             mt = multtable(primitive_ops)
 
@@ -78,6 +76,22 @@ end
         end
     end
     #println("\nFails: $(failcount)\n\n")
+end
+
+@testset "Complex PGIrreps" begin
+    for D in 1:3
+        for pgiuc in PGS_IUCs[D]
+            pgirs = get_pgirreps(pgiuc, D)
+            pg = group(first(pgirs))
+            for pgir in pgirs
+                mt = multtable(operations(pg))
+                @test isgroup(mt)
+
+                checkmt = checkmulttable(mt, pgir, nothing; verbose=false)
+                @test all(checkmt)
+            end
+        end
+    end
 end
 end
 

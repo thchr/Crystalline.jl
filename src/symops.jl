@@ -307,23 +307,25 @@ function checkmulttable(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) w
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices for composition/∘
     checkmulttable(multtable(primitive_ops), lgir, αβγ; verbose=verbose)
 end
-function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::Bool=false)
+function checkmulttable(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
-    irs = irreps(lgir, αβγ)
-    ops = operations(lgir)
-    k = kvec(lgir)(αβγ)
+    Ds = irreps(ir, αβγ)
+    ops = operations(ir)
+    if ir isa LGIrrep
+        k = kvec(ir)(αβγ)
+    end
     N = length(ops)
     mtindices = indices(mt)
     checked = trues(N, N)
-    for (row,irrow) in enumerate(irs)
-        for (col,ircol) in enumerate(irs)
-            @inbounds mtidx = mtindices[row,col]
+    for (i,Dⁱ) in enumerate(Ds)     # rows
+        for (j,Dʲ) in enumerate(Ds) # cols
+            @inbounds mtidx = mtindices[i,j]
             if iszero(mtidx) && !havewarned
                 @warn "Provided multtable is not a group; cannot compare with irreps"
-                checked[row,col] = false
+                checked[i,j] = false
                 havewarned = true
             end
-            ir′ = irrow*ircol
+            Dⁱʲ = Dⁱ*Dʲ
             # If 𝐤 is on the BZ boundary and if the little group is nonsymmorphic
             # the representation could be a ray representation (see Inui, p. 89),
             # such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(i*𝐤⋅𝐭₀) where
@@ -335,18 +337,28 @@ function checkmulttable(mt::MultTable, lgir::LGIrrep, αβγ=nothing; verbose::B
             # but consistent with that used in Stokes' paper (see irreps(::LGIrrep)).
             # It is still a puzzle to me why I cannot successfully flip the sign 
             # of `ϕ` here and in `irreps(::LGIrrep)`.
-            t₀ = translation(ops[row]) .+ rotation(ops[row])*translation(ops[col]) .- translation(ops[mtidx])
-            ϕ =  2π*dot(k, t₀) # accumulated ray-phase
-            match = ir′ ≈ cis(ϕ)*irs[mtidx] # cis(x) = exp(ix)
+            if ir isa LGIrrep
+                t₀ = translation(ops[i]) .+ rotation(ops[i])*translation(ops[j]) .- 
+                     translation(ops[mtidx])
+                ϕ =  2π*dot(k, t₀) # accumulated ray-phase
+                match = Dⁱʲ ≈ cis(ϕ)*Ds[mtidx] # cis(x) = exp(ix)
+            else
+                match = Dⁱʲ ≈ Ds[mtidx]
+            end
             if !match
-                checked[row,col] = false
+                checked[i,j] = false
                 if !havewarned
                     if verbose
-                        println("""Provided irreps do not match group multiplication table for sg $(num(lgir)) in irrep $(label(lgir)):
-                                 First failure at (row,col) = ($(row),$(col));
-                                 Expected idx $(mtidx), got idx $(findall(ir′′ -> ir′′≈ir′, irs))
-                                 Expected irrep = $(cis(ϕ)*irs[mtidx])
-                                 Got irrep      = $(ir′)""")
+                        println("""Provided irreps do not match group multiplication table for group $(num(ir)) in irrep $(label(ir)):
+                                 First failure at (row,col) = ($(i),$(j));
+                                 Expected idx $(mtidx), got idx $(findall(D′ -> D′≈Dⁱʲ, Ds))""")
+                        print("Expected irrep = ")
+                        if ir isa LGIrrep
+                            println(cis(ϕ)*Ds[mtidx])
+                        else
+                            println(Dⁱʲ)
+                        end
+                        println("Got irrep      = $(Dⁱʲ)")
                     end
                     havewarned = true
                 end

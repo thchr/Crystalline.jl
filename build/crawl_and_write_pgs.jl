@@ -163,18 +163,17 @@ end
 
 
 
-function __crawl_and_write_pgirreps(D::Integer=3)
-    savepath = (@__DIR__)*"/../data/pgirreps/"*string(D)*"d/"
+function __crawl_and_write_3d_pgirreps()
+    savepath = (@__DIR__)*"/../data/pgirreps/3d/"
 
 
     # we only save the point group irreps.
     filename_irreps = savepath*"/pgirreps_data"
 
     JLD2.jldopen(filename_irreps*".jld2", "w") do irreps_file
-        # TODO: Should probably loop over SGOps.PGS_IUCs[D] here (and not take `pgiuc` input)
-        for pgiuc in SGOps.PGS_IUCs[D]
+        for pgiuc in PGS_IUCs[3]
             # ==== crawl and prepare irreps data ====
-            pgirs = crawl_pgirs(pgiuc, D; consistency_checks=true)
+            pgirs = crawl_pgirs(pgiuc, 3; consistency_checks=true)
             matrices = [pgir.matrices for pgir in pgirs]
             types = [type(pgir) for pgir in pgirs]
             cdmls = [label(pgir) for pgir in pgirs]
@@ -197,14 +196,14 @@ end
 
 
 # ======================================================
-if false
-    pgirs = Vector{Vector{PGIrrep{3}}}(undef, length(SGOps.PGS_IUCs[3]))
-    for (idx, pgiuc) in enumerate(SGOps.PGS_IUCs[3])
-        println(pgiuc)
-        pgirs[idx] = crawl_pgirs(pgiuc)
-    end
+#= 
+pgirs = Vector{Vector{PGIrrep{3}}}(undef, length(PGS_IUCs[3]))
+for (idx, pgiuc) in enumerate(PGS_IUCs[3])
+    println(pgiuc)
+    pgirs[idx] = crawl_pgirs(pgiuc)
 end
+=#
          
 # Save to local format
-__crawl_and_write_pgirreps()
+__crawl_and_write_3d_pgirreps()
 
