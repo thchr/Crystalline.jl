@@ -118,6 +118,7 @@
       implicit none
       integer i,j,k,m,kp,op,ip,irnumber
       complex*16 irtemp(2304)
+      character line*80
 
 * initialize data
       spacegroupnumber=0
@@ -196,14 +197,18 @@
       implicit none
       integer choice,i
       integer*1 n(2)
-      double precision constants(17),xreal,ximag
+      double precision constants(25),xreal,ximag
       complex*16 x
       data constants/0,1,-1,0.5,-0.5,0.25,-0.25,
      $     0.866025403784439,-0.866025403784439,  ! sqrt(3)/2
      $     0.707106781186548,-0.707106781186548,  ! sqrt(2)/2
      $     0.433012701892219,-0.433012701892219,  ! sqrt(3)/4
      $     0.683012701892219,-0.683012701892219,  ! cos(15)/sqrt(2)
-     $     0.183012701892219,-0.183012701892219/  ! sin(15)/sqrt(2)
+     $     0.183012701892219,-0.183012701892219,  ! sin(15)/sqrt(2)
+     $     0.965925826289068,-0.965925826289068,  ! 1/2*sqrt(1/2)*(sqrt(3)+1)
+     $     0.258819045102521,-0.258819045102521,  ! 1/2*sqrt(1/2)*(sqrt(3)-1)
+     $     0.612372435695794,-0.612372435695794,  ! sqrt(3/8)
+     $     0.353553390593273,-0.353553390593273/  ! sqrt(1/8)
 * choice=1: input integer and output double precision
       if(choice.eq.1)then
         xreal=constants(n(1))
@@ -212,12 +217,12 @@
 * choice=2: input double precision, output integers
       else
         xreal=dreal(x)
-        do i=1,17
+        do i=1,25
           if(dabs(xreal-constants(i)).lt.1d-4)then
             n(1)=i
             exit
           endif
-          if(i.eq.17)then
+          if(i.eq.25)then
             write(6,*)
      $           'Error in cir_data_constant: value of x not found.'
             write(6,*)xreal
@@ -225,12 +230,12 @@
           endif
         enddo
         ximag=dimag(x)
-        do i=1,17
+        do i=1,25
           if(dabs(ximag-constants(i)).lt.1d-4)then
             n(2)=i
             exit
           endif
-          if(i.eq.17)then
+          if(i.eq.25)then
             write(6,*)
      $           'Error in cir_data_constant: value of x not found.'
             write(6,*)ximag
@@ -248,18 +253,17 @@
 
       implicit none
       integer i,j,k,m,n,n1,n2,kp,op,ip,i1,i2,nd,irnumber
-      logical isreal
       double precision x1,x2
       complex*16 xmat(48,48),x
-      character lineout*10000
+      character lineout*20000
 
 * open file
       open(20,file='CIR_data2.txt')
 * title line
-      write(20,'(a)')'Complex Irreducible Representations of the 230 '
-     $     //'Crystallographic Space Groups'
+      write(20,'(a)')'ISO-IR: Complex Irreducible Representations '
+     $     //'of the 230 Crystallographic Space Groups'
       write(20,'(a)')'2011 Version'
-      write(20,'(a)')'Harold T. Stokes and Branton J. Campbell, 2013'
+      write(20,'(a)')'Harold T. Stokes and Branton J. Campbell, 2020'
 * do each IR
       do irnumber=1,ircount
 * write IR number, space group number, space group symbol, IR label,
@@ -302,15 +306,8 @@
           x2=dimag(x)
           n1=nint(x1)
           n2=nint(x2)
-          if(dabs(x2).lt.1d-4)then
-            isreal=.true.
-          else
-            isreal=.false.
-          endif
-          if(.not.isreal)then
-            lineout(m+1:m+1)='('
-            m=m+1
-          endif
+          lineout(m+1:m+1)='('
+          m=m+1
           if(dabs(x1-n1).lt.1d-4)then
             write(lineout(m+1:m+5),'(i5)')n1
             do n=m+1,m+5
@@ -331,32 +328,30 @@
             lineout(m+1:m+10)=' '
           endif
           m=len_trim(lineout)
-          if(.not.isreal)then
-            lineout(m+1:m+1)=','
-            m=m+1
-            if(dabs(x2-n2).lt.1d-4)then
-              write(lineout(m+1:m+5),'(i5)')n2
-              do n=m+1,m+5
-                if(lineout(n:n).ne.' ')then
-                  lineout(m+1:m+1)=lineout(n:n)
-                  m=m+1
-                endif
-              enddo
-              lineout(m+1:m+5)=' '
-            else
-              write(lineout(m+1:m+10),'(f10.5)')x2
-              do n=m+1,m+10
-                if(lineout(n:n).ne.' ')then
-                  lineout(m+1:m+1)=lineout(n:n)
-                  m=m+1
-                endif
-              enddo
-              lineout(m+1:m+10)=' '
-            endif
-            m=len_trim(lineout)
-            lineout(m+1:m+1)=')'
-            m=m+1
+          lineout(m+1:m+1)=','
+          m=m+1
+          if(dabs(x2-n2).lt.1d-4)then
+            write(lineout(m+1:m+5),'(i5)')n2
+            do n=m+1,m+5
+              if(lineout(n:n).ne.' ')then
+                lineout(m+1:m+1)=lineout(n:n)
+                m=m+1
+              endif
+            enddo
+            lineout(m+1:m+5)=' '
+          else
+            write(lineout(m+1:m+10),'(f10.5)')x2
+            do n=m+1,m+10
+              if(lineout(n:n).ne.' ')then
+                lineout(m+1:m+1)=lineout(n:n)
+                m=m+1
+              endif
+            enddo
+            lineout(m+1:m+10)=' '
           endif
+          m=len_trim(lineout)
+          lineout(m+1:m+1)=')'
+          m=m+1
         enddo
         enddo
         i1=1
@@ -821,7 +816,7 @@
       subroutine cir_data_factor(n,numbers)
 * remove the greatest common factor contained in n integers in numbers
       implicit none
-      integer n,numbers(100000),min,i,j,factor
+      integer n,numbers(n),min,i,j,factor
       factor=1
 * find a nonzero integer
       do i=1,n

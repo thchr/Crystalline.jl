@@ -197,24 +197,29 @@
       implicit none
       integer choice,i
       integer*1 n
-      double precision x,constants(17)
+      double precision x,constants(25)
       data constants/0,1,-1,0.5,-0.5,0.25,-0.25,
      $     0.866025403784439,-0.866025403784439,  ! sqrt(3)/2
      $     0.707106781186548,-0.707106781186548,  ! sqrt(2)/2
      $     0.433012701892219,-0.433012701892219,  ! sqrt(3)/4
      $     0.683012701892219,-0.683012701892219,  ! cos(15)/sqrt(2)
-     $     0.183012701892219,-0.183012701892219/  ! sin(15)/sqrt(2)
+     $     0.183012701892219,-0.183012701892219,  ! sin(15)/sqrt(2)
+     $     0.965925826289068,-0.965925826289068,  ! 1/2*sqrt(1/2)*(sqrt(3)+1)
+     $     0.258819045102521,-0.258819045102521,  ! 1/2*sqrt(1/2)*(sqrt(3)-1)
+     $     0.612372435695794,-0.612372435695794,  ! sqrt(3/8)
+     $     0.353553390593273,-0.353553390593273/  ! sqrt(1/8)
 * choice=1: input integer and output double precision
       if(choice.eq.1)then
         x=constants(n)
 * choice=2: input double precision, output integer
       else
-        do i=1,17
+        do i=1,25
           if(dabs(x-constants(i)).lt.1d-4)then
             n=i
             return
           endif
         enddo
+        write(6,*)x
         stop 'Error in pir_data_constant: value of x not found.'
       endif
       end
@@ -233,10 +238,10 @@
 * open file
       open(20,file='PIR_data2.txt')
 * title line
-      write(20,'(a)')'Physically Irreducible Representations of the '
-     $     //'230 Crystallographic Space Groups'
+      write(20,'(a)')'ISO-IR: Physically Irreducible Representations '
+     $     //'of the 230 Crystallographic Space Groups'
       write(20,'(a)')'2011 Version'
-      write(20,'(a)')'Harold T. Stokes and Branton J. Campbell, 2013'
+      write(20,'(a)')'Harold T. Stokes and Branton J. Campbell, 2020'
 * do each IR
       do irnumber=1,ircount
 * write IR number, space group number, space group symbol, IR label,
@@ -885,7 +890,7 @@
       subroutine pir_data_factor(n,numbers)
 * remove the greatest common factor contained in n integers in numbers
       implicit none
-      integer n,numbers(100000),min,i,j,factor
+      integer n,numbers(n),min,i,j,factor
       factor=1
 * find a nonzero integer
       do i=1,n

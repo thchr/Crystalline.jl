@@ -194,27 +194,35 @@ function rowmajorreshape(v::AbstractVector, dims::Tuple)
     return PermutedDimsArray(reshape(v, dims), reverse(ntuple(i->i, length(dims))))
 end
 
-const tabfloats = (sqrt(3)/2, sqrt(2)/2, sqrt(3)/4, cos(π/12)/sqrt(2), sin(π/12)/sqrt(2))
+const ISOTROPY_TRUNC_FLOATS = (
+    sqrt(3)/2, sqrt(2)/2, sqrt(3)/4, cos(π/12)/sqrt(2), sin(π/12)/sqrt(2), # v1.0 swaps
+    (sqrt(6)+sqrt(2))/4, (sqrt(6)-sqrt(2))/4,  # v.1.0.1 swaps (added to fix P1
+    sqrt(6)/4, sqrt(2)/4                       # & P3 of sg 214)
+    )
 """ 
     reprecision_data(x::Float64) --> Float64
 
 Stokes et al. used a table to convert integers to floats; in addition, 
 the floats were truncated on writing. We can restore their precision 
 by checking if any of the relevant entries occur, and then returning 
-their untruncated floating point value. See also `tabfloats::Tuple`.
+their untruncated floating point value. See also `ISOTROPY_TRUNC_FLOATS`.
 
 The possible floats that can occur in the irrep tables are:
 
         ┌ 0,1,-1,0.5,-0.5,0.25,-0.25 (parsed with full precision)
-        │ ±0.866025403784439 => ±sqrt(3)/2
-        │ ±0.707106781186548 => ±sqrt(2)/2
-        │ ±0.433012701892219 => ±sqrt(3)/4
+        │ ±0.866025403784439 => ±√(3)/2             # ↓ included in ISOTROPY v1.0 
+        │ ±0.707106781186548 => ±√(2)/2
+        │ ±0.433012701892219 => ±√(3)/4
         │ ±0.683012701892219 => ±cos(π/12)/sqrt(2)
-        └ ±0.183012701892219 => ±sin(π/12)/sqrt(2)
+        │ ±0.183012701892219 => ±sin(π/12)/sqrt(2)
+        │ ±0.965925826289068 => (√(6)+√(2))/4       # ↓ added in ISOTROPY v1.0.1
+        │ ±0.258819045102521 => (√(6)-√(2))/4       # (needed for P1 & P3 of sg 214)
+        │ ±0.612372435695795 => √(6)/4
+        └ ±0.353553390593274 => √(2)/4
 """
 function reprecision_data(x::T) where T<:Real
     absx = abs(x)
-    for preciseabsx in tabfloats
+    for preciseabsx in ISOTROPY_TRUNC_FLOATS
         if isapprox(absx, preciseabsx, atol=1e-4) 
             return copysign(preciseabsx, x)
         end
@@ -302,6 +310,15 @@ in is_erroneous_lgir(...), with the constant "erroneous" tuple ERRONEOUS_LGIRS.
 
 Emailed Stokes & Campton regarding the issue on Sept. 26, 2019; did not yet 
 hear back.
+
+TODO: This is fixed in ISOTROPY v1.0.1; so this shouldn't actually be needed anymore.
+      We need to REGENERATE the .jld2 files that we write, so that we use the new version
+      of ISOTROPY; currently, we still use v1.0 with our manual corrections, but we might
+      as well use v1.0.1. I already tested that v1.0.1 is correct and consistent (though 
+      not identical with our manual entries from CDML below (differs by a transformation)).
+      We have already committed the new data-files, so we just need to reparse and write,
+      with calls to manually_fixed_lgir(..) removed. We can probably keep the method below
+      around, just because it is a nice example of how to compute irreps from CDML's tables.
 """
 function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
     # TODO: Use their new and corrected dataset (from February 17, 2020) instead of manually
