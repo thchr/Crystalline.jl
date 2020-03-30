@@ -649,8 +649,8 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     return d
 end
 
-# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` 
-# (in 3D only) as an ImmutableDict
+# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` (in 3D only) as an 
+# ImmutableDict
 const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()
 
 
@@ -776,10 +776,3 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
 
     return kvmaps, orphantype
 end
-
-
-
-# -- "GENERATED" CONSTANTS ---
-
-# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` (in 3D only) as an ImmutableDict
-const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()
