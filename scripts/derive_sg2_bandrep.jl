@@ -9,7 +9,7 @@
 # For space group 2, there are 8 high symmetry points kⱼ = (α, β, γ) corresponding to the 
 # combinations of (α, β, γ) = ({0,½}, {0,½}, {0,½}).
 # We find the solution space to these equations by rewriting them as a matrix equation
-using SGOps, LinearAlgebra, SmithNormalForm, Nemo
+using SGOps, LinearAlgebra, Nemo
 
 Nk = 8
 Nirr = 2*Nk
@@ -33,7 +33,7 @@ end
 # the mapping domain in A: V→W; since A is a matrix this is simply the number of columns of 
 # A]. See e.g. https://core.ac.uk/download/pdf/82343294.pdf regarding the Smith normal form
 # and its application to null spaces.
-F = SmithNormalForm.smith(C) # Smith Normal Form
+F = SGOps._smith′(C) # Smith Normal Form (small wrapper around `SmithNormalForm.smith(..)`)
 S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
 r = sum(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix = rank(C)
 zidxs  = r+1:length(Λ)
