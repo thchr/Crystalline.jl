@@ -102,7 +102,8 @@ end
 
 
 
-# unexported character table convenience constructors (see also chartable(::AbstractVector{<:AbstractIrrep})))
+# unexported character table convenience constructors (see also CharacterTable(::AbstractVector{<:AbstractIrrep})))
+# TODO: Move these to types.jl and fix inconsistent method naming?
 function chartable(klab::String, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
     lgirsvec = get_lgirreps(sgnum, Dᵛ)
     kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)

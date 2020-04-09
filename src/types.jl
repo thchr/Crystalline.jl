@@ -705,7 +705,7 @@ find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(sgnum,
 struct CharacterTable{D}
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
-    chartable::Matrix{ComplexF64}
+    chartable::Matrix{ComplexF64} # Stored as irreps-along-columns & operations-along-rows
     # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
     #       translations and kvec as well; then we could print a result that doesn't  
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
@@ -731,9 +731,10 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
                       : c)
         end
     end
-    pretty_table(io, 
-                 [formatirreplabel.(labels(ct)) chars_formatted],  # first column of table = irrep labels; then formatted character table
-                 [tag(ct) seitz.(operations(ct))...]; # table header = seitz operations and table tag
+    println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
+    pretty_table(io,
+                 [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
+                 ["" formatirreplabel.(labels(ct))...];    # 1st row (header): irrep labels
                   tf = unicode,
                   highlighters=Highlighter((data,i,j)->i==1 || j==1; bold = true),
                   #screen_size =(250,100)
@@ -747,9 +748,9 @@ Return a `CharacterTable` associated with vector of `AbstractIrrep`s `irs` a vec
 """
 function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
                         αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
-    table = Array{ComplexF64}(undef, length(irs), order(first(irs)))
-    for (i,row) in enumerate(eachrow(table))
-    row .= characters(irs[i], αβγ)
+    table = Array{ComplexF64}(undef, order(first(irs)), length(irs))
+    for (i,col) in enumerate(eachcol(table))
+        col .= characters(irs[i], αβγ)
     end
     g = group(first(irs))
     tag = "#"*string(num(g))*"/"*label(g)
