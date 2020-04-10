@@ -6,7 +6,7 @@ end
 
 allpaths = true
 spinful  = false
-brtype   = "Elementary TR"
+timereversal = true
 showmissing = true
 # --- test physically irreducible irreps/co-reps ---
 @testset "Are all the k-vectors from bandreps in ISOTROPY?" begin
@@ -14,16 +14,16 @@ incomplete_sgs = Vector{Int64}()
 incomplete_lgirs = Dict{Int64,Array{String}}()
 incomplete_symind = Dict{Int64,String}() # the BRS classification of missing sgs (Z1 = trivial)
 for (sgnum, lgirsvec) in enumerate(LGIRS)
-    BRS = bandreps(sgnum, allpaths, spinful, brtype)
+    BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=timereversal)
     irlabs_BRS = BRS.irreplabs
     klabs_BRS = BRS.klabs
 
     irlabs_ISO = Vector{String}()
     klabs_ISO = Vector{String}(undef, length(lgirsvec))
     for (kidx, lgirs) in enumerate(lgirsvec)
-        if brtype == "Elementary"
+        if timereversal == false
             append!(irlabs_ISO, [label(lgir) for lgir in lgirs])
-        elseif brtype == "Elementary TR"
+        elseif timereversal == true
             append!(irlabs_ISO, realify(lgirs)[2])
         end
         klabs_ISO[kidx] = klabel(first(lgirs))

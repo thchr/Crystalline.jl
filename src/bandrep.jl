@@ -3,29 +3,27 @@ struct BandRepTrait end
 # crawling functionality
 const BANDREP_URL="http://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl"
 """
-    crawlbandreps(sgnum::Integer, allpaths::Bool=false, brtype::String="Elementary TR")
+    crawlbandreps(sgnum::Integer, allpaths::Bool=false, timereversal::Bool=true)
                                                        --> ::String (valid HTML table)
     
-Crawls a band representation (BR) from the Bilbao database. This is achieved
-by sending a 'POST' request to the <form> ... </form> part of their HTML page.
+Crawls a band representation from the Bilbao database. This is achieved by sending a "POST"
+request to the `<form> ... </form>` part of their HTML page.
 
 **Input**:
 - `sgnum`    : Space group number 
 - `allpaths` : Whether to include only maximal **k**-points (true) or 
                 all, i.e. general, **k**-points (true)
-- `brtype`   : Type of bandrep, as string, either
-    - "Elementary TR" : Elementary BR, with time-reversal assumed
-    - "Elementary"    : Elementary BR, without time-reversal symmetry 
-    (we do not presently try to crawl Wyckoff-type inputs)
+- `timereversal` : Whether the band representation assumes time-reversal symmetry (`true`)
+                   or not (`false`)Type of bandrep, as string, either
 
-**Output**: Valid HTML <table> ... </table> for the requested BR.
+Note that we do not presently try to crawl Wyckoff-type inputs.
+
+**Output**: Valid HTML <table> ... </table> for the requested band representation.
 """
-function crawlbandreps(sgnum::Integer, allpaths::Bool=false, brtype::String="Elementary TR")
-    if brtype != "Elementary TR" && brtype != "Elementary"
-        error(ArgumentError("String 'brtype' must be 'Elementary TR' or 'Elementary', was '$(brtype)'"))
-    else
-        brtypename = lowercasefirst(filter(!isspace, brtype))
-    end
+function crawlbandreps(sgnum::Integer, allpaths::Bool=false, timereversal::Bool=true)
+    # with (true ⇒ "Elementary TR") or without (false ⇒ "Elementary") time-reversal symmetry
+    brtype = timereversal ? "Elementary TR" : "Elementary"
+    brtypename = lowercasefirst(filter(!isspace, brtype))
     
     inputs = "super=$(sgnum)&"*                     # inputs to <form> ... </form>, in POST mode; 
              "$(brtypename)=$(brtype)&"*            # inputs are supplied as name=value pairs, 
@@ -90,9 +88,9 @@ function html2array(body)
 end
 
 function html2struct(body::String, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                     brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
+                     timereversal::Bool=true, ::BandRepTrait=BandRepTrait())
     M = html2array(body)
-    array2struct(M, sgnum, allpaths, spinful, brtype, BandRepTrait())
+    array2struct(M, sgnum, allpaths, spinful, timereversal, BandRepTrait())
 end
 
 dlm2array(str::String) = DelimitedFiles.readdlm(IOBuffer(str), '|', String, '\n')
@@ -100,13 +98,13 @@ dlm2array(io::IO) = DelimitedFiles.readdlm(io, '|', String, '\n')
 
 # utilities for creation of BandRepStruct 
 function dlm2struct(str::Union{String,IO}, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                    brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
+                    timereversal::Bool=true, ::BandRepTrait=BandRepTrait())
     M = dlm2array(str);
-    array2struct(M, sgnum, allpaths, spinful, brtype, BandRepTrait())
+    array2struct(M, sgnum, allpaths, spinful, timereversal, BandRepTrait())
 end
 
 function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
-                      brtype::String="Elementary TR", ::BandRepTrait=BandRepTrait())
+                      timereversal::Bool=true, ::BandRepTrait=BandRepTrait())
 
     klist =  permutedims(mapreduce(x->String.(split(x,":")), hcat, M[4:end,1])) # 1ˢᵗ col is labels, 2ⁿᵈ col is coordinates as strings
     klabs, kvs = (@view klist[:,1]), KVec.(@view klist[:,2])
@@ -123,19 +121,23 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     for br in brtags 
         br .= replace.(br, Ref(r"\([1-9]\)"=>""))  # get rid of irrep dimension info
     end
-    if !spinful 
+    # A BandRepSet can either reference single-valued or double-valued irreps, not both; 
+    # thus, we "throw out" one of the two here, depending on `spinful`.
+    if spinful  # double-valued irreps only (spinful systems)
+        delidxs = findall(map(!isspinful, brtags))
+    else        # single-valued irreps only (spinless systems)
         delidxs = findall(map(isspinful, brtags))
-        for vars in (brtags, wyckpos, sitesym, label, dim, decomposable)
-            deleteat!(vars, delidxs)    
-        end
+    end
+    for vars in (brtags, wyckpos, sitesym, label, dim, decomposable)
+        deleteat!(vars, delidxs) 
     end
     irreplabs, irrepvecs = get_irrepvecs(brtags)              
 
-    BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, 
-                   map(isspinful, brtags), irrepvecs, brtags)
+    BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, map(isspinful, brtags), 
+                   irrepvecs, brtags)
 
     
-    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful, occursin("TR", brtype))
+    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful, timereversal)
 end
 
 
@@ -179,13 +181,27 @@ function get_irrepvecs(brtags)
 end
 
 
-# main "getter" function; reads data from csv files
-# TODO: Write documentation/method description.
-function bandreps(sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, brtype::String="Elementary TR")
+"""
+    bandreps(sgnum::Integer; 
+             allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true)
+
+Returns the `BandRepSet` for space group `sgnum`. 
+
+Keyword arguments:
+
+- `allpaths`: include a minimal sufficient set (`false`, default) or all (`true`) k-vectors. 
+- `spinful`: single- (`false`, default) or double-valued (`true`) irreps, as appropriate for
+             spinless and spinful particles, respectively.
+- `timereversal`: assume presence (`true`, default) or absence (`false`) of time-reversal
+                  symmetry.
+"""
+function bandreps(sgnum::Integer; 
+                  allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true)
     paths_str = allpaths ? "allpaths" : "maxpaths"
-    filename = (@__DIR__)*"/../data/bandreps/3d/$(filter(!isspace, brtype))/$(paths_str)/$(string(sgnum)).csv"
+    brtype_str = timereversal ? "elementaryTR" : "elementary"
+    filename = (@__DIR__)*"/../data/bandreps/3d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
     open(filename) do io
-        BRS = dlm2struct(io, sgnum, allpaths, spinful, brtype, BandRepTrait())
+        BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal, BandRepTrait())
     end 
 end
 
@@ -234,7 +250,7 @@ end
 Equivalent of `smith(A; inverse, debug, verify)` from the `SmithNormalForm` package, but 
 with guaranteed positivity of the diagonal SNF factors. The remaining signs are absorbed 
 into `F.T` and `F.Tinv`. 
-Returns a `Smith` factorization `F`, such that 
+Returns a `SmithNormalForm.Smith` factorization `F`, such that 
 
 ```
     F.S*diagm(F)*F.T == X
@@ -260,7 +276,7 @@ function _smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
         if Λⱼ < 0
             @views F.T[j,:]    .*= -1 # T′   = sign(Λ)*T    [rows]
             @views F.Tinv[:,j] .*= -1 # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
-            F.SNF[j] = abs(Λⱼ)         # Λ′ = Λ*sign(Λ)
+            F.SNF[j] = abs(Λⱼ)        # Λ′ = Λ*sign(Λ)
         end
     end
 
@@ -290,7 +306,7 @@ function wyckbasis(BRS::BandRepSet)
     # Compute Smith normal form: for an n×m matrix A with integer elements,
     # find matrices S, diagm(Λ), and T (of size n×n, n×m, and m×m, respectively)
     # with integer elements such that A = S*diagm(Λ)*T. Λ is a vector
-    # [λ₁, λ₂, ..., λᵣ, 0, 0, ..., 0] with λⱼ divisible by λⱼ₊₁ and r ≤ min(n,m).
+    # [λ₁, λ₂, ..., λᵣ, 0, 0, ..., 0] with λⱼ₊₁ divisible by λⱼ and r ≤ min(n,m).
     # The matrices T and S have integer-valued pseudo-inverses.
     F = _smith′(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
     S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF

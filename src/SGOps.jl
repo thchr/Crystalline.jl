@@ -100,8 +100,7 @@ include("compatibility.jl")
 export subduction_count, compatibility
 
 include("bandrep.jl")
-export crawlbandreps, dlm2struct,
-       bandreps,
+export bandreps,
        matrix, classification, basisdim
 
 include("export2mpb.jl")

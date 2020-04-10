@@ -181,7 +181,7 @@ end
 function gen_symeig_mpbcalc(sgnum, D; res::Integer=32, id=1)
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
-    brs  = bandreps(sgnum, false, false, "Elementary TR")
+    brs  = bandreps(sgnum, allpaths=false, spinful=false, timereversal=true)
     lgs  = matching_lgs(brs)
 
     cntr = centering(sgnum, D)

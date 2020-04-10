@@ -12,7 +12,7 @@ verbose = false
 @testset "Complex (no TR) irreps" begin
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
 for (sgnum, lgirsvec) in enumerate(LGIRS)
-    BRS = bandreps(sgnum, allpaths, spinful, "Elementary")
+    BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=false)
     irlabs_BRS = BRS.irreplabs
     klabs_BRS = BRS.klabs
 
@@ -59,7 +59,7 @@ end
 @testset "Physically irreducible irreps/co-reps (with TR)" begin
 # --- test physically irreducible irreps/co-reps (assuming time-reversal symmetry) ---
 for (sgnum, lgirsvec) in enumerate(LGIRS)
-    BRS = bandreps(sgnum, allpaths, spinful, "Elementary TR")
+    BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
     irlabs_BRS = BRS.irreplabs
     klabs_BRS = BRS.klabs
 
