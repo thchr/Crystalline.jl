@@ -14,7 +14,7 @@ using HTTP, Gumbo, LinearAlgebra, Distributions,
 # 
 import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, 
              eltype, length,                                            # indexing interface
-             string, isapprox,
+             string, isapprox, zero,
              readuntil, vec, show, 
              +, -, ∘, ==, ImmutableDict
 using Compat

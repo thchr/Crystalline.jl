@@ -268,6 +268,7 @@ end
 (-)(kv::KVec) = KVec(.- kv.k₀, .- kv.kabc)
 (-)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .- kv2.k₀, kv1.kabc .- kv2.kabc)
 (+)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .+ kv2.k₀, kv1.kabc .+ kv2.kabc)
+zero(kv::KVec) = KVec(zero(kv.k₀))
 
 """
     isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
