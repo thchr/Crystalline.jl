@@ -167,7 +167,7 @@ dim(kv::KVec) = length(kv.k₀)
 isspecial(kv::KVec) = iszero(kv.kabc)
 # returns a vector whose entries are true (false) if α,β,γ, respectively, are free parameters (not featured) in `kv`
 freeparams(kv::KVec)  = map(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) 
-nfreeparams(kv::KVec) = sum(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) # total number of free parameters in `kv`
+nfreeparams(kv::KVec) = count(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) # total number of free parameters in `kv`
 function (kv::KVec)(αβγ::AbstractVector{<:Real})
     k₀, kabc = parts(kv)
     return k₀ + kabc*αβγ
@@ -318,7 +318,7 @@ function plot(kv::KVec,
               ax=plt.figure().gca(projection= dim(kv)==3 ? (using3D(); "3d") : "rectilinear"))   
     D = dim(kv)
     freeαβγ = freeparams(kv)
-    nαβγ = sum(freeαβγ)
+    nαβγ = count(freeαβγ)
     nαβγ == 3 && return ax # general point/volume (nothing to plot)
 
     _scatter = D == 3 ? ax.scatter3D : ax.scatter
@@ -608,7 +608,7 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
 
     # print the variable phase part that depends on the free parameters α,β,γ 
     if ϕabc_contrib
-        nnzabc = sum(c->abs(c)>DEFAULT_ATOL, ϕabc)
+        nnzabc = count(c->abs(c)>DEFAULT_ATOL, ϕabc)
         print(io, "exp")
         if nnzabc == 1
             print(io, "(")
@@ -826,6 +826,7 @@ eltype(::BandRepSet) = BandRep
 
 # matrix representation of a BandRepSet, with band reps along rows and irreps along columns
 function matrix(BRS::BandRepSet)
+    # TODO: It would be better to have the matrix return columns of EBRs instead of rows
     M = Matrix{Int64}(undef, length(BRS), length(BRS[1]))
     @inbounds for (i, BR) in enumerate(BRS)
         for (j, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 

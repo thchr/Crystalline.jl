@@ -239,7 +239,7 @@ expansions of a band structure or atomic insulator viewed as symmetry-data.
 """ 
 function basisdim(BRS::BandRepSet)
     Λ = smith(matrix(BRS)).SNF
-    nnz = sum(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
+    nnz = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
     return nnz
 end
 
@@ -311,7 +311,7 @@ function wyckbasis(BRS::BandRepSet)
     F = _smith′(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
     S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
     
-    nnz = sum(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
+    nnz = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
     nzidxs = Base.OneTo(nnz)
 
     # If we apply T⁻¹ to a given set of (integer) symmetry data 𝐧, the result 

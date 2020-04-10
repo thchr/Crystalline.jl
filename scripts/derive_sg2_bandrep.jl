@@ -35,7 +35,7 @@ end
 # and its application to null spaces.
 F = SGOps._smith′(C) # Smith Normal Form (small wrapper around `SmithNormalForm.smith(..)`)
 S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
-r = sum(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix = rank(C)
+r = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix = rank(C)
 zidxs  = r+1:length(Λ)
 basis = T⁻¹[:, zidxs]
 display(basis)

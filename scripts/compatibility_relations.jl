@@ -4,7 +4,7 @@ using SGOps, Colors, GraphPlot, Compose, LightGraphs, MetaGraphs
 function binary_layout(truefalses)
     posx = ifelse.(truefalses, -1.0, 1.0)
     posy = Vector{Float64}(undef, length(truefalses))
-    Nᵗ = sum(truefalses); Nᶠ = sum(!, truefalses);
+    Nᵗ = count(truefalses); Nᶠ = count(!, truefalses);
     if Nᵗ != 1
         posy[truefalses] = range(-1,1, length=Nᵗ)
     else 
