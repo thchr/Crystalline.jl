@@ -886,15 +886,22 @@ lastindex(BRS::BandRepSet) = length(reps(BRS))
 IndexStyle(::BandRepSet) = IndexLinear()
 eltype(::BandRepSet) = BandRep
 
-# matrix representation of a BandRepSet, with band reps along rows and irreps along columns
-function matrix(BRS::BandRepSet)
+# matrix representation of a BandRepSet, with band reps along rows and irreps along columns,
+# if `includedim` is `true` (`false` by default) the band filling (i.e. `dim.(BRS)`) will be
+# included as the last column
+function matrix(BRS::BandRepSet, includedim::Bool=false)
     # TODO: It would be better to have the matrix return columns of EBRs instead of rows
-    M = Matrix{Int64}(undef, length(BRS), length(BRS[1]))
+    Nirs = length(BRS[1])
+    M = Matrix{Int64}(undef, length(BRS), Nirs+includedim)
     @inbounds for (i, BR) in enumerate(BRS)
         for (j, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 
             M[i,j] = v                   # broadcasting/iterator interface (why!?)
         end
+        if includedim
+            M[i,Nirs+1] = dim(BR)
+        end
     end
+    
     return M
 end 
 
@@ -907,10 +914,11 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     end
 
     # prep-work to figure out how many irreps we can write to the io
-    cols_brlab = maximum(x->length(label(x))+ndigits(dim(x)), reps(BRS))+3
-    cols_irstart = cols_brlab+6
+    ν_maxdigs = maximum(ndigits∘dim, reps(BRS))
+    cols_brlab = maximum(x->length(label(x)), reps(BRS))+1
+    cols_irstart = cols_brlab+4
     cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
-    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+1 # required cols for irrep labels & band reps
+    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+ν_maxdigs+3 # required cols for irrep labels & band reps
     if cols_requi > cols_avail
         cols_toomany    = ceil(Int64, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
         cols_midpoint   = div(cols_requi-cols_irstart,2)+cols_irstart
@@ -934,26 +942,29 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
                 print(io, "\b  …  ")
             end
         else
-            print(io, ' ', lab, iridx != Nirreps ? " │" : " ║")
+            print(io, ' ', lab, " │")
         end
     end
-    println(io)
+    println(io, ' '^ν_maxdigs, "ν", " ║") # band-filling column header
+    #println(io)
     # print each bandrep
     for (bridx,BR) in enumerate(reps(BRS))
-        print(io, "   ", label(BR), " (", dim(BR), "):",                      # bandrep label
-                  " "^(cols_brlab-length(label(BR))-ndigits((dim(BR)))-2), '║')
-        for (iridx,v) in enumerate(vec(BR)) # vector representation of band rep
+        ν = dim(BR)
+        print(io, "   ", label(BR),                      # bandrep label
+                  " "^(cols_brlab-length(label(BR))), '║')
+        for (iridx,x) in enumerate(vec(BR)) # vector representation of band rep
             if abbreviate && iridx ∈ iridx_skiprange
                 if iridx == first(iridx_skiprange)
                     print(io, mod(bridx,4) == 0 ? "\b  …  " : "\b     ")
                 end
             else
                 print(io, "  ")
-                !iszero(v) ? print(io, v) : print(io, '·')
-                print(io, " "^(length(irreplabels(BRS)[iridx])-1)) # assumes we will never have ndigit(v) != 1
-                print(io, iridx != Nirreps ? '│' : '║')
+                !iszero(x) ? print(io, x) : print(io, '·')
+                print(io, " "^(length(irreplabels(BRS)[iridx])-1), '│') # assumes we will never have ndigit(x) != 1
             end
         end
+        
+        print(io, ' '^(1+ν_maxdigs-ndigits(ν)), ν, " ║") # band-filling
         if bridx != length(BRS); println(io); end
     end
 end
