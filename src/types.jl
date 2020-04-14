@@ -798,16 +798,16 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
     pretty_table(io,
                  [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
                  ["" formatirreplabel.(labels(ct))...];    # 1st row (header): irrep labels
-                  tf = unicode,
-                  highlighters=Highlighter((data,i,j)->i==1 || j==1; bold = true),
-                  #screen_size =(250,100)
-                  )
+                 tf = unicode,
+                 highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
+                 vlines = [1,], hlines = [:begin, 1, :end]
+                )
 end
 
 """
     CharacterTable(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)
 
-Return a `CharacterTable` associated with vector of `AbstractIrrep`s `irs` a vector of irreps.
+Return a `CharacterTable` associated with vector of `AbstractIrrep`s `irs`.
 """
 function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
                         αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D

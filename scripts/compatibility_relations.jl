@@ -1,4 +1,7 @@
-using SGOps, Colors, GraphPlot, Compose, LightGraphs, MetaGraphs
+using SGOps
+using LightGraphs, MetaGraphs
+# Add these packages to your active environment before running, if necessary
+using Colors, GraphPlot, Compose
 
 # --- utilities ---
 function binary_layout(truefalses)

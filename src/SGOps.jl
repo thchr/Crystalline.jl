@@ -3,16 +3,16 @@
 
 module SGOps
 # packages
-using HTTP, Gumbo, LinearAlgebra, Distributions, 
-      JSON2, StaticArrays, Makie, TimerOutputs,
+using HTTP, Gumbo, LinearAlgebra, 
+      JSON2, StaticArrays, Makie,
       DelimitedFiles, SmithNormalForm,
       Meshing, JLD2, PrettyTables, PyPlot,
       CSV,                    # → special_representation_domain_kpoints.jl
       MetaGraphs, LightGraphs # → compatibility.jl
-# time-sinks here are PyPlot (15 s), Makie (17 s), Distributions (3 s), & CSV (5 s),
+# time-sinks here are PyPlot (15 s), Makie (17 s), & CSV (5 s),
 # (compare with total load time of SGOps of ~92 s)
 # 
-import Base: getindex, lastindex, firstindex,  setindex!, IndexStyle, size, 
+import Base: getindex, lastindex, firstindex, setindex!, IndexStyle, size, 
              eltype, length,                                            # indexing interface
              string, isapprox, zero,
              readuntil, vec, show, 
@@ -21,7 +21,7 @@ using Compat
 import LinearAlgebra: inv
 import PyPlot: plot, plot3D, plt
 import Statistics: quantile
-# using TimerOutputs # retoggle to time execution of code
+import Distributions: Uniform
 
 # included files and exports
 include("constants.jl")
