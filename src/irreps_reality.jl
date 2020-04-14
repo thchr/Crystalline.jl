@@ -1,10 +1,10 @@
 const TEST_αβγ = [0.123,0.456,0.789] # arbitrary test numbers for KVecs
 
 """
-    realify(irs::AbstractVector{<:LGIrrep}, verbose::Bool=false)
+    realify(lgirs::AbstractVector{<:LGIrrep}, verbose::Bool=false)
                                                         --> AbstractVector{<:LGIrrep}
 
-From `lgir`, a vector of `LGIrrep`s, determine the associated (gray) co-representations,
+From `lgirs`, a vector of `LGIrrep`s, determine the associated (gray) co-representations,
 i.e. the "real", or "physical" irreps that are relevant in scenarios with time-reversal
 symmetry.
 
@@ -28,9 +28,9 @@ Cornwell's book also does a good job of explicating this, as does Inui (p. 296-2
 - `verbose::Bool`: if set to `true`, prints details about mapping from small irrep to small
 corep for each `LGIrrep` (default: `false`).
 """
-function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
-    Nirr = length(irs)
-    lg = group(first(irs))
+function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
+    Nirr = length(lgirs)
+    lg = group(first(lgirs))
     kv = kvec(lg) # must be the same for all irreps in list
     kv_αβγ = kv(TEST_αβγ)
     sgnum = num(lg)
@@ -80,27 +80,27 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         # be done using `herring(...)`). ⇒ deduce new small irreps (... small co-reps).
         corep_idxs = Vector{Vector{Int64}}()
         skiplist = Vector{Int64}()
-        for (i, ir) in enumerate(irs)
+        for (i, lgir) in enumerate(lgirs)
             if i ∈ skiplist; continue; end # already matched to this irrep previously; i.e. already included now
-            iscorep(ir) && throw(DomainError(iscorep(ir), "should not be called with LGIrreps that have iscorep=true"))
+            iscorep(lgir) && throw(DomainError(iscorep(lgir), "should not be called with LGIrreps that have iscorep=true"))
             verbose && i ≠ 1 && print("  │ ")
 
-            if type(ir) == 1     # real
+            if type(lgir) == 1     # real
                 push!(corep_idxs, [i])
                 if verbose
-                    println(formatirreplabel(label(ir)), 
+                    println(formatirreplabel(label(lgir)), 
                             " (real) ⇒  no additional degeneracy")
                 end
 
-            elseif type(ir) == 2 # pseudo-real
+            elseif type(lgir) == 2 # pseudo-real
                 # doubles irrep on its own
                 push!(corep_idxs, [i, i])
                 if verbose
-                    println(formatirreplabel(label(ir)^2), 
+                    println(formatirreplabel(label(lgir)^2), 
                             " (pseudo-real) ⇒  doubles degeneracy"); 
                 end
 
-            elseif type(ir) == 3 # complex
+            elseif type(lgir) == 3 # complex
                 # In this case, there must exist a "partner" irrep (say, Dⱼ) which is
                 # equivalent to the complex conjugate of the current irrep (say, Dᵢ), i.e.
                 # an equivalence Dⱼ ∼ Dᵢ*; we next search for this equivalence.
@@ -119,13 +119,13 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 # non-special (i.e. ∉ {0,0.5,1}); this is `TEST_αβγ`.
 
                 # Characters of the conjugate of Dᵢ, i.e. tr(Dᵢ*) = tr(Dᵢ)*
-                θχᵢ = conj.(characters(ir, TEST_αβγ))
+                θχᵢ = conj.(characters(lgir, TEST_αβγ))
                 
                 # Find matching complex partner
                 partner = 0
                 for j = i+1:Nirr
-                    if j ∉ skiplist && type(irs[j]) == 3 # only check if j has not previously matched; 
-                                                         # similarly, only check if the jth irrep is complex.
+                    if j ∉ skiplist && type(lgirs[j]) == 3 # only check if j has not previously matched; 
+                                                           # similarly, only check if the jth irrep is complex.
 
                         # Note that we require only equivalence of Dᵢ* and Dⱼ; not equality.
                         # Cornwell describes (p. 152-153 & 188) a neat trick for checking this
@@ -133,7 +133,7 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         #     χⁱ(g)* = χʲ(g₋⁻¹gg₋) ∀g ∈ G(k)
                         # with g₋ an element of G that takes 𝐤 to -𝐤, and where χⁱ (χʲ) denotes
                         # the characters of the respective irreps.
-                        χⱼ = characters(irs[j], TEST_αβγ)
+                        χⱼ = characters(lgirs[j], TEST_αβγ)
                         match = true
                         for n in Base.OneTo(Nops)
                             if k_equiv_kv₋ # 𝐤 = -𝐤 + 𝐆 ⇒ g₋ = I (the unit element), s.t. g₋⁻¹gg₋ = I⁻¹gI = g    (Cornwall's case (3))
@@ -153,18 +153,18 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         if match # ⇒ a match
                             partner = j
                             if verbose; 
-                                println(formatirreplabel(label(ir)*label(irs[j])), " (complex) ⇒  doubles degeneracy")
+                                println(formatirreplabel(label(lgir)*label(lgirs[j])), " (complex) ⇒  doubles degeneracy")
                             end
                         end
                     end
                 end
-                partner === 0 && throw(ErrorException("Didn't find a matching complex partner for $(label(ir))"))
+                partner === 0 && throw(ErrorException("Didn't find a matching complex partner for $(label(lgir))"))
                 push!(skiplist, partner)
 
                 push!(corep_idxs, [i, partner])
                 
             else
-                throw(ArgumentError("Invalid real/pseudo-real/complex type = $(type(ir))"))
+                throw(ArgumentError("Invalid real/pseudo-real/complex type = $(type(lgir))"))
             end
         end
     end
@@ -172,25 +172,25 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Ncoreps = length(corep_idxs)
 
     # New small co-rep labels (composite)
-    newlabs = Tuple(join(label(irs[i]) for i in corep_idxs[i′]) for i′ in Base.OneTo(Ncoreps))
+    newlabs = Tuple(join(label(lgirs[i]) for i in corep_idxs[i′]) for i′ in Base.OneTo(Ncoreps))
 
     # Build a vector of "new" small irreps (small co-reps), following B&C p. 616 & Inui p.
     # 298-299. For pseudo-real and complex co-reps, we set a flag `iscorep = true`, to
     # indicate to "evaluation" methods, such as `irreps(::LGIrrep)`, that a diagonal
     # "doubling" is required (see below).
-    irs′ = Vector{LGIrrep{D}}(undef, Ncoreps)
+    lgirs′ = Vector{LGIrrep{D}}(undef, Ncoreps)
     for i′ in Base.OneTo(Ncoreps)
         idxs = corep_idxs[i′]
         if length(idxs) == 1      # ⇒ real or type x (unchanged irreps)
-            irs′[i′] = irs[idxs[1]] # has iscorep = false flag set already
+            lgirs′[i′] = lgirs[idxs[1]] # has iscorep = false flag set already
 
         elseif idxs[1] == idxs[2] # ⇒ pseudoreal     ("self"-doubles irreps)
             # The resulting co-rep of a pseudo-real type of Dᵢ is
             #   D = diag(Dᵢ, Dᵢ)
             # See other details under complex case.
             idx = first(idxs)
-            irs′[i′] = LGIrrep{D}(newlabs[i′], lg, irs[idx].matrices, irs[idx].translations,
-                                  2, true)
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, lgirs[idx].matrices,
+                                    lgirs[idx].translations, 2, true)
             
         else                      # ⇒ complex        (doubles irreps w/ complex conjugate)
             # The co-rep of a complex type composed of Dᵢ and Dⱼ is 
@@ -202,20 +202,20 @@ function realify(irs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             # field `iscorep` (set to `true`) below. This is to avoid storing two "free
             # phase factors" (i.e. τ) which would have opposite signs.
             idx = first(idxs)
-            irs′[i′] = LGIrrep{D}(newlabs[i′], lg, irs[idx].matrices, irs[idx].translations,
-                                  3, true)
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, lgirs[idx].matrices,
+                                    lgirs[idx].translations, 3, true)
         end
     end
     
-    return irs′
+    return lgirs′
 end
 
 
 """
-    herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}},
+    herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}},
             αβγ::Union{Vector{<:Real},Nothing}=nothing)        --> Tuple{Int, Int}
 
-Computes the Herring criterion for a little group irrep `ir`, from 
+Computes the Herring criterion for a small irrep `lgir::LGIrrep`, from 
 
     [∑ χ({β|b}²)]/[g₀/M(k)] 
 
@@ -241,13 +241,13 @@ See e.g. Inui's Eq. (13.48), Dresselhaus, p. 618, and
 and Herring's original paper at https://doi.org/10.1103/PhysRev.52.361.
 We mainly followed Cornwell, p. 150-152 & 187-188.
 """
-function herring(ir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
-
-    lgops = operations(ir)
-    kv = kvec(ir)
+function herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
+    iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
+    lgops = operations(lgir)
+    kv = kvec(lgir)
     kv₋ = -kv
-    cntr = centering(num(ir), D)
-    Ds = irreps(ir, αβγ) # irrep matrices
+    cntr = centering(num(lgir), D)
+    Ds = irreps(lgir, αβγ) # irrep matrices
     kv_αβγ = kv(αβγ)
 
     s = zero(ComplexF64)
