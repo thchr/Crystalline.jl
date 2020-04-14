@@ -475,6 +475,13 @@ struct LGIrrep{D} <: AbstractIrrep{D}
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
+    iscorep::Bool # Whether this irrep really represents a corep (only relevant for `type`s 2 and 3; leads to special handling for `irreps(..)` and printing)
+end
+function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
+                    matrices::Vector{Matrix{ComplexF64}}, 
+                    translations::Vector{Vector{Float64}},
+                    type::Int64) where D
+    return LGIrrep{D}(cdml, lg, matrices, translations, type, false)
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
@@ -484,6 +491,7 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     return LGIrrep{D}(cdml, lg, matrices, translations, type)
 end
 group(lgir::LGIrrep) = lgir.lg
+iscorep(lgir::LGIrrep) = lgir.iscorep
 kvec(lgir::LGIrrep)  = kvec(group(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
@@ -494,10 +502,10 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
     τ = lgir.translations
     if !iszero(τ)
         k = kvec(lgir)(αβγ)
-        P′ = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
+        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
-                P′[i] .*= cis(2π*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
+                P[i] .*= cis(2π*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
                 # note cis(x) = exp(ix)     # Bilbao server; but disagrees (as far as I can tell) with some
                                             # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
                                             # and Kovalev's book).
@@ -519,9 +527,52 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
                                             # so, overall, this is probably the sanest choice for this dataset.
             end
         end
-        return P′
+    end
+
+    if iscorep(lgir)
+        t = type(lgir) 
+        if t == 2 # Pseudo-real (doubles)
+            return _blockdiag2x2.(P)
+        elseif t == 3 # Complex (conj-doubles)
+            return _blockdiag2x2_conj.(P)
+        else
+            throw(DomainError(type, "Unexpected combination of iscorep=true and type≠{2,3}"))
+        end
+    else
+        return P
     end
     return P
+end
+
+function _blockdiag2x2(A::Matrix{T}) where T
+    n = LinearAlgebra.checksquare(A)
+    B = zeros(T, 2*n, 2*n)
+    @inbounds for I in 0:1
+        I′ = I*n
+        for i in Base.OneTo(n)
+            i′ = I′+i
+            for j in Base.OneTo(n)
+                B[i′,I′+j] = A[i,j]
+            end
+        end
+    end
+    return B
+end
+function _blockdiag2x2_conj(A::Matrix{T}) where T
+    n = LinearAlgebra.checksquare(A)
+    B = zeros(T, 2*n, 2*n)
+    @inbounds for i in Base.OneTo(n) # upper left block
+        for j in Base.OneTo(n)
+            B[i,j] = A[i,j]
+        end
+    end
+    @inbounds for i in Base.OneTo(n) # lower right block
+        i′ = n+i
+        for j in Base.OneTo(n)
+            B[i′,n+j] = conj(A[i,j])
+        end
+    end
+    return B
 end
 
 """
@@ -636,7 +687,18 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
             end
             print(io, ")]")
         end
-
+    end
+    
+    # Least-effort way to indicate nontrivial (pseudo-real/complex) co-representations
+    # TODO: Improve printing of pseudo-real and complex LGIrrep co-representations?
+    if iscorep(lgir) 
+        if type(lgir) == 2     # pseudo-real
+            print(io, " + block-repetition")
+        elseif type(lgir) == 3 # complex
+            print(io, " + conjugate-block-repetition")
+        else
+            throw(DomainError(type, "Unexpected combination of iscorep=true and type≠{2,3}"))
+        end
     end
 end
 function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
