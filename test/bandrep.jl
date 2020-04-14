@@ -68,7 +68,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
     klabs_ISO = Vector{String}(undef, length(lgirsvec))
     for (kidx, lgirs) in enumerate(lgirsvec)
         append!(irlabs_ISO,     [label(lgir) for lgir in lgirs])
-        append!(realirlabs_ISO, realify(lgirs)[2])
+        append!(realirlabs_ISO, label.(realify(lgirs)))
         klabs_ISO[kidx] = klabel(first(lgirs))
     end
     irlabs_ISO = SGOps.formatirreplabel.(irlabs_ISO)
