@@ -50,6 +50,7 @@ export SymOperation,                        # types
        isspecial, translations,
        find_lgirreps,
        dim, string, parts,                  # ::KVec
+       plot,
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
 
@@ -67,6 +68,9 @@ export spacegroup, xyzt2matrix, matrix2xyzt,
        reduce_ops, transform,
        issubgroup, isnormal
 
+include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
+export find_representation
+
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export pointgroup, get_pgirreps,
        PGS_IUCs
@@ -81,7 +85,7 @@ export herring, realify
 
 include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
-       littlegroupirrep, klabel
+       littlegroupirrep
 
 include("special_representation_domain_kpoints.jl")
 export ΦnotΩ_kvecs
@@ -100,8 +104,7 @@ include("compatibility.jl")
 export subduction_count, compatibility
 
 include("bandrep.jl")
-export bandreps,
-       matrix, classification, basisdim
+export bandreps, matrix, classification, basisdim
 
 include("export2mpb.jl")
 export prepare_mpbcalc, prepare_mpbcalc!
