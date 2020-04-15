@@ -14,7 +14,7 @@ the symmetry data sᵢ ≡ `symvals`:
     P⁽ʲ⁾s = (dⱼ/|g|) ∑ᵢ χ⁽ʲ⁾(gᵢ)*sᵢ = nⱼ,   [number of bands that transform like jth irrep]
 returning the irrep multiplicities mⱼ ≡ nⱼ/dⱼ.
 """
-function find_representation(symvals::AbstractVector{Number}, 
+function find_representation(symvals::AbstractVector{<:Number}, 
                              lgirs::AbstractVector{<:AbstractIrrep},
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing)
     ct = CharacterTable(lgirs, αβγ)
@@ -64,7 +64,7 @@ function find_representation(symvals::AbstractVector{Number},
 
     return msℕ
 end
-function find_representation(multiplet_symvals::AbstractVector{<:AbstractVector{Number}}, 
+function find_representation(multiplet_symvals::AbstractVector{<:AbstractVector{<:Number}}, 
                              lgirs::AbstractVector{<:LGIrrep}, 
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing)
     # If multiple symmetry values are given, as a vector of vectors, we take their sum over

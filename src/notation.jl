@@ -223,31 +223,7 @@ function seitz(op::SymOperation{D}) where D
     isapprox(trW′, trW, atol=DEFAULT_ATOL) || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}; got $(trW′)"))
 
     # --- rotation order (and proper/improper determination) ---
-    if detW == 1 # proper rotations
-        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
-            rot = trW + 3
-        elseif trW == 2 # 6-fold rotation
-            rot = 6
-        elseif trW == 3 # identity operation
-            rot = 1
-        else 
-            _throw_seitzerror(trW, detW)
-        end
-    elseif detW == -1 # improper rotations (rotoinversions)
-        if trW == -3     # inversion
-            rot = -1
-        elseif trW == -2 # 6-fold rotoinversion
-            rot = -6
-        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
-            rot = trW - 3
-        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
-            rot = -2
-        else
-            _throw_seitzerror(trW, detW)
-        end
-    else
-        _throw_seitzerror(trW, detW)
-    end
+    rot = rotation_order_3d(detW, trW) # works for 2D also, since we augmented W above
     order = abs(rot)
     rot_str = rot == -2 ? "m" : string(rot)
     
@@ -319,4 +295,35 @@ function seitz(op::SymOperation{D}) where D
     return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
 end
 seitz(str::String) = seitz(SymOperation(str))
-_throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
+
+function rotation_order_3d(detW::Real, trW::Real)
+    if detW == 1 # proper rotations
+        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
+            rot = trW + 3
+        elseif trW == 2 # 6-fold rotation
+            rot = 6
+        elseif trW == 3 # identity operation
+            rot = 1
+        else 
+            _throw_seitzerror(trW, detW)
+        end
+    elseif detW == -1 # improper rotations (rotoinversions)
+        if trW == -3     # inversion
+            rot = -1
+        elseif trW == -2 # 6-fold rotoinversion
+            rot = -6
+        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
+            rot = trW - 3
+        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
+            rot = -2
+        else
+            _throw_seitzerror(trW, detW)
+        end
+    else
+        _throw_seitzerror(trW, detW)
+    end
+    
+    return rot
+end
+
+_throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
