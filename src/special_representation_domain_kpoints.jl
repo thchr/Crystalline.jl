@@ -1,35 +1,37 @@
 # The basic goal of this endeavor is only to find the irreps that 
 # are missing in ISOTROPY but feature in the bandreps from Bilbao. 
 # There are 145 such irreps, across 20 space groups, they are:                                (... I manually pieced this table together)
-# ┌───────┬─────────────────────────────────────────────────────────────────────────────┬───────────────┬────────────────────────────────┐
-# │       │  Missing                                                                    │  Missing      │  [NS≡nonsymmorph; S≡symmorph]  │
-# │  SGs  │  LGIrrep labels                                                             │  KVec labels  │  Match method                  │
-# │───────┼─────────────────────────────────────────────────────────────────────────────┼───────────────┼────────────────────────────────│
-# │  23   │  WA₁, WA₂, WA₃, WA₄                                                         │  WA           │  S:  MonoOrthTetraCubic ┐      │
-# │  24   │  WA₁                                                                        │  WA           │  NS: Inherits from      └ 23   │
-# │  82   │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic        │
-# │  121  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │
-# │  122  │  PA₁, PA₂                                                                   │  PA           │  NS: Inherits from      └ 121  │
-# │  143  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │
-# │  144  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │
-# │  145  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │
-# │  150  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │
-# │  152  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │
-# │  154  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │
-# │  157  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex ───────┐           │
-# │  159  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Inherits from └ 157       │
-# │  174  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex                    │
-# │  189  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex ───────┐           │
-# │  190  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃                 │  HA, KA, PA   │  NS: Inherits from └ 189       │
-# │  197  │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic ┐      │
-# │  199  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 197  │
-# │  217  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │
-# │  220  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 217  │
-# └───────┴─────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────────────────────────┘
+# ┌───────┬─────────────────────────────────────────────────────────────────────────────┬───────────────┬────────────────────────────────┬──────────────┐
+# │       │  Missing                                                                    │  Missing      │  [NS≡nonsymmorph; S≡symmorph]  │  Has fragile │
+# │  SGs  │  LGIrrep labels                                                             │  KVec labels  │  Match method                  │  phases?     │
+# │───────┼─────────────────────────────────────────────────────────────────────────────┼───────────────┼────────────────────────────────┼──────────────│
+# │  23   │  WA₁, WA₂, WA₃, WA₄                                                         │  WA           │  S:  MonoOrthTetraCubic ┐      │  ÷           │
+# │  24   │  WA₁                                                                        │  WA           │  NS: Inherits from      └ 23   │  ÷           │
+# │  82   │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic        │              │
+# │  121  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │              │
+# │  122  │  PA₁, PA₂                                                                   │  PA           │  NS: Inherits from      └ 121  │              │
+# │  143  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  144  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
+# │  145  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │  ÷           │
+# │  150  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  152  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
+# │  154  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │              │
+# │  157  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
+# │  159  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Inherits from └ 157       │              │
+# │  174  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  189  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
+# │  190  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃                 │  HA, KA, PA   │  NS: Inherits from └ 189       │              │
+# │  197  │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic ┐      │  ÷           │
+# │  199  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 197  │  ÷           │
+# │  217  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │              │
+# │  220  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 217  │              │
+# └───────┴─────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────────────────────────┴──────────────┘
 # Of course, in principle, we might consider trying to create ALL the missing points from Φ-Ω,
 # but for what we need, this is sufficient.
 # Of these space groups, only sg 82 has a nontrivial symmetry indicator classification for 
 # bosons with TR.
+# From Hilbert basis computations, I have also indicated which of these space groups can 
+# support nontrivial but fragile topology (÷ means 'cannot').
 
 # --- STRUCTS ---
 
