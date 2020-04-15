@@ -472,13 +472,10 @@ function plotiso(xyz, vals, isoval::Real=0.0,
         fig.gca().set_aspect("equal", adjustable="box")
         fig.gca().set_axis_off()
 
-    elseif dim == 3
-        scene=Scene()
-        Makie.contour!(scene, xyz,xyz,xyz, vals,
-                       levels=[isoval],colormap=:blues, linewidth=.1)
-        Makie.display(scene)
+        return nothing
 
-        # marching cubes algorithm to find isosurfaces
+    elseif dim == 3
+        # marching cubes algorithm to find isosurfaces (using Meshing.jl)
         algo = MarchingCubes(iso=isoval, eps=1e-3)
         verts, faces = isosurface(vals, algo; 
                                   origin = SVector(-0.5,-0.5,-0.5), 
@@ -489,10 +486,12 @@ function plotiso(xyz, vals, isoval::Real=0.0,
         #println("Mesh: $(length(verts)) vertices\n", " "^6, "$(length(faces)) faces")
         isomesh = convert_arguments(Mesh, verts′, faces′)[1]
 
-        # plot isosurface
-        scene = Scene()
-        mesh!(isomesh, color=:grey)
-        display(scene)
+        # in principle, we should plot the isosurface here; but it just doesn't make sense
+        # to take on Makie as a dependency, _just_ for this single function; instead, 
+        # return the generated isosurface. It can be plotted with 
+        #     scene = Scene()
+        #     mesh!(isomesh, color=:grey)
+        #     display(scene)
+        return isomesh 
     end
-    return nothing
 end
