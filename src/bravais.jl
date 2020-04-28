@@ -77,34 +77,41 @@ end
 const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor="black", 
                             markeredgewidth=1.5, markersize=4.5)
 
-function plot(Rs::DirectBasis{D}) where D
+function plot(Rs::DirectBasis{D}, 
+              cntr::SVector{D, <:Real}=zeros(SVector{D, Float64}),
+              ax=plt.figure().gca(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
+
+    Rs′ = Rs .+ Ref(cntr) # basis vectors translated by cntr
+    
     if D == 1
-        plot([0, Rs[1]], [0, 0])
-        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
+        ax.plot((cntr[1], Rs′[1]), (0, 0))
+        ax.plot((cntr[1],), (0,); ORIGIN_MARKER_OPTS...) # origin
 
     elseif D == 2
-        corner = sum(Rs)
-        for R in Rs
-            plot([0, R[1]], [0, R[2]]; color="black") # basis vectors
-            plot([R[1], corner[1]], [R[2], corner[2]]; color="grey") # remaining unit cell boundaries
+        corner = sum(Rs) + cntr
+        for R′ in Rs′
+            ax.plot((cntr[1], R′[1]), (cntr[2], R′[2]); color="black") # basis vectors
+            ax.plot((R′[1], corner[1]), (R′[2], corner[2]); color="grey") # remaining unit cell boundaries
         end
-        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
+        ax.plot((cntr[1],), (cntr[2],); ORIGIN_MARKER_OPTS...) # origin
     elseif D == 3
-        corners = (Rs[1]+Rs[3], Rs[1]+Rs[2], Rs[2]+Rs[3])
+        corners = (Rs[1]+Rs[3], Rs[1]+Rs[2], Rs[2]+Rs[3]) .+ Ref(cntr)
         dirs = ((-1,1,-1), (-1,-1,1), (1,-1,-1))
+        for R′ in Rs′
+            ax.plot3D((cntr[1], R′[1]), (cntr[2], R′[2]), (cntr[3], R′[3]); color="black") # basis vectors
+        end
         for (i,R) in enumerate(Rs)
-            plot3D([0, R[1]], [0, R[2]], [0, R[3]]; color="black") # basis vectors
             for (corner,dir) in zip(corners,dirs) # remaining unit cell boundaries
-                plot3D([corner[1], corner[1]+dir[i]*R[1]], 
-                       [corner[2], corner[2]+dir[i]*R[2]], 
-                       [corner[3], corner[3]+dir[i]*R[3]]; color="grey")
+                ax.plot3D((corner[1], corner[1]+dir[i]*R[1]), 
+                          (corner[2], corner[2]+dir[i]*R[2]), 
+                          (corner[3], corner[3]+dir[i]*R[3]); color="grey")
             end
         end
-        plot3D([0,], [0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
-        plt.gca().set_zlabel("z")
+        ax.plot3D((cntr[1],), (cntr[2],), (cntr[3],); ORIGIN_MARKER_OPTS...) # origin
+        ax.set_zlabel("z")
     end
-    plt.gca().set_xlabel("x"); plt.gca().set_ylabel("y")
-    plt.gca().set_aspect("equal", adjustable="box") # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474)
+    ax.set_xlabel("x"); ax.set_ylabel("y")
+    ax.set_aspect("equal", adjustable="box") # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474); TODO: may raise an error in later matplotlib releases
     return nothing
 end
 
