@@ -89,8 +89,15 @@ include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
        littlegroupirrep
 
+# Large parts of the functionality in special_representation_domain_kpoints.jl should not be
+# in the core module, but belongs in a build file or similar. For now, the main goal of the
+# file hasn't been achieved and the other methods are non-essential. So, we skip it.
+#= 
+# TODO: The `const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()` call takes 15 s
+#       precompile. It is a fundamentally awful idea to do it this way.
 include("special_representation_domain_kpoints.jl")
 export ΦnotΩ_kvecs
+=#
 
 include("littlegroup_irreps.jl")
 export get_lgirreps, get_littlegroups,

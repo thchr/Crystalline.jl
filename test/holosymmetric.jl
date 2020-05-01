@@ -1,7 +1,15 @@
 using SGOps, Test, LinearAlgebra
 
+# TODO: Cannot pass unless src/special_representation_domain_kpoints.jl is reincluded in 
+#       src/SGOps.jl. Currently disabled due to compilation time concerns.
 
 @testset "Representation vs basic domain BZ" begin
+
+# disable if src/special_representation_domain_kpoints.jl is reincluded
+if (@test_broken false) isa Test.Broken
+    println("Skipping tests of src/special_representation_domain_kpoints.jl")
+
+else
 
 @testset "Identification of holosymmetric space groups" begin
     # Check that our cached values of the holosymmetric space group numbers
@@ -150,4 +158,5 @@ end
     end
 end
 
+end # @test_broken if
 end # outer @testset
