@@ -6,18 +6,18 @@ module SGOps
 using LinearAlgebra, StaticArrays,
       JSON2, DelimitedFiles, JLD2,
       SmithNormalForm,
-      Meshing, PrettyTables, PyPlot,
+      PrettyTables,
       CSV,                    # → special_representation_domain_kpoints.jl
       MetaGraphs, LightGraphs # → compatibility.jl
-
-import Base: getindex, lastindex, firstindex, setindex!, IndexStyle, size, 
-             eltype, length,                                            # indexing interface
-             string, isapprox, zero,
-             readuntil, vec, show, 
-             +, -, ∘, ==, ImmutableDict
+using Requires
 using Compat
+
+import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
+             IndexStyle, size, eltype, length,           # ⤶
+             string, isapprox, zero,
+             readuntil, vec, show,
+             +, -, ∘, ==, ImmutableDict
 import LinearAlgebra: inv
-import PyPlot: plot, plot3D, plt
 import Statistics: quantile
 import Distributions: Uniform
 
@@ -48,7 +48,6 @@ export SymOperation,                        # types
        isspecial, translations,
        find_lgirreps,
        dim, string, parts,                  # ::KVec
-       plot,
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
 
@@ -74,7 +73,7 @@ export pointgroup, get_pgirreps,
        PGS_IUCs
 
 include("bravais.jl")
-export crystal, plot, crystalsystem,
+export crystal, crystalsystem,
        bravaistype,
        directbasis, reciprocalbasis
 
@@ -95,8 +94,7 @@ export get_lgirreps, get_littlegroups,
 include("lattices.jl")
 export UnityFourierLattice, ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
-       modulate, normscale, normscale!, calcfourier,
-       plot
+       modulate, normscale, normscale!, calcfourier
 
 include("compatibility.jl")
 export subduction_count, compatibility
@@ -106,5 +104,18 @@ export bandreps, matrix, classification, basisdim
 
 include("export2mpb.jl")
 export prepare_mpbcalc, prepare_mpbcalc!
+
+# Optional code-loading, using Requires.
+function __init__()
+    
+    # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
+    @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
+        include("compat/pyplot.jl") # loads PyPlot and Meshing
+        export plot, 
+               plot_lattice_from_mpbparams, 
+               mesh_3d_levelsetlattice
+    end
+
+end
 
 end # module

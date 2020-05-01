@@ -66,7 +66,7 @@ remain in the "neutral" configuration, where all inter-orbit coefficients are un
 # Examples
 
 Compute a UnityFourierLattice, modulate it with random inter-orbit coefficients via `modulate`,
-and finally plot it:
+and finally plot it (requires `using PyPlot`):
 
 ```julia-repl
 julia> uflat = levelsetlattice(16, 2)
@@ -227,7 +227,7 @@ To compute the associated primitive basis vectors, see `primitivize(::DirectBasi
 # Examples
 
 A centered ('c') lattice from plane group 5 in 2D, plotted in its 
-conventional and primitive basis:
+conventional and primitive basis (requires `using PyPlot`):
 
 ```julia-repl
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
@@ -351,6 +351,12 @@ function normscale!(flat::ModulatedFourierLattice, expon::Real)
     return flat
 end
 
+# -----------------------------------------------------------------------------------------
+# The utilities and methods below are mostly used for plotting (see src/pyplotting.jl).
+# We keep them here since they do not depend on PyPlot and have more general utility in 
+# principle (e.g., exporting associated Meshes).
+
+
 """ 
     calcfourier(xyz, flat::AbstractFourierLattice) --> Float64
 
@@ -374,39 +380,6 @@ function calcfourier(xyz, orbits, orbitcoefs)
     return f
 end
 
-"""
-    plot(flat::AbstractFourierLattice, Rs::DirectBasis)
-
-Plots a lattice `flat::AbstractFourierLattice` with lattice vectors
-given by `Rs::DirectBasis`. Possible kwargs are (defaults in brackets) 
-
-- `N`: resolution [`100` in 2D, `20` in 3D]
-- `filling`: determine isovalue from relative filling fraction [`0.5`]
-- `isoval`: isovalue [nothing (inferred from `filling`)]
-- `repeat`: if not `nothing`, repeats the unit cell an integer number of times [`nothing`]
-- `fig`: figure handle to plot [`nothing`, i.e. opens a new figure]
-
-If both `filling` and `isoval` kwargs simultaneously not equal 
-to `nothing`, then `isoval` takes precedence.
-"""
-function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
-              N::Integer=(D==2 ? 100 : 20), 
-              filling::Union{Real, Nothing}=0.5, 
-              isoval::Union{Real, Nothing}=nothing,
-              repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing) where D
- 
-    xyz = range(-.5, .5, length=N)
-    vals = calcfouriergridded(xyz, flat, N)
-    if isnothing(isoval)
-        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
-    end
-    plotiso(xyz,vals,isoval,Rs,repeat,fig)
-
-    return xyz,vals,isoval
-end
-
-
 function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice{D}, 
                              N::Integer=length(xyz)) where D
     f = (coords...)-> calcfourier(coords, flat)
@@ -423,121 +396,4 @@ function calcfouriergridded(xyz, flat::AbstractFourierLattice{D},
                             N::Integer=length(xyz)) where D
     vals = Array{Float64, D}(undef, ntuple(i->N, D)...)
     return calcfouriergridded!(vals, xyz, flat, N)
-end
-
-
-# show isocontour of data
-function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
-                 repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing) where D
-
-    if isnothing(fig)
-        ax = plt.figure().gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
-    else
-        ax = (fig.clf(); fig.gca())
-    end
-
-    if D == 2
-        # convert to a cartesian coordinate system rather than direct basis of Ri
-        N = length(xyz) 
-        X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-        Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-
-        ax.contourf(X,Y,vals; levels=(-1e12, isoval, 1e12), cmap=plt.get_cmap("gray",2))
-        ax.contour(X,Y,vals,levels=(isoval,), colors="w", linestyles="solid")
-        origo = sum(Rs)./2
-        plot(Rs, -origo, ax) # plot unit cell
-        ax.scatter([0],[0], color="C4", s=30, marker="+")
-        
-        uc = (zeros(eltype(Rs)), Rs[1], Rs[1]+Rs[2], Rs[2]) .- Ref(origo)
-        
-        pad = (maximum(maximum.(uc)) .- minimum(minimum.(uc)))/25
-        xlims = extrema(getindex.(uc, 1)); ylims = extrema(getindex.(uc, 2))
-        if !isnothing(repeat) # allow repetitions of unit cell in 2D
-            minval, maxval = extrema(vals)
-            for r1 in -repeat:repeat
-                for r2 in -repeat:repeat
-                    if r1 == r2 == 0; continue; end
-                    offset = Rs[1].*r1 .+ Rs[2].*r2
-                    X′ = X .+ offset[1]; Y′ = Y .+ offset[2]
-                    ax.contourf(X′, Y′, vals; levels=(minval, isoval, maxval),
-                        cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
-                    ax.contour(X′, Y′, vals; levels=(isoval,), colors="w", linestyles="solid")
-                end
-            end
-            
-            xd = -(-)(xlims...)*repeat; yd = -(-)(ylims...)*repeat
-            plt.xlim(xlims .+ (-1,1).*xd .+ (-1,1).*pad) 
-            plt.ylim(ylims .+ (-1,1).*yd .+ (-1,1).*pad)
-        else
-            plt.xlim(xlims .+ (-1,1).*pad); plt.ylim(ylims .+ (-1,1).*pad);
-        end
-        ax.set_aspect("equal", adjustable="box")
-        ax.set_axis_off()
-
-    elseif D == 3
-        # TODO: Isocaps (when Meshing.jl supports it)
-
-        # Calculate a triangular meshing of the Fourier lattice using Meshing.jl
-        verts′, faces′ = mesh_3d_levelsetlattice(vals, isoval, Rs)
-
-        # TODO: All plot utilities should probably be implemented as PlotRecipies or similar
-        # In principle, it would be good to plot the isosurface using Makie here; but it 
-        # just doesn't make sense to take on Makie as a dependency, solely for this purpose.
-        # It seems more appropriate to let a user bother with that, and instead give some
-        # way to extract the isosurface's verts and faces. Makie can then plot it with
-        #     using Makie
-        #     verts′, faces′ = SGOps.mesh_3d_levelsetlattice(flat, isoval, Rs)
-        #     isomesh = convert_arguments(Mesh, verts′, faces′)[1]
-        #     scene = Scene()
-        #     mesh!(isomesh, color=:grey)
-        #     display(scene)
-        # For now though, we just use matplotlib; the performance is awful though, since it
-        # vector-renders each face (of which there are _a lot_).
-        plot_trisurf(verts′[:,1], verts′[:,2], verts′[:,3], triangles = faces′ .- 1)
-        plot(Rs, -sum(Rs)./2, ax) # plot the boundaries of the lattice's unit cell
-
-    end
-    return nothing
-end
-
-function mesh_3d_levelsetlattice(vals, isoval::Real, Rs::DirectBasis{3})
-    # marching cubes algorithm to find isosurfaces (using Meshing.jl)
-    algo = MarchingCubes(iso=isoval, eps=1e-3)
-    verts, faces = isosurface(vals, algo; 
-                              origin = SVector(-0.5,-0.5,-0.5), 
-                              widths = SVector(1.0,1.0,1.0))    
-    
-    # transform to Cartesian basis & convert from N-vectors of 3-vectors to N×3 matrices
-    verts′, faces′ = _mesh_to_cartesian(verts, faces, Rs)
-
-    return verts′, faces′
-end
-function mesh_3d_levelsetlattice(flat::AbstractFourierLattice, isoval::Real, 
-                                 Rs::DirectBasis{3})
-
-    # marching cubes algorithm to find isosurfaces (using Meshing.jl)
-    algo = MarchingCubes(iso=isoval, eps=1e-3)
-    verts, faces = isosurface(xyz->calcfourier(xyz, flat), algo; 
-                              origin = SVector(-0.5,-0.5,-0.5), 
-                              widths = SVector(1.0,1.0,1.0))    
-    
-    # transform to Cartesian basis & convert from N-vectors of 3-vectors to N×3 matrices
-    verts′, faces′ = _mesh_to_cartesian(verts, faces, Rs)
-   
-    return verts′, faces′
-end
-
-function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::DirectBasis{3})
-    Nᵛᵉʳᵗˢ = length(verts); Nᶠᵃᶜᵉˢ = length(faces)
-    verts′ = Matrix{Float64}(undef, Nᵛᵉʳᵗˢ, 3)
-    @inbounds @simd for j in (1,2,3)  # Cartesian xyz-coordinates
-        R₁ⱼ, R₂ⱼ, R₃ⱼ = Rs[1][j], Rs[2][j], Rs[3][j]
-        for i in Base.OneTo(Nᵛᵉʳᵗˢ) # vertices
-            verts′[i,j] = verts[i][1]*R₁ⱼ + verts[i][2]*R₂ⱼ + verts[i][3]*R₃ⱼ
-        end
-    end
-    # convert `faces` from Nᶠᵃᶜᵉˢ-vector of 3-vectors to Nᶠᵃᶜᵉˢ×3 matrix
-    faces′ = [faces[i][j] for i = Base.OneTo(Nᶠᵃᶜᵉˢ), j = Base.OneTo(3)]
-    return verts′, faces′
 end

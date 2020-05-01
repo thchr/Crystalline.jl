@@ -53,6 +53,7 @@ end
 
 """
     crystal(a)  --> DirectBasis{1}
+    
 Return a one-dimensional crystal with lattice period `a`.
 """
 crystal(a::Real) = DirectBasis(SVector{1,Float64}(1.0))
@@ -71,48 +72,6 @@ function isvalid_sphericaltriangle(α,β,γ)
     check1 = 0 < s < π;                     
     check2 = sin(s-α)*sin(s-β)*sin(s-γ) > 0 
     return check1 && check2 
-end
-
-
-const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor="black", 
-                            markeredgewidth=1.5, markersize=4.5)
-
-function plot(Rs::DirectBasis{D}, 
-              cntr::SVector{D, <:Real}=zeros(SVector{D, Float64}),
-              ax=plt.figure().gca(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
-
-    Rs′ = Rs .+ Ref(cntr) # basis vectors translated by cntr
-    
-    if D == 1
-        ax.plot((cntr[1], Rs′[1]), (0, 0))
-        ax.plot((cntr[1],), (0,); ORIGIN_MARKER_OPTS...) # origin
-
-    elseif D == 2
-        corner = sum(Rs) + cntr
-        for R′ in Rs′
-            ax.plot((cntr[1], R′[1]), (cntr[2], R′[2]); color="black") # basis vectors
-            ax.plot((R′[1], corner[1]), (R′[2], corner[2]); color="grey") # remaining unit cell boundaries
-        end
-        ax.plot((cntr[1],), (cntr[2],); ORIGIN_MARKER_OPTS...) # origin
-    elseif D == 3
-        corners = (Rs[1]+Rs[3], Rs[1]+Rs[2], Rs[2]+Rs[3]) .+ Ref(cntr)
-        dirs = ((-1,1,-1), (-1,-1,1), (1,-1,-1))
-        for R′ in Rs′
-            ax.plot3D((cntr[1], R′[1]), (cntr[2], R′[2]), (cntr[3], R′[3]); color="black") # basis vectors
-        end
-        for (i,R) in enumerate(Rs)
-            for (corner,dir) in zip(corners,dirs) # remaining unit cell boundaries
-                ax.plot3D((corner[1], corner[1]+dir[i]*R[1]), 
-                          (corner[2], corner[2]+dir[i]*R[2]), 
-                          (corner[3], corner[3]+dir[i]*R[3]); color="grey")
-            end
-        end
-        ax.plot3D((cntr[1],), (cntr[2],), (cntr[3],); ORIGIN_MARKER_OPTS...) # origin
-        ax.set_zlabel("z")
-    end
-    ax.set_xlabel("x"); ax.set_ylabel("y")
-    ax.set_aspect("equal", adjustable="box") # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474); TODO: may raise an error in later matplotlib releases
-    return nothing
 end
 
 °(φ::Real) = deg2rad(φ)

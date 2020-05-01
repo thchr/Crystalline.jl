@@ -204,17 +204,21 @@ end
 """
     lattice_from_mpbparams(filepath::String)
 
-This will load an input file with path `filepath` that was previously created 
-by `prepare_mpbcalc(!)` and return the associated lattice as Julia objects.
+This will load an input file with path `filepath` that was previously created by
+`prepare_mpbcalc(!)` and return the associated lattice as Julia objects.
 
 Output:
+```jl
+    Rs::DirectBasis,
+    flat::ModulatedFourierLattice,
+    isoval::Float64,
+    epsin::Float64,
+    epsout::Float64
 ```
-    Rs::DirectBasis, flat::ModulatedFourierLattice, 
-    isoval::Float64, epsin::Float64, epsout::Float64
-```
-Note that `flat` does not retain information about orbit groupings, since we 
-flatten the orbits into a single vector in `lattice2mpb`. This doesn't matter
-as we typically just want to plot the saved lattice (see `plot_lattice_from_mpbparams`).
+
+Note that `flat` does not retain information about orbit groupings, since we flatten the 
+orbits into a single vector in `lattice2mpb`. This doesn't matter as we typically just want
+to plot the saved lattice (see `plot_lattice_from_mpbparams` from `compat/pyplot.jl`).
 """
 function lattice_from_mpbparams(io::IO)
     mark(io) # mark the beginning of stream so we can return to it (otherwise we must assume a fixed order of parameters in input)
@@ -278,9 +282,3 @@ function lattice_from_mpbparams(io::IO)
     return Rs, flat, isoval, epsin, epsout
 end
 lattice_from_mpbparams(filepath::String) = open(filepath) do io; lattice_from_mpbparams(io); end
-
-function plot_lattice_from_mpbparams(filepath::String; kwargs...)
-    Rs, flat, isoval, epsin, epsout = lattice_from_mpbparams(filepath)
-    plot(flat, Rs; isoval=isoval, kwargs...)
-    return nothing
-end
