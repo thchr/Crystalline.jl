@@ -199,11 +199,11 @@ function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
     lowthres = (invlow - 1.0)/(invlow + high - 2.0)
     if rand() < lowthres && low < 1.0   # smaller than 1.0
-        r = rand(Uniform(low,1.0))
+        r = rand(_Uniform(low,1.0))
     elseif high > 1.0                   # bigger than 1.0
-        r = rand(Uniform(1.0,high))
+        r = rand(_Uniform(1.0,high))
     else                                # default
-        return rand(Uniform(low,high))
+        return rand(_Uniform(low,high))
     end
 end
 relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
@@ -243,7 +243,7 @@ function directbasis(sgnum::Integer, D::Integer=3;
             γ = °(120)
         elseif system == "oblique"     # no conditions (free: a,b,γ)
             a = 1.0;    b = relrand(abclims)
-            γ = rand(Uniform(αβγlims...)) 
+            γ = rand(_Uniform(αβγlims...)) 
         else 
             throw(DomainError(system))
         end
@@ -277,15 +277,16 @@ function directbasis(sgnum::Integer, D::Integer=3;
             α = β = γ = °(90)
         elseif system == "monoclinic"   # α=γ=90° (free: a,b,c,β≥90°)
             a = 1.0;            b, c = relrand(abclims, 2)
-            α = γ = °(90);      β = rand(Uniform(°(90), αβγlims[2]))
+            α = γ = °(90);      β = rand(_Uniform(°(90), αβγlims[2]))
             while !isvalid_sphericaltriangle(α,β,γ)  # arbitrary combinations of α,β,γ may not correspond 
-                β = rand(Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
+                β = rand(_Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
             end
         elseif system == "triclinic"    # no conditions (free: a,b,c,α,β,γ)
             a = 1.0;            b, c = relrand(abclims, 2)
-            α, β, γ = rand(Uniform(αβγlims...),3)
-            while !isvalid_sphericaltriangle(α,β,γ)   # arbitrary combinations of α,β,γ may not correspond 
-                α, β, γ = rand(Uniform(αβγlims...),3) # to a valid axis-system; reroll until they do
+            U = _Uniform(αβγlims...)
+            α, β, γ = rand(U), rand(U), rand(U)
+            while !isvalid_sphericaltriangle(α,β,γ) # arbitrary combinations of α,β,γ may not correspond 
+                α, β, γ = rand(U), rand(U), rand(U) # to a valid axis-system; reroll until they do
             end
         else 
             throw(DomainError(system))

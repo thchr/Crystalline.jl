@@ -291,3 +291,17 @@ function ImmutableDict(ps::Pair{K,V}...) where {K,V}
     return d
 end
 ImmutableDict(ps::Pair...) = ImmutableDict(ps)
+
+
+# Distributions.jl provides a nice Uniform distribution type - but it is not worth adding
+# the high compilation-time of Distributions (~7 s) just for that functionality, so we just
+# copy a subset of the methods and the struct here, distinguishing the struct-pirating by an 
+# underscore. We only copy the scalar rand(..) methods (i.e. no array generators).
+struct _Uniform{T<:Real}
+    a::T # low
+    b::T # high (unchecked...)
+end
+_Uniform(a::Real, b::Real) = _Uniform(promote(a, b)...)
+_Uniform(a::Integer, b::Integer) = _Uniform(float(a), float(b))
+rand(u::_Uniform) = rand(Random.GLOBAL_RNG, u)
+rand(rng::Random.AbstractRNG, u::_Uniform) = u.a + (u.b - u.a) * rand(rng)

@@ -2,15 +2,20 @@
                   #       while we're actively developing (increases time of "fresh" compiles)
 
 module SGOps
-# packages
-using LinearAlgebra, StaticArrays,
-      JSON2, DelimitedFiles, JLD2,
-      SmithNormalForm,
-      PrettyTables,
-      CSV,                    # → special_representation_domain_kpoints.jl
-      MetaGraphs, LightGraphs # → compatibility.jl
+
+# dependencies
+using LinearAlgebra
+using StaticArrays
+using JSON2
+using DelimitedFiles
+using JLD2
+using SmithNormalForm
+using PrettyTables
+using CSV                     # → special_representation_domain_kpoints.jl
+using LightGraphs, MetaGraphs # → compatibility.jl
 using Requires
 using Compat
+using Statistics: quantile
 
 import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
              IndexStyle, size, eltype, length,           # ⤶
@@ -18,8 +23,8 @@ import Base: getindex, lastindex, firstindex, setindex!, # → indexing interfac
              readuntil, vec, show,
              +, -, ∘, ==, ImmutableDict
 import LinearAlgebra: inv
-import Statistics: quantile
-import Distributions: Uniform
+import Random                 # → _Uniform in src/utils.jl
+import Random: rand           # ⤶
 
 # included files and exports
 include("constants.jl")
