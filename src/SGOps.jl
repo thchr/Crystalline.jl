@@ -11,7 +11,6 @@ using DelimitedFiles
 using JLD2
 using SmithNormalForm
 using PrettyTables
-using CSV                     # → special_representation_domain_kpoints.jl
 using LightGraphs, MetaGraphs # → compatibility.jl
 using Requires
 using Compat
@@ -95,6 +94,7 @@ export parseisoir, parselittlegroupirreps,
 #= 
 # TODO: The `const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()` call takes 15 s
 #       precompile. It is a fundamentally awful idea to do it this way.
+using CSV                     # → special_representation_domain_kpoints.jl
 include("special_representation_domain_kpoints.jl")
 export ΦnotΩ_kvecs
 =#
