@@ -55,6 +55,8 @@ export SymOperation,                        # types
        vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
        isspinful
 
+include("show.jl") # custom printing for structs defined in src/types.jl
+
 include("notation.jl")
 export schoenflies, hermannmauguin, iuc,
        centering, seitz

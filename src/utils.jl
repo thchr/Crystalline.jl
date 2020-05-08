@@ -37,11 +37,9 @@ function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
     end
     t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
     if !isinteger(t)
-        show(io, abs(numerator(t)))
-        print(io, '/')
-        show(io, denominator(t))
+        print(io, abs(numerator(t)), '/', denominator(t))
     else
-        show(io, abs(numerator(t)))
+        print(io, abs(numerator(t)))
     end
     return nothing
 end
