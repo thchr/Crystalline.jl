@@ -296,6 +296,17 @@ function seitz(op::SymOperation{D}) where D
 end
 seitz(str::String) = seitz(SymOperation(str))
 
+"""
+    rotation_order_3d(detW::Real, trW::Real) --> Int
+    rotation_order_3d(W::Matrix{<:Real}) --> Int
+
+Determine the integer rotation order of a 3D point group operation with a 3×3 matrix 
+representation `W` (alternatively specified by its determinant `detW` and its trace `trW`).
+
+The rotation order of
+- Proper rotations is positive.
+- Improper (mirrors, inversion, roto-inversions) is negative.
+"""
 function rotation_order_3d(detW::Real, trW::Real)
     if detW == 1 # proper rotations
         if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
@@ -324,6 +335,10 @@ function rotation_order_3d(detW::Real, trW::Real)
     end
     
     return rot
+end
+function rotation_order_3d(W::AbstractMatrix{<:Real})
+    size(W) == (3,3) || throw(DomainError(size(W), "Point group operation must be 3×3"))
+    return rotation_order_3d(det(W), tr(W))
 end
 
 _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
