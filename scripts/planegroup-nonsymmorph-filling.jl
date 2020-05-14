@@ -1,4 +1,4 @@
-using SGOps, PyPlot
+using Crystalline, PyPlot
 write_to_file = true
 Nk = 20
 #kvecs = get_kvpath([[0,0], [0.5,0], [0.5,0.5], [0.0,0.5], [0,0]], Nk)
@@ -31,7 +31,7 @@ for (step, filling) in pairs(range(0.2, .8, length=2))
     if false
         id′ = string(id)*"-fill"*string(step)
         for runtype in ("tm", "te")
-            filename = SGOps.mpb_calcname(dim, sgnum, id′, res, runtype)
+            filename = Crystalline.mpb_calcname(dim, sgnum, id′, res, runtype)
             open(write_dir*filename*".sh", "w") do io
                 calcname = prepare_mpbcalc!(io, sgnum, smflat, Rs, filling, epsin, epsout, 
                                             runtype; res=res, kvecs=kvecs, id=id′)

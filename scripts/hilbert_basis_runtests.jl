@@ -1,8 +1,8 @@
-using SGOps
-if !isdefined(Main, :SGOpsHilbertBases)
+using Crystalline
+if !isdefined(Main, :CrystallineHilbertBases)
     include("hilbert_basis.jl")
 end
-using Main.SGOpsHilbertBases
+using Main.CrystallineHilbertBases
 
 test_nontopo = true
 spinful = false
@@ -13,7 +13,7 @@ for sgnum in 1:230
     
     B = collect(transpose(matrix(BRS, true))) # Matrix with columns of EBRs.
     
-    F   = SGOps._smith′(B)      # Smith normal decomposition of B
+    F   = Crystalline._smith′(B)      # Smith normal decomposition of B
     dᵇˢ = count(!iszero, F.SNF) # "Dimensionality" of band structure
     Nⁱʳʳ, Nᴱᴮᴿ = size(B)
 
@@ -41,6 +41,6 @@ for sgnum in 1:230
 
     # Test consistency of bases, if requested
     if test_nontopo
-        SGOpsHilbertBases._test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
+        CrystallineHilbertBases._test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
     end
 end

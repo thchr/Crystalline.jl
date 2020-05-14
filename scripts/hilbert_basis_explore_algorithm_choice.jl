@@ -1,4 +1,4 @@
-using SGOps, PyCall
+using Crystalline, PyCall
 import Base: OneTo
 if !isdefined(Main, :PyNormaliz)
     const PyNormaliz = pyimport("PyNormaliz")
@@ -14,7 +14,7 @@ for sgnum in 1:230
     
     B = collect(transpose(matrix(BRS, true))) # Matrix with columns of EBRs.
 
-    F = SGOps._smith′(B)    
+    F = Crystalline._smith′(B)    
     dᵇˢ = count(!iszero, F.SNF)
 
     if sgnum ∈ (47, 123, 191, 131, 221)

@@ -9,7 +9,7 @@
 # For space group 2, there are 8 high symmetry points kⱼ = (α, β, γ) corresponding to the 
 # combinations of (α, β, γ) = ({0,½}, {0,½}, {0,½}).
 # We find the solution space to these equations by rewriting them as a matrix equation
-using SGOps, LinearAlgebra, Nemo
+using Crystalline, LinearAlgebra, Nemo
 
 Nk = 8
 Nirr = 2*Nk
@@ -33,7 +33,7 @@ end
 # the mapping domain in A: V→W; since A is a matrix this is simply the number of columns of 
 # A]. See e.g. https://core.ac.uk/download/pdf/82343294.pdf regarding the Smith normal form
 # and its application to null spaces.
-F = SGOps._smith′(C) # Smith Normal Form (small wrapper around `SmithNormalForm.smith(..)`)
+F = Crystalline._smith′(C) # Smith Normal Form (small wrapper around `SmithNormalForm.smith(..)`)
 S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
 r = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix = rank(C)
 zidxs  = r+1:length(Λ)
@@ -59,11 +59,11 @@ _, x′ = Nemo.cansolve(basis′ᴺᴱᴹᴼ, basisᴺᴱᴹᴼ) # ... vice vers
 println("Equivalent span check 1: ", basisᴺᴱᴹᴼ*x == basis′ᴺᴱᴹᴼ)
 println("Equivalent span check 2: ", basis′ᴺᴱᴹᴼ*x′ == basisᴺᴱᴹᴼ)
 
-# Now we ought to compare this against the basis obtained from SGOps.wyckbasis(...)
-basis′′ = SGOps.wyckbasis(bandreps(2))[1]'
+# Now we ought to compare this against the basis obtained from Crystalline.wyckbasis(...)
+basis′′ = Crystalline.wyckbasis(bandreps(2))[1]'
 basis′′ᴺᴱᴹᴼ = Nemo.matrix(ZZ, size(basis′′)..., basis′′)
 _, x′′ =  Nemo.cansolve(basisᴺᴱᴹᴼ, basis′′ᴺᴱᴹᴼ)
-println("SGOps span check: ", basisᴺᴱᴹᴼ*x′′ == basis′′ᴺᴱᴹᴼ)
+println("Crystalline span check: ", basisᴺᴱᴹᴼ*x′′ == basis′′ᴺᴱᴹᴼ)
 
 
 # Any valid symmetry indicator vector 𝐧 = [n(Γ⁺), n(Γ⁻), n(X⁺), n(X⁻), ..., n(Z⁺), n(Z⁻)] 

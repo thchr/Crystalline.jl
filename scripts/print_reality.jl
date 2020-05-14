@@ -1,4 +1,4 @@
-using SGOps
+using Crystalline
 
 # print reality induced degeneracy properties of all irreps
 linelen = 60

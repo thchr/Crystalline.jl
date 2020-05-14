@@ -1,11 +1,11 @@
-using JuMP, GLPK, SGOps
+using JuMP, GLPK, Crystalline
 
 # see documentation for JuMP at http://www.juliaopt.org/JuMP.jl/v0.21.1
 sgnum = 230
 BRS = bandreps(sgnum)       # 
 N = length(BRS)             # number of BandReps
 A = matrix(BRS)             # "atomic" basis
-B = SGOps.wyckbasis(BRS)[1] # compat. rel. basis
+B = Crystalline.wyckbasis(BRS)[1] # compat. rel. basis
 
 # pick a symmetry vector out of a hat
 c₀ = zeros(Int64, N)

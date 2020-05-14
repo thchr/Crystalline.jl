@@ -1,4 +1,4 @@
-using SGOps, PyPlot, AbstractPlotting, MAT
+using Crystalline, PyPlot, AbstractPlotting, MAT
 
 # 2D lattices
 if false

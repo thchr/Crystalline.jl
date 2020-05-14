@@ -1,10 +1,10 @@
-using SGOps, Test
+using Crystalline, Test
 
 @testset "Find a point group for every space group" begin
     for D in 1:3
         for sgnum in 1:MAX_SGNUM[D]
             G = spacegroup(sgnum)
-            pg = SGOps.find_parent_pointgroup(G)
+            pg = Crystalline.find_parent_pointgroup(G)
             @test pg !== nothing
         end
     end
@@ -20,7 +20,7 @@ end
             isogonal_G = pointgroup(G)
             # find a matching point group from those stored obtained directly from
             # pointgroup(iuclab, D), via find_parent_pointgroup
-            pg = SGOps.find_parent_pointgroup(G)
+            pg = Crystalline.find_parent_pointgroup(G)
             # compare operator sorting and setting; equivalent in the database
             @test pg == isogonal_G
         end

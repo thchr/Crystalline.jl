@@ -1,9 +1,9 @@
-using SGOps, Test, LinearAlgebra
+using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
     LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
 end
-#SGOps.add_ΦnotΩ_lgirs!.(LGIRS)
+#Crystalline.add_ΦnotΩ_lgirs!.(LGIRS)
 
 @testset "Irrep orthogonality (complex little groups)" begin
 

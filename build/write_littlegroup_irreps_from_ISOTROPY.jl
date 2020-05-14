@@ -1,4 +1,4 @@
-using SGOps, JLD2
+using Crystalline, JLD2
 
 """
     __write_littlegroupirreps(LGIRS::Vector{Vector{NTuple{N,LGIrrep}}})
@@ -31,7 +31,7 @@ function __write_littlegroupirreps(LGIRS)
         Nk = length(lgirsvec) 
 
         # ==== little groups data ====
-        sgops = operations(first(first(lgirsvec)))
+        Crystalline = operations(first(first(lgirsvec)))
         klab_list = Vector{String}(undef, Nk)
         kstr_list = Vector{String}(undef, Nk)
         opsidx_list  = Vector{Vector{Int16}}(undef, Nk) # Int16 because number of ops ≤ 192; ideally, would use UInt8
@@ -39,7 +39,7 @@ function __write_littlegroupirreps(LGIRS)
             lgir = first(lgirs) # 𝐤-info is the same for each LGIrrep in tuple lgirs
             klab_list[kidx] = klabel(lgir)
             kstr_list[kidx] = filter(!isspace, chop(string(kvec(lgir)); head=1, tail=1))
-            opsidx_list[kidx] = map(y->findfirst(==(y), sgops), operations(lgir))
+            opsidx_list[kidx] = map(y->findfirst(==(y), Crystalline), operations(lgir))
         end
     
         # ==== irreps data ====
@@ -55,7 +55,7 @@ function __write_littlegroupirreps(LGIRS)
         
         # ==== save data ====
         # little groups
-        littlegroups_file[string(sgnum)*"/sgops"]       = xyzt.(sgops)
+        littlegroups_file[string(sgnum)*"/Crystalline"]       = xyzt.(Crystalline)
         littlegroups_file[string(sgnum)*"/klab_list"]   = klab_list
         littlegroups_file[string(sgnum)*"/kstr_list"]   = kstr_list
         littlegroups_file[string(sgnum)*"/opsidx_list"] = opsidx_list

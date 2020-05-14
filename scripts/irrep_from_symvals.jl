@@ -3,14 +3,13 @@ using Pkg
 # activate environment of file's folder if not already active
 dirname(Pkg.project().path) == (@__DIR__) || Pkg.activate(@__DIR__)
 
-using SGOps
-import SGOps: DEFAULT_ATOL, rotation, irdim
-using LinearAlgebra, Test, JuMP, GLPK, Nemo
+using Crystalline
+import Crystalline: DEFAULT_ATOL, rotation, irdim
 
-if !isdefined(Main, :SGOpsHilbertBases)
+if !isdefined(Main, :CrystallineHilbertBases)
     include((@__DIR__)*"/hilbert_basis.jl")
 end
-using Main.SGOpsHilbertBases
+using Main.CrystallineHilbertBases
 
 # NOTES TO SELF: SG23 seems to present a challenge: we can find a solution with ν=3, but Lu
 # & Watanabe found that there must be at least 3 tranverse modes. It may be that we need to
@@ -30,7 +29,7 @@ function find_bandrepresentation_lowest_bands(
     lgirs = get_lgirreps_at_Γ(sgnum, Val(3))
     timereversal && (lgirs = realify(lgirs))
     lg = group(first(lgirs))
-    rotvals = map(op->(W=rotation(op); SGOps.rotation_order_3d(det(W), tr(W))), lg)
+    rotvals = map(op->(W=rotation(op); Crystalline.rotation_order_3d(det(W), tr(W))), lg)
 
     # 2T irreps; check if "simple treatment"/fast-path is applicable
     ms²ᵀ = find_zero_freq_gamma_transverse_representation(lgirs)
@@ -97,7 +96,7 @@ function _compatibility_bases_and_Γidxs(sgnum, lgirs, timereversal)
     # Find the indices of the Γ irreps in `BRS::BandRepSet` (and hence in `nsᴴ`), and how  
     # they map to the corresponding irrep indices in `lgirs`
     irlabs_brs = BRS.irreplabs
-    irlabs_lgirs = SGOps.formatirreplabel.(label.(lgirs))
+    irlabs_lgirs = Crystalline.formatirreplabel.(label.(lgirs))
     Γidxs = map(irlab->findfirst(==(irlab), irlabs_brs), irlabs_lgirs)
 
     return nsᴴ, Γidxs
@@ -150,7 +149,7 @@ function zero_freq_gamma_transverse_symvals(ops::AbstractVector{SymOperation{3}}
 
     for (i, op) in enumerate(ops)
         W = rotation(op)
-        rotval = SGOps.rotation_order_3d(det(W), tr(W))
+        rotval = Crystalline.rotation_order_3d(W)
         
         if rotval != -1     # not inversion
             n = abs(rotval) # rotation order 
@@ -204,7 +203,7 @@ function zero_freq_gamma_longitudinal_symvals(ops::AbstractVector{SymOperation{3
     Vector{ComplexF64}(undef, length(ops))
     for (i, op) in enumerate(ops)
         W = rotation(op)
-        rotval = SGOps.rotation_order_3d(det(W), tr(W))  
+        rotval = Crystalline.rotation_order_3d(W)  
         if rotval != -1     # not inversion
             n = abs(rotval) # rotation order 
             isimproper = signbit(rotval)
@@ -231,7 +230,7 @@ function zero_freq_gamma_symvals(ops::AbstractVector{SymOperation{3}})
     symvals = Vector{ComplexF64}(undef, length(ops))
     for (i, op) in enumerate(ops)
         W = rotation(op)
-        rotval = SGOps.rotation_order_3d(det(W), tr(W))
+        rotval = Crystalline.rotation_order_3d(W)
         n = abs(rotval)
         # This covers every case, including rotations, mirrors, rotoinversions, & inversion
         θ = 2π/n

@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 @testset "Band representations" begin
 allpaths = false

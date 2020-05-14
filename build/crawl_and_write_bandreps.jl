@@ -1,4 +1,4 @@
-using SGOps, HTTP
+using Crystalline, HTTP
 import ProgressMeter: @showprogress
 
 # crawling functionality
@@ -49,8 +49,8 @@ function html2dlm(body::String, oplus::Union{String,Char}='⊕')
         r"\<tr\>(.*?)\<\/tr\>" => SubstitutionString("\\1\n"), # rows; newline-separated (requires ugly hack around https://github.com/JuliaLang/julia/issues/27125 to escape \n)
         "<tr>"=>"\n",                           # <tr> tags are not always paired with </tr>; second pass here to remove stragglers
         r"\<td(?:.*?)\>(.*?)\<\/td\>" => SubstitutionString("\\1$(dlm)"), # columns; comma-separated
-        r"\<sup\>(.*?)\<\/sup\>" => x->SGOps.supscriptify(x[6:end-6]), # superscripts (convert to unicode)
-        r"\<sub\>(.*?)\<\/sub\>" => x->SGOps.subscriptify(x[6:end-6]), # subscripts   (convert to unicode)
+        r"\<sup\>(.*?)\<\/sup\>" => x->Crystalline.supscriptify(x[6:end-6]), # superscripts (convert to unicode)
+        r"\<sub\>(.*?)\<\/sub\>" => x->Crystalline.subscriptify(x[6:end-6]), # subscripts   (convert to unicode)
         r"\<i\>(.*?)\<\/i\>"=>s"\1",            # italic annotations
         r"\<center\>(.*?)\<\/center\>"=>s"\1",  # centering annotations
         "<br>"=>"",                             # linebreak tag in html; no </br> tag exists
@@ -85,11 +85,11 @@ end
 
 #=
 # utilities for conversion between different textual/array/struct representations
-html2array(body) = SGOps.dlm2array(html2dlm(body))
+html2array(body) = Crystalline.dlm2array(html2dlm(body))
 
 function html2struct(body::String, sgnum::Integer, allpaths::Bool=false, 
                      spinful::Bool=false, timereversal::Bool=true)
-    SGOps.array2struct(html2array(body), sgnum, allpaths, spinful, timereversal)
+    Crystalline.array2struct(html2array(body), sgnum, allpaths, spinful, timereversal)
 end
 =#
 

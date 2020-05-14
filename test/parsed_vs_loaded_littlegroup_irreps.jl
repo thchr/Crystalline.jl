@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
     LGIRS  = parselittlegroupirreps() # parsed directly from ISOTROPY's files
@@ -24,7 +24,7 @@ end
                 @test isapprox(kvec(lgir), kvec(lgir′))
                 @test all(operations(lgir) .== operations(lgir′))
                 # test that irreps agree
-                for kabc in (nothing, SGOps.TEST_αβγ)
+                for kabc in (nothing, Crystalline.TEST_αβγ)
                     @test irreps(lgir) == irreps(lgir′)
                 end
 

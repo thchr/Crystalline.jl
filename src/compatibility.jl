@@ -1,4 +1,4 @@
-using SGOps
+using Crystalline
 
 """
     subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int64

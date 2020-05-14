@@ -5,7 +5,7 @@ function get_littlegroups(sgnum::Integer, ::Val{D},
                           jldfile::JldOrNothing=nothing) where D
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
-    sgops_str, klabs, kstrs, opsidxs = if isnothing(jldfile)
+    Crystalline_str, klabs, kstrs, opsidxs = if isnothing(jldfile)
         JLD2.jldopen(DATA_PATH_LITTLEGROUPS_3D, "r") do jldfile
              _load_littlegroups_data(sgnum, jldfile)
         end
@@ -13,18 +13,18 @@ function get_littlegroups(sgnum::Integer, ::Val{D},
         _load_littlegroups_data(sgnum, jldfile)
     end
 
-    sgops = SymOperation{D}.(sgops_str)
+    Crystalline = SymOperation{D}.(Crystalline_str)
     Nk = length(klabs)
     lgs = Vector{LittleGroup{D}}(undef, Nk)
     @inbounds for kidx in Base.OneTo(Nk)
         lgs[kidx] = LittleGroup{D}(sgnum, KVec(kstrs[kidx]), klabs[kidx], 
-                                   sgops[opsidxs[kidx]])
+                                   Crystalline[opsidxs[kidx]])
     end
     return lgs
 end
 
 function get_all_littlegroups(::Val{D}) where D
-    JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile
+    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile
         return [get_littlegroups(sgnum, Val(D), lgfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
     end
 end
@@ -68,8 +68,8 @@ function get_lgirreps(sgnum::Integer, D::Integer=3, lgs_jldfile::JldOrNothing=no
 end
 
 function get_all_lgirreps(Dᵛ::Val{D}) where D
-    JLD2.jldopen(SGOps.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
-        JLD2.jldopen(SGOps.DATA_PATH_LGIRREPS_3D,"r") do irfile;
+    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
+        JLD2.jldopen(Crystalline.DATA_PATH_LGIRREPS_3D,"r") do irfile;
             return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]; 
         end
     end
@@ -81,12 +81,12 @@ const DATA_PATH_LITTLEGROUPS_3D = (@__DIR__)*"/../data/lgirreps/3d/littlegroups_
 const DATA_PATH_LGIRREPS_3D = (@__DIR__)*"/../data/lgirreps/3d/irreps_data.jld2"
 function _load_littlegroups_data(sgnum::Integer, jldfile::JLD2.JLDFile)   
     jldgroup = jldfile[string(sgnum)]
-    sgops_str::Vector{String}      = jldgroup["sgops"]
+    Crystalline_str::Vector{String}      = jldgroup["Crystalline"]
     klabs::Vector{String}          = jldgroup["klab_list"]
     kstrs::Vector{String}          = jldgroup["kstr_list"]
     opsidxs::Vector{Vector{Int16}} = jldgroup["opsidx_list"]
 
-    return sgops_str, klabs, kstrs, opsidxs
+    return Crystalline_str, klabs, kstrs, opsidxs
 end
 
 function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
@@ -135,7 +135,7 @@ chartable(kv::KVec, sgnum::Integer, D::Integer=3, αβγ=nothing) =
 # rather sporadically and seemed quite buggy (though it was faster, since
 # we didn't have to open the file every time we wanted to read from it (which,
 # apparently, is quite expensive in JLD and JLD2))
-# we want to keep the irrep files open whenever SGOps is brought into play
+# we want to keep the irrep files open whenever Crystalline is brought into play
 # otherwise, we have to pay a large price to locate it etc.
 #= 
    const IRREPS_DATA_FILE_3D = JLD2.jldopen((@__DIR__)*"/../data/lgirreps/3d/irreps_data.jld2", "r")

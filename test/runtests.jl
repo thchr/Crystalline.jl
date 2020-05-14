@@ -1,6 +1,6 @@
-using SGOps, Test
+using Crystalline, Test
 
-@testset "SGOps" begin
+@testset "Crystalline" begin
     # basic symmetry operations
     include("basisvecs.jl")
     include("symops.jl")

@@ -279,7 +279,7 @@ end
 
 const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
 @inline function is_erroneous_lgir(sgnum::Integer, irlab::String, D::Integer=3)
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
+    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
     @simd for ps in ERRONEOUS_LGIRS
         (ps[1]==sgnum && ps[2]==irlab) && return true
     end 
@@ -313,7 +313,7 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
     #       Thus, we should remove this method (here and from other callers), update and
     #       commit the new datasets and then finally regenerate/refresh our own saved format
     #       of the irreps (from build/write_littlegroup_irreps_from_ISOTROPY.jl)
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
+    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
     if sgnum == 214
         CP  = cis(π/12)/√2   # C*P       ≈ 0.683013 + 0.183013im
         CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im
@@ -406,7 +406,7 @@ end
 # already included in ISOTROPY.
 #=
 function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
+    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
 
     sgnum = num(first(first(lgirvec)))
 

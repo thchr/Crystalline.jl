@@ -85,9 +85,9 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) wh
 
     # prepare
     sg = spacegroup(sgnum, Dᵛ)
-    sgops = operations(sg)
-    Ws = rotation.(sgops) # operations W in R-basis (point group part)
-    ws = translation.(sgops)
+    Crystalline = operations(sg)
+    Ws = rotation.(Crystalline) # operations W in R-basis (point group part)
+    ws = translation.(Crystalline)
 
     # We define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
     # calculating the operators (W⁻¹)ᵀ in the 𝐆-basis:

@@ -1,4 +1,4 @@
-using SGOps, LinearAlgebra, Test
+using Crystalline, LinearAlgebra, Test
 
 sgnum = 214
 kv = KVec([0.5,0.5,0.5])
@@ -56,7 +56,7 @@ while true
         for col =  1:Nₒₚ
             newop = ops[row]∘ops[col]
             # only want to include elements that don't include trivial primitive translations
-            if SGOps.conventionalize(primitivize(newop, cntr), cntr) != newop; continue; end 
+            if Crystalline.conventionalize(primitivize(newop, cntr), cntr) != newop; continue; end 
             # create new irrep from multiplication properties of group elements
             if newop ∉ ops # only add if not already created
                 push!(ops, newop)
@@ -88,7 +88,7 @@ lgir = LGIrrep(sgnum, "P"*string(iridx), kv, ops, irs, [zeros(3) for _=1:length(
 
 # check multiplication table (operator and irreps)
 mt_ops = multtable(primitive_ops)
-mt_irs = SGOps.checkmulttable(mt_ops, lgir)
+mt_irs = Crystalline.checkmulttable(mt_ops, lgir)
 println("Irrep mult-table check: ", sum(mt_irs), "/", prod(size(mt_irs)), '\n')
 
 # check great orthogonality theorem

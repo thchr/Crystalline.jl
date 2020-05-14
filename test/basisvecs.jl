@@ -1,4 +1,4 @@
-using SGOps, Test, LinearAlgebra
+using Crystalline, Test, LinearAlgebra
 
 @testset "Basis vectors" begin
     @testset "Conventional bases" begin

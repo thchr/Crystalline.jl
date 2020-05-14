@@ -1,4 +1,4 @@
-using SGOps
+using Crystalline
 using LightGraphs, MetaGraphs
 # Add these packages to your active environment before running, if necessary
 using Colors, GraphPlot, Compose
@@ -83,7 +83,7 @@ function plot_connectivity(lgirvec)
     D     = dim(first(first(lgirvec)))
     Nk    = length(lgirvec)
 
-    cgraph, kgraph = SGOps.connectivity(lgirvec)
+    cgraph, kgraph = Crystalline.connectivity(lgirvec)
     #posx, posy = proper_shell_layout(kgraph, [(1:Nk)[special], (1:Nk)[map(!, special)]])
     nodesize = [1+outdegree(cgraph, v)+indegree(cgraph, v) for v in collect(vertices(cgraph))]
     pg = gplot(cgraph, 

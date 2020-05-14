@@ -144,7 +144,7 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
     # It seems more appropriate to let a user bother with that, and instead give some
     # way to extract the isosurface's verts and faces. Makie can then plot it with
     #     using Makie
-    #     verts′, faces′ = SGOps.mesh_3d_levelsetlattice(flat, isoval, Rs)
+    #     verts′, faces′ = Crystalline.mesh_3d_levelsetlattice(flat, isoval, Rs)
     #     isomesh = convert_arguments(Mesh, verts′, faces′)[1]
     #     scene = Scene()
     #     mesh!(isomesh, color=:grey)

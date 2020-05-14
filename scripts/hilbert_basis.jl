@@ -1,6 +1,6 @@
-module SGOpsHilbertBases
+module CrystallineHilbertBases
 
-using SGOps, PyCall, SmithNormalForm, Test, JuMP, GLPK
+using Crystalline, PyCall, SmithNormalForm, Test, JuMP, GLPK
 import Base: OneTo
 export compatibility_bases, nontopological_bases, split_fragiletrivial_bases
 
@@ -82,7 +82,7 @@ for f in (:compatibility_bases, :nontopological_bases)
                                     timereversal::Bool=true)
             BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
             B   = collect(transpose(matrix(BRS, true))) # Matrix with columns of EBRs.
-            F   = SGOps._smith′(B)                # Smith normal decomposition of B
+            F   = Crystalline._smith′(B)                # Smith normal decomposition of B
 
             return $f(F, algorithm=algorithm)..., BRS
         end

@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
     LGIRS = parselittlegroupirreps()

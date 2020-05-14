@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
     LGIRS = get_all_lgirreps(Val(3))  # loaded from our saved .jld2 files
@@ -28,7 +28,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
         end
         klabs_ISO[kidx] = klabel(first(lgirs))
     end
-    irlabs_ISO = SGOps.formatirreplabel.(irlabs_ISO)
+    irlabs_ISO = Crystalline.formatirreplabel.(irlabs_ISO)
 
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)

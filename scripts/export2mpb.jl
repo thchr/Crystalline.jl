@@ -1,4 +1,4 @@
-using SGOps
+using Crystalline
 write_to_file = false
 Nk = 20
 kvecs = get_kvpath([[0,0], [0.5,0], [0.5,0.5], [0,0]], Nk)
@@ -18,7 +18,7 @@ id = 1
 
 if write_to_file
     write_dir = (@__DIR__)*"/../../mpb-ctl/input/"
-    filename = SGOps.mpb_calcname(D, sgnum, id, res, runtype)
+    filename = Crystalline.mpb_calcname(D, sgnum, id, res, runtype)
     open(write_dir*filename*".sh", "w") do io
         prepare_mpbcalc!(io, sgnum, mflat, Rs, filling, epsin, epsout, runtype;
                              res=res, kvecs=kvecs, id=id)

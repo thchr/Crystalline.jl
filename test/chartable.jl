@@ -1,4 +1,4 @@
-using SGOps, Test, LinearAlgebra
+using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS′)
     LGIRS = get_all_lgirreps(Val(3))  # loaded from our saved .jld2 files

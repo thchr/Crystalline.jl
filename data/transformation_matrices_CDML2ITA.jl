@@ -16,7 +16,7 @@
 # that they are not forced-primitive, as in B&C) the transformation is 
 # trivial and we do not give one.
 
-_unpack(pair::Pair{Int64,<:SymOperation}) = pair[1] => copy.(SGOps.unpack(pair[2]))
+_unpack(pair::Pair{Int64,<:SymOperation}) = pair[1] => copy.(Crystalline.unpack(pair[2]))
 const TRANSFORMS_CDML2ITA = Base.ImmutableDict(_unpack.([
     3:15   .=> Ref(SymOperation{3}("z,x,y"))
     38:41  .=> Ref(SymOperation{3}("-z,y,x"))

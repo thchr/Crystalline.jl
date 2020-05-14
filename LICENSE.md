@@ -1,4 +1,4 @@
-SGOps is licenced under the MIT License:
+Crystalline.jl is licenced under the MIT License:
 
 > The MIT License (MIT)
 > 
@@ -22,7 +22,7 @@ SGOps is licenced under the MIT License:
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
 
-SGOps includes data and tables sourced from the following distinct and unaffiliated projects:
+Crystalline.jl includes data and tables sourced from the following distinct and unaffiliated projects:
 
 - [Bilbao crystallographic database](https://www.cryst.ehu.es/): plane and space groups, 2D and 3D crystallographic point groups, and 3D band representations.
 - [ISOTROPY](https://stokes.byu.edu/iso/irtables.php): 3D little group irreps.

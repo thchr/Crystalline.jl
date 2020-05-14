@@ -5,5 +5,5 @@ for sgnum = 1:230
     display(BRS); 
     #display(smith(matrix(BRS)).SNF)
     display(classification(BRS))
-    #display(SGOps.humanreadable.(SGOps.reps(BRS)))
+    #display(Crystalline.humanreadable.(Crystalline.reps(BRS)))
 end

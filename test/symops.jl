@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 @testset "Symmetry operations, Bilbao" begin
     @testset "Space group #1" begin

@@ -1,4 +1,4 @@
-using SGOps, HTTP, Gumbo, JLD2
+using Crystalline, HTTP, Gumbo, JLD2
 
 const BILBAO_PG_URL_BASE = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl?tipogrupo=spg&pointspace=point&"
 
@@ -17,7 +17,7 @@ function findfirst_matching_parent_sgnum(pgiuc::String)
     # shared between 1D/2D and 3D, unfortunately (e.g. "m"))
     for sgnum in 1:MAX_SGNUM[3]
         sg = spacegroup(sgnum, Val(3))
-        pg = SGOps.find_parent_pointgroup(sg)
+        pg = Crystalline.find_parent_pointgroup(sg)
         label(pg) == pgiuc && return sgnum, num(pg) # return parent_sgnum, pgnum
     end
     throw(DomainError(pgiuc, "requested label cannot be found"))
@@ -35,8 +35,8 @@ if !isdefined(@__MODULE__,:PGS_HTML_REPLACEMENTS)
     const PGS_HTML_REPLACEMENTS = (
         r"<font style=\\\"text-decoration: overline;\\\">(.*?)</font>"=>s"-\1",
                                                                 # ↑ overbar ⇒ minus sign
-        r"<sub>(.*)</sub>"=>x->SGOps.subscriptify(x[6:end-6]),  # subscripts
-        r"<sup>(.*)</sup>"=>x->SGOps.supscriptify(x[6:end-6]),  # superscripts
+        r"<sub>(.*)</sub>"=>x->Crystalline.subscriptify(x[6:end-6]),  # subscripts
+        r"<sup>(.*)</sup>"=>x->Crystalline.supscriptify(x[6:end-6]),  # superscripts
     )
 end
 
@@ -101,7 +101,7 @@ function crawl_pgirs(pgiuc::String, D::Integer=3; consistency_checks::Bool=true)
     pgops_matrices = [collect(reshape(parse.(Int, strs), (3,3))') for strs in pgops_strs]
     pgops     = SymOperation{3}.(hcat.(pgops_matrices, Ref(zeros(Int, 3))))
     # build point group PointGroup{3} from extracted pgops
-    pgnum = SGOps.pointgroup_iuc2num(pgiuc, 3)
+    pgnum = Crystalline.pointgroup_iuc2num(pgiuc, 3)
     pg = PointGroup{3}(pgnum, pgiuc, pgops) # note that sorting matches pointgroup(...)
     if consistency_checks
         # test that pgops match results from pointgroup(pgiuc, 3), incl. matching sorting
@@ -182,7 +182,7 @@ function __crawl_and_write_3d_pgirreps()
             # we do not save the point group operations anew; they are already stored in 
             # "data/pgops/..."; note that we explicitly checked the sorting and equivalence 
             # of operations when pgirs was crawled above (cf. flag `consistency_checks=true`)
-            unmangled_pgiuc = SGOps.unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
+            unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
             irreps_file[unmangled_pgiuc*"/matrices"] = matrices
             irreps_file[unmangled_pgiuc*"/types"] = types
             irreps_file[unmangled_pgiuc*"/cdmls"] = cdmls
