@@ -542,12 +542,12 @@ function _find_arithmetic_partner(sg::SpaceGroup)
         end 
         for idx′ in Iterators.flatten((idx₀-1:-1:1, idx₀:N_arith_crys_class))
             sgnum′ = SYMMORPH_SGNUMS[D][idx′]
-            # We have to take the `pointgroup(...)` operation here even though `Crystalline′` 
+            # We have to take the `pointgroup(...)` operation here even though `sgops` 
             # is symmorphic, because the `SymOperation`s are in a conventional basis 
             # and may contain contain trivial primitive translations if `cntr′ ≠ 'P'`
-            Crystalline′ = sort(pointgroup(spacegroup(sgnum′, D)), by=xyzt)
-            if (length(Crystalline′) == N_pgops &&
-                all(Crystalline′ .== pgops_sorted) && # ... this assumes the coordinate setting
+            sgops′ = sort(pointgroup(spacegroup(sgnum′, D)), by=xyzt)
+            if (length(sgops′) == N_pgops &&
+                all(sgops′ .== pgops_sorted) && # ... this assumes the coordinate setting
                                                 # is the same between sg and sg′ (not
                                                 # generally valid; but seems to work here,
                                                 # probably because the setting is shared

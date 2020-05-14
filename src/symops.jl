@@ -1,22 +1,22 @@
 """ 
-    read_Crystalline_xyzt(sgnum::Integer, dim::Integer=3)
+    read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 
 Obtains the symmetry operations in xyzt format for a given space group
 number `sgnum` by reading from json files; see `spacegroup` for additional
 details. Much faster than crawling; generally preferred.
 """
-function read_Crystalline_xyzt(sgnum::Integer, D::Integer=3)
+function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
     D ∉ (1,2,3) && _throw_invaliddim(D)
     if sgnum < 1 || D == 3 && sgnum > 230 || D == 2 && sgnum > 17 || D == 1 && sgnum > 2
         throw(DomainError(sgnum, "sgnum must be in range 1:2 in 1D, 1:17 in 2D, and in 1:230 in 3D")) 
     end
 
-    filepath = (@__DIR__)*"/../data/Crystalline/"*string(D)*"d/"*string(sgnum)*".json"
-    Crystalline_str::Vector{String} = open(filepath) do io
+    filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".json"
+    sgops_str::Vector{String} = open(filepath) do io
         JSON2.read(io)
     end
 
-    return Crystalline_str
+    return sgops_str
 end
 
 """ 
@@ -38,10 +38,10 @@ The default choices for basis vectors are specified in Bilbao as:
     choices, within the orthorhombic, tetragonal and cubic systems.
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
-    Crystalline_str = read_Crystalline_xyzt(sgnum, D)
-    Crystalline = SymOperation{D}.(Crystalline_str)
+    sgops_str = read_sgops_xyzt(sgnum, D)
+    sgops = SymOperation{D}.(sgops_str)
 
-    return SpaceGroup{D}(sgnum, Crystalline)
+    return SpaceGroup{D}(sgnum, sgops)
 end
 @inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 

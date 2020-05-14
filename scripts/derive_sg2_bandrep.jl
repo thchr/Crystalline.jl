@@ -63,7 +63,7 @@ println("Equivalent span check 2: ", basis′ᴺᴱᴹᴼ*x′ == basisᴺᴱᴹ
 basis′′ = Crystalline.wyckbasis(bandreps(2))[1]'
 basis′′ᴺᴱᴹᴼ = Nemo.matrix(ZZ, size(basis′′)..., basis′′)
 _, x′′ =  Nemo.cansolve(basisᴺᴱᴹᴼ, basis′′ᴺᴱᴹᴼ)
-println("Crystalline span check: ", basisᴺᴱᴹᴼ*x′′ == basis′′ᴺᴱᴹᴼ)
+println("Crystalline.jl span check: ", basisᴺᴱᴹᴼ*x′′ == basis′′ᴺᴱᴹᴼ)
 
 
 # Any valid symmetry indicator vector 𝐧 = [n(Γ⁺), n(Γ⁻), n(X⁺), n(X⁻), ..., n(Z⁺), n(Z⁻)] 

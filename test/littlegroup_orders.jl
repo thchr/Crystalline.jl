@@ -11,8 +11,8 @@ for sgnum = 1:230
     cntr = centering(sgnum, 3)  
     # the "macroscopic" order is defined simply as the length of the 
     # point group associated with the space group
-    Crystalline = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
-    order_macroscopic = length(pointgroup(Crystalline))
+    sgops = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
+    order_macroscopic = length(pointgroup(sgops))
     
     for kidx = 1:length(LGIRS[sgnum])
         kv = kvec(first(LGIRS[sgnum][kidx]))
@@ -21,7 +21,7 @@ for sgnum = 1:230
             lgir = LGIRS[sgnum][kidx][iridx]
             
             # number of k-vectors in the star of k
-            order_kstar = length(kstar(Crystalline, kv, cntr)) 
+            order_kstar = length(kstar(sgops, kv, cntr)) 
             # number of operations in the little group of k
             order_pointgroupofk = length(pointgroup(operations(lgir)))
 
@@ -40,15 +40,15 @@ end
 
 @testset "Macroscopic order, Bilbao vs. ISOTROPY" begin
     for sgnum = 1:230
-        Crystalline_bilbao = operations(spacegroup(sgnum, 3))         # from crawling Bilbao
-        Crystalline_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
+        sgops_bilbao = operations(spacegroup(sgnum, 3))         # from crawling Bilbao
+        sgops_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
 
         # note that we don't have to worry about whether the operations 
         # are represented in conventional or primitive bases, and whether 
         # there are "repeated translation sets" in the former; taking the 
         # point group automatically removes such sets
-        order_macroscopic_bilbao = length(pointgroup(Crystalline_bilbao))
-        order_macroscopic_isotropy = length(pointgroup(Crystalline_isotropy))
+        order_macroscopic_bilbao = length(pointgroup(sgops_bilbao))
+        order_macroscopic_isotropy = length(pointgroup(sgops_isotropy))
 
         @test order_macroscopic_bilbao == order_macroscopic_isotropy
     end   

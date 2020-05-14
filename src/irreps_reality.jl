@@ -38,7 +38,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Nops = order(lg) # order of little group (= number of operations)
 
     cntr = centering(sgnum, D)
-    Crystalline = operations(spacegroup(sgnum, D))
+    sgops = operations(spacegroup(sgnum, D))
 
     verbose && print(klabel(lg), " │ ")
 
@@ -56,7 +56,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     # ║   There can then only be type 'x' degeneracy (between 𝐤 and -𝐤)
     # ║   but TR will not change the degeneracy at 𝐤 itself. Cornwall
     # ║   refers to this as "Case (1)" on p. 151.
-    if !isapproxin(-kv, kstar(Crystalline, kv, cntr), cntr; atol=DEFAULT_ATOL)
+    if !isapproxin(-kv, kstar(sgops, kv, cntr), cntr; atol=DEFAULT_ATOL)
         corep_idxs = [[i] for i in Base.OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
         verbose && println(klabel(lg), "ᵢ ∀i (type x) ⇒  no additional degeneracy (star{k} ∌ -k)")
 
@@ -65,11 +65,11 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         k_equiv_kv₋ = isapprox(-kv, kv, cntr; atol=DEFAULT_ATOL)
 
         # Find an element in G that takes 𝐤 → -𝐤 (if 𝐤 is equivalent to -𝐤, 
-        # then this is just the unit-element I (if `Crystalline` is sorted conven-
+        # then this is just the unit-element I (if `sgops` is sorted conven-
         # tionally, with I first, this is indeed what the `findfirst(...)`  
         # bits below will find)
         if !k_equiv_kv₋
-            g₋ = Crystalline[findfirst(g-> isapprox(g∘kv, -kv, cntr; atol=DEFAULT_ATOL), Crystalline)]
+            g₋ = sgops[findfirst(g-> isapprox(g∘kv, -kv, cntr; atol=DEFAULT_ATOL), sgops)]
         else
             # This is a bit silly: if k_equiv_kv₋ = true, we will never use g₋; but I'm not sure if 
             # the compiler will figure that out, or if it will needlessly guard against missing g₋?
@@ -212,7 +212,7 @@ end
 
 
 """
-    herring(lgir::LGIrrep, Crystalline::AbstractVector{SymOperation{D}},
+    herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}},
             αβγ::Union{Vector{<:Real},Nothing}=nothing)        --> Tuple{Int, Int}
 
 Computes the Herring criterion for a small irrep `lgir::LGIrrep`, from 
@@ -226,7 +226,7 @@ The returned value, [∑ χ({β|b}²)]/[g₀/M(k)], is one of three integers in 
 corresponding to {real, pseudoreal, complex} reality. We remind that ISOTROPY's indication
 of the same reality types i {1,2,3}.
 
-The provided space group operations `Crystalline` **must** be the set reduced by primitive
+The provided space group operations `sgops` **must** be the set reduced by primitive
 translation vectors; i.e. using `spacegroup(...)` directly is **not** allowable in general
 (since the irreps we reference only include these "reduced" operations). This reduced set
 of operations can be obtained e.g. from the Γ point irreps of ISOTROPY's dataset, or
@@ -241,7 +241,7 @@ See e.g. Inui's Eq. (13.48), Dresselhaus, p. 618, and
 and Herring's original paper at https://doi.org/10.1103/PhysRev.52.361.
 We mainly followed Cornwell, p. 150-152 & 187-188.
 """
-function herring(lgir::LGIrrep, Crystalline::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
+function herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
     iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
     lgops = operations(lgir)
     kv = kvec(lgir)
@@ -251,7 +251,7 @@ function herring(lgir::LGIrrep, Crystalline::AbstractVector{SymOperation{D}}, α
     kv_αβγ = kv(αβγ)
 
     s = zero(ComplexF64)
-    for op in Crystalline
+    for op in sgops
         if isapprox(op∘kv, kv₋, cntr, atol=DEFAULT_ATOL) # check if op∘k == -k; if so, include in sum
             op² = compose(op, op, false) # this is op∘op, _including_ trivial lattice translation parts
             # find the equivalent of `op²` in `lgops`; this may differ by a number of 
@@ -265,7 +265,7 @@ function herring(lgir::LGIrrep, Crystalline::AbstractVector{SymOperation{D}}, α
         end
     end
 
-    pgops = pointgroup(Crystalline) # point group assoc. w/ space group
+    pgops = pointgroup(sgops) # point group assoc. w/ space group
     g₀ = length(pgops) # order of pgops (denoted h, or macroscopic order, in Bradley & Cracknell)
     Mk = length(kstar(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
     normalization = round(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
