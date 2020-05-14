@@ -133,7 +133,7 @@ function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
 end
 function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
     # TODO: This kind of show extension is bad style, afaik...
-    println(io, "$T: #", num(first(plgirs)), "/", label(group(first(plgirs))))
+    println(io, "$T: #", num(first(plgirs)), " (", label(group(first(plgirs))), ")")
     Nᵢᵣ = length(plgirs)
     for (i,plgir) in enumerate(plgirs)
         show(io, "text/plain", plgir)
