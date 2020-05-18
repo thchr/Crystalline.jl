@@ -116,13 +116,13 @@ end
 """
     classification(BRS::BandRepSet) --> String
 
-Calculate the symmetry indicator classification of a band representation 
-set, meaning the index-classification inferrable on the basis of symmetry
-alone.
+Calculate the symmetry indicator classification of a band representation set, meaning the 
+index-classification inferrable on the basis of symmetry alone.
 
-Technically, the calculation answers a question like "what direct product 
-of Zₙ groups is the the quotient group Xᵇˢ = {BS}/{AI} isomorphic to?".
-See Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017).
+Technically, the calculation answers a question like "what direct product of ``Zₙ`` groups
+is the the quotient group ``Xᵇˢ = {BS}/{AI}`` isomorphic to?". 
+
+See e.g. Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017) for more information.
 """
 function classification(BRS::BandRepSet)
     Λ = smith(matrix(BRS)).SNF # get the diagonal components of the Smith normal decomposition
@@ -138,11 +138,10 @@ end
 """
     basisdim(BRS::BandRepSet) --> Int64
 
-Computes the dimension of the (linearly independent parts) of a 
-band representation set. This is dᵇˢ = dᵃⁱ in the notation of 
-Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017). In other words,
-this is the number of linearly independent basis vectors that span the 
-expansions of a band structure or atomic insulator viewed as symmetry-data.
+Computes the dimension of the (linearly independent parts) of a band representation set.
+This is ``dᵇˢ = dᵃⁱ`` in the notation of Po, Watanabe, & Vishwanath, Nature Commun. 8, 50
+(2017). In other words, this is the number of linearly independent basis vectors that span
+the expansions of a band structure or atomic insulator viewed as symmetry-data.
 """ 
 function basisdim(BRS::BandRepSet)
     Λ = smith(matrix(BRS)).SNF
@@ -210,62 +209,62 @@ Conversely, bands that cannot are topological, either fragily (some
 negative coefficients) or strongly (fractional coefficients).
 """
 function wyckbasis(BRS::BandRepSet) 
-    # Compute Smith normal form: for an n×m matrix A with integer elements,
+    # Compute Smith normal form: for an n×m matrix B with integer elements,
     # find matrices S, diagm(Λ), and T (of size n×n, n×m, and m×m, respectively)
-    # with integer elements such that A = S*diagm(Λ)*T. Λ is a vector
+    # with integer elements such that B = S*diagm(Λ)*T. Λ is a vector
     # [λ₁, λ₂, ..., λᵣ, 0, 0, ..., 0] with λⱼ₊₁ divisible by λⱼ and r ≤ min(n,m).
     # The matrices T and S have integer-valued pseudo-inverses.
     F = _smith′(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
-    S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
-    
+    S, S⁻¹, Λ = F.S, F.Sinv, F.SNF
+    #T, T⁻¹ = F.T, F.Tinv,
+
     nnz = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
     nzidxs = Base.OneTo(nnz)
 
-    # If we apply T⁻¹ to a given set of (integer) symmetry data 𝐧, the result 
-    # should be  the (integer) factors qᵢCᵢ (Cᵢ=Λᵢ here) discussed in Tang, Po,
-    # [...], Nature Physics 15, 470 (2019). Conversely, the rows of T gives an integer-
-    # coefficient basis for all gapped band structures, while the rows of diagm(Λ)*T  
+    # If we apply S⁻¹ to a given set of (integer) symmetry data 𝐧, the result 
+    # should be the (integer) factors qᵢCᵢ (Cᵢ=Λᵢ here) discussed in Tang, Po,
+    # [...], Nature Physics 15, 470 (2019). Conversely, the rows of S gives an integer-
+    # coefficient basis for all gapped band structures, while the rows of S*diagm(Λ)
     # generates all atomic insulator band structures (assuming integer coefficients).
-    # TODO: Verify this and check your notes from meetings with Adrian Po.
     # See also your notes in scripts/derive_sg2_bandrep.jl
-    return T[nzidxs, :], diagm(F)[:,nzidxs], T⁻¹[nzidxs, :]
+    return S[:, nzidxs], diagm(F)[:,nzidxs], S⁻¹[:, nzidxs]
 end
 # ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 # ==============================   Some context   ==============================
-# The thing to remember here is that if A ≡ matrix(BRS), then A is in general a 
+# The thing to remember here is that if B ≡ matrix(BRS), then B is in general a 
 # linearly dependent basis for all atomic insulators. Suppose the symmetry data 
 # vector is 𝐧, then this means that there exists a coefficient vector ("into" the
-# rows of A) 𝐜, such that Aᵀ𝐜 = 𝐧, where 𝐜 has strictly positive integer coefficients 
+# cols of B) 𝐜, such that B𝐜 = 𝐧, where 𝐜 has strictly positive integer coefficients 
 # (corresponding to "stacking" of atomic bands). To get a linearly independent basis,
-# we seek the column space of A: this generates all possible 𝐧; the price we pay, 
-# though, is that in general the column space of A would also allow negative 
+# we seek the column space of B: this generates all possible 𝐧; the price we pay, 
+# though, is that in general the column space of B would also allow negative 
 # coefficients ("subtraction" of atomic bands). We could of course just get the 
 # column space from the SVD, but that would give us non-integral coefficients in 
 # general. Instead, we can use the Smith normal form noted above. Specifically,
-# the column space of A is T[:,1:r] with r number of nonzero λⱼ. This column 
+# the column space of B is S[:,1:r] with r number of nonzero λⱼ. This column 
 # space in fact generates both all atomic insulators and all fragile topological 
-# insulators (effectively, additions and subtractions of rows of A).
-# The trouble with distinguishing fragile and atomic insulators is that the rows of 
-# A are linearly dependent; and the span of A obtained from T[:,1:r] may already 
+# insulators (effectively, additions and subtractions of columns of B).
+# The trouble with distinguishing fragile and atomic insulators is that the columns of 
+# B are linearly dependent; and the span of B obtained from B[:,1:r] may already 
 # have included several subtractions. What we want to know is whether, for given 
-# 𝐧, there a positive-integer coefficient solution exists to Aᵀ𝐜 = 𝐧 or not: if we
+# 𝐧, there exists a positive-integer coefficient solution to B𝐜 = 𝐧 or not: if we
 # just find *some* negative-integer coefficient solution, then that doesn't mean
 # that there couldn't also be a positive-integer coefficient solution as well, simply
-# because the rows of A are linearly dependent.
-# One approach could be to find some solution 𝐜′, such that Aᵀ𝐜′=𝐧, which may contain
+# because the columns of B are linearly dependent.
+# One approach could be to find some solution 𝐜′, such that B𝐜′=𝐧, which may contain
 # negative coefficients. From this particular solution, we can generate all possible
-# solutions by adding elements from the null space A to 𝐜′: if we can identify an 
+# solutions by adding elements from the null space B to 𝐜′: if we can identify an 
 # element from the null space to add into 𝐜′ such that the result is positive, 
 # we have found solution (= an atomic insulator).
 # ==============================================================================
 # In searching on this topic, I came across the following KEY WORDS:
-#   - Linear system of Diophantine equations: any system Aᵀx=b with integer Aᵀ and b.
+#   - Linear system of Diophantine equations: any system Ax=b with integer A and b.
 #       See e.g. https://en.wikipedia.org/wiki/Diophantine_equation#Linear_Diophantine
 #   - Integer linear programming: concerned with solving integer-coefficient equations
 #       subject to conditions. We might phrase our problem as a "standard form linear
 #       programming" problem:
 #           minimize    𝐭ᵀ𝐜
-#           subject to  Aᵀ𝐜 = 𝐧
+#           subject to  B𝐜 = 𝐧
 #                       cᵢ ≥ 0
 #                       𝐜 ∈ 𝐙ⁿ
 #       where we would choose 𝐭 = (1,1,1,1, ...) with the idea of finding the solution
@@ -276,7 +275,8 @@ end
 #       It seems like this can be done in JuMP with GLPKSolverLP(). (or via GLPK.jl)
 #   - Semirings: technically, the problem is that the set of natural numbers ℕ = 0,1,...
 #       is not a ring, but a semiring (no additive inverse). There may be some packages
-#       out there that deal specifically with semirings?
+#       out there that deal specifically with semirings? Actually, since it has an identity
+#       element under addition (0) it is a monoid.
 #   - The monoid paper from Bernevig: https://arxiv.org/pdf/1905.03262.pdf
 #       This actually seems to be a very worthwhile starting point; they're attacking 
 #       exactly this point.

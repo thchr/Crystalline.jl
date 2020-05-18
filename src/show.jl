@@ -308,14 +308,96 @@ end
 
 # --- BandRepSet ---
 function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
-    Nirreps = length(irreplabels(BRS))
-    println(io, "BandRepSet (#$(num(BRS))):")
-    println(io, "k-vecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")):")
-    for (lab,kv) in zip(klabels(BRS), kvecs(BRS))
-        print(io,"   ", lab, ": "); show(io, "text/plain", kv); println(io)
+    Nⁱʳʳ = length(irreplabels(BRS))
+    Nᵉᵇʳ = length(BRS)
+
+    # print a "title" line and the irrep labels
+    println(io, "BandRepSet (#$(num(BRS))):",
+                " $(length(BRS)) BandReps", 
+                " sampling $(Nⁱʳʳ) LGIrreps",
+                " (spin-", isspinful(BRS) ? "½" : "1", " " ,
+                istimeinvar(BRS) ? "w/" : "w/o", " TR)") 
+
+    # print band representations as table
+    
+    k_idx  = (i) -> findfirst(==(klabel(BRS.irreplabs[i])), BRS.klabs) # row highlighters
+    h_odd  = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)),
+                         crayon"light_blue")
+    h_ν    = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,
+                         crayon"light_yellow")
+    pretty_table(io, 
+        # table contents
+        matrix(BRS, true),
+        # header
+        chop.(label.(BRS), tail=2); # get rid of the repeating "↑G" part
+        # row names
+        row_names = vcat(irreplabels(BRS), "ν"),
+        # options/formatting/styling
+        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
+        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
+        row_name_alignment = :l,
+        alignment = :c, 
+        highlighters = (h_odd, h_ν), 
+        header_crayon = crayon"bold"
+        )
+
+    # print k-vec labels
+    print(io, "  KVecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")): ")
+    join(io, klabels(BRS), ", ")
+    
+    # EARLIER MANUAL LAYOUTS: DISCONTINUED
+
+    #=
+    # === EBRS-by-column layout ===
+    # prep-work to figure out how many bandreps we can write to the io
+    cols_avail = displaysize(io)[2]   # available cols in io (cannot write to all of it; subtract 2)
+    indent     = 3
+    ν_maxdigs  = maximum(ndigits∘dim, reps(BRS)) # implicitly assuming this to be ≤2...
+    maxcols_irr   = maximum(length, irreplabels(BRS))
+    cols_brlabs = length.(label.(BRS))
+    cumcols_brlabs = cumsum(cols_brlabs .+ 1)
+    cols_requi  = cumcols_brlabs .+ (indent + maxcols_irr + 2)
+    @show cols_requi
+    room_for = findlast(≤(cols_avail), cols_requi)
+    abbreviate = room_for < length(BRS) ? true : false
+    rowend = abbreviate ? '…' : '║'
+
+    # print EBR header
+    print(io, ' '^(indent+maxcols_irr+1), '║')
+    for idxᵇʳ in 1:room_for
+        br = BRS[idxᵇʳ]
+        print(io, ' ', chop(label(br), tail=2),' ', idxᵇʳ ≠ room_for ? '│' : rowend)
+    end
+    println(io)
+
+    # print irrep content, line by line
+    for idxⁱʳʳ in 1:Nⁱʳʳ
+        irlab = irreplabels(BRS)[idxⁱʳʳ]
+        print(io, ' '^indent, irlab, ' '^(maxcols_irr + 1 - length(irlab)), '║')
+        for idxᵇʳ in 1:room_for
+            x = BRS[idxᵇʳ][idxⁱʳʳ]
+            addspace = div(cols_brlabs[idxᵇʳ], 2)
+            print(io, ' '^addspace)
+            iszero(x) ? print(io, '·') : print(io, x)
+            print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace-1))
+            print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
+        end
+        println(io)
     end
 
-    # prep-work to figure out how many irreps we can write to the io
+    # print band filling
+    print(io, ' '^indent, 'ν', ' '^maxcols_irr, '║')
+    for idxᵇʳ in 1:room_for
+        ν = dim(BRS[idxᵇʳ])
+        addspace = div(cols_brlabs[idxᵇʳ], 2)+1
+        print(io, ' '^(addspace-ndigits(ν)), ν)
+        print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace))
+        print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
+    end
+    =#
+
+    #=
+    # === EBRs-by-rows layout ===
     ν_maxdigs = maximum(ndigits∘dim, reps(BRS))
     cols_brlab = maximum(x->length(label(x)), reps(BRS))+1
     cols_irstart = cols_brlab+4
@@ -333,10 +415,6 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         abbreviate = false
     end
 
-    # print a "title" line and the irrep labels
-    println(io, "$(length(BRS)) band representations", 
-                " ($(isspinful(BRS) ? "spinful" : "spinless"))",
-                " sampling $(Nirreps) irreps:")
     print(io, " "^(cols_irstart-1),'║'); # align with spaces
     for (iridx,lab) in enumerate(irreplabels(BRS)) # irrep labels
         if abbreviate && iridx ∈ iridx_skiprange
@@ -348,7 +426,6 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         end
     end
     println(io, ' '^ν_maxdigs, "ν", " ║") # band-filling column header
-    #println(io)
     # print each bandrep
     for (bridx,BR) in enumerate(reps(BRS))
         ν = dim(BR)
@@ -369,4 +446,5 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         print(io, ' '^(1+ν_maxdigs-ndigits(ν)), ν, " ║") # band-filling
         if bridx != length(BRS); println(io); end
     end
+    =#
 end

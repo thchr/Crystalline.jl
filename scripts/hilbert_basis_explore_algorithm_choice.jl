@@ -12,7 +12,7 @@ for sgnum in 1:230
     print("SG", sgnum, ": ")
     BRS = bandreps(sgnum, spinful=false, timereversal=true)
     
-    B = collect(transpose(matrix(BRS, true))) # Matrix with columns of EBRs.
+    B = matrix(BRS, true) # Matrix with columns of EBRs.
 
     F = Crystalline._smith′(B)    
     dᵇˢ = count(!iszero, F.SNF)

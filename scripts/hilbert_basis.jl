@@ -81,8 +81,8 @@ for f in (:compatibility_bases, :nontopological_bases)
         function $f(sgnum::Integer; algorithm::String="DualMode", spinful::Bool=false,
                                     timereversal::Bool=true)
             BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
-            B   = collect(transpose(matrix(BRS, true))) # Matrix with columns of EBRs.
-            F   = Crystalline._smith′(B)                # Smith normal decomposition of B
+            B   = matrix(BRS, true)      # Matrix with columns of EBRs.
+            F   = Crystalline._smith′(B) # Smith normal decomposition of B
 
             return $f(F, algorithm=algorithm)..., BRS
         end

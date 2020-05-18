@@ -562,21 +562,26 @@ lastindex(BRS::BandRepSet) = length(reps(BRS))
 IndexStyle(::BandRepSet) = IndexLinear()
 eltype(::BandRepSet) = BandRep
 
-# matrix representation of a BandRepSet, with band reps along rows and irreps along columns,
-# if `includedim` is `true` (`false` by default) the band filling (i.e. `dim.(BRS)`) will be
-# included as the last column
+"""
+    matrix(BRS::BandRepSet, includedim::Bool=false)
+
+Return a matrix representation of `BRS::BandRepSet``, with band representations as 
+columns and irreps over rows.
+
+If `includedim` is `true` (default: `false`) the band filling (i.e. `dim.(BRS)`) will be
+included as the last column
+"""
 function matrix(BRS::BandRepSet, includedim::Bool=false)
-    # TODO: It would be better to have the matrix return columns of EBRs instead of rows
-    Nirs = length(BRS[1])
-    M = Matrix{Int64}(undef, length(BRS), Nirs+includedim)
-    @inbounds for (i, BR) in enumerate(BRS)
-        for (j, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 
+    Nⁱʳʳ, Nᵉᵇʳ = length(BRS[1]), length(BRS)
+    M = Matrix{Int64}(undef, Nⁱʳʳ+includedim, Nᵉᵇʳ)
+    @inbounds for (j, BR) in enumerate(BRS)
+        for (i, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 
             M[i,j] = v                   # broadcasting/iterator interface (why!?)
         end
         if includedim
-            M[i,Nirs+1] = dim(BR)
+            M[Nⁱʳʳ+1,j] = dim(BR)
         end
     end
-    
+
     return M
 end 

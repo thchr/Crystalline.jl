@@ -60,7 +60,7 @@ println("Equivalent span check 1: ", basisᴺᴱᴹᴼ*x == basis′ᴺᴱᴹᴼ
 println("Equivalent span check 2: ", basis′ᴺᴱᴹᴼ*x′ == basisᴺᴱᴹᴼ)
 
 # Now we ought to compare this against the basis obtained from Crystalline.wyckbasis(...)
-basis′′ = Crystalline.wyckbasis(bandreps(2))[1]'
+basis′′ = Crystalline.wyckbasis(bandreps(2))[1]
 basis′′ᴺᴱᴹᴼ = Nemo.matrix(ZZ, size(basis′′)..., basis′′)
 _, x′′ =  Nemo.cansolve(basisᴺᴱᴹᴼ, basis′′ᴺᴱᴹᴼ)
 println("Crystalline.jl span check: ", basisᴺᴱᴹᴼ*x′′ == basis′′ᴺᴱᴹᴼ)
