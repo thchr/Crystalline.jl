@@ -98,7 +98,7 @@ function show(io::IO, ::MIME"text/plain", kv::KVec)
     end
     return
 end
-string(kv::KVec) = (io=IOBuffer(); print(io, kv); String(take!(io)))
+string(kv::KVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take!(io)))
 
 
 # --- AbstractGroup ---
@@ -133,7 +133,11 @@ function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
 end
 function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
     # TODO: This kind of show extension is bad style, afaik...
-    println(io, "$T: #", num(first(plgirs)), " (", label(group(first(plgirs))), ")")
+    # Header line
+    plg = group(first(plgirs))
+    print(io, "$T: ")
+    prettyprint_group_header(io, plg)
+
     Nᵢᵣ = length(plgirs)
     for (i,plgir) in enumerate(plgirs)
         show(io, "text/plain", plgir)
@@ -149,6 +153,14 @@ function show(io::IO, ::MIME"text/plain", lgirsvec::AbstractVector{<:AbstractVec
 end
 
 # ... utilities to print PGIrreps and LGIrreps
+function prettyprint_group_header(io::IO, plg::AbstractGroup)
+    print(io, "#", num(plg), " (", iuc(plg), ")")
+    if plg isa LittleGroup
+        print(io, " at " , klabel(plg), " = ")
+        show(io, MIME"text/plain"(), kvec(plg))
+    end
+    println(io)
+end
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
                                       ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
@@ -312,19 +324,16 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     Nᵉᵇʳ = length(BRS)
 
     # print a "title" line and the irrep labels
-    println(io, "BandRepSet (#$(num(BRS))):",
-                " $(length(BRS)) BandReps", 
-                " sampling $(Nⁱʳʳ) LGIrreps",
-                " (spin-", isspinful(BRS) ? "½" : "1", " " ,
-                istimeinvar(BRS) ? "w/" : "w/o", " TR)") 
+    println(io, "BandRepSet (#", num(BRS), "): ",
+                length(BRS), " BandReps, ", 
+                "sampling ", Nⁱʳʳ, " LGIrreps ",
+                "(spin-", isspinful(BRS) ? "½" : "1", " ",
+                istimeinvar(BRS) ? "w/" : "w/o", " TR)")
 
     # print band representations as table
-    
-    k_idx  = (i) -> findfirst(==(klabel(BRS.irreplabs[i])), BRS.klabs) # row highlighters
-    h_odd  = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)),
-                         crayon"light_blue")
-    h_ν    = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,
-                         crayon"light_yellow")
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters
+    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_ν   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
         matrix(BRS, true),
@@ -342,7 +351,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         )
 
     # print k-vec labels
-    print(io, "  KVecs ($(hasnonmax(BRS) ? "incl. non-maximal" : "maximal only")): ")
+    print(io, "  KVecs (", hasnonmax(BRS) ? "incl. non-maximal" : "maximal only", "): ")
     join(io, klabels(BRS), ", ")
     
     # EARLIER MANUAL LAYOUTS: DISCONTINUED
@@ -352,7 +361,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     # prep-work to figure out how many bandreps we can write to the io
     cols_avail = displaysize(io)[2]   # available cols in io (cannot write to all of it; subtract 2)
     indent     = 3
-    ν_maxdigs  = maximum(ndigits∘dim, reps(BRS)) # implicitly assuming this to be ≤2...
+    ν_maxdigs  = maximum(ndigits∘dim, BRS) # implicitly assuming this to be ≤2...
     maxcols_irr   = maximum(length, irreplabels(BRS))
     cols_brlabs = length.(label.(BRS))
     cumcols_brlabs = cumsum(cols_brlabs .+ 1)
@@ -398,8 +407,8 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
 
     #=
     # === EBRs-by-rows layout ===
-    ν_maxdigs = maximum(ndigits∘dim, reps(BRS))
-    cols_brlab = maximum(x->length(label(x)), reps(BRS))+1
+    ν_maxdigs = maximum(ndigits∘dim, BRS)
+    cols_brlab = maximum(x->length(label(x)), BRS)+1
     cols_irstart = cols_brlab+4
     cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
     cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+ν_maxdigs+3 # required cols for irrep labels & band reps
@@ -427,7 +436,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     end
     println(io, ' '^ν_maxdigs, "ν", " ║") # band-filling column header
     # print each bandrep
-    for (bridx,BR) in enumerate(reps(BRS))
+    for (bridx,BR) in enumerate(BRS)
         ν = dim(BR)
         print(io, "   ", label(BR),                      # bandrep label
                   " "^(cols_brlab-length(label(BR))), '║')

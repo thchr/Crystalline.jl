@@ -21,7 +21,7 @@ IUC/Hermann-Mauguin notation applies in one, two, and three-dimensions.
 For more information, see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
 @inline iuc(sgnum::Integer, D::Integer=3) = SGS_IUC_NOTATION[D][sgnum]
-@inline iuc(sg::SpaceGroup{D}) where D = iuc(num(sg), D)
+@inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
 const hermannmauguin = iuc # alias
 
 """ 

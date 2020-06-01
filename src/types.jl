@@ -496,7 +496,7 @@ function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
         col .= characters(irs[i], αβγ)
     end
     g = group(first(irs))
-    tag = "#"*string(num(g))*"/"*label(g)
+    tag = "#"*string(num(g))*" ("*label(g)*")"
     return CharacterTable{D}(operations(first(irs)), label.(irs), table, tag)
 end
 
@@ -563,13 +563,12 @@ IndexStyle(::BandRepSet) = IndexLinear()
 eltype(::BandRepSet) = BandRep
 
 """
-    matrix(BRS::BandRepSet, includedim::Bool=false)
+    matrix(BRS::BandRepSet[, includedim::Bool=false])
 
-Return a matrix representation of `BRS::BandRepSet``, with band representations as 
-columns and irreps over rows.
+Return a matrix representation of `BRS::BandRepSet`, with band representations as columns 
+and irreps over rows.
 
-If `includedim` is `true` (default: `false`) the band filling (i.e. `dim.(BRS)`) will be
-included as the last column
+For `includedim=true` the band filling (i.e. `dim.(BRS)`) is included as the last row.
 """
 function matrix(BRS::BandRepSet, includedim::Bool=false)
     Nⁱʳʳ, Nᵉᵇʳ = length(BRS[1]), length(BRS)
