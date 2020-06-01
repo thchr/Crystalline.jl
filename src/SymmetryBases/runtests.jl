@@ -1,14 +1,14 @@
 using Crystalline
-if !isdefined(Main, :CrystallineHilbertBases)
-    include("hilbert_basis.jl")
+if !isdefined(Main, :SymmetryBases)
+    include("SymmetryBases.jl")
 end
-using Main.CrystallineHilbertBases
+using Main.SymmetryBases
 
 test_nontopo = true
 spinful = false
 timereversal = true
 algorithm = "DualMode" # DualMode or PrimalMode
-for sgnum in 1:230
+for sgnum in 1:MAX_SGNUM[3]
     BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
     
     B = matrix(BRS, true)        # Matrix with columns of EBRs.
@@ -22,15 +22,17 @@ for sgnum in 1:230
             " (", dᵇˢ, " \"band structure dimensions\"; ", Nⁱʳʳ, " inequalities)")
 
     # Compatibility Hilbert bases  
-    nsᴴ, zsᴴ = compatibility_bases(F, algorithm=algorithm) 
-    Nᴴ = size(nsᴴ, 2) # Number of Hilbert bases
+    sb, zsᴴ = compatibility_bases(F, BRS, algorithm=algorithm)
+    nsᴴ = matrix(sb) 
+    Nᴴ = length(sb) # Number of Hilbert bases
 
     # Nontopological Hilbert bases 
-    nsᴴ_nontopo, ysᴴ_nontopo = nontopological_bases(F, algorithm=algorithm)
-    Nᴴ_nontopo  = size(nsᴴ_nontopo, 2)
+    sb_nontopo, ysᴴ_nontopo = nontopological_bases(F, BRS, algorithm=algorithm)
+    nsᴴ_nontopo = matrix(sb_nontopo)
+    Nᴴ_nontopo  = length(sb_nontopo)
 
     # Splitting into trivial and fragile Hilbert bases
-    nsᴴ_trivial, nsᴴ_fragile = split_fragiletrivial_bases(nsᴴ_nontopo, B)
+    nsᴴ_trivial, nsᴴ_fragile = split_fragiletrivial_bases(sb_nontopo, B)
 
     # Write some stats about the obtained Hilbert bases
     println("   ", Nᴱᴮᴿ,       " EBRs")
@@ -41,6 +43,6 @@ for sgnum in 1:230
 
     # Test consistency of bases, if requested
     if test_nontopo
-        CrystallineHilbertBases._test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
+        SymmetryBases._test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
     end
 end

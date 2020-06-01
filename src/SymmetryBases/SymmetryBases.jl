@@ -1,18 +1,101 @@
-module CrystallineHilbertBases
+module SymmetryBases
 
-using Crystalline, PyCall, SmithNormalForm, Test, JuMP, GLPK
-import Base: OneTo
+using Crystalline, PyCall, SmithNormalForm, Test, JuMP, GLPK, PrettyTables
+import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle
+import Crystalline: matrix
+
+export SymBasis, fillings, matrix
 export compatibility_bases, nontopological_bases, split_fragiletrivial_bases
+
+const PyNormaliz = pyimport("PyNormaliz") # import the PyNormaliz library
+
+# -----------------------------------------------------------------------------------------
+
+struct SymBasis <: AbstractVector{Vector{Int}}
+    symvecs::Vector{Vector{Int}}
+    irlabs::Vector{String}
+    klabs::Vector{String}
+    kvs::Vector{KVec}
+    kv2ir_idxs::Vector{UnitRange{Int}} # pick k-point; find assoc. ir indices
+    sgnum::Int
+    spinful::Bool
+    timeinvar::Bool
+    allpaths::Bool
+    compatbasis::Bool
+end
+function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool=true)
+    kv2ir_idxs = [(f = irlab -> klabel(irlab)==klab; 
+                   findfirst(f, BRS.irlabs):findlast(f, BRS.irlabs)) for klab in BRS.klabs]
+    return SymBasis(collect(eachcol(nsᴴ)),
+                    BRS.irlabs, BRS.klabs, BRS.kvs, kv2ir_idxs, 
+                    BRS.sgnum, BRS.spinful, BRS.timeinvar, BRS.allpaths, compatbasis)
+end
+
+# accessors
+matrix(sb::SymBasis) = hcat(sb.symvecs...)
+vecs(sb::SymBasis)   = sb.symvecs
+num(sb::SymBasis)    = sb.sgnum
+irreplabels(sb::SymBasis) = sb.irlabs
+klabels(sb::SymBasis)     = sb.klabs
+isspinful(sb::SymBasis)   = sb.spinful
+istimeinvar(sb::SymBasis) = sb.timeinvar
+hasnonmax(sb::SymBasis)   = sb.allpaths
+iscompatbasis(sb::SymBasis) = sb.compatbasis
+fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
+
+# define the AbstractArray interface for SymBasis
+size(sb::SymBasis) = (length(vecs(sb)),)
+getindex(sb::SymBasis, keys...) = vecs(sb)[keys...]
+firstindex(::SymBasis) = 1
+lastindex(sb::SymBasis) = length(vecs(sb))
+IndexStyle(::SymBasis) = IndexLinear()
+
+# show method
+function show(io::IO, ::MIME"text/plain", sb::SymBasis)
+    Nⁱʳʳ = length(sb[1]) - 1
+
+    # print a "title" line and the irrep labels
+    println(io, iscompatbasis(sb) ? "Compatibility" : "Nontopological",
+                " SymBasis (#", num(sb), "): ",
+                length(sb), " Hilbert bases, sampling ",
+                Nⁱʳʳ, " LGIrreps ",
+                "(spin-", isspinful(sb) ? "½" : "1", " ",
+                istimeinvar(sb) ? "w/" : "w/o", " TR)")
+
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(sb)[i])), klabels(sb)) # highlighters
+    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_ν   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+
+    pretty_table(io, 
+        # table contents
+        matrix(sb),
+        # header
+        eachindex(sb),
+        # row names
+        row_names = vcat(sb.irlabs, "ν"),
+        # options/formatting/styling
+        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
+        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
+        row_name_alignment = :l,
+        alignment = :c, 
+        highlighters = (h_odd, h_ν), 
+        header_crayon = crayon"bold"
+        )
+
+    # print k-vec labels
+    print(io, "  KVecs (", hasnonmax(sb) ? "incl. non-maximal" : "maximal only", "): ")
+    join(io, klabels(sb), ", ")
+end
+
+# -----------------------------------------------------------------------------------------
 
 # All band structures can be written as 𝐧 = B𝐩 with pᵢ∈ℚ and nᵢ∈𝐍, and B a matrix whose 
 # columns are EBRs. We can decompose B to a Smith normal form B = SΛT, such that all 
 # allowable band structures can be written as 𝐧 = S𝐳. Here, S is an integer matrix with 
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
-const PyNormaliz = pyimport("PyNormaliz") # Import the PyNormaliz library
-
 """
-    compatibility_bases(F::SmithNormalForm.Smith; kwargs)
+    compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; algorithm)
     compatibility_bases(sgnum::Integer; kwargs...)
 
 Computes the Hilbert bases associated with a Smith normal form `F` of the EBR matrix or from
@@ -29,7 +112,8 @@ Several keyword arguments `kwargs` are possible:
     - `timereversal::Bool`: Assume presence (`true`, default) or absence (`false`) of
     time-reversal symmetry.
 """
-function compatibility_bases(F::SmithNormalForm.Smith; algorithm::String="DualMode")
+function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; 
+                             algorithm::String="DualMode")
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
     # integer cone. This is where (Py)Normaliz comes in.
@@ -42,11 +126,11 @@ function compatibility_bases(F::SmithNormalForm.Smith; algorithm::String="DualMo
 
     nsᴴ  = S*zsᴴ                          # Columns are Hilbert basis vectors in 𝐧-space
 
-    return nsᴴ, zsᴴ # Bases of all valid symmetry vectors in 𝐧- and 𝐲-space
+    return SymBasis(nsᴴ, BRS, true), zsᴴ  # Bases of all valid symmetry vectors in 𝐧- and 𝐲-space
 end
 
 """
-    nontopological_bases(F::SmithNormalForm.Smith; kwargs...)
+    nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; algorithm)
     nontopological_bases(sgnum::Integer; kwargs...)
 
 Computes the "non-topological" Hilbert bases associated with a Smith normal form `F` of the
@@ -57,7 +141,8 @@ If the method is called with `sgnum::Integer`, the associated `BandRepSet` is al
 
 For possible keyword arguments `kwargs`, see `compatibility_bases(..)`.
 """
-function nontopological_bases(F::SmithNormalForm.Smith; algorithm::String="DualMode")
+function nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
+                              algorithm::String="DualMode")
     # To find _all_ nontopological bases we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
     # correspond to rational yᵢ)
@@ -72,7 +157,7 @@ function nontopological_bases(F::SmithNormalForm.Smith; algorithm::String="DualM
 
     nsᴴ_nontopo = SΛ*ysᴴ_nontopo                      # Hilbert basis vectors in 𝐧-space
 
-    return nsᴴ_nontopo, ysᴴ_nontopo # Bases of nontopological states (along columns)
+    return SymBasis(nsᴴ_nontopo, BRS, false), ysᴴ_nontopo # Bases of nontopological states
 end
 
 # Convenience accessors from a space group number alone
@@ -84,22 +169,25 @@ for f in (:compatibility_bases, :nontopological_bases)
             B   = matrix(BRS, true)      # Matrix with columns of EBRs.
             F   = Crystalline._smith′(B) # Smith normal decomposition of B
 
-            return $f(F, algorithm=algorithm)..., BRS
+            return $f(F, BRS, algorithm=algorithm)..., BRS
         end
     end
 end
 
-function split_fragiletrivial_bases(nsᴴ_nontopo::AbstractMatrix, B::AbstractMatrix)
+function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
+    if sb_nontopo.compatbasis
+        throw(DomainError(sb_nontopo, "Specified SymBasis must have compatbasis=false"))
+    end
     # Every vector of nsᴴ_nontopo that has a non-negative integer coefficient expansion in
     # EBRs, i.e. in B, represents a trivial basis element. All other elements represent 
     # fragile basis elements. We can just test whether such a solution exists through
     # constrained optimization, and then partition into trivial and fragile categories
     Nᴱᴮᴿ = size(B, 2)
     trivial_idxs = Int[]; fragile_idxs = Int[]
-    for (j, nsᴴ_nontopoʲ) in enumerate(eachcol(nsᴴ_nontopo))
+    for (j, nᴴ_nontopoʲ) in enumerate(sb_nontopo)
         m = Model(GLPK.Optimizer)
         @variable(m, c[1:Nᴱᴮᴿ] >= 0, Int)
-        @constraint(m, B*c .== nsᴴ_nontopoʲ)
+        @constraint(m, B*c .== nᴴ_nontopoʲ)
         optimize!(m)
 
         # Check to see what the termination status (i.e. result) of the optimization was 
@@ -112,8 +200,8 @@ function split_fragiletrivial_bases(nsᴴ_nontopo::AbstractMatrix, B::AbstractMa
             throw("Unexpected termination status $status")
         end
     end
-    nsᴴ_trivial = nsᴴ_nontopo[:, trivial_idxs]
-    nsᴴ_fragile = nsᴴ_nontopo[:, fragile_idxs]
+    nsᴴ_trivial = @view sb_nontopo[trivial_idxs]
+    nsᴴ_fragile = @view sb_nontopo[fragile_idxs]
 
     return nsᴴ_trivial, nsᴴ_fragile
 end
