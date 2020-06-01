@@ -13,8 +13,8 @@ verbose = false
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
 for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=false)
-    irlabs_BRS = BRS.irreplabs
-    klabs_BRS = BRS.klabs
+    irlabs_BRS = irreplabels(BRS)
+    klabs_BRS = klabels(BRS)
 
     irlabs_ISO = [Crystalline.formatirreplabel(label(lgir)) for lgirs in lgirsvec for lgir in lgirs]
     klabs_ISO = [klabel(lgirs[1]) for lgirs in lgirsvec]
@@ -60,8 +60,8 @@ end
 # --- test physically irreducible irreps/co-reps (assuming time-reversal symmetry) ---
 for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-    irlabs_BRS = BRS.irreplabs
-    klabs_BRS = BRS.klabs
+    irlabs_BRS = irreplabels(BRS)
+    klabs_BRS = klabels(BRS)
 
     irlabs_ISO = Vector{String}()
     realirlabs_ISO = Vector{String}()

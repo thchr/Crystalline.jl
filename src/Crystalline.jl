@@ -52,7 +52,7 @@ export SymOperation,                        # types
        isspecial, translations,
        find_lgirreps,
        dim, string, parts,                  # ::KVec
-       vec, irreplabels, reps,              # ::BandRep & ::BandRepSet 
+       vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 
        isspinful
 
 include("show.jl") # custom printing for structs defined in src/types.jl

@@ -508,7 +508,7 @@ struct BandRep <: AbstractVector{Int64}
     dim::Integer     # Dimension (i.e. # of bands) in band rep
     decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
-    irrepvec::Vector{Int64}   # Vector that references irreplabs of a parent BandRepSet; 
+    irvec::Vector{Int64}      # Vector that references irlabs of a parent BandRepSet; 
                               # nonzero entries correspond to an element in the band representation
     irreptags::Vector{String} # Vestigial, but quite handy for display'ing; this otherwise 
                               # requires recursive data sharing between BandRep and BandRepSet
@@ -517,7 +517,7 @@ wyck(BR::BandRep)    = BR.wyckpos
 sitesym(BR::BandRep) = BR.sitesym
 label(BR::BandRep)   = BR.label
 humanreadable(BR::BandRep) = BR.irreptags
-vec(BR::BandRep)     = BR.irrepvec
+vec(BR::BandRep)     = BR.irvec
 
 """
     dim(BR::BandRep) --> Int64
@@ -540,7 +540,7 @@ struct BandRepSet <: AbstractVector{BandRep}
     bandreps::Vector{BandRep}
     kvs::Vector{KVec}       # Vector of 𝐤-points
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
-    irreplabs::Vector{String} # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
+    irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
     timeinvar::Bool         # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
@@ -549,7 +549,7 @@ num(BRS::BandRepSet)         = BRS.sgnum
 klabels(BRS::BandRepSet)     = BRS.klabs
 kvecs(BRS::BandRepSet)       = BRS.kvs
 hasnonmax(BRS::BandRepSet)   = BRS.allpaths
-irreplabels(BRS::BandRepSet) = BRS.irreplabs
+irreplabels(BRS::BandRepSet) = BRS.irlabs
 isspinful(BRS::BandRepSet)   = BRS.spinful
 istimeinvar(BRS::BandRepSet) = BRS.timeinvar
 reps(BRS::BandRepSet)        = BRS.bandreps

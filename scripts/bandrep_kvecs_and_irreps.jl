@@ -15,8 +15,8 @@ incomplete_lgirs = Dict{Int64,Array{String}}()
 incomplete_symind = Dict{Int64,String}() # the BRS classification of missing sgs (Z1 = trivial)
 for (sgnum, lgirsvec) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=timereversal)
-    irlabs_BRS = BRS.irreplabs
-    klabs_BRS = BRS.klabs
+    irlabs_BRS = irreplabels(BRS)
+    klabs_BRS = klabels(BRS)
 
     irlabs_ISO = Vector{String}()
     klabs_ISO = Vector{String}(undef, length(lgirsvec))

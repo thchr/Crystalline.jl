@@ -37,34 +37,34 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     for vars in (brtags, wyckpos, sitesym, label, dim, decomposable)
         deleteat!(vars, delidxs) 
     end
-    irreplabs, irrepvecs = get_irrepvecs(brtags)              
+    irlabs, irvecs = get_irrepvecs(brtags)              
 
     BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, map(isspinful, brtags), 
-                   irrepvecs, brtags)
+                   irvecs, brtags)
 
     
-    return BandRepSet(sgnum, BRs, kvs, klabs, irreplabs, allpaths, spinful, timereversal)
+    return BandRepSet(sgnum, BRs, kvs, klabs, irlabs, allpaths, spinful, timereversal)
 end
 
 
 function get_irrepvecs(brtags)
     Nklabs = length(first(brtags)) # there's equally many (composite) irrep tags in each band representation
-    irreplabs = Vector{String}()
+    irlabs = Vector{String}()
     for kidx in Base.OneTo(Nklabs)
-        irreplabs_at_kidx = Vector{String}()
+        irlabs_at_kidx = Vector{String}()
         for tag in getindex.(brtags, kidx) # tag could be a combination like Γ1⊕2Γ₂ (or something simpler, like Γ₁)
             for irrep in split(tag, '⊕')
                 irrep′ = filter(!isdigit, irrep) # filter off any multiplicities
-                if irrep′ ∉ irreplabs_at_kidx
-                    push!(irreplabs_at_kidx, irrep′)
+                if irrep′ ∉ irlabs_at_kidx
+                    push!(irlabs_at_kidx, irrep′)
                 end
             end
         end
-        sort!(irreplabs_at_kidx)
-        append!(irreplabs, irreplabs_at_kidx)
+        sort!(irlabs_at_kidx)
+        append!(irlabs, irlabs_at_kidx)
     end
 
-    irrepvecs = [zeros(Int64, length(irreplabs)) for _=Base.OneTo(length(brtags))]
+    irvecs = [zeros(Int64, length(irlabs)) for _=Base.OneTo(length(brtags))]
     for (bridx, tags) in enumerate(brtags)
         for (kidx,tag) in enumerate(tags)
             for irrep in split(tag, '⊕') # note this irrep tag may contain numerical prefactors!
@@ -76,14 +76,14 @@ function get_irrepvecs(brtags)
                 else
                     prefac = parse(Int64, prefac_str)
                 end
-                irrep′ = read(buf, String) # the rest of the irrep buffer is the actual cdml label
+                ir′ = read(buf, String) # the rest of the irrep buffer is the actual cdml label
                 close(buf)
-                irrepidx = findfirst(==(irrep′), irreplabs) # find position in irreplabs vector
-                irrepvecs[bridx][irrepidx] = prefac
+                iridx = findfirst(==(ir′), irlabs) # find position in irlabs vector
+                irvecs[bridx][iridx] = prefac
             end
         end
     end
-    return irreplabs, irrepvecs
+    return irlabs, irvecs
 end
 
 
