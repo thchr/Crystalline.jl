@@ -8,3 +8,4 @@ test/isosurfvis/isosurfdata.mat
 *.svg
 *.pdf
 *.vscode
+*.mat
