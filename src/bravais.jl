@@ -227,6 +227,7 @@ oblique, monoclinic, & triclinic lattices).
 function directbasis(sgnum::Integer, D::Integer=3;
                      abclims::NTuple{2,Real}=(0.5,2.0), 
                      αβγlims::NTuple{2,Real}=(°(30),°(150)))
+    # TODO: This function should take `D` as `Val(D)` to be type-stable...
     system = crystalsystem(sgnum, D)
     if D == 1
         a = 1.0

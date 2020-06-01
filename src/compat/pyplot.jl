@@ -89,10 +89,11 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
                 fig=nothing) where D
 
     if isnothing(fig)
-    ax = plt.figure().gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
+        fig = plt.figure()
     else
-    ax = (fig.clf(); fig.gca())
+        fig.clf()
     end
+    ax = fig.gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
 
     if D == 2
     # convert to a cartesian coordinate system rather than direct basis of Ri

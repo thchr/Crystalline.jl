@@ -24,7 +24,7 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
         if timereversal == false
             append!(irlabs_ISO, [label(lgir) for lgir in lgirs])
         elseif timereversal == true
-            append!(irlabs_ISO, realify(lgirs)[2])
+            append!(irlabs_ISO, label.(realify(lgirs)))
         end
         klabs_ISO[kidx] = klabel(first(lgirs))
     end
