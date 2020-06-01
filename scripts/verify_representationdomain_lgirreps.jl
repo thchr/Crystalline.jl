@@ -1,4 +1,4 @@
-using SGOps, LinearAlgebra
+using Crystalline, LinearAlgebra
 
 # Choose one of 195, 198, 200, 201
 #for sgnum in [195, 198, 200, 201] # works for 195 and 200; not for 198 and 201
