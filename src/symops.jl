@@ -584,9 +584,10 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     else
         w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
     end
-    
+    # FIXME:/TODO: see https://github.com/JuliaArrays/StaticArrays.jl/issues/796
+    w′ = convert(Vector{Float64}, w′) # in case P, p, or w were a StaticArray...
     if modw
-        return mod.(w′, 1.0)
+        return reduce_translation_to_unitrange!(w′)
     else
         return w′
     end
@@ -595,7 +596,7 @@ end
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, conv_or_prim::Bool=true) where D
     P = primitivebasismatrix(cntr, D)
-    ops′ = transform.(ops, Ref(P))         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
+    ops′ = transform.(ops, Ref(P)) # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
     ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
 
