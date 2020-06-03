@@ -82,8 +82,8 @@ lgops = SymOperation{3}.(["x,y,z", "-x,-y,z", "y,-x,-z", "-y,x,-z"]) # 1, 2₀�
 
 Psτs = [[1, 1, 1, 1],
         [1, 1, -1, -1],
-        [1, -1, -1, 1],
-        [1, -1, 1, -1],]
+        [1, -1, -im, im],
+        [1, -1, im, -im],]
 push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
 
 
