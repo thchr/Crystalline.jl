@@ -1,19 +1,25 @@
-using Crystalline, LinearAlgebra
+using Crystalline, LinearAlgebra, Test
 
+include("../data/stopgap_missing_lgirreps.jl") # loads lgirs_dict with some special-point lgirs
 # Choose one of 195, 198, 200, 201
 #for sgnum in [195, 198, 200, 201] # works for 195 and 200; not for 198 and 201
-sgnum = 200
-target_klab = "ZA"
+#sgnum = 201
+#target_klab = "ZA"
+#sgnum = 24
+#target_klab = "WA"
+sgnum = 82
+target_klab = "PA"
 
 lgirsvec = get_lgirreps(sgnum, Val(3))
+append!(lgirsvec, lgirs_dict[sgnum])
 
 target_kidx = findfirst(x->klabel(first(x))==target_klab, lgirsvec)
 if target_kidx !== nothing
-    target_lgirs  = copy(lgirsvec[target_kidx])
+    target_lgirs = deepcopy(lgirsvec[target_kidx])
     deleteat!(lgirsvec, target_kidx)
 end
 
-added_lgirs = find_lgirreps(add_ΦnotΩ_lgirs!(lgirsvec, true), target_klab)
+added_lgirs = find_lgirreps(add_ΦnotΩ_lgirs!(deepcopy(lgirsvec), true), target_klab);
 
 #=
 println("\nOriginal: ", string(target_lgirs[1].lg.kv))
@@ -25,7 +31,7 @@ println()
 =#
 
 # Check operator sorting and k-vector
-@test target_lgirs[1].lg.kv == added_lgirs[1].lg.kv
+#@test target_lgirs[1].lg.kv == added_lgirs[1].lg.kv
 @test all(operations(target_lgirs[1].lg) .== operations(added_lgirs[1].lg))
 
 # Print some info
@@ -35,7 +41,7 @@ join(stdout, seitz.(operations(target_lgirs[1].lg)), ", ")
 println('\n')
 
 # Difference
-αβγ = [0.3,0.3,0.4]
+αβγ = [0.3,0.2,0.4]
 
 δχ = characters.(target_lgirs, Ref(αβγ)) .- characters.(added_lgirs, Ref(αβγ))
 δP = irreps.(target_lgirs, Ref(αβγ)) .- irreps.(added_lgirs, Ref(αβγ))

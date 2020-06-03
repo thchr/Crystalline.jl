@@ -637,7 +637,7 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
                         println("SG $(cur_sgnum): transforming from CDML to ITA setting via P = $(Pstr):\n",
                                 "    From R = $(xyzt(R))\t= $(seitz(R))")
                     end
-                    R = transform(R, P, p)
+                    R = transform(R, P, p, false) # (don't modulo "away" unit translations) - TODO: Correct!?
 
                     verbose && println("     to R′ = $(xyzt(R))\t= $(seitz(R))")
                 end
@@ -651,6 +651,8 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     return d
 end
 
+# TODO: The `const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()` call takes 15 s
+#       precompile. It is a fundamentally awful idea to do it this way.
 # Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` (in 3D only) as an 
 # ImmutableDict
 const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()
@@ -740,6 +742,8 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
     # (a) or (b) it is the supergroup G′
     if iszero(orphantype)                       # ⇒ not an orphan
         opsGᵖᵃʳ = operations(find_holosymmetric_parent(sgnum, D))
+        # if Gᵖᵃʳ is the holosymmetric parent of G they share the same lattice type and thus 
+        # also share the same setting (in ITA's description, at least): no need to transform
     else                                        # ⇒ an orphan of type (a) or (b)
         opsGᵖᵃʳ = operations(spacegroup(parent_sgnum, D))
         if !iszero(p) # transform setting if it differs (origin only)
@@ -839,15 +843,14 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
 
         # data at kᴮ∈Φ-Ω
         kᴮ = opᴿ∘kᴬ # kᴮ = {R|v}kᴬ = Rkᴬ
-
         # find LittleGroup at kᴮ from the LittleGroup at kᴬ, i.e. lgᴬ: this involves
         # computing the transformed operators {R|v}{S|w}{R|v}⁻¹ ≡ {U|z} ≡ {E|x}{U|y},  
         # which we denote {E|xsᴮ[i]}∘opsᴮ[i] here (and which CDML denotes {E|x}{U|y}):
         # x is a pure lattice translation and y is a fractional translation
-        opsᴮ = Vector{SymOperation{D}}(undef, length(opsᴬ))           # vector of opᴮ
+        opsᴮ = Vector{SymOperation{D}}(undef, length(opsᴬ))        # vector of opᴮ
         xsᴮ  = [Vector{Float64}(undef, D) for _ in 1:length(opsᴬ)] # vector of xᴮ
+        opᴿ⁻¹ = inv(opᴿ)
         for (i, opᴬ) in enumerate(operations(lgᴬ)) # in CDML notation, opᴬ = {S|w}
-            opᴿ⁻¹ = inv(opᴿ)
             opᴮ′ = ∘(∘(opᴿ, opᴬ, false), opᴿ⁻¹, false) # unreduced {R|v}{S|w}{R|v}⁻¹ operation
             z = copy(translation(opᴮ′)) # ≡ x+y
             y = reduce_translation_to_unitrange!(translation(opᴮ′)) # mutates opᴮ′ so its translation is reduced
