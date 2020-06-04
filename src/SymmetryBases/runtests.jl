@@ -13,7 +13,7 @@ for sgnum in 1:MAX_SGNUM[3]
     
     B = matrix(BRS, true)        # Matrix with columns of EBRs.
     
-    F   = Crystalline._smith′(B) # Smith normal decomposition of B
+    F   = Crystalline.smith(B)   # Smith normal decomposition of B
     dᵇˢ = count(!iszero, F.SNF)  # "Dimensionality" of band structure
     Nⁱʳʳ, Nᴱᴮᴿ = size(B)
 

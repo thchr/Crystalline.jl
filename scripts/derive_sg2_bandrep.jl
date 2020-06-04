@@ -33,7 +33,7 @@ end
 # the mapping domain in A: V→W; since A is a matrix this is simply the number of columns of 
 # A]. See e.g. https://core.ac.uk/download/pdf/82343294.pdf regarding the Smith normal form
 # and its application to null spaces.
-F = Crystalline._smith′(C) # Smith Normal Form (small wrapper around `SmithNormalForm.smith(..)`)
+F = Crystalline.smith(C) # Smith Normal Form
 S, S⁻¹, T, T⁻¹, Λ = F.S, F.Sinv, F.T, F.Tinv, F.SNF
 r = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix = rank(C)
 zidxs  = r+1:length(Λ)

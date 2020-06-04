@@ -125,8 +125,9 @@ is the the quotient group ``Xᵇˢ = {BS}/{AI}`` isomorphic to?".
 See e.g. Po, Watanabe, & Vishwanath, Nature Commun. 8, 50 (2017) for more information.
 """
 function classification(BRS::BandRepSet)
-    Λ = smith(matrix(BRS)).SNF # get the diagonal components of the Smith normal decomposition
-    Λ .= abs.(Λ) # the sign has no significance; can be absorbed in T or S if M = SΛT (see _smith′(..))
+    # get the diagonal components of the Smith normal decomposition (≥ 0)
+    Λ = smith(matrix(BRS)).SNF
+    @assert all(≥(0), Λ)
     nontriv_idx = findall(x-> !(isone(x) || iszero(x)), Λ)
     if isempty(nontriv_idx)
         return "Z₁"
@@ -149,9 +150,9 @@ function basisdim(BRS::BandRepSet)
     return nnz
 end
 
-
+#=
 """
-    _smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
+    smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
 
 Equivalent of `smith(A; inverse, debug, verify)` from the `SmithNormalForm` package, but 
 with guaranteed positivity of the diagonal SNF factors. The remaining signs are absorbed 
@@ -168,9 +169,10 @@ with `diagm(F)` producing the diagonal matrix associated with `F.SNF` (with `F.S
 Correctness of the sign-transformation can optionally be checked with kwarg `verify=true`.
 
 This is a small ad-hoc patch for https://github.com/wildart/SmithNormalForm.jl/issues/1.
+This extra bit of work should no longer be necessary with versions≥v0.3.2.
 """
-function _smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
-    F = smith(X, inverse=inverse, debug=debug)
+function smith′(X::AbstractMatrix; inverse=true, verify=false)
+    F = smith(X, inverse=inverse)
     # smith and snf may currently return negative diagonal SNF values (here, denoted Λ): we
     # prefer to have Λⱼ positive so we correct for that by absorbing the sign of Λ into T
     # and T⁻¹, such that 
@@ -197,6 +199,7 @@ function _smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
 
     return F
 end
+=#
 
 """
     wyckbasis(BRS::BandRepSet) --> Vector{Vector{Int64}}
@@ -214,7 +217,7 @@ function wyckbasis(BRS::BandRepSet)
     # with integer elements such that B = S*diagm(Λ)*T. Λ is a vector
     # [λ₁, λ₂, ..., λᵣ, 0, 0, ..., 0] with λⱼ₊₁ divisible by λⱼ and r ≤ min(n,m).
     # The matrices T and S have integer-valued pseudo-inverses.
-    F = _smith′(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
+    F = smith(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
     S, S⁻¹, Λ = F.S, F.Sinv, F.SNF
     #T, T⁻¹ = F.T, F.Tinv,
 

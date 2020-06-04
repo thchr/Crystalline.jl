@@ -14,7 +14,7 @@ for sgnum in 1:230
     
     B = matrix(BRS, true) # Matrix with columns of EBRs.
 
-    F = Crystalline._smith′(B)    
+    F = Crystalline.smith(B)    
     dᵇˢ = count(!iszero, F.SNF)
 
     if sgnum ∈ (47, 123, 191, 131, 221)
