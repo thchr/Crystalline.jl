@@ -26,12 +26,11 @@ function minimal_expansion_of_zero_freq_bands(sgnum::Integer;
     if !has_nonmirror_improper && is_regular²ᵀ 
         # Scenario (easy case): All symvals known & regular 2T irrep
 
-        # Simple case: if there are no non-mirror improper rotations, we can directly infer 
-        # the irrep of the 2T branches. If that irrep is regular (i.e. has no negative
-        # coefficients), we don't need to invoke 1L at all, and can solve for just 2T alone.
-        msˣ = ms²ᵀ
+        # If there are no non-mirror improper rotations, we can directly infer the irrep of
+        # the 2T branches. If that irrep is regular (i.e. has no negative coefficients), we
+        # don't need to invoke 1L at all, and can solve for just 2T alone.
         return find_minimum_bandreps_regular2T(sgnum, lgirs, timereversal, ms²ᵀ; 
-                                              safetychecks=true, verbose=verbose)
+                                               safetychecks=true, verbose=verbose)
 
     else 
         # Two possible scenarios (treat with same approach):
