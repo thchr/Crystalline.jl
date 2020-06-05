@@ -1,7 +1,7 @@
 module SymmetryBases
 
 using Crystalline, PyCall, SmithNormalForm, Test, JuMP, GLPK, PrettyTables
-import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle
+import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length
 import Crystalline: matrix
 
 export SymBasis, fillings, matrix
@@ -42,9 +42,10 @@ istimeinvar(sb::SymBasis) = sb.timeinvar
 hasnonmax(sb::SymBasis)   = sb.allpaths
 iscompatbasis(sb::SymBasis) = sb.compatbasis
 fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
+length(sb::SymBasis)      = length(vecs(sb))
 
 # define the AbstractArray interface for SymBasis
-size(sb::SymBasis) = (length(vecs(sb)),)
+size(sb::SymBasis) = (length(sb),)
 getindex(sb::SymBasis, keys...) = vecs(sb)[keys...]
 firstindex(::SymBasis) = 1
 lastindex(sb::SymBasis) = length(vecs(sb))

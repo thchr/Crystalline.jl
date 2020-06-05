@@ -252,7 +252,7 @@ Can we add more symmetry eigenvalue restrictions to both transverse and longitud
 νs = Vector{Union{Int,Nothing}}(undef, MAX_SGNUM[3])
 for sgnum in 1:MAX_SGNUM[3]
     print("SG", sgnum, ": ")
-    mν = find_bandrepresentation_lowest_bands(sgnum, timereversal=true, verbose=false)
+    mν = minimal_expansion_of_zero_freq_bands(sgnum, timereversal=true, verbose=false)
     if mν != nothing
         m, ν = mν
     else
