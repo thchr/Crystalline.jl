@@ -286,7 +286,7 @@ operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(ir::AbstractIrrep{D}) where D = D
 function klabel(cdml::String)
-    idx = findfirst(c->isdigit(c) || issubdigit(c), cdml) # look for regular digit or subscript digit
+    idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
 end
