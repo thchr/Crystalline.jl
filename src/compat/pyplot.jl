@@ -9,7 +9,7 @@ const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor
 
 # ::DirectBasis ---------------------------------------------------------------------------
 
-function plot(Rs::DirectBasis{D}, 
+function plot(Rs::Basis{D}, 
               cntr::SVector{D, <:Real}=zeros(SVector{D, Float64}),
               ax=plt.figure().gca(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
 
@@ -76,7 +76,13 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
     if isnothing(isoval)
-        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
+        # we don't want to "double count" the BZ edges - so to avoid that, exclude the last 
+        # index of each dimension (same approach as in `filling2isoval`)
+        isoidxs = Base.OneTo(N-1)
+        vals′ = if D == 2;     (@view vals[isoidxs, isoidxs])
+                elseif D == 3; (@view vals[isoidxs, isoidxs, isoidxs])
+                end
+        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals′), filling) : zero(Float64)
     end
     plotiso(xyz,vals,isoval,Rs,repeat,fig)
 
@@ -100,6 +106,9 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
     N = length(xyz) 
     X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
     Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+    # note: the x-vs-y ordering has to be funky this way, because plotting routines expect 
+    #       x to vary across columns and y to vary across rows - sad :(. See also the
+    #       `calcfouriergridded` method.
 
     ax.contourf(X,Y,vals; levels=(-1e12, isoval, 1e12), cmap=plt.get_cmap("gray",2))
     ax.contour(X,Y,vals,levels=(isoval,), colors="w", linestyles="solid")
@@ -135,6 +144,7 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
 
     elseif D == 3
     # TODO: Isocaps (when Meshing.jl supports it)
+    #caps_verts′, caps_faces′ = mesh_3d_levelsetisocaps(vals, isoval, Rs)
 
     # Calculate a triangular meshing of the Fourier lattice using Meshing.jl
     verts′, faces′ = mesh_3d_levelsetlattice(vals, isoval, Rs)
@@ -162,7 +172,6 @@ end
 # Meshing utilities (for ::AbstractFourierLattice) ----------------------------------------
 using .Meshing
 
-# TODO: Refactor meshing part out of plots parts more cleanly for 3D case.
 function mesh_3d_levelsetlattice(vals, isoval::Real, Rs::DirectBasis{3})
     # marching cubes algorithm to find isosurfaces (using Meshing.jl)
     algo = MarchingCubes(iso=isoval, eps=1e-3)
@@ -190,10 +199,10 @@ function mesh_3d_levelsetlattice(flat::AbstractFourierLattice, isoval::Real,
     return verts′, faces′
 end
 
-function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::DirectBasis{3})
+function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::Basis{3})
     Nᵛᵉʳᵗˢ = length(verts); Nᶠᵃᶜᵉˢ = length(faces)
     verts′ = Matrix{Float64}(undef, Nᵛᵉʳᵗˢ, 3)
-    @inbounds @simd for j in (1,2,3)  # Cartesian xyz-coordinates
+    @inbounds @simd for j in Base.OneTo(3) # Cartesian xyz-coordinates
         R₁ⱼ, R₂ⱼ, R₃ⱼ = Rs[1][j], Rs[2][j], Rs[3][j]
         for i in Base.OneTo(Nᵛᵉʳᵗˢ) # vertices
             verts′[i,j] = verts[i][1]*R₁ⱼ + verts[i][2]*R₂ⱼ + verts[i][3]*R₃ⱼ
@@ -204,10 +213,41 @@ function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::Di
     return verts′, faces′
 end
 
+#=
+# TODO: requires `using Contour.jl`
+function mesh_3d_levelsetisocaps(vals, isoval::Real, Rs::DirectBasis{3})
+    N = size(vals, 1)
+    xyz = range(-.5, .5, length=N)
+
+    # gotta do this for each side of the box; each opposing side is equivalent due to 
+    # translational invariance though - so just 3 sides to check
+    patches = NTuple{3, Vector{Float64}}[]
+    for ss = 1:3
+        vals_slice = ss == 1 ? vals[1,:,:] : (ss == 2 ? vals[:,1,:] : vals[:,:,1])
+        cnt=Contour.contour(xyz, xyz, vals_slice, isoval)
+        for line in lines(cnt)
+            e = coordinates(line)
+            fixed_coords = fill(-0.5, length(e[1]))
+            if ss == 1      # fixed x-side
+                xs, ys, zs = fixed_coords, e...                          
+            elseif ss == 2  # fixed y-side
+                ys, xs, zs = fixed_coords, e...
+            else # ss == 3  # fixed z-side
+                zs, xs, ys = fixed_coords, e...
+            end           
+        end
+        push!(patches, (xs, ys, zs))
+    end
+
+    # TODO: We need to construct a mesh out of the boundary lines now
+    # TODO: We need to copy counter-facing sides
+end
+=#
+
 # Plot from MPB-data (::AbstractFourierLattice) -------------------------------------------
 
 function plot_lattice_from_mpbparams(filepath::String; kwargs...)
-    Rs, flat, isoval, epsin, epsout = lattice_from_mpbparams(filepath)
+    Rs, flat, isoval, _ = lattice_from_mpbparams(filepath)
     plot(flat, Rs; isoval=isoval, kwargs...)
     return nothing
 end
