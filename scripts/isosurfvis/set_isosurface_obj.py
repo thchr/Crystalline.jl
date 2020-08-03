@@ -21,9 +21,9 @@ if render_engine == 'EEVEE': render_engine = 'BLENDER_'+render_engine
 bpy.data.scenes[0].render.engine = render_engine
 
 # import the obj files
-bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "isocaps.obj"))
-bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "isosurface.obj"))
-bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "unitcell.obj"))
+bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "isocaps.obj"),    axis_up='Z', axis_forward='-Y')
+bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "isosurface.obj"), axis_up='Z', axis_forward='-Y')
+bpy.ops.import_scene.obj(filepath=os.path.join(dirpath, "tmp", "unitcell.obj"),   axis_up='Z', axis_forward='-Y')
 # bpy.data.meshes["isosurface"].use_auto_smooth
 
 # set their material properties

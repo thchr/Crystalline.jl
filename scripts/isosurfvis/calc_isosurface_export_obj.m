@@ -2,10 +2,14 @@ clear; clc; close all;
 
 % --- load source data ---
 load("tmp/isosurfdata.mat")
+% 'vals' should be ordered as "y-then-x-then-z", as that is what isosurface 
+% assumes ("meshgrid-type sorting") - but we build it as "x-then-y-then-z"
+% in julia: so fix that here here
+vals = permute(vals, [2,1,3]); 
 
 % --- prepare inside/outsideness ---
 % flip what's inside/outside, if we want to; just a matter of perspective
-flip = false;
+flip = true;
 if flip
     vals   = -vals;
     isoval = -isoval;
