@@ -32,14 +32,14 @@ for sgnum in 1:MAX_SGNUM[3]
     Nᴴ_nontopo  = length(sb_nontopo)
 
     # Splitting into trivial and fragile Hilbert bases
-    nsᴴ_trivial, nsᴴ_fragile = split_fragiletrivial_bases(sb_nontopo, B)
+    trivial_idxs, fragile_idxs = split_fragiletrivial_bases(sb_nontopo, B)
 
     # Write some stats about the obtained Hilbert bases
     println("   ", Nᴱᴮᴿ,       " EBRs")
     println("   ", Nᴴ,         " compatibility bases")
     println("   ", Nᴴ_nontopo, " non-topological bases")
-    println("      ", size(nsᴴ_trivial, 2), " trivial bases")
-    println("      ", size(nsᴴ_fragile, 2), " fragile bases")
+    println("      ", size(trivial_idxs, 2), " trivial bases")
+    println("      ", size(fragile_idxs, 2), " fragile bases")
 
     # Test consistency of bases, if requested
     if test_nontopo

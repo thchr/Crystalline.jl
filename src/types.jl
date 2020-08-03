@@ -508,16 +508,15 @@ struct BandRep <: AbstractVector{Int64}
     dim::Integer     # Dimension (i.e. # of bands) in band rep
     decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
-    irvec::Vector{Int64}      # Vector that references irlabs of a parent BandRepSet; 
-                              # nonzero entries correspond to an element in the band representation
-    irreptags::Vector{String} # Vestigial, but quite handy for display'ing; this otherwise 
-                              # requires recursive data sharing between BandRep and BandRepSet
+    irvec::Vector{Int64}   # Vector that references irlabs of a parent BandRepSet; nonzero
+                           # entries correspond to an element in the band representation
+    irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
 wyck(BR::BandRep)    = BR.wyckpos
 sitesym(BR::BandRep) = BR.sitesym
 label(BR::BandRep)   = BR.label
-humanreadable(BR::BandRep) = BR.irreptags
 vec(BR::BandRep)     = BR.irvec
+irreplabels(BR::BandRep) = BR.irlabs
 
 """
     dim(BR::BandRep) --> Int64

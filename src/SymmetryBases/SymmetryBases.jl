@@ -5,7 +5,9 @@ import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, len
 import Crystalline: matrix
 
 export SymBasis, fillings, matrix
-export compatibility_bases, nontopological_bases, split_fragiletrivial_bases
+export compatibility_bases, nontopological_bases, split_fragiletrivial_bases,
+       has_posint_expansion, get_solution_topology,
+       TopologyKind, trivial, nontrivial, fragile
 
 const PyNormaliz = pyimport("PyNormaliz") # import the PyNormaliz library
 
@@ -166,7 +168,7 @@ for f in (:compatibility_bases, :nontopological_bases)
     @eval begin
         function $f(sgnum::Integer; algorithm::String="DualMode", spinful::Bool=false,
                                     timereversal::Bool=true)
-            BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
+            BRS = bandreps(sgnum; allpaths=false, spinful=spinful, timereversal=timereversal)
             B   = matrix(BRS, true)    # Matrix with columns of EBRs.
             F   = Crystalline.smith(B) # Smith normal decomposition of B
 
@@ -175,6 +177,19 @@ for f in (:compatibility_bases, :nontopological_bases)
     end
 end
 
+"""
+    split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix) 
+                                                            --> Vector{Int}, Vector{Int}
+
+Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
+determining whether or not each has a positive-coefficient expansion in EBRs. The EBRs
+are given as a matrix, `B` which must be `B = matrix(BRS, true)` where `BRS::BandRepSet`.
+
+Both `sb_nontopo` and `B` must reference the same output space: in other words, if the
+latter includes a filling element, so must the former.
+
+Returns indices,  trivial_idxs` and `fragile_idxs`, into `sb_nontopo`.
+"""
 function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
         throw(DomainError(sb_nontopo, "Specified SymBasis must have compatbasis=false"))
@@ -195,16 +210,14 @@ function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
         status = termination_status(m)
         if status == MOI.OPTIMAL         # A feasible solution was found ⇒ trivial!
             push!(trivial_idxs, j)
-        elseif status == MOI.INFEASIBLE  # No feasible solution exists    ⇒ fragile!
+        elseif status == MOI.INFEASIBLE  # No feasible solution exists   ⇒ fragile!
             push!(fragile_idxs, j)
         else
             throw("Unexpected termination status $status")
         end
     end
-    nsᴴ_trivial = @view sb_nontopo[trivial_idxs]
-    nsᴴ_fragile = @view sb_nontopo[fragile_idxs]
 
-    return nsᴴ_trivial, nsᴴ_fragile
+    return trivial_idxs, fragile_idxs
 end
 
 """
@@ -269,6 +282,105 @@ function _test_hilbert_bases_consistency(BRS::BandRepSet, F::SmithNormalForm.Smi
     end
 
     nothing
+end
+
+
+# ---------------------------------------------------------------------------------------- #
+#                  Methods to test the topology of a given symmetry vector n               #
+# ---------------------------------------------------------------------------------------- #
+
+# Functionality to check whether a positive-integer coefficient expansion exists in a given 
+# basis: checks whether coefficients cᵢ∈ℕ (=0,1,2,...) exists such that Mc=n
+function has_posint_expansion(n::AbstractVector{<:Integer}, M::AbstractMatrix{<:Integer})
+    N = size(M, 2)
+    # feasibility problem with positive-integer variables, subject to the condition Mc = n
+    m = Model(GLPK.Optimizer)
+    @variable(m, c[1:N] >= 0, Int)
+    @constraint(m, M*c .== n)
+    # try to solve the model
+    optimize!(m)
+
+    return m
+end
+
+@enum TopologyKind trivial=0 nontrivial=1 fragile=2
+
+"""
+    get_solution_topology(n, nontopo_M, trivial_M, M=nothing) --> ::TopologyKind
+
+Check whether a given (valid) symmetry vector represents a band-combination that is trivial, 
+nontrivial, or fragile. Does this by comparing against nontopological, trivial, and full
+bases `nontopo_M`, `trivial_M`, and `M`, respectively, given as matrices with columns of 
+symmetry basis elements (i.e. checks whether a valid expansion exists in each).
+
+If `trivial_M` is given as `nothing`, it is taken to imply that it is equal to `nontopo_M`,
+meaning that there are no fragile phases.
+
+If `M` is _not_ `nothing` (i.e. a matrix representing the full symmetry basis), an 
+additional sanity/safety check is carried out: otherwise not. Otherwise not necessary.
+
+Returns a member value of the `TopologyKind::Enum` type (`trivial`, `nontrivial`, or 
+`fragile`).
+"""
+function get_solution_topology(n::AbstractVector{<:Integer}, 
+            nontopo_M::AbstractMatrix{<:Integer}, 
+            trivial_M::Union{Nothing, AbstractMatrix{<:Integer}}, 
+            M::Union{Nothing, <:AbstractMatrix{<:Integer}}=nothing)
+    # check whether expansion exists in nontopological basis
+    nontopo_m = has_posint_expansion(n, nontopo_M)
+
+    # check to see what the termination status (i.e. result) of the optimization was 
+    status′ = termination_status(nontopo_m)
+    if status′ == MOI.OPTIMAL           # feasible solution found     ⇒ trivial/fragile
+        # determine whether trivial or fragile
+        if !isnothing(trivial_M)
+            trivial_m = has_posint_expansion(n, trivial_M)
+            if termination_status(trivial_m) ≠ MOI.OPTIMAL
+                # expansion in trivial-only basis elements impossible ⇒ fragile
+                return fragile
+            end
+        end
+                # expansion in trivial-only elements feasible         ⇒ trivial
+        return trivial
+        
+    elseif status′ == MOI.INFEASIBLE    # infeasible problem          ⇒ nontrivial
+        if !isnothing(M) # do a sanity-check to verify that expansion exists in full basis
+            m = has_posint_expansion(n, M)
+            if termination_status(m) ≠ MOI.OPTIMAL
+                throw("It must be possible to find an expansion in the full basis")
+            end
+        end
+
+        return nontrivial
+
+    else
+        throw(DomainError(termination_status(nontopo_m), 
+            "Unexpected termination status of nontopo_m: expected OPTIMAL or INFEASIBLE"))
+    end
+
+    return 
+end
+
+function get_solution_topology(n::AbstractVector{<:Integer}, 
+            nontopo_sb::SymBasis, BRS::BandRepSet, sb::Union{Nothing, SymBasis}=nothing)
+    
+    nontopo_M = matrix(nontopo_sb)
+    
+    trivial_idxs, fragile_idxs = split_fragiletrivial_bases(nontopo_sb, matrix(BRS, true))
+    can_be_fragile = !isempty(fragile_idxs)
+    trivial_M = can_be_fragile ? (@view nontopo_M[:, trivial_idxs]) : nothing
+    
+    M = sb === nothing ? nothing : matrix(sb)
+
+    return get_solution_topology(n, nontopo_M, trivial_M, M)
+end
+
+function get_solution_topology(n::AbstractVector{<:Integer}, sgnum::Integer; 
+            spinful::Bool=false, timereversal::Bool=true)
+    nontopo_sb, _, BRS = nontopological_bases(sgnum; spinful=spinful, timereversal=timereversal)
+    sb, _, _           = compatibility_bases(sgnum; spinful=spinful, timereversal=timereversal)
+
+    return get_solution_topology(n, nontopo_sb, BRS, sb)
 end
 
 

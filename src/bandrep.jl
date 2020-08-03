@@ -40,8 +40,7 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     irlabs, irvecs = get_irrepvecs(brtags)              
 
     BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, map(isspinful, brtags), 
-                   irvecs, brtags)
-
+                   irvecs, Ref(irlabs))
     
     return BandRepSet(sgnum, BRs, kvs, klabs, irlabs, allpaths, spinful, timereversal)
 end

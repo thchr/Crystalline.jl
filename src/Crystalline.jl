@@ -19,7 +19,7 @@ using Statistics: quantile
 import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
              IndexStyle, size, eltype, length,           # ⤶
              string, isapprox, zero,
-             readuntil, vec, show,
+             readuntil, vec, show, summary,
              +, -, ∘, ==, ImmutableDict
 import LinearAlgebra: inv
 import Random                 # → _Uniform in src/utils.jl

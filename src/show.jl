@@ -307,14 +307,54 @@ end
 
 
 # --- BandRep ---
-function show(io::IO, ::MIME"text/plain", BR::BandRep)
-    # ⊕ doesn't render well in my terminal; swap for ordinary plus
-    strvec = map(Base.Fix2(replace, '⊕'=>'+'), humanreadable(BR))
+function prettyprint_symmetryvector(io::IO, irvec::Vector{Int}, irlabs::Vector{String})
+    Nⁱʳʳ  = length(irlabs)
+    Nⁱʳʳ′ = length(irvec) 
+    if !(Nⁱʳʳ′ == Nⁱʳʳ || Nⁱʳʳ′ == Nⁱʳʳ+1)
+        # we allow irvec to exceed the dimension of irlabs by 1, in case it includes dim(BR)
+        throw(DimensionMismatch("irvec and irlabs must have matching dimensions"))
+    end
+    print(io, '[')
 
-    print(io, "BandRep: \n ")
-    print(io, label(BR), " (", dim(BR), "): [")
-    join(io, strvec, ", ")
-    print(io, "]")
+    first_nz   = true
+    group_klab = klabel(first(irlabs))
+    for idx in 1:Nⁱʳʳ
+        # shared prepwork
+        irlab = irlabs[idx]
+        klab  = klabel(irlab)
+        c  = irvec[idx] # coefficient of current term
+        c == 0 && continue # early stop if the coefficient is zero
+
+        if klab ≠ group_klab # check if this irrep belongs to a new k-label group
+            first_nz = true
+            group_klab = klab
+            print(io, ", ") 
+        end
+        
+        absc = abs(c)
+        if first_nz             # first nonzero entry in a k-label group
+            if abs(c) == 1
+                c == -1 && print(io, '-')
+            else
+                print(io, c)
+            end
+            first_nz = false
+        else                    # entry that is added/subtracted from another irrep
+            print(io, signaschar(c))
+            if absc ≠ 1
+                print(io, absc)
+            end
+        end
+        print(io, irlab)      
+    end
+    print(io, ']')
+end
+
+summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), ")")
+function show(io::IO, ::MIME"text/plain", BR::BandRep)
+    summary(io, BR)
+    print(io, ":\n ")
+    prettyprint_symmetryvector(io, vec(BR), irreplabels(BR))
 end
 
 
