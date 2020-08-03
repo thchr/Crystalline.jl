@@ -258,12 +258,12 @@ function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Inte
     @inbounds for i in Base.OneTo(Nkpairs)
         dists[i] = norm(kvs[i] .- kvs[i+1])
     end
-    mindist = mean(dists)
+    meandist = sum(dists)/Nkpairs
 
     kvpath = [float.(kvs[1])]
     @inbounds for i in  Base.OneTo(Nkpairs)
         # try to maintain an even distribution of k-points along path
-        Ninterp_i = round(Int64, dists[i]./mindist*Ninterp)
+        Ninterp_i = round(Int64, dists[i]./meandist*Ninterp)
         # new k-points
         newkvs = range(kvs[i],kvs[i+1],length=Ninterp_i)
         # append new kvecs to kpath
