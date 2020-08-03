@@ -16,15 +16,26 @@ function lattice2mpb(flat::AbstractFourierLattice)
     return orbits_mpb, coefs_mpb
 end
 
-function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsamples::Int64=51) where D
+# returns a lazy "vector" of the (real) value of `flat` over the entire BZ, using `nsamples`
+# per dimension; avoids double counting at BZ edges.
+function _lazy_fourier_eval_over_bz_as_vector(flat::AbstractFourierLattice{D}, nsamples::Int64) where D
     step = 1.0/nsamples
-    samples = range(-0.5, 0.5-step, length=nsamples)
+    samples = range(-0.5, 0.5-step, length=nsamples) # `-step` to avoid double counting ±0.5 (cf. periodicity)
     if D == 2
         itr = (real(calcfourier((x,y), flat)) for x in samples for y in samples)
     elseif D == 3
         itr = (real(calcfourier((x,y,z), flat)) for x in samples for y in samples for z in samples)
     end
+end
+
+function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsamples::Int64=51) where D
+    itr = _lazy_fourier_eval_over_bz_as_vector(flat, nsamples)
     return quantile(itr, filling)
+end
+
+function isoval2filling(flat::AbstractFourierLattice{D}, isoval::Real, nsamples::Int64=51) where D
+    itr = _lazy_fourier_eval_over_bz_as_vector(flat, nsamples)
+    return count(<(isoval), itr)/nsamples^D
 end
 
 function mpb_calcname!(io, dim, sgnum, id, res, runtype="all")
@@ -106,19 +117,30 @@ above, with `calcname` specified as an input parameter (assumed to be a subfolde
 """
 function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D},
                           Rs::DirectBasis{D},
-                          filling::Real=0.5, εin::Real=10.0, εout::Real=1.0,
+                          filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
                           runtype::String="all";
                           # kwargs
                           id=1,
                           res::Integer=32,
-                          kvecs::Union{Nothing, AbstractVector{<:Vector{Number}}}=nothing,
-                          lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing) where D
+                          kvecs::Union{Nothing, AbstractString, AbstractVector{<:Vector{<:Number}}}=nothing,
+                          lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
+                          nbands::Union{Nothing, Integer}=nothing,
+                          isoval::Union{Nothing, Real}=nothing) where D
 
-    # --- work to actually call mpb ---
+    # --- prep work to actually call mpb ---
     calcname = mpb_calcname(D, sgnum, id, res, runtype)
     rvecs = _vec2list(_vec2vector3, Rs)
     uc_gvecs, uc_coefs = lattice2mpb(flat)
-    uc_level = filling2isoval(flat, filling)
+    if filling !== nothing
+        uc_level = filling2isoval(flat, filling)
+    elseif isoval !== nothing
+        uc_level = isoval
+    else
+        throw(DomainError((filling, isoval), "Either filling or isoval must be a real number"))
+    end
+    if filling !== nothing && isoval !== nothing
+        throw(DomainError((filling, isoval), "Either filling or isoval must be nothing"))
+    end    
 
     # prepare and write all runtype, structural, and identifying inputs
     print(io, # run-type ("all", "te", or "tm")
@@ -137,6 +159,10 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
               # permittivities
               "epsin",    "=",        εin,             "\n",
               "epsout",   "=",        εout,            "\n")
+    
+    if !isnothing(nbands) # number of bands to solve for (otherwise default to .ctl choice)
+        print(io, "nbands", "=",      nbands,          "\n")
+    end
 
     # prepare and write k-vecs and possibly also little group operations
     if lgs !== nothing
@@ -158,27 +184,44 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
         αβγ = fill(0.25, D)
         kvecs = map(lg->kvec(lg)(αβγ), lgs)
     end
-    write(io, "kvecs",     " ="); _vec2list(io, _vec2vector3, kvecs)
+
+    # write kvecs (if they are not nothing; we may not always want to give kvecs explicitly,
+    #              e.g. for berry phase calculations)
+    write(io, "kvecs", "=")
+    if kvecs !== nothing 
+        if kvecs isa AbstractString
+            write(io, "\"", kvecs, "\"")
+        elseif kvecs isa AbstractVector{<:Vector{<:Number}}
+            _vec2list(io, _vec2vector3, kvecs)
+        end
+    else
+        # easier just to write an empty string than nothing; otherwise we have to bother
+        # with figuring out how to remove an empty newline at the end of the file
+        write(io, "(list)")
+    end
 
     return nothing
 end
 
 function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D}, 
                          Rs::DirectBasis{D}, 
-                         filling::Real=0.5, epsin::Real=10.0, epsout::Real=1.0,
+                         filling::Union{Real, Nothing}=0.5, εin::Real=10.0, εout::Real=1.0,
                          runtype::String="all";
                          # kwargs
                          id=1, 
                          res::Integer=32, 
                          kvecs::Union{Nothing, AbstractVector{<:Vector{Number}}}=nothing, 
-                         lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing) where D
+                         lgs::Union{Nothing, AbstractVector{LittleGroup{D}}}=nothing,
+                         nbands::Union{Nothing, Integer}=nothing,
+                         isoval::Union{Nothing, Real}=nothing) where D
     io = IOBuffer()
-    prepare_mpbcalc!(io, sgnum, flat, Rs, filling, epsin, epsout, runtype; 
-                         res=res, id=id, kvecs=kvecs, lgs=lgs)
+    prepare_mpbcalc!(io, sgnum, flat, Rs, filling, εin, εout, runtype; 
+                         res=res, id=id, kvecs=kvecs, lgs=lgs, nbands=nbands, isoval=isoval)
     return String(take!(io))
 end
 
-function gen_symeig_mpbcalc(sgnum, D; res::Integer=32, id=1)
+# TODO: maybe remove this method? Only parts worth keeping are the matching_lgs+primitivize parts...
+function gen_symeig_mpbcalc(sgnum, D, εin::Real=10.0, εout::Real=1.0; res::Integer=32, id=1)
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
     brs  = bandreps(sgnum, allpaths=false, spinful=false, timereversal=true)
@@ -192,11 +235,9 @@ function gen_symeig_mpbcalc(sgnum, D; res::Integer=32, id=1)
     # equivalent in a primitive basis, so we _must_ go to the primitive basis)
     lgs′  = primitivize.(lgs)
     flat′ = primitivize(flat, cntr)
-    println(length(collect(Iterators.flatten(flat.orbits))))
-    println(length(collect(Iterators.flatten(flat′.orbits))))
     Rs′   = primitivize(Rs, cntr)
 
-    prepare_mpbcalc(sgnum, flat′, Rs′; res=res, lgs=lgs, id=id)
+    prepare_mpbcalc(sgnum, flat′, Rs′, εin, εout; res=res, lgs=lgs′, id=id)
 end
     
 
@@ -214,6 +255,7 @@ Output:
     isoval::Float64,
     epsin::Float64,
     epsout::Float64
+    kvecs::Vector{SVector{D, Float64}}
 ```
 
 Note that `flat` does not retain information about orbit groupings, since we flatten the 
@@ -221,15 +263,13 @@ orbits into a single vector in `lattice2mpb`. This doesn't matter as we typicall
 to plot the saved lattice (see `plot_lattice_from_mpbparams` from `compat/pyplot.jl`).
 """
 function lattice_from_mpbparams(io::IO)
-    mark(io) # mark the beginning of stream so we can return to it (otherwise we must assume a fixed order of parameters in input)
 
     # --- dimension ---
     readuntil(io, "dim=")
     D = parse(Int64, readline(io))
 
     # --- basis vectors ---
-    readuntil(io, "rvecs=")
-    if eof(io); reset(io); readuntil(io, "rvecs="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "rvecs=")
     vecs = Tuple(Vector{Float64}(undef, D) for _ in Base.OneTo(D))
     for R in vecs
         readuntil(io, "(vector3 ")
@@ -239,8 +279,7 @@ function lattice_from_mpbparams(io::IO)
     Rs = DirectBasis{D}(vecs)
 
     # --- ("flattened") orbits ---
-    readuntil(io, "uc-gvecs=")
-    if eof(io); reset(io); readuntil(io, "uc-gvecs="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "uc-gvecs=")
     gvecs = Vector{SVector{D, Int64}}() 
     while true
         readuntil(io, "(vector3 ")
@@ -251,8 +290,7 @@ function lattice_from_mpbparams(io::IO)
     end
 
     # --- ("flattened") orbit coefficients --- 
-    readuntil(io, "uc-coefs=")
-    if eof(io); reset(io); readuntil(io, "uc-coefs="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "uc-coefs=")
     readuntil(io, "(list ")
     gcoefs = Vector{ComplexF64}(undef, length(gvecs)) 
     for n in eachindex(gcoefs)
@@ -266,19 +304,68 @@ function lattice_from_mpbparams(io::IO)
     flat = ModulatedFourierLattice{D}([gvecs], [gcoefs])
 
     # --- iso-level ---
-    readuntil(io, "uc-level=")
-    if eof(io); reset(io); readuntil(io, "uc-level="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "uc-level=")
     isoval = parse(Float64, readline(io))
 
     # --- epsilon values ---
-    readuntil(io, "epsin=")
-    if eof(io); reset(io); readuntil(io, "epsin="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "epsin=")
     epsin = parse(Float64, readline(io))
-    readuntil(io, "epsout=")
-    if eof(io); reset(io); readuntil(io, "epsout="); end # try to be robust to arbitrary ordering
+    rewinding_readuntil(io, "epsout=")
     epsout = parse(Float64, readline(io))
 
-    unmark(io)
-    return Rs, flat, isoval, epsin, epsout
+    # --- k-vectors ---
+    kvecs = kvecs_from_mpbparams(io, D)
+
+    return Rs, flat, isoval, epsin, epsout, kvecs
 end
 lattice_from_mpbparams(filepath::String) = open(filepath) do io; lattice_from_mpbparams(io); end
+
+function kvecs_from_mpbparams(io::IO, D::Int)
+    rewinding_readuntil(io, "kvecs=")
+    mark(io)
+    # if kvecs is a string, we don't try to do anything with it at this point, and just
+    # return nothing instead
+    if read(io, Char) !== '"'
+        reset(io)
+        kvecs = SVector{D, Float64}[]
+        while true
+            readuntil(io, "(vector3 ")
+            coords = split(readuntil(io, ')'))
+            next_kvec = parse.(Ref(Float64), coords)
+            push!(kvecs, SVector{3,Float64}(next_kvec))
+            (read(io, Char) == ')') && break # look for a closing (double) parenthesis to match the assumed opening "(list "
+        end
+    else # kvecs is a string, interpret as filename in same directory as io's "origin"
+        ioname = io.name
+        kvecsfile = readuntil(io, "\"")
+        if ioname[1:6] == "<file "
+            dir = dirname(ioname[7:end-1])
+            kvecs = SVector{D, Float64}[]
+            open(dir*"/"*kvecsfile) do ioᵏ
+                # assume a format "((0.0 0.1 0.2) (0.2 0.3 .4) ... (.3 .1 .2) )" [note the space at the end]
+                (read(ioᵏ, Char) == '(' && read(ioᵏ, Char) == '(') || throw("Unexpected format of kvecs file")
+                while true
+                    coords = split(readuntil(ioᵏ, ")"))
+                    next_kvec = parse.(Ref(Float64), coords)
+                    push!(kvecs, SVector{3,Float64}(next_kvec))
+                    (read(ioᵏ, Char) == ' ' && read(ioᵏ, Char) == '(') || break
+                end
+            end
+        else
+            return nothing
+        end
+    end
+
+    return kvecs
+end
+kvecs_from_mpbparams(filepath::String, D::Int=3) = open(filepath) do io; kvecs_from_mpbparams(io, D); end
+
+function rewinding_readuntil(io::IO, str::AbstractString)
+    readuntil(io, str)
+    # we try to be robust to arbitrary ordering of input (otherwise we must assume and 
+    # commit to a fixed order of parameters in the input), so we allow the stream to be 
+    # reset to its beginnings if we don't find what we're looking for in the first place
+    if eof(io); seekstart(io); readuntil(io, str); end # try to be robust to arbitrary ordering
+
+    nothing
+end
