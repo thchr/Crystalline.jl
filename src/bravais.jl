@@ -11,7 +11,7 @@ For definiteness, the `R₁` basis vector is oriented along the
 x-axis of the Cartesian coordinate system, and the `R₂` axis is 
 placed in the xy-plane.
 """
-function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
+function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
     # consistency checks on interaxial angles (equivalently, sides of the corresponding unit-spherical triangle)
     if !isvalid_sphericaltriangle(α,β,γ)
         throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
@@ -209,7 +209,9 @@ end
 relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
-    directbasis(sgnum, D=3; abclims, αβγlims) ---> DirectBasis{D}
+    directbasis(sgnum, D=3;    abclims, αβγlims)
+    directbasis(sgnum, Val(D); abclims, αβγlims) ---> DirectBasis{D}
+    
 
 Generates a (conventional) DirectBasis for a crystal compatible with 
 the space group number `sgnum` and dimensionality `D`. Free parameters
@@ -224,10 +226,9 @@ can be specified as 2-tuple kwarg `abclims`; similarly, limits on
 the angles `α`, `β`, `γ` can be set via αβγlims (only affects 
 oblique, monoclinic, & triclinic lattices).
 """
-function directbasis(sgnum::Integer, D::Integer=3;
+function directbasis(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                      abclims::NTuple{2,Real}=(0.5,2.0), 
-                     αβγlims::NTuple{2,Real}=(°(30),°(150)))
-    # TODO: This function should take `D` as `Val(D)` to be type-stable...
+                     αβγlims::NTuple{2,Real}=(°(30),°(150))) where D
     system = crystalsystem(sgnum, D)
     if D == 1
         a = 1.0
@@ -298,6 +299,11 @@ function directbasis(sgnum::Integer, D::Integer=3;
         _throw_invaliddim(D)
     end
 end
+function directbasis(sgnum::Integer, D::Integer;
+            abclims::NTuple{2,Real}=(0.5,2.0), αβγlims::NTuple{2,Real}=(°(30),°(150)))
+    directbasis(sgnum, Val(D); abclims=abclims, αβγlims=αβγlims)
+end
+
 
 const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                                            # 1D
                               ImmutableDict("oblique"=>'m', "rectangular"=>'o', "square"=>'t',         # 2D
@@ -491,3 +497,22 @@ end
 # then, combining (1) and (2)
 #     (𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ = (k₁ k₂ k₃)ᵀ
 #  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ 
+
+
+"""
+    conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
+
+Transforms a primitive DirectBasis `Rs′` into its conventional equivalent `Rs`, with the 
+transformation dependent on the centering type `cntr` (P, I, F, R, A, C, and p, c); for
+centering P and p, the conventional and primive bases coincide.
+"""
+function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Rs′
+    else         
+        P = primitivebasismatrix(cntr, D)
+        Rm = basis2matrix(Rs′)/P # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive 
+                                # direct basis vecs Rᵢ′)
+        return DirectBasis{D}(ntuple(i->Rm[:,i], D))
+    end  
+end

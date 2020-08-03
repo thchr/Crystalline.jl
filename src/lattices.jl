@@ -302,7 +302,7 @@ If `expon = nothing`, no rescaling is performed.
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
 of a `ModulatedFourierLattice`.
 """
-function modulate(flat::UnityFourierLattice{D},
+function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
                   expon::Union{Nothing, Real}=nothing) where D
     if isnothing(modulation)
@@ -374,20 +374,32 @@ function calcfourier(xyz, orbits, orbitcoefs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
             exp_im, exp_re = sincos(2π*dot(G, xyz))
-            f += real(c)*exp_re - imag(c)*exp_im    # ≡ real(exp(2π*1im*dot(G, xyz)))
+            f += real(c)*exp_re - imag(c)*exp_im    # ≡ real(c*exp(2π*1im*dot(G, xyz)))
         end
     end
     return f
 end
 
+# note: 
+# the "(x,y,z) ordering" depends on dimension D:
+#       D = 2: x runs over cols (dim=2), y over rows (dim=1), i.e. "y-then-x"
+#       D = 3: x runs over dim=1, y over dim=2, z over dim=3, i.e. "x-then-y-then-z"
+# this is because plotting utilities usually "y-then-x", but e.g. Meshing.jl (for 3D
+# isosurfaces) assumes the the more natural "x-then-y-then-z" sorting used here. This does
+# require some care though, because if we export the output of a 3D calculation to Matlab,
+# to use it for isosurface generation, it again requires a sorting like "y-then-x-then-z",
+# so we need to permute dimensions 1 and 2 of the output of `calcfouriergridded` when used 
+# with Matlab.
 function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice{D}, 
                              N::Integer=length(xyz)) where D
     f = (coords...)-> calcfourier(coords, flat)
     # evaluate f over all gridpoints via broadcasting
     if D == 2
+        # x along columns, y along rows: "y-then-x"
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
     elseif D == 3
-        # TODO: verify--unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
+        # x along dim 1, y along dim 2, z along dim 3: "x-then-y-then-z", equivalent to a
+        # triple loop, ala `for x∈xyz, y∈xyz, z∈xyz; vals[ix,iy,iz] = f(x,y,z); end`
         broadcast!(f, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
     end
     return vals
