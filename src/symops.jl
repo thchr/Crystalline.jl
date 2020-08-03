@@ -45,7 +45,7 @@ The default choices for basis vectors are specified in Bilbao as:
 end
 @inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 
-function xyzt2matrix(s::String)
+function xyzt2matrix(s::AbstractString)
     ssub = split(s, ',')
     D = length(ssub)
     xyzt2matrix!(zeros(Float64, D, D+1), ssub)
@@ -458,14 +458,14 @@ kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Computes the action of the SymOperation `op`=g on a KVec `kv`=k
-using that g acts on k-vectors as k(G)′ = [g(R)ᵀ]⁻¹k(G), with g 
-in an R-basis and k in a G-basis. Returns a new KVec, that is 
+Computes the action of the SymOperation `op` ``≡ g`` on a KVec `kv` ``≡ k``
+using that ``g`` acts on k-vectors as ``k(G)′ = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
+in an ``R``-basis and k in a ``G``-basis. Returns a new `KVec`, that is 
 possibly distinct from its original only by a reciprocal lattice
 vector (i.e. multiple of integers).
 
-If `checkabc` = false, the free part of KVec is not transformed
-(can be useful in situation where `kabc` is zero, and several 
+If `checkabc = false`, the free part of `KVec` is not transformed
+(can be useful in situation when `kabc` is zero, and several 
 transformations are requested).
 """
 @inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
@@ -478,34 +478,35 @@ end
 
 
 """
-    primitivize(op::SymOperation, cntr::Char) --> SymOperation
+    primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> SymOperation
 
-Transforms a symmetry operation `op`={W|w} from a conventional cell 
-to a primitive cell (specified by its centering character `cntr`), 
-then denoted {W′|w′}; i.e. performs a basis change 
-    {W′|w′} = {P|p}⁻¹{W|w}{P|p}
-where P and p describe basis change and origin shifts, respectively,
-associated with the coordinate transformation. 
+Transforms a symmetry operation `op` ``= {W|w}`` from a conventional cell to a primitive cell
+(specified by its centering character `cntr`), then denoted ``{W′|w′}``; i.e. performs a
+basis change ``{W′|w′} = {P|p}⁻¹{W|w}{P|p}`` where ``P`` and ``p`` describe basis change and
+origin shifts, respectively, of the coordinate transformation.
+
+By default, translation parts of `op′`, i.e. ``w′`` are reduced modulo 1 (`modw = true`); to
+disable this, set `modw = false`.
 
 For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
 """
-function primitivize(op::SymOperation{D}, cntr::Char) where D
+function primitivize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
         # primitive basis: identity-transform, short circuit
         return op
     else
         P = primitivebasismatrix(cntr, D)
-        return transform(op, P, nothing)
+        return transform(op, P, nothing, modw)
     end
 end
 
-function conventionalize(op::SymOperation{D}, cntr::Char) where D
+function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
         # primitive basis: identity-transform, short circuit
         return op
     else
         P = primitivebasismatrix(cntr, D)
-        return transform(op, inv(P), nothing)
+        return transform(op, inv(P), nothing, modw)
     end
 end
 
@@ -527,16 +528,16 @@ end
               p::Union{Vector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                          --> SymOperation
 
-Transforms a symmetry operation `op = {W|w}` by a rotation matrix `P` and 
-a translation vector `p` (can be `nothing` for zero-translations), producing
-a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
+Transforms a symmetry operation `op` ``= {W|w}`` by a rotation matrix `P` and a translation
+vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
+`op′` ``= {W′|w′}``: (see ITA6, Sec. 1.5.2.3.)
 
-        {W′|w′} = {P|p}⁻¹{W|w}{P|p}
-        with   W′ = P⁻¹WP and w′ = P⁻¹(w+Wp-p)
+``{W′|w′} = {P|p}⁻¹{W|w}{P|p}``
+with  ``W′ = P⁻¹WP`` and ``w′ = P⁻¹(w+Wp-p)``
 
-By default, the translation part of `op′`, i.e. `w′`, is reduced to the range 
-[0,1), i.e. computed modulo 1 (corresponding to `modw=true`). This can be 
-disabled by setting `modw=false`.
+By default, the translation part of `op′`, i.e. ``w′``, is reduced to the range ``[0,1)``, 
+i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
+true`).
 
 See also `primitivize` and `conventionalize`. 
 """
@@ -594,26 +595,29 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
 end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
-function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, conv_or_prim::Bool=true) where D
+function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
+                    conv_or_prim::Bool=true, modw::Bool=true) where D
     P = primitivebasismatrix(cntr, D)
-    ops′ = transform.(ops, Ref(P)) # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
+    ops′ = transform.(ops, Ref(P), nothing, modw) # equiv. to `primitivize.(ops, cntr, modw)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
     ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
 
     if conv_or_prim # (true) return in conventional basis
-        return transform.(ops′_reduced, Ref(inv(P))) # equiv. to conventionalize.(ops′_reduced, cntr)
+        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw) # equiv. to conventionalize.(ops′_reduced, cntr, modw)
     else            # (false) return in primitive basis
         return ops′_reduced
     end
 end
-@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, conv_or_prim::Bool=true)
-    return reduce_ops(operations(slg), centering(slg), conv_or_prim)
+@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, 
+                            conv_or_prim::Bool=true, modw::Bool=true)
+    return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-primitivize(sg::T) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false))
-function primitivize(lg::T) where T<:LittleGroup 
+primitivize(sg::T, modw::Bool=true) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false, modw))
+function primitivize(lg::T, modw::Bool=true) where T<:LittleGroup 
     cntr = centering(lg)
-    kv′  = primitivize(kvec(lg), cntr)              # transform both k-point and operations
-    ops′ = reduce_ops(operations(lg), cntr, false)
+    # transform both k-point and operations
+    kv′  = primitivize(kvec(lg), cntr)
+    ops′ = reduce_ops(operations(lg), cntr, false, modw)
     return T(num(lg), kv′, klabel(lg), ops′)
 end
 
