@@ -9,6 +9,7 @@ if !isdefined(Main, :(SymmetryBases))
     using Main.SymmetryBases
 end
 using PrettyTables
+includet("utils.jl") # to get `convert_irreplabel2latex`
 
 #------------------------------------------------------------------------------------------
 # UTILITY FUNCTIONS
@@ -96,7 +97,7 @@ while true
 
     # insert (▪)²ᵀ in Γ-irrep spot
     nᵀs_str .= add_content_to_symvec_str_at_kidx.(nᵀs_str, Γkv_idx_in_sb, Ref("(▪)²ᵀ"))
-    latex && (nᵀs_str .= Crystalline.convert_irreplabel2latex.(nᵀs_str))
+    latex && (nᵀs_str .= convert_irreplabel2latex.(nᵀs_str))  # from /test/utils.jl
 
     # find "Z₁" factor-type topology of each solution
     topos = topology_from_2T1L_xor_1L.(nᵀs, Ref(nᴸ), Ref(ms²ᵀ), Ref(Γidxs), Ref(nontopo_M))
