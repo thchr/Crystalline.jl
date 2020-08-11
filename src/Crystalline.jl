@@ -111,7 +111,7 @@ export UnityFourierLattice, ModulatedFourierLattice,
        modulate, normscale, normscale!, calcfourier
 
 include("compatibility.jl")
-export subduction_count, compatibility
+export subduction_count
 
 include("bandrep.jl")
 export bandreps, matrix, classification, basisdim

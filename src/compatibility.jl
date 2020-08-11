@@ -92,13 +92,21 @@ end
 
 """
     $(SIGNATURES)
+
+Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. If so,
+return an `αβγ′` value such that `kv = kv′(αβγ′)`.
+
+TODO: This method should eventually be merged with the equivalently named method in
+      PhotonicBandConnectivity/src/connectivity.jl, which handles everything more correctly,
+      but currently has a slightly incompatible API.
 """
 function is_compatible_kvec(kv::KVec, kv′::KVec)
     # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
     #       if we match k-points across a G-vector, we also need to transform the irrep
     #       with a suitable phase factor.
+    isspecial(kv) || throw(DomainError(kv, "must be special"))
+    isspecial(kv′) && return false, nothing
 
-    # TODO: this cannot treat finding a compatible plane to a line
     k₀, _  = parts(kv) 
     k₀′, kabc′ = parts(kv′)
 
@@ -106,14 +114,14 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
     αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)
     k′ = k₀′ + kabc′*αβγ′
     # check if least squares solution actually is a solution
-    compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL) 
+    compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL)
 
-    return compat_bool, αβγ′
+    return compat_bool, compat_bool ? αβγ′ : nothing
 end
 
 """
     $(SIGNATURES)
-    
+
 TODO: Seems entirely broken? Not sure what this is supposed to do.
 """
 function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
@@ -123,7 +131,9 @@ function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) wh
     
     # prepare a graph for the connections between k-vectors
     kgraph = MetaDiGraph(Nk)
-    foreach((i,kv,kl)->set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl)), eachindex(kvs), kvs, klabs)
+    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
+        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
+    end
 
     for (kidxᴳ,lgirs) in enumerate(lgirvec)                 # parent group 
         kvᴳ = kvs[kidxᴳ]
@@ -135,7 +145,7 @@ function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) wh
                 for (jᴴ, Dᴴⱼ) in enumerate(lgirvec[kidxᴴ])
                     nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγᴴ)
                     if !iszero(nᴳᴴᵢⱼ) # add an edge between irreps Dᴳᵢ and Dᴴⱼ
-                        add_edge!()
+                        add_edge!() # FIXME: Uh??
                     end
                 end
             end
@@ -155,7 +165,9 @@ function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) whe
     
     # prepare a graph for the connections between k-vectors
     kgraph = MetaDiGraph(Nk)
-    foreach((i,kv,kl)->set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl)), eachindex(kvs), kvs, klabs)
+    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
+        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
+    end
 
     Nspecial = 0
     @inbounds for (kidxᴳ,lgirs) in enumerate(lgirvec)       # parent group 
