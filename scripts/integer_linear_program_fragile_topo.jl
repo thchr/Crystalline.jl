@@ -1,4 +1,7 @@
-using JuMP, GLPK, Crystalline
+using Pkg: activate; activate(pwd())
+
+using Crystalline
+using JuMP, GLPK
 
 # see documentation for JuMP at http://www.juliaopt.org/JuMP.jl/v0.21.1
 sgnum = 230

@@ -1,3 +1,5 @@
+using Pkg: activate; activate(pwd())
+
 using Crystalline, PyPlot, MAT, LinearAlgebra
 
 # -----------------------------------------------------------------------------------------

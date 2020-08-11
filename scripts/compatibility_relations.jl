@@ -1,3 +1,5 @@
+using Pkg: activate; activate(pwd())
+
 using Crystalline
 using LightGraphs, MetaGraphs
 # Add these packages to your active environment before running, if necessary
