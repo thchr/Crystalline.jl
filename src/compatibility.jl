@@ -18,16 +18,16 @@ The reduction formula [e.g. Eq. (15) of https://arxiv.org/pdf/1706.09272.pdf] is
 
         nᴳᴴᵢⱼ = |H|⁻¹∑₍ₕ₎ χᴳᵢ(h)χᴴⱼ(h)*
 
-As an example, consider space group 135 and the two compatible k-vectors 
-Γ (a point) and Σ (a plane):
+As an example, consider space group 207 and the two compatible k-vectors 
+Γ (a point) and Σ (a line):
 ```
-    lgirvec = get_lgirreps(135, Val(3))
-    Γ_lgirs = lgirvec[1] # at Γ ≡ [0.0, 0.0, 0.0]
-    Σ_lgirs = lgirvec[4] # at Σ ≡ [α, α, 0.0]
+    lgirsvec = get_lgirreps(207, Val(3));
+    Γ_lgirs  = find_lgirreps(lgirsvec, "Γ"); # at Γ ≡ [0.0, 0.0, 0.0]
+    Σ_lgirs  = find_lgirreps(lgirsvec, "Σ"); # at Σ ≡ [α, α, 0.0]
 ```
 We can test their compatibility like so:
 ```
-    [[subduction_count(Γi, Σj) for Γi in Γ_lgirs for Σj in Σ_lgirs]
+    [[subduction_count(Γi, Σj) for Γi in Γ_lgirs] for Σj in Σ_lgirs]
     > # Γ₁ Γ₂ Γ₃ Γ₄ Γ₅
     >  [ 1, 0, 1, 1, 2] # Σ₁
     >  [ 0, 1, 1, 2, 1] # Σ₂
@@ -71,7 +71,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
 end
 
 """
-    find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
+    $(SIGNATURES)
 """
 function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     !isspecial(kv) && throw(DomainError(kv, "input kv must be a special k-point"))
@@ -90,6 +90,9 @@ function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     return compat_idxs, compat_αβγs
 end
 
+"""
+    $(SIGNATURES)
+"""
 function is_compatible_kvec(kv::KVec, kv′::KVec)
     # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
     #       if we match k-points across a G-vector, we also need to transform the irrep
@@ -100,7 +103,7 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
     k₀′, kabc′ = parts(kv′)
 
     # least squares solve via QR factorization; equivalent to pinv(kabc)*(k₀-k₀′) but faster
-    αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)  
+    αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)
     k′ = k₀′ + kabc′*αβγ′
     # check if least squares solution actually is a solution
     compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL) 
@@ -109,7 +112,9 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
 end
 
 """
-    compatibility(lgirvec)
+    $(SIGNATURES)
+    
+TODO: Seems entirely broken? Not sure what this is supposed to do.
 """
 function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
     kvs   = kvec.(first.(lgirvec))

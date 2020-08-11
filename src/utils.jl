@@ -175,7 +175,6 @@ function printboxchar(io, i, N)
 end
 
 
-
 function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     buf = IOBuffer()
     while !eof(io)
@@ -191,7 +190,7 @@ end
 
 
 """
-    compact_print_matrix(io)
+    $(SIGNATURES)
 
 Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow` input.
 

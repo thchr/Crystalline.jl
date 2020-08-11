@@ -308,10 +308,11 @@ end
 """
     get_solution_topology(n, nontopo_M, trivial_M, M=nothing) --> ::TopologyKind
 
-Check whether a given (valid) symmetry vector represents a band-combination that is trivial, 
-nontrivial, or fragile. Does this by comparing against nontopological, trivial, and full
-bases `nontopo_M`, `trivial_M`, and `M`, respectively, given as matrices with columns of 
-symmetry basis elements (i.e. checks whether a valid expansion exists in each).
+Check whether a given (valid, i.e. regular) symmetry vector represents a band-combination
+that is trivial, nontrivial, or fragile. 
+Does this by comparing against nontopological, trivial, and full bases `nontopo_M`,
+`trivial_M`, and `M`, respectively, given as matrices with columns of symmetry basis
+elements (i.e. checks whether a valid expansion exists in each).
 
 If `trivial_M` is given as `nothing`, it is taken to imply that it is equal to `nontopo_M`,
 meaning that there are no fragile phases.
