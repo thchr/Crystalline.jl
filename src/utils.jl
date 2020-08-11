@@ -96,7 +96,7 @@ end
 function formatirreplabel(str::AbstractString)
     buf = IOBuffer()
     for c in str
-        if c ∈ ['+','-']
+        if c ∈ ('+','-')
             write(buf, supscriptify(c))
         elseif isdigit(c)
             write(buf, subscriptify(c))
@@ -206,9 +206,10 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=(x->round(x,digits
     A = Base.alignment(io, X_formatted, rowsA, colsA, screenwidth, screenwidth, length(sep))
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
-        print(io, i == first(rowsA) ? '┌' : (i == last(rowsA) ? '└' : '│'), ' ')
+        # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
+        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'))
         Base.print_matrix_row(IOContext(io, :compact=>true), X_formatted, A, i, colsA, sep)
-        print(io, ' ', i == first(rowsA) ? '┐' : (i == last(rowsA) ? '┘' : '│'))
+        print(io, ' ', i == first(rowsA) ? '⎤' : (i == last(rowsA) ? '⎦' : '⎥'))
         if i != last(rowsA); println(io); end
     end
 end
