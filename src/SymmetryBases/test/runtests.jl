@@ -1,8 +1,7 @@
 using Crystalline
-if !isdefined(Main, :SymmetryBases)
-    include("SymmetryBases.jl")
-end
-using Main.SymmetryBases
+using SymmetryBases
+using Test
+inlude("consistency_check.jl")
 
 test_nontopo = true
 spinful = false
@@ -43,6 +42,6 @@ for sgnum in 1:MAX_SGNUM[3]
 
     # Test consistency of bases, if requested
     if test_nontopo
-        SymmetryBases._test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
+        _test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
     end
 end
