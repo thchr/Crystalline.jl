@@ -3,7 +3,11 @@ function compatibility_bases_and_Γidxs(sgnum, lgirs, timereversal)
     sb, _, BRS = compatibility_bases(sgnum, spinful=false, timereversal=timereversal)
     nsᴴ = matrix(sb)
     # Find the indices of the Γ irreps in `BRS::BandRepSet` (and hence in `nsᴴ`), and how  
-    # they map to the corresponding irrep indices in `lgirs`
+    # they map to the corresponding irrep indices in `lgirs`.
+    # TODO: note that the irrep-sorting in sb and lgirs is not always the same (e.g. in ±
+    #       irreps), so we are not guaranteed that Γidxs is a simple range (e.g., it could 
+    #       be [1,3,5,2,4,6]). We really ought to align the irreps sorting in `get_lgirreps`
+    #       versus `bandreps` (BRS) and `compatibility_bases` (sb).
     irlabs_brs = irreplabels(BRS)
     irlabs_lgirs = Crystalline.formatirreplabel.(label.(lgirs))
     Γidxs = map(irlab->findfirst(==(irlab), irlabs_brs), irlabs_lgirs)
@@ -23,17 +27,17 @@ end
 # (2T+1L) plane wave branches that touch ω=0 at Γ
 """
     find_representation²ᵀ⁺¹ᴸ(lgirs::AbstractVector{LGIrrep{3}})
-    find_representation²ᵀ⁺¹ᴸ(sgnum::Integer; timereversal::Bool=false)
+    find_representation²ᵀ⁺¹ᴸ(sgnum::Integer; timereversal::Bool=true)
 """
 function find_representation²ᵀ⁺¹ᴸ end
 """
     find_representation¹ᴸ(lgirs::AbstractVector{LGIrrep{3}})
-    find_representation¹ᴸ(sgnum::Integer; timereversal::Bool=false)
+    find_representation¹ᴸ(sgnum::Integer; timereversal::Bool=true)
 """
 function find_representation¹ᴸ    end
 """
     find_representation²ᵀ(lgirs::AbstractVector{LGIrrep{3}})
-    find_representation²ᵀ(sgnum::Integer; timereversal::Bool=false)
+    find_representation²ᵀ(sgnum::Integer; timereversal::Bool=true)
 """
 function find_representation²ᵀ    end
 
@@ -50,7 +54,7 @@ for postfix in ("²ᵀ⁺¹ᴸ", "¹ᴸ", "²ᵀ")
     end
 
     # convenience accessors via 
-    @eval function $f(sgnum::Integer; timereversal::Bool=false)
+    @eval function $f(sgnum::Integer; timereversal::Bool=true)
         lgirs = get_lgirreps_at_Γ(sgnum, Val(3))
         timereversal && (lgirs = realify(lgirs))
 

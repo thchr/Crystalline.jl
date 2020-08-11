@@ -6,7 +6,8 @@ import Crystalline: rotation
 include(pkgdir(Crystalline)*"/src/SymmetryBases/SymmetryBases.jl")
 using .SymmetryBases
 
-export minimal_expansion_of_zero_freq_bands, sum_symbases, sum_symbases!
+export minimal_expansion_of_zero_freq_bands, sum_symbases, sum_symbases!,
+    check_target_filling_regular1L, topology_from_2T1L_xor_1L
 
 # ------------------------------------------------------------------------------------------
 
@@ -15,6 +16,7 @@ include("irreps_and_representations.jl")
 include("symbasis_utils.jl")
 include("constrained_expansions.jl")
 #include("src/legacy_constrained_expansions.jl")
+include("topology_as_2T1L_vs_1L_difference.jl")
 
 # ------------------------------------------------------------------------------------------
 
@@ -126,48 +128,72 @@ function find_minimum_bandreps_regular1L(sgnum, lgirs, timereversal, ms¹ᴸ, ms
             @warn "Unable to shuffle 1L pick"
         end
     end
-    idx¹ᴸ     = ntidxs¹ᴸ[pick¹ᴸ] # TODO: Test that resulting expansions for 2T are invariant wrt. to this choice
-    nᴸ = sb[idx¹ᴸ]
+    idx¹ᴸ = ntidxs¹ᴸ[pick¹ᴸ] # I've tested that resulting expansions for 2T (=[1L+2T]-[1L]) are invariant wrt. to this choice
     νᴸ = νsᴴ[idx¹ᴸ]
     
-    verbose && println(" (νᴴₘᵢₙ = ", νᴴₘᵢₙ, ", νᴸ = ", νᴸ, ")")
+    verbose && println(" (νᴴₘᵢₙ = ", νᴴₘᵢₙ, ")")
     # find _all_ feasible solutions to ms constraints for fixed and minimal νᵗ; we use a 
     # recursive looping construct to find candidate expansions
     max_patience_νᵗ = max(4*νᴴₘₐₓ, 8)
     for νᵗ in 3:max_patience_νᵗ # target filling (≥3) (function returns from loop)
         verbose && print("   … νᵗ = ", νᵗ, ": ")
 
-        # Find the solutions to c₁νᴴ₁ + c₂νᴴ₂ + ... = νᵗ subject to the 2T+1L ms constraint
-        # The below basically uses recursion to do a nested set `max_terms` loops which
-        # solves linear Diophantine equation and checks symmetry constraints as well; the
-        # maximum number of included bases in a valid expansion is div(νᵗ, νᴴₘᵢₙ, RoundDown)
-        cⁱs = filling_symmetry_constrained_expansions(νᵗ, ms, νsᴴ, sb, Γidxs)
-        verbose && println(length(cⁱs), " candidates")
-        
-        # Proceed to check combinations of nᴸ and n=sum(sb[cⁱ])
-        cⁱs_valid = Vector{Int}[]
-        n = similar(first(sb)) # candidate solution buffer     
-        for cⁱ in cⁱs # 2T+1L constraints
-            sum_symbases!(n, sb, cⁱ) # compute new candidate vector from cⁱ indices
-            # test 1: n(∉Γ)-nᴸ(∉Γ) ≥ 0
-            if all(≥(0), @views n[notΓidxs] .- nᴸ[notΓidxs])
-                # test 2: [n(Γ)-n¹ᴸ⁺²ᵀₚᵢₙ(Γ)] - [nᴸ(Γ)-n¹ᴸₚᵢₙ(Γ)] ≥ 0
-                if all(≥(0), (n[Γidxs] .- ms) .- (nᴸ[Γidxs] .- ms¹ᴸ)) 
-                    push!(cⁱs_valid, cⁱ) # found a valid solution; push to storage
-                end
-            end
-        end
+        cⁱs, νᵀ = check_target_filling_regular1L(νᵗ, ms, νsᴴ, sb, idx¹ᴸ, Γidxs, notΓidxs;
+                                                 verbose=verbose)
 
-        if !isempty(cⁱs_valid)
-            νᵀ = νᵗ - νᴸ
-            verbose && println("   ⇒ νᵀ = ", νᵀ, ": ", length(cⁱs_valid), " solutions")
-            return cⁱs_valid, νᵀ, sb, idx¹ᴸ
+        if !isempty(cⁱs)
+            verbose && println("   ⇒ νᵀ = ", νᵀ, ": ", length(cⁱs), " solutions")
+            return cⁱs, νᵀ, sb, idx¹ᴸ
         end
     end
     
     throw("Found no valid expansions consistent with constraints")
 end
 
+# Note that this can be used generically for both 2T and 1L cases
+"""
+    $(SIGNATURES)
+
+For a total (T+L) target filling `νᵗ`, subject to Γ ``ω=0`` constraints `ms¹ᴸ` and `ms`, 
+determine whether a solution to the symmetry constraints exist in the space group with
+compatibility (Hilbert) basis `sb::SymBasis` [with associated fillings `νsᴴ=fillings(sb)`].
+If a solution exists, returns the associated solutions as vectors `cⁱs` indexing into `sb` 
+as well as the associated transverse filling `νᵀ`. The latter is inferred from the total
+filling `νᵗ` and the filling of the longitudinal (1L) mode choice, `νᴸ` (which is indicated
+by the 1L index `idx¹ᴸ`, which gives the longitudinal symmetry vector `nᴸ = sb[idx¹ᴸ]`).
+"""
+function check_target_filling_regular1L(νᵗ, ms¹ᴸ, ms, νsᴴ, sb::SymBasis, idx¹ᴸ, 
+            Γidxs, notΓidxs; verbose::Bool=false)
+    # Find the solutions to c₁νᴴ₁ + c₂νᴴ₂ + ... = νᵗ subject to the 2T+1L ms constraint
+    # The below basically uses recursion to do a nested set `max_terms` loops which
+    # solves linear Diophantine equation and checks symmetry constraints as well; the
+    # maximum number of included bases in a valid expansion is div(νᵗ, νᴴₘᵢₙ, RoundDown)
+    cⁱs_candidates = filling_symmetry_constrained_expansions(νᵗ, ms, νsᴴ, sb, Γidxs)
+    verbose && println(length(cⁱs_candidates), " expansion candidates")
+
+    nᴸ = sb[idx¹ᴸ]  # symmetry vector of 1L pick
+    νᴸ = νsᴴ[idx¹ᴸ] # assoc. longitudinal filling
+    νᵀ = νᵗ - νᴸ    # assoc. transverse filling
+    
+    # Proceed to check combinations of nᴸ and n=sum(sb[cⁱ])
+    cⁱs = Vector{Int}[]
+    n = similar(first(sb)) # candidate solution buffer     
+    for cⁱ in cⁱs_candidates # 2T+1L constraints
+        sum_symbases!(n, sb, cⁱ) # compute new candidate vector from cⁱ indices
+        # test 1: n(∉Γ)-nᴸ(∉Γ) ≥ 0
+        if all(≥(0), @views n[notΓidxs] .- nᴸ[notΓidxs])
+            # test 2: [n(Γ)-n¹ᴸ⁺²ᵀₚᵢₙ(Γ)] - [nᴸ(Γ)-n¹ᴸₚᵢₙ(Γ)] ≥ 0 
+            # note: this is the same as nᵀ(Γ) - n²ᵀₚᵢₙ(Γ) ≥ 0 where nᵀ ≡ n-nᴸ and
+            #       n²ᵀₚᵢₙ(Γ) ≡ n¹ᴸ⁺²ᵀₚᵢₙ(Γ)-n¹ᴸₚᵢₙ(Γ). I.e. just the non-singular/physical
+            #       Γ irreps of higher-lying bands not connected to ω=0 directly
+            if all(≥(0), (n[Γidxs] .- ms) .- (nᴸ[Γidxs] .- ms¹ᴸ)) 
+                push!(cⁱs, cⁱ) # found a valid solution; push to storage
+            end
+        end
+    end
+
+    return cⁱs, νᵀ    # if no solutions were valid, `cⁱs` will be empty
+end
 # -----------------------------------------------------------------------------------------
 
 end # module

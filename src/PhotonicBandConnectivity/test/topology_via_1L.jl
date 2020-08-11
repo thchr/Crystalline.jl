@@ -40,10 +40,12 @@ for (sgidx, sgnum) in enumerate(sgnums)
 
         println("SG ", sgnum)
 
-        # now check topology of 2T+1L solutions
+        # now check topology of 2T+1L solutions: the approach is the same as that in 
+        # src/topology_as_2T1L_vs_1L_difference.jl (see `topology_from_2T1L_xor_1L`).
         ns = unique!(sort(sum_symbases.(Ref(sb), cⁱss[sgidx])))
         nontopo_M = matrix(nontopo_sb)
         println("   ", length(ns), " ω=0 solutions")
+        # TODO: use `topology_from_2T1L_xor_1L` instead of this?
         trivial_count²ᵀ⁺¹ᴸ = nontrivial_count²ᵀ⁺¹ᴸ = 0
         for n in ns
             topology_kind = get_solution_topology(n, nontopo_M, nothing, nothing)
@@ -64,14 +66,6 @@ for (sgidx, sgnum) in enumerate(sgnums)
                 is_trivialᴸ ? trivial_count²ᵀ⁺¹ᴸ : nontrivial_count²ᵀ⁺¹ᴸ, " trivial", " / ",
                 is_trivialᴸ ? nontrivial_count²ᵀ⁺¹ᴸ : trivial_count²ᵀ⁺¹ᴸ, " nontrivial")
         println()
-        # Reasoning:  ┌────────────┬────────────╥────────────╖
-        #             │     1L     │    2T+1L   ║    2T Z₂   ║
-        #             ├────────────┼────────────╫────────────╢
-        #             |  trivial   │  trivial   ║  trivial   ║
-        #             |  trivial   │ nontrivial ║ nontrivial ║
-        #             | nontrivial │  trivial   ║ nontrivial ║
-        #             | nontrivial │ nontrivial ║  trivial   ║
-        #             └────────────┴────────────╨────────────╜
 
         # NOTE: SGs 48, 50, 68, 86 are interesting (all 2T solutions are nontrivial)
     end
