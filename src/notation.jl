@@ -310,7 +310,7 @@ The rotation order of
 function rotation_order_3d(detW::Real, trW::Real)
     if detW == 1 # proper rotations
         if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
-            rot = trW + 3
+            rot = convert(Int, trW) + 3
         elseif trW == 2 # 6-fold rotation
             rot = 6
         elseif trW == 3 # identity operation
@@ -324,7 +324,7 @@ function rotation_order_3d(detW::Real, trW::Real)
         elseif trW == -2 # 6-fold rotoinversion
             rot = -6
         elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
-            rot = trW - 3
+            rot = convert(Int, trW) - 3
         elseif trW == 1  # mirror, note that "m" == "-2" conceptually
             rot = -2
         else
