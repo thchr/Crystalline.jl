@@ -322,14 +322,15 @@ function prettyprint_symmetryvector(io::IO, irvec::Vector{Int}, irlabs::Vector{S
         # shared prepwork
         irlab = irlabs[idx]
         klab  = klabel(irlab)
-        c  = irvec[idx] # coefficient of current term
-        c == 0 && continue # early stop if the coefficient is zero
 
-        if klab ≠ group_klab # check if this irrep belongs to a new k-label group
+        if klab ≠ group_klab    # check if this irrep belongs to a new k-label group
             first_nz = true
             group_klab = klab
             print(io, ", ") 
         end
+
+        c  = irvec[idx]         # coefficient of current term
+        c == 0 && continue      # early stop if the coefficient is zero
         
         absc = abs(c)
         if first_nz             # first nonzero entry in a k-label group
