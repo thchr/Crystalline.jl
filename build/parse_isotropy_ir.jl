@@ -184,10 +184,11 @@ function readexcept(io::IO,  nb::Integer, except::Union{Char,Nothing}='\n'; all=
 end
 
 function checked_read2eol(io) # read to end of line & check that this is indeed the last character
-    s = readuntil(io, "\n")
-    if !isempty(s); # move to next line & check we didn't miss anything
-        error(s,"Parsing error; unexpected additional characters after expected end of line"); 
-    end
+    s = readline(io)
+    # check that the string indeed is empty; i.e. we didn't miss anything
+    @assert isempty(s) "Parsing error; unexpected additional characters after expected EOL"
+
+    return nothing
 end
 
 function rowmajorreshape(v::AbstractVector, dims::Tuple)

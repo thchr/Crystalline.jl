@@ -1,0 +1,6 @@
+# force lf (i.e. \n not \r\n) line endings on checkout:
+# this is desirable here, because we don't want to bother with trying
+# to parse both unix- (lf, aka \n) and windows-style (crlf, aka \r\n) 
+# line endings simultaneously: so we just pick unix-style
+# (treats everything in the repo as text: should be okay)
+* text eol=lf
