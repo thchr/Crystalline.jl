@@ -1,0 +1,41 @@
+# Using template from https://github.com/invenia/PkgTemplates.jl/blob/master/test/fixtures/DocumenterGitHubActions/.github/workflows/ci.yml
+name: CI
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.4'
+          #- '1.5'
+        os:
+          - ubuntu-latest
+          - windows-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v1
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      # add the BoffinStuff registry (in addition to default registry General), which is needed for SmithNormalForm
+      - run: julia --color=yes --check-bounds=yes --project -e 'using Pkg; Pkg.Registry.add([RegistrySpec("General"), RegistrySpec(url="https://github.com/wildart/BoffinStuff.git")])'
+        shell: bash # avoid escaping issues w/ pwsh on Windows (cf. https://github.com/julia-actions/setup-julia#matrix-testing)
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: julia-actions/julia-runtest@latest
