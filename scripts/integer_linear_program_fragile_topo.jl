@@ -1,4 +1,5 @@
-using Pkg: activate; activate(pwd())
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
 
 using Crystalline
 using JuMP, GLPK

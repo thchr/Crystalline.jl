@@ -1,4 +1,8 @@
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
+
 using Crystalline, PyPlot
+
 write_to_file = true
 Nk = 20
 #kvecs = get_kvpath([[0,0], [0.5,0], [0.5,0.5], [0.0,0.5], [0,0]], Nk)

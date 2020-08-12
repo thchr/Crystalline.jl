@@ -1,4 +1,7 @@
-cd((@__DIR__))
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
+
+using Crystalline
 
 sgnum = 16
 D = 3 

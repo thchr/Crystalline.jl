@@ -9,7 +9,8 @@
 # For space group 2, there are 8 high symmetry points kⱼ = (α, β, γ) corresponding to the 
 # combinations of (α, β, γ) = ({0,½}, {0,½}, {0,½}).
 # We find the solution space to these equations by rewriting them as a matrix equation
-using Pkg: activate; activate(pwd())
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
 
 using Crystalline, LinearAlgebra, Nemo
 

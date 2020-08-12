@@ -1,4 +1,10 @@
-include((@__DIR__)*"/RenderLatticeIsosurface.jl"); using Main.RenderLatticeIsosurface
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
+
+using Crystalline
+
+include((@__DIR__)*"/RenderLatticeIsosurface.jl")
+using Main.RenderLatticeIsosurface
 # -----------------------------------------------------------------------------------------
 # Scripting
 

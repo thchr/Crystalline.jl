@@ -1,3 +1,6 @@
+using Pkg: activate, project
+dirname(project().path) == (@__DIR__) || activate(@__DIR__)
+
 using Crystalline, LinearAlgebra, Test
 
 sgnum = 214
