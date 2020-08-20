@@ -6,10 +6,9 @@ end
 
 @testset "CharacterTable and orthogonality theorems" begin
     @testset "Little group irreps" begin
-        for lgirsvec in LGIRS
-            for (idx, lgirs) in enumerate(lgirsvec)
-                
-                ct= CharacterTable(lgirs)
+        for lgirsd in LGIRS
+            for lgirs in values(lgirsd)
+                ct = CharacterTable(lgirs)
                 χs = characters(ct) # matrix of characters; each row is a different representation
                 Nₒₚ = length(operations(ct))
 

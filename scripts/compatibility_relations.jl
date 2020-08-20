@@ -43,12 +43,12 @@ function proper_shell_layout(G, nlist::Union{Nothing, Vector{Vector{Int}}} = not
 end
 
 # --- graph visualization functions ---
-function plot_special_to_nonspecial_connectivity(lgirvec) 
-    sgnum = num(first(first(lgirvec)))
-    D     = dim(first(first(lgirvec)))
-    Nk    = length(lgirvec)
+function plot_special_to_nonspecial_connectivity(lgirsd) 
+    sgnum = num(first(first(lgirsd)))
+    D     = dim(first(first(lgirsd)))
+    Nk    = length(lgirsd)
 
-    _, kgraph = connectivity(lgirvec)
+    _, kgraph = connectivity(lgirsd)
 
     special = Vector{Bool}(undef,Nk)
     cols = Vector{RGB}(undef, Nk)
@@ -81,12 +81,12 @@ end
 
 
 # --- plotting the graph ---
-function plot_connectivity(lgirvec) 
-    sgnum = num(first(first(lgirvec)))
-    D     = dim(first(first(lgirvec)))
-    Nk    = length(lgirvec)
+function plot_connectivity(lgirsd) 
+    sgnum = num(first(first(lgirsd)))
+    D     = dim(first(first(lgirsd)))
+    Nk    = length(lgirsd)
 
-    cgraph, kgraph = Crystalline.connectivity(lgirvec)
+    cgraph, kgraph = Crystalline.connectivity(lgirsd)
     #posx, posy = proper_shell_layout(kgraph, [(1:Nk)[special], (1:Nk)[map(!, special)]])
     nodesize = [1+outdegree(cgraph, v)+indegree(cgraph, v) for v in collect(vertices(cgraph))]
     pg = gplot(cgraph, 

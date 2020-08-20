@@ -108,8 +108,8 @@ end
 
 function find_all_unique_irrep_matrices(LGIRS)
     unique_ms = Vector{Matrix{ComplexF64}}()
-    for lgirsvec in LGIRS
-        ms = (m for lgirs in lgirsvec for lgir in lgirs for m in lgir.matrices)
+    for lgirsd in LGIRS
+        ms = (m for lgirs in values(lgirsd) for lgir in lgirs for m in lgir.matrices)
         append!(unique_ms, _unique_matrices_up_to_scalar(ms))
     end
     unique_ms = _unique_matrices_up_to_scalar(unique_ms)

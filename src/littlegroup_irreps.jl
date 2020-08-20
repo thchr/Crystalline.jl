@@ -47,20 +47,21 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=no
         _load_lgirreps_data(sgnum, irs_jldfile)
     end
 
-    lgirsvec = Vector{Vector{LGIrrep{D}}}(undef, length(lgs))
+    lgirsd = Dict{String, Vector{LGIrrep{D}}}()
     @inbounds for (kidx, lg) in enumerate(lgs)
+        klab = klabel(lg)
         Nirr = length(type_list[kidx])
-        lgirsvec[kidx] = Vector{LGIrrep{D}}(undef, Nirr)
+        push!(lgirsd, klab=>Vector{LGIrrep{D}}(undef, Nirr))
         @inbounds for iridx in Base.OneTo(Nirr)
-            lgirsvec[kidx][iridx] = LGIrrep{D}(cdml_list[kidx][iridx],
-                                               lg, 
-                                               Ps_list[kidx][iridx], 
-                                               τs_list[kidx][iridx], 
-                                               type_list[kidx][iridx])
+            lgirsd[klab][iridx] = LGIrrep{D}(cdml_list[kidx][iridx],
+                                             lg,
+                                             Ps_list[kidx][iridx],
+                                             τs_list[kidx][iridx],
+                                             type_list[kidx][iridx])
         end
     end
     
-    return lgirsvec
+    return lgirsd
 end
 function get_lgirreps(sgnum::Integer, D::Integer=3, lgs_jldfile::JldOrNothing=nothing, 
                       irs_jldfile::JldOrNothing=nothing)
@@ -68,9 +69,9 @@ function get_lgirreps(sgnum::Integer, D::Integer=3, lgs_jldfile::JldOrNothing=no
 end
 
 function get_all_lgirreps(Dᵛ::Val{D}) where D
-    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile;
-        JLD2.jldopen(Crystalline.DATA_PATH_LGIRREPS_3D,"r") do irfile;
-            return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]; 
+    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile
+        JLD2.jldopen(Crystalline.DATA_PATH_LGIRREPS_3D,"r") do irfile
+            return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
         end
     end
 end
@@ -105,25 +106,20 @@ end
 # unexported character table convenience constructors (see also CharacterTable(::AbstractVector{<:AbstractIrrep})))
 # TODO: Move these to types.jl and fix inconsistent method naming?
 function chartable(klab::String, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
-    lgirsvec = get_lgirreps(sgnum, Dᵛ)
-    kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
-    if kidx === nothing
-        throw(DomainError(klab, "Could not find the input klabel `klab` in the requested space group"))
-    else
-        return CharacterTable(lgirsvec[kidx], αβγ)
-    end
+    lgirsd = get_lgirreps(sgnum, Dᵛ)
+    CharacterTable(lgirsd[klab], αβγ)
 end
 chartable(klab::String, sgnum::Integer, D::Integer=3, αβγ=nothing) = 
     chartable(klab, sgnum, Val(D), αβγ)
 
 
 function chartable(kv::KVec, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
-    lgirsvec = get_lgirreps(sgnum, Dᵛ)
-    kidx = findfirst(x->kvec(first(x))==kv, lgirsvec)
+    lgirsd = get_lgirreps(sgnum, Dᵛ)
+    kidx = findfirst(x->kvec(first(x))==kv, lgirsd)
     if kidx === nothing
         throw(DomainError(kv, "Could not find input `kv` in the requested space group"))
     else
-        return CharacterTable(lgirsvec[kidx], αβγ)
+        return CharacterTable(lgirsd[kidx], αβγ)
     end
 end
 chartable(kv::KVec, sgnum::Integer, D::Integer=3, αβγ=nothing) = 

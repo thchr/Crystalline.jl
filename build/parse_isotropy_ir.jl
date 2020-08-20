@@ -246,21 +246,21 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
-    lgirsvec = Vector{Vector{LGIrrep{3}}}()
-    curlab = nothing; accidx = Int64[]
+    lgirsd = Dict{String, Vector{LGIrrep{3}}}()
+    curklab = nothing; accidx = Int64[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
-        if curlab == klabel(ir)
+        if curklab == klabel(ir)
             push!(accidx, idx)
         else
-            if curlab !== nothing
+            if curklab !== nothing
                 lgirs = Vector{LGIrrep{3}}(undef, length(accidx))
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirsvec, lgirs)
+                push!(lgirsd, curklab=>lgirs)
             end
 
-            curlab = klabel(ir)
+            curklab = klabel(ir)
             accidx = [idx,]
         end
     end
@@ -272,9 +272,11 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     for (pos, kidx) in enumerate(accidx)
         lgirs[pos] = littlegroupirrep(irvec[kidx])
     end
-    push!(lgirsvec, lgirs)
+    lastklab = klabel(irvec[last(accidx)])
+    @assert lastklab == "Ω"
+    push!(lgirsd, lastklab=>lgirs)
 
-    return lgirsvec
+    return lgirsd
 end
 
 
@@ -391,9 +393,8 @@ end
 #               cdmlᴮ = kvmap.kᴮlab # CDML label of "new" KVec kᴮ∈Φ-Ω
 #               cdmlᴬ = kvmap.kᴮlab # CDML label of "old" KVec kᴬ∈Ω
 #               R     = kvmap.op    # Mapping from kᴬ to kᴮ: kᴮ = Rkᴬ
-#               # find index of kᴬ irreps in lgirsvec
-#               idxᴬ = findfirst(lgirs->klabel(first(lgirs))==cdmlᴬ, lgirsvec)
-#               lgirsᴬ = lgirsvec[idxᴬ]
+#               # pick kᴬ irreps in lgirsd
+#               lgirsᴬ = lgirsd[cdmlᴬ]
 #           end
 #           # ... do stuff to lgirsᴬ to get lgirsᴮ via a transformation {R|v}
 #           # derived from a holosymmetric parent group of sgnum and the transformation R
@@ -406,10 +407,10 @@ end
 # manual treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is  
 # already included in ISOTROPY.
 #=
-function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
+function add_special_representation_domain_lgirs(lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
     D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
 
-    sgnum = num(first(first(lgirvec)))
+    sgnum = num(first(first(lgirsd)))
 
     # does this space group contain any nontrivial k-vectors in Φ-Ω?
     

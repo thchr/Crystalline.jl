@@ -9,12 +9,12 @@ end
 
 @testset "Test equivalence of parsed and loaded LGIrreps" begin
     for sgnum in 1:230
-        lgirsvec  = LGIRS[sgnum]  # parsed variant
-        lgirsvec′ = LGIRS′[sgnum] # loaded variant
+        lgirsd  = LGIRS[sgnum]  # parsed variant
+        lgirsd′ = LGIRS′[sgnum] # loaded variant
 
-        @test length(lgirsvec) == length(lgirsvec′)
-        for (kidx, lgirs) in enumerate(lgirsvec)
-            lgirs′ = lgirsvec′[kidx]
+        @test length(lgirsd) == length(lgirsd′)
+        for (kidx, (klab, lgirs)) in enumerate(lgirsd)
+            lgirs′ = lgirsd′[klab]
             @test length(lgirs) == length(lgirs′)
             for (iridx, lgir) in enumerate(lgirs)
                 lgir′ = lgirs′[iridx]

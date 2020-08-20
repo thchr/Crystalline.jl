@@ -16,20 +16,20 @@ showmissing = true
 incomplete_sgs = Vector{Int64}()
 incomplete_lgirs = Dict{Int64,Array{String}}()
 incomplete_symind = Dict{Int64,String}() # the BRS classification of missing sgs (Z1 = trivial)
-for (sgnum, lgirsvec) in enumerate(LGIRS)
+for (sgnum, lgirsd) in enumerate(LGIRS)
     BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=timereversal)
     irlabs_BRS = irreplabels(BRS)
     klabs_BRS = klabels(BRS)
 
     irlabs_ISO = Vector{String}()
-    klabs_ISO = Vector{String}(undef, length(lgirsvec))
-    for (kidx, lgirs) in enumerate(lgirsvec)
+    klabs_ISO = Vector{String}(undef, length(lgirsd))
+    for (kidx, (klab, lgirs)) in enumerate(pairs(lgirsd))
         if timereversal == false
             append!(irlabs_ISO, [label(lgir) for lgir in lgirs])
         elseif timereversal == true
             append!(irlabs_ISO, label.(realify(lgirs)))
         end
-        klabs_ISO[kidx] = klabel(first(lgirs))
+        klabs_ISO[kidx] = klab
     end
     irlabs_ISO = Crystalline.formatirreplabel.(irlabs_ISO)
 
@@ -51,10 +51,9 @@ for (sgnum, lgirsvec) in enumerate(LGIRS)
             
         else
             kidx_BRS = findfirst(==(klab_BRS), klabs_BRS)
-            kidx_ISO = findfirst(==(klab_BRS), klabs_ISO)
 
             # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
-            @test BRS.kvs[kidx_BRS] == kvec(first(lgirsvec[kidx_ISO]))
+            @test BRS.kvs[kidx_BRS] == kvec(first(lgirsd[klab_BRS]))
         end
     end
 end

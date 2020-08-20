@@ -21,9 +21,9 @@ The reduction formula [e.g. Eq. (15) of https://arxiv.org/pdf/1706.09272.pdf] is
 As an example, consider space group 207 and the two compatible k-vectors 
 Γ (a point) and Σ (a line):
 ```
-    lgirsvec = get_lgirreps(207, Val(3));
-    Γ_lgirs  = find_lgirreps(lgirsvec, "Γ"); # at Γ ≡ [0.0, 0.0, 0.0]
-    Σ_lgirs  = find_lgirreps(lgirsvec, "Σ"); # at Σ ≡ [α, α, 0.0]
+    lgirsd  = get_lgirreps(207, Val(3));
+    Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
+    Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
 ```
 We can test their compatibility like so:
 ```
@@ -124,9 +124,9 @@ end
 
 TODO: Seems entirely broken? Not sure what this is supposed to do.
 """
-function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(lgirvec))
-    klabs = klabel.(first.(lgirvec))
+function compatibility(lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
+    kvs   = kvec.(first.(values(lgirsd)))
+    klabs = collect(keys(lgirsd))
     Nk    = length(kvs)
     
     # prepare a graph for the connections between k-vectors
@@ -135,14 +135,15 @@ function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) wh
         set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
     end
 
-    for (kidxᴳ,lgirs) in enumerate(lgirvec)                 # parent group 
+    for (kidxᴳ, lgirs) in enumerate(values(lgirsd))                 # parent group 
         kvᴳ = kvs[kidxᴳ]
         !isspecial(kvᴳ) && continue # starting point is always a special k-point
         compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
         for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)  # subgroup
+            klabᴴ = kvs[kidxᴴ]
             add_edge!(kgraph, kidxᴳ, kidxᴴ)
             for (iᴳ, Dᴳᵢ) in enumerate(lgirs)
-                for (jᴴ, Dᴴⱼ) in enumerate(lgirvec[kidxᴴ])
+                for (jᴴ, Dᴴⱼ) in enumerate(lgirsd[klabᴴ])
                     nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγᴴ)
                     if !iszero(nᴳᴴᵢⱼ) # add an edge between irreps Dᴳᵢ and Dᴴⱼ
                         add_edge!() # FIXME: Uh??
@@ -156,11 +157,11 @@ end
 
 
 """
-    connectivity(lgirvec)
+    connectivity(lgirsd)
 """
-function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(lgirvec))
-    klabs = klabel.(first.(lgirvec))
+function connectivity(lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}}) where D
+    kvs   = kvec.(first.(values(lgirsd)))
+    klabs = collect(keys(lgirsd))
     Nk    = length(kvs)
     
     # prepare a graph for the connections between k-vectors
@@ -170,7 +171,7 @@ function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) whe
     end
 
     Nspecial = 0
-    @inbounds for (kidxᴳ,lgirs) in enumerate(lgirvec)       # parent group 
+    @inbounds for (kidxᴳ, lgirs) in enumerate(values(lgirsd)) # parent group 
         kvᴳ = kvs[kidxᴳ]
         if isspecial(kvᴳ)
             Nspecial += 1
@@ -178,21 +179,21 @@ function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) whe
             continue # starting point is always a special k-point
         end
         compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
-        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)  # subgroup
+        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)    # subgroup
             add_edge!(kgraph, kidxᴳ, kidxᴴ)
         end
     end
 
     cgraph = MetaGraph(Nspecial) # connectivity graph for special k-vecs
     local_kidx¹ = 0
-    @inbounds for kidx¹ in eachindex(lgirvec)
+    @inbounds for (kidx¹, klab¹) in enumerate(klabs)
         isspecial(kvs[kidx¹]) || continue      # only compare special vectors
         local_kidx¹ += 1
         set_props!(cgraph, local_kidx¹, Dict(:kvec=>kvs[kidx¹], 
-                                             :klab=>klabs[kidx¹], 
+                                             :klab=>klab¹, 
                                              :kidx=>kidx¹)) 
         local_kidx² = 0
-        for kidx² in eachindex(lgirvec)
+        for (kidx²,_) in enumerate(klabs)
             isspecial(kvs[kidx²]) || continue  # only compare special vectors
             local_kidx² += 1
             kidx¹≥kidx² && continue            # avoid double & self-comparisons

@@ -51,7 +51,6 @@ export SymOperation,                        # types
        label, type, group,
        israyrep, kvec, irreps,              # ::LGIrrep
        isspecial, translations,
-       find_lgirreps,
        dim, string, parts,                  # ::KVec
        vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 
        isspinful

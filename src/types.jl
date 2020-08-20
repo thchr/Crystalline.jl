@@ -442,24 +442,6 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
 end
 
-function find_lgirreps(lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}}, klab::String, verbose::Bool=false)
-    kidx = findfirst(x->klabel(first(x))==klab, lgirsvec)
-    if kidx === nothing
-        if verbose
-            println("Didn't find any matching k-label in lgirsvec: "*
-                    "the label may be specified incorrectly, or the irrep is missing "*
-                    "(e.g. the irrep could be a axes-dependent irrep)")
-            @info klab klabel.(first.(lgirsvec))
-        end
-        return nothing 
-    else
-        return lgirsvec[kidx] # return an "lgirs" (vector of `LGIrrep`s)
-    end
-end
-find_lgirreps(sgnum::Integer, klab::String, Dᵛ::Val{D}) where D = find_lgirreps(get_lgirreps(sgnum, Dᵛ), klab)
-find_lgirreps(sgnum::Integer, klab::String, D::Integer=3) = find_lgirreps(sgnum, klab, Val(D))
-
-
 
 # --- Character table ---
 struct CharacterTable{D}

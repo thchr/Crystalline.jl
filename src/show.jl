@@ -144,13 +144,6 @@ function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Un
         if i != Nᵢᵣ; println(io); end
     end
 end
-function show(io::IO, ::MIME"text/plain", lgirsvec::AbstractVector{<:AbstractVector{<:LGIrrep}})
-    # TODO: This kind of show extension is bad style, afaik...
-    for lgirs in lgirsvec
-        show(io, "text/plain", lgirs)
-        println(io)
-    end
-end
 
 # ... utilities to print PGIrreps and LGIrreps
 function prettyprint_group_header(io::IO, plg::AbstractGroup)

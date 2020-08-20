@@ -8,19 +8,19 @@ end
 # reality types in ISOTROPY
 @testset "Herring criterion" begin
     #= error_count = 0 =#       # for debugging
-    for sgnum = 1:230
-        sgops = operations(LGIRS[sgnum][1][1]) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
-        for kidx = 1:length(LGIRS[sgnum])
-            for iridx = 1:length(LGIRS[sgnum][kidx])
-                iso_rawtype = type(LGIRS[sgnum][kidx][iridx])
+    for (sgnum, lgirsd) in enumerate(LGIRS)
+        sgops = operations(first(lgirsd["Γ"])) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
+        for lgirs in values(lgirsd)
+            for lgir in lgirs
+                iso_rawtype = type(lgir)
                 iso_type = iso_rawtype == 1 ? 1 : (iso_rawtype == 2 ? -1 : 0) # map ISOTROPY's types from {1,2,3} to {1,-1,0} = {real, pseudoreal, complex}
                 #= try =#       # for debugging
-                herring_type = herring(LGIRS[sgnum][kidx][iridx], sgops)
+                herring_type = herring(lgir, sgops)
                 @test iso_type ≈ herring_type
                 #= catch err    # for debugging
                     if true
                         println(sgnum, ", ", 
-                                Crystalline.subscriptify.(label(LGIRS[sgnum][kidx][iridx])), ", ", 
+                                Crystalline.subscriptify.(label(lgir)), ", ", 
                                 centering(sgnum,3), ", ",
                                 issymmorph(sgnum))
                     end
