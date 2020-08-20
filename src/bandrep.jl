@@ -353,6 +353,13 @@ end
 
 
 function matching_lgirreps(BRS::BandRepSet)
+    lgirsd = get_lgirreps(num(BRS), Val(3))
+    # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
+    if BRS.timeinvar 
+        for (klab, lgirs) in keys(lgirsd)
+            lgirsd[klab] = realify(lgirs)
+        end
+    end
     # all lgirreps from ISOTROPY as a flat vector; note that sorting is arbitrary
     lgirs = collect(Iterators.flatten(values(lgirsd))) # TODO: generalize to D≠3
 
