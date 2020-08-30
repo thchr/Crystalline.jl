@@ -309,9 +309,9 @@ function lattice_from_mpbparams(io::IO)
 
     # --- epsilon values ---
     rewinding_readuntil(io, "epsin=")
-    epsin = parse(Float64, readline(io))
+    epsin = tryparse(Float64, readline(io))
     rewinding_readuntil(io, "epsout=")
-    epsout = parse(Float64, readline(io))
+    epsout = tryparse(Float64, readline(io))
 
     # --- k-vectors ---
     kvecs = kvecs_from_mpbparams(io, D)

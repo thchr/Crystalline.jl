@@ -120,6 +120,7 @@ function normalizesubsup(c::Char)
 end
 
 issubdigit(c::AbstractChar) = (c >= '₀') & (c <= '₉')
+issupdigit(c::AbstractChar) = (c ≥ '⁰') & (c ≤ '⁹') || c == '\u00B3' || c == '\u00B2'
 
 function unicode_frac(x::Number)
     xabs=abs(x)
@@ -304,23 +305,22 @@ function splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::I
 end
 
 
-"""
-    ImmutableDict(ps::Pair...)
+if VERSION < v"1.5"
+    """
+        ImmutableDict(ps::Pair...)
 
-Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
-`Base.ImmutableDict` which otherwise only allows construction by iteration.
-
-# TODO: Will be included in Base at some point? Maybe v1.4?
-"""
-function ImmutableDict(ps::Pair{K,V}...) where {K,V}
-    d = ImmutableDict{K,V}()
-    for p in ps # construct iteratively (linked list)
-        d = ImmutableDict(d, p)
+    Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
+    `Base.ImmutableDict` which otherwise only allows construction by iteration.
+    """
+    function Base.ImmutableDict(ps::Pair{K,V}...) where {K,V}
+        d = Base.ImmutableDict{K,V}()
+        for p in ps # construct iteratively (linked list)
+            d = Base.ImmutableDict(d, p)
+        end
+        return d
     end
-    return d
+    Base.ImmutableDict(ps::Pair...) = Base.ImmutableDict(ps)
 end
-ImmutableDict(ps::Pair...) = ImmutableDict(ps)
-
 
 # Distributions.jl provides a nice Uniform distribution type - but it is not worth adding
 # the high compilation-time of Distributions (~7 s) just for that functionality, so we just
