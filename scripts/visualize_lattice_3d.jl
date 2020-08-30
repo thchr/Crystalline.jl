@@ -43,7 +43,7 @@ function default_directbasis(sgnum, D)
     return Crystalline.crystal(a,b,c,α,β,γ)
 end
 
-genereate_savepath(savename, engine) = joinpath((@__DIR__), "isosurfvis", "renders", engine, savename)
+generate_savepath(savename, engine) = joinpath((@__DIR__), "isosurfvis", "renders", engine, savename)
 
 render  = true
 #sgnum = 35; 
