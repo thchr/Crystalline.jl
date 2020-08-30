@@ -243,31 +243,62 @@ end
 
 
 """
-    get_kvpath(kvs::T, Ninterp::Integer) 
-        where T<:AbstractVector{<:AbstractVector{<:Real}} --> Vector{Vector{Float64}}
+    interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer) 
+        --> Vector{Vector{Float64}}, Int64
 
-Compute an interpolated k-path between discrete k-points given in `kvs` (a vector of
-vectors of `Real`s), so that the interpolated path has `Ninterp` points in total.
+Computes an interpolated ``k``-path between the discrete ``k``-points in `kvs`, so that the
+interpolated path has _approximately_ `Ninterp` points in total (typically fewer).
 
-Note that, in general, it is not possible to do this so that all points are equidistant; 
-but points are equidistant in-between the initial discrete points provided in `kvs`.
+Since the actual number of points in the path may deviate from the requested `Ninterp`, the
+actual number of points in the path is returned along with the interpolated itself.
+
+Note that, in general, it is not possible to do this so that all interpolated ``k``-points
+are equidistant; but points are equidistant in-between the initial discrete points provided
+in `kvs`.
+
+See also: [`splice_kvpath`](@ref).
 """
-function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
+function interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
     Nkpairs = length(kvs)-1
-    dists = Vector{Float64}(undef, Nkpairs)
+    dists   = Vector{Float64}(undef, Nkpairs)
     @inbounds for i in Base.OneTo(Nkpairs)
         dists[i] = norm(kvs[i] .- kvs[i+1])
     end
-    meandist = sum(dists)/Nkpairs
+    totaldist  = sum(dists)
+    N_per_dist = Ninterp/totaldist
 
     kvpath = [float.(kvs[1])]
-    @inbounds for i in  Base.OneTo(Nkpairs)
+    @inbounds for i in Base.OneTo(Nkpairs)
         # try to maintain an even distribution of k-points along path
-        Ninterp_i = round(Int64, dists[i]./meandist*Ninterp)
-        # new k-points
-        newkvs = range(kvs[i],kvs[i+1],length=Ninterp_i)
-        # append new kvecs to kpath
-        append!(kvpath, (@view newkvs[2:end]))
+        Ninterp_i = round(Int64, dists[i]*N_per_dist, RoundUp) # points in current segment
+        new_kvs   = range(kvs[i],kvs[i+1],length=Ninterp_i)
+        append!(kvpath, (@view new_kvs[2:end]))               # append `new_kvs` to `kvpath`
+    end
+    return kvpath, length(kvpath)
+end
+
+"""
+    splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::Integer) 
+                                                                --> Vector{Vector{Float64}}
+
+Computes an interpolated ``k``-path between the discrete ``k``-points in `kvs`, inserting
+`Nsplice` points between each pair of adjacent ``k``-points.
+
+See also [`interpolate_kvpath`](@ref).
+"""
+function splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::Integer)
+    Nkpairs   = length(kvs)-1
+    Nsplice⁺² = Nsplice+2
+    D         = length(first(kvs))
+
+    kvpath = [Vector{Float64}(undef, D) for _ in Base.OneTo(Nkpairs+1 + Nkpairs*Nsplice)]
+    kvpath[1] = kvs[1]
+    start, stop = 2, Nsplice⁺²
+    @inbounds for i in Base.OneTo(Nkpairs)
+        new_kvs = range(kvs[i],kvs[i+1],length=Nsplice⁺²)
+        @views kvpath[start:stop] .= new_kvs[2:end]        # insert `new_kvs` in `kvpath`
+        start  = stop+1
+        stop  += Nsplice⁺²-1
     end
     return kvpath
 end

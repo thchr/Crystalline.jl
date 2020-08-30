@@ -5,7 +5,7 @@ using Crystalline, PyPlot
 
 write_to_file = true
 Nk = 20
-kvecs = get_kvpath([[0,0], [0.5,0], [0.5,0.5], [0.0,0.5], [0,0]], Nk)
+kvs = splice_kvpath([[0,0], [0.5,0], [0.5,0.5], [0.0,0.5], [0,0]], Nk)
 
 PyPlot.close("all")
 sgnum = 8
@@ -38,7 +38,7 @@ for (step, ϕ) in pairs(range(0, 2π, length=80))
             filename = Crystalline.mpb_calcname(dim, sgnum, id′, res, runtype)
             open(write_dir*filename*".sh", "w") do io
                 calcname = prepare_mpbcalc!(io, sgnum, smflat′, Rs, filling, epsin, epsout, 
-                                            runtype; res=res, kvecs=kvecs, id=id′)
+                                            runtype; res=res, kvecs=kvs, id=id′)
             end
         end
     end

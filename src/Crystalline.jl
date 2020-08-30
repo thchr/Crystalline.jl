@@ -31,7 +31,7 @@ include("constants.jl")
 export MAX_SGNUM
 
 include("utils.jl") # useful utility methods (seldom needs exporting)
-export get_kvpath
+export splice_kvpath, interpolate_kvpath
 
 include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types

@@ -5,7 +5,7 @@ using Crystalline
 
 write_to_file = false
 Nk = 20
-kvecs = get_kvpath([[0,0], [0.5,0], [0.5,0.5], [0,0]], Nk)
+kvs = splice_kvpath([[0,0], [0.5,0], [0.5,0.5], [0,0]], Nk)
 
 sgnum = 1
 D = 2
@@ -25,7 +25,7 @@ if write_to_file
     filename = Crystalline.mpb_calcname(D, sgnum, id, res, runtype)
     open(write_dir*filename*".sh", "w") do io
         prepare_mpbcalc!(io, sgnum, mflat, Rs, filling, epsin, epsout, runtype;
-                             res=res, kvecs=kvecs, id=id)
+                             res=res, kvecs=kvs, id=id)
     end
 end
 
