@@ -27,7 +27,8 @@ returning the irrep multiplicities mⱼ ≡ nⱼ/dⱼ.
 function find_representation(symvals::AbstractVector{<:Number}, 
                              lgirs::AbstractVector{<:AbstractIrrep},
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int)
+                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
+                             atol::Float64=DEFAULT_ATOL)
     ct = CharacterTable(lgirs, αβγ)
     χs = ct.chartable # character table as matrix (irreps-as-columns & operations-as-rows)
 
@@ -73,10 +74,13 @@ function find_representation(symvals::AbstractVector{<:Number},
     # check that imaginary part is numerically zero and that all entries are representible
     # in type assert_return_T
     msℝ = real.(ms)
-    @assert isapprox(msℝ, ms,  atol=DEFAULT_ATOL)
+    if !isapprox(msℝ, ms,  atol=atol)
+        throw("Non-negligible imaginary components found in irrep multicity ms (maximum "*
+              "imaginary component is $(maximum(imag, ms)))")
+    end
     if assert_return_T <: Integer
         msT = round.(assert_return_T, msℝ)
-        if isapprox(msT, msℝ, atol=DEFAULT_ATOL)
+        if isapprox(msT, msℝ, atol=atol)
             return msT
         else
             # if ms cannot be represented by the the requested integer type, we return a

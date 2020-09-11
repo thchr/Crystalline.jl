@@ -169,20 +169,8 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
         # if `lgs` is supplied, we interpret it as a request to do symmetry eigenvalue
         # calculations at requested little group k-points
         kvecs !== nothing && throw(ArgumentError("One of kvecs or lgs must be nothing"))
-        
-        # build a unique set of all SymOperations across `lgs` and then find the indices
-        # into this set for each lg
-        ops = unique(Iterators.flatten(operations.(lgs)))
-        idxs2ops = [[findfirst(==(op), ops) for op in operations(lg)] for lg in lgs] 
-
-        # write little group symmetry operations at each k-point (as indexing list of lists)
-        write(io, "Ws",     "=");  _vec2list(io, _mat2matrix3x3∘rotation,  ops); println(io)
-        write(io, "ws",     "=");  _vec2list(io, _vec2vector3∘translation, ops); println(io)
-        write(io, "opidxs", "=");  _vec2list(io, _vec2list, idxs2ops);           println(io)
-
-        # define the k-points across `lgs`, evaluated with (α,β,γ) = (0.25,0.25,0.25)
-        αβγ = fill(0.25, D)
-        kvecs = map(lg->kvec(lg)(αβγ), lgs)
+        kvecs = write_lgs_to_mpb!(io, lgs)
+        println(io)
     end
 
     # write kvecs (if they are not nothing; we may not always want to give kvecs explicitly,
@@ -240,6 +228,24 @@ function gen_symeig_mpbcalc(sgnum, D, εin::Real=10.0, εout::Real=1.0; res::Int
     prepare_mpbcalc(sgnum, flat′, Rs′, εin, εout; res=res, lgs=lgs′, id=id)
 end
     
+function write_lgs_to_mpb!(io::IO, lgs::AbstractVector{<:LittleGroup{D}}) where D
+    # build a unique set of all SymOperations across `lgs` and then find the indices
+    # into this set for each lg
+    ops = unique(Iterators.flatten(operations.(lgs)))
+    idxs2ops = [[findfirst(==(op), ops) for op in operations(lg)] for lg in lgs] 
+
+    # write little group symmetry operations at each k-point (as indexing list of lists)
+    write(io, "Ws",     "=");  _vec2list(io, _mat2matrix3x3∘rotation,  ops); println(io)
+    write(io, "ws",     "=");  _vec2list(io, _vec2vector3∘translation, ops); println(io)
+    write(io, "opidxs", "=");  _vec2list(io, _vec2list, idxs2ops);
+
+    # define the k-points across `lgs`, evaluated with (α,β,γ) = (0.25,0.25,0.25)
+    αβγ = fill(0.25, D)
+    kvecs = map(lg->kvec(lg)(αβγ), lgs)
+    # ... does not print a newline after last line; should be added by callee if relevant
+
+    return kvecs
+end
 
 
 """
