@@ -198,18 +198,24 @@ Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow`
 Should never be used for printing very large matrices, as it will not wrap or abbreviate
 rows/columns.
 """
-function compact_print_matrix(io, X::Matrix, prerow, elformat=(x->round(x,digits=2)), sep="")
-    X_formatted = elformat.(X) # allocates; can't be bothered... (could be fixed using MappedArrays)
+function compact_print_matrix(io, X::Matrix, prerow, elformat=identity, sep="  ")
+    X_formatted = round.(elformat.(X), digits=4) # allocates; can't be bothered... (could be fixed using MappedArrays)
     screenheight = screenwidth = typemax(Int)
     rowsA, colsA = UnitRange(axes(X,1)), UnitRange(axes(X,2))
 
+    !haskey(io, :compact) && length(axes(X, 2)) > 1 && (io = IOContext(io, :compact => true))
     A = Base.alignment(io, X_formatted, rowsA, colsA, screenwidth, screenwidth, length(sep))
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
         # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
-        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'))
-        Base.print_matrix_row(IOContext(io, :compact=>true), X_formatted, A, i, colsA, sep)
-        print(io, ' ', i == first(rowsA) ? '⎤' : (i == last(rowsA) ? '⎦' : '⎥'))
+        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'), ' ')
+        Base.print_matrix_row(io, X_formatted, A, i, colsA, sep)
+        # TODO: Printing of the closing brackets is not currently well-aligned when the last
+        #       columns' elements have different display width. Should check "print"-length
+        #       of every element in the last column, cross-check with parity of the alignment
+        #       for that column, and use that to figure out how many spaces to insert.
+        print(io, ' ')
+        print(io, i == first(rowsA) ? '⎤' : (i == last(rowsA) ? '⎦' : '⎥'))
         if i != last(rowsA); println(io); end
     end
 end

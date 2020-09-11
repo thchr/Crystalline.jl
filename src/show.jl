@@ -11,17 +11,22 @@ end
 # --- SymOperation ---
 function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
-    print(io, "├─ ", opseitz, " ")
-    printstyled(io, repeat('─',36-length(opseitz)-length(opxyzt)), " (", opxyzt, ")"; color=:light_black)
-    #Base.print_matrix(IOContext(io, :compact=>true), op.matrix, "   ")
-    (D == 1 && return) || println(io) # no need to print a matrix if 1D
+    print(io, opseitz, " ")
+    printstyled(io, repeat('─',max(38-length(opseitz)-length(opxyzt), 1)),
+                    " (", opxyzt, ")"; color=:light_black)
+    
+    # don't print matrix format if we IOContext is :compact=>true or dimension is 1
+    if get(io, :compact, false) || D == 1
+        return nothing
+    end 
+    
+    println(io)
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
     firstcol_hasnegative = any(signbit, @view op.matrix[:,1])
     for i in 1:D
-        print(io, "│  ")
-        printstyled(io, i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
+        printstyled(io, " ", i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
         for j in 1:D
             c = op.matrix[i,j]
             # assume and exploit that a valid symop (in the lattice basis only!) never has an 
@@ -40,14 +45,7 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
         i ≠ D && println(io)
     end
-    return
-end
-function show(io::IO, ::MIME"text/plain", ops::AbstractVector{<:SymOperation})
-    # TODO: This kind of show extension is bad style, afaik...
-    for (i,op) in enumerate(ops)
-        show(io, MIME"text/plain"(), op)
-        if i < length(ops); println(io, "\n│"); end
-    end
+    return nothing
 end
 
 
@@ -102,23 +100,28 @@ string(kv::KVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take
 
 
 # --- AbstractGroup ---
+function summary(io::IO, g::T) where T<:AbstractGroup 
+    print(io, T)
+    print(io, " #", num(g), " (", label(g), ") with ", order(g), " operations")
+end
 function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
-    if isa(g, SpaceGroup)
-        prefix = dim(g) == 3 ? "Space group" : (dim(g) == 2 ? "Plane group" : "Line group")
-    elseif isa(g, PointGroup)
-        prefix = "Point group"
-    else
-        prefix = string(T)
+    if !haskey(io, :compact)
+        io = IOContext(io, :compact => true)
     end
-    println(io, prefix, " #", num(g), " (", label(g), ") with ", order(g), " operations:")
-    show(io, "text/plain", operations(g))
+    summary(io, g)
+    println(io, ':')
+    for (i,op) in enumerate(g)
+        print(io, ' ')
+        show(io, MIME"text/plain"(), op)
+        if i < order(g); println(io); end
+    end
 end
 function show(io::IO, ::MIME"text/plain", gs::AbstractVector{<:AbstractGroup})
     # TODO: This kind of show extension is bad style, afaik...
     Ngs = length(gs)
-    for (i,g) in enumerate(gs); 
-        show(io, "text/plain", g); 
-        if i < Ngs; print(io, '\n'); end
+    for (i,g) in enumerate(gs)
+        show(io, MIME"text/plain"(), g); 
+        if i < Ngs; println(io); end
     end
 end
 
@@ -140,7 +143,7 @@ function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Un
 
     Nᵢᵣ = length(plgirs)
     for (i,plgir) in enumerate(plgirs)
-        show(io, "text/plain", plgir)
+        show(io, MIME"text/plain"(), plgir)
         if i != Nᵢᵣ; println(io); end
     end
 end
