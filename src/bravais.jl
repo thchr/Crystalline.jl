@@ -88,12 +88,10 @@ There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 | DIM | SYSTEM       | CONDITIONS             | FREE PARAMS      |
 |-----|--------------|------------------------|------------------|
 | 1D  | linear       | none                   | a                |
-|-----|--------------|------------------------|------------------|
 | 2D  | square       | a=b & γ=90°            | a                |
 |     | rectangular  | γ=90°                  | a,b              |
 |     | hexagonal    | a=b & γ=120°           | a                |
 |     | oblique      | none                   | a,b,γ            |
-|-----|--------------|------------------------|------------------|
 | 3D  | cubic        | a=b=c & α=β=γ=90°      | a                |
 |     | hexagonal    | a=b & α=β=90° & γ=120° | a,c              |
 |     | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR) |
