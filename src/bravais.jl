@@ -1,15 +1,15 @@
 """
     crystal(a,b,c,α,β,γ) --> Rs::DirectBasis{3}
 
-Calculate basis vectors `R₁`, `R₂`, `R₃` in a 3D Cartesian basis 
-for a right-handed coordinate system with specified basis vector lengths 
-`a`, `b`, `c` (associated with  `R₁`, `R₂`, `R₃`, respectively)
-and specified interaxial angles `α=∠(R₂,R₃)`, `β=∠(R₃,R₁)`, `γ=∠(R₁,R₂)`,
-with `∠≡angle`.
+Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, ``\\mathbf{R}_3`` in a 3D
+Cartesian basis for a right-handed coordinate system with specified basis vector lengths
+`a`, `b`, `c` (associated with ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, & ``\\mathbf{R}_3``,
+respectively) and specified interaxial angles 
+`α =` ``∠(\\mathbf{R}_2,\\mathbf{R}_3)``, `β =` ``∠(\\mathbf{R}_3,\\mathbf{R}_1)``, 
+`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``, with ``∠`` denoting the angle between two vectors.
 
-For definiteness, the `R₁` basis vector is oriented along the
-x-axis of the Cartesian coordinate system, and the `R₂` axis is 
-placed in the xy-plane.
+For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
+Cartesian coordinate system, and the ``\\mathbf{R}_2`` axis is placed in the ``xy``-plane.
 """
 function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
     # consistency checks on interaxial angles (equivalently, sides of the corresponding unit-spherical triangle)
@@ -36,13 +36,13 @@ end
 """
     crystal(a,b,γ) --> DirectBasis{2}
 
-Calculate basis vectors `R₁`, `R₂` in a 2D Cartesian basis for a 
-right-handed coordinate system with specified basis vector lengths 
-`a`, `b` (associated with  `R₁`, `R₂`, respectively) and specified 
-interaxial angle `γ=angle(R₁, R₂)`.
+Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2`` in a 2D Cartesian basis for a 
+right-handed coordinate system with specified basis vector lengths `a`, `b` (associated with
+``\\mathbf{R}_1`` & ``\\mathbf{R}_2``, respectively) and specified interaxial angle
+`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``.
 
-For definiteness, the `R₁` basis vector is oriented along the
-x-axis of the Cartesian coordinate system.
+For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
+Cartesian coordinate system.
 """
 function crystal(a::Real,b::Real,γ::Real) 
     R₁ = SVector{2,Float64}(a, 0.0)
@@ -459,8 +459,8 @@ end
 """
     primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
     
-Calculates the **primitive** reciprocal basis associated with a 
-`ReciprocalBasis` `Gs` derived from a lattice with centering type `cntr`.
+Calculates the **primitive** reciprocal basis associated with an assumed **conventional**
+reciprocal basis `Gs::ReciprocalBasis` with centering type `cntr`.
 """
 function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
