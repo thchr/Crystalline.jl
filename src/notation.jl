@@ -181,10 +181,10 @@ const SGS_IUC_NOTATION = (
 """ 
     seitz(op::SymOperation) --> String
 
-Computes the correponding Seitz notation {β|τ} for a symmetry operation in 
-triplet form.
+Computes the correponding Seitz notation for a symmetry operation in triplet/xyzt form.
 
-Implementation based on ITA5 Table 11.2.1.1 (for 3D)
+Implementation based on ITA5 Table 11.2.1.1, with 3D point group parts inferred from
+the trace and determinant of the matrix ``W`` in the triplet ``{W|w}``.
 
 
 | detW\\trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |
@@ -201,12 +201,12 @@ Note that the orientation of axis (i.e. its sign) is not necessarily equal
 to the orientation picked in those tables; it is a matter of convention,
 and the conventions have not been explicated in ITA6.
 
-For 2D operations, we elevate the operation to one in 3D that leaves the 
-3rd coordinate invariant, and then compute results using the 3D procedure.
+2D operations are treated by the same procedure, by elevation in a third dimension; 1D
+operations by a simple inspection of sign.
 """
 function seitz(op::SymOperation{D}) where D
     W = rotation(op); w = translation(op);
-    if D == 2 # we just augment the 2D case by leaving z invariant
+    if D == 2 # augment 2D case by "adding" an invariant z dimension
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w; 0]
     elseif D == 1
@@ -236,7 +236,7 @@ function seitz(op::SymOperation{D}) where D
     # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮
     # [cf. ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(b)]
     if D == 3 && order == 1 || D == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
-        axis_str = ""                                 # (w/ in plane normals; otherwise along [001])
+        axis_str = ""                 # (w/ in plane normals; otherwise along [001])
         u = D == 2 ? [0, 0, 1] : [0, 0, 0]
     else
         Yₖ = Matrix{Float64}(I, 3, 3) # calculate Yₖ by iteration
@@ -301,7 +301,6 @@ seitz(str::String) = seitz(SymOperation(str))
 
 """
     rotation_order_3d(detW::Real, trW::Real) --> Int
-    rotation_order_3d(W::Matrix{<:Real}) --> Int
 
 Determine the integer rotation order of a 3D point group operation with a 3×3 matrix 
 representation `W` (alternatively specified by its determinant `detW` and its trace `trW`).
@@ -339,9 +338,30 @@ function rotation_order_3d(detW::Real, trW::Real)
     
     return rot
 end
-function rotation_order_3d(W::AbstractMatrix{<:Real})
-    size(W) == (3,3) || throw(DomainError(size(W), "Point group operation must be 3×3"))
+
+"""
+    rotation_order(W::Matrix{<:Real}) --> Int
+    rotation_order(op::SymOperation)  --> Int
+
+Determine the integer rotation order of a point group operation, input either as a matrix
+`W` or `op::SymOperation`.
+
+The rotation order of
+- Proper rotations is positive.
+- Improper (mirrors, inversion, roto-inversions) is negative.
+"""
+function rotation_order(W::AbstractMatrix{<:Real})
+    if size(W) == (1,1)
+        return convert(Int, W[1,1])
+    elseif size(W) == (2,2) # augment 2D case by "adding" an invariant z dimension
+        W = [W zeros(2); 0.0 0.0 1.0]
+    elseif size(W) ≠ (3,3)
+        throw(DomainError(size(W), "Point group operation must have a dimension ≤3"))
+    end
+
     return rotation_order_3d(det(W), tr(W))
 end
+rotation_order(op::SymOperation) = rotation_order(rotation(op))
+
 
 _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
