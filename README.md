@@ -6,12 +6,12 @@ Work-in-progress research package for crystalline symmetry, irreps, and bandreps
 
 ## Installation
 
-The package is currently not registred in the General registry, and additionally relies on a package not listed in General (SmithNormalForm.jl). 
+The package is currently not registred in the General registry, and additionally relies on a package not listed in General ([SmithNormalForm.jl](https://github.com/wildart/SmithNormalForm.jl)). 
 As a result, installation is slightly more complicated than ordinarily (albeit, not by much).
 
 To install, enter the `pkg>` prompt by typing `]` at the REPL. Then execute the following commands:
 ```julia
-(@v1.5) pkg> registry add https://github.com/wildart/BoffinStuff.git # needed for the SmithNormalForm.jl package, which Crystalline.jl depends on
+(@v1.5) pkg> registry add https://github.com/wildart/BoffinStuff.git # needed for the unregistred package SmithNormalForm (which Crystalline depends on)
 (@v1.5) pkg> add https://github.com/thchr/Crystalline.jl
 ```
 which will make Crystalline.jl available via 
