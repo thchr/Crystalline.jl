@@ -1,9 +1,19 @@
 # --- DirectBasis and ReciprocalBasis for crystalline lattices ---
+"""
+$(TYPEDEF)
+"""
 abstract type Basis{D} <: AbstractVector{SVector{D,Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
-    @eval struct $T{D} <: Basis{D}
+    @eval begin
+        """
+            $($T){D} <: Basis{D}
+
+        - vecs:NTuple{D, SVector{D, Float64}}
+        """
+        struct $T{D} <: Basis{D}
               vecs::NTuple{D,SVector{D,Float64}}
-          end
+        end
+    end
     @eval $T(Rs::NTuple{D,AbstractVector{<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
     @eval $T(Rs::NTuple{D,NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
     @eval $T(Rs::AbstractVector{<:Real}...) = $T(Rs)
@@ -45,6 +55,9 @@ basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 
 
 # --- Symmetry operations ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct SymOperation{D} <: AbstractMatrix{Float64}
     matrix::Matrix{Float64}
     # It doesn't seem to be possible to convert `matrix` from ::Matrix{Float64} to
@@ -85,6 +98,9 @@ isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2)
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
 # --- Multiplication table ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct MultTable{D} <: AbstractMatrix{Int64}
     operations::Vector{SymOperation{D}}
     indices::Matrix{Int64}
@@ -102,6 +118,9 @@ lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
 # here the matrix kabc is columns of the vectors (𝐚,𝐛,𝐜) while α,β,γ are free
 # parameters ranging over all non-special values (i.e. not coinciding with any 
 # high-sym 𝐤)
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct KVec
     k₀::Vector{Float64}
     kabc::Matrix{Float64}
@@ -237,6 +256,9 @@ eltype(::AbstractGroup{D}) where D = SymOperation{D}
 order(g::AbstractGroup) = length(g)
 
 # --- Space group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct SpaceGroup{D} <: AbstractGroup{D}
     num::Int64
     operations::Vector{SymOperation{D}}
@@ -244,6 +266,9 @@ end
 label(sg::SpaceGroup) = iuc(sg)
 
 # --- Point group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct PointGroup{D} <: AbstractGroup{D}
     num::Int64
     label::String
@@ -253,6 +278,9 @@ label(pg::PointGroup) = pg.label
 iuc(pg::PointGroup) = label(pg)
 
 # --- Little group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct LittleGroup{D} <: AbstractGroup{D}
     num::Int64
     kv::KVec
@@ -292,6 +320,9 @@ function klabel(cdml::String)
 end
 
 # --- Point group irreps ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct PGIrrep{D} <: AbstractIrrep{D}
     cdml::String
     pg::PointGroup{D}
@@ -308,6 +339,9 @@ function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::Abs
 end
 
 # --- Little group irreps ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
     lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
@@ -444,6 +478,9 @@ end
 
 
 # --- Character table ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct CharacterTable{D}
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
@@ -483,6 +520,9 @@ function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
 end
 
 # --- Band representations ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct BandRep <: AbstractVector{Int64}
     wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
@@ -516,6 +556,9 @@ lastindex(BR::BandRep) = length(vec(BR))
 IndexStyle(::BandRep) = IndexLinear()
 eltype(::BandRep) = Int64
 
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct BandRepSet <: AbstractVector{BandRep}
     sgnum::Integer          # space group number, sequential
     bandreps::Vector{BandRep}

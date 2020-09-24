@@ -22,20 +22,20 @@ end
 """ 
     spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
-Obtains the space group symmetry operations in xyzt and matrix format
-for a given space group number (`= sgnum`) and dimensionality `D`.
-The symmetry operations are specified relative to the conventional basis
-vector choices, i.e. not necessarily primitive. 
-If desired, operations on a primitive unit cell can be subsequently 
-generated using `primitivize(...)` and `reduce_ops(...)`.
+Return the space group symmetry operations in for a given space group number `sgnum` and 
+dimensionality `D` as a `SpaceGroup{D}`.
+The returned symmetry operations are specified relative to the conventional basis choice,
+i.e. are not necessarily primitive (see [`centering`](@ref)).
+If desired, operations for the primitive unit cell can be subsequently generated using 
+[`primitivize`](@ref) or [`reduce_ops`](@ref).
 
-The default choices for basis vectors are specified in Bilbao as:
-- Unique axis b (cell choice 1) for space groups within the
-    monoclinic system.
+The default choices for the *conventional* basis vectors are specified in Bilbao as: 
+- Unique axis b (cell choice 1) for space groups within the monoclinic system.
 - Obverse triple hexagonal unit cell for R space groups.
-- Origin choice 2 - inversion center at (0,0,0) - for the
-    centrosymmetric space groups for which there are two origin
-    choices, within the orthorhombic, tetragonal and cubic systems.
+- Origin choice 2: inversion center at (0,0,0). (Relevant for the centrosymmetric space
+  groups where there are two origin choices, in the orthorhombic, tetragonal and cubic 
+  systems)
+See also [`directbasis`](@ref).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     sgops_str = read_sgops_xyzt(sgnum, D)

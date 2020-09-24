@@ -184,11 +184,13 @@ const SGS_IUC_NOTATION = (
 Computes the correponding Seitz notation {β|τ} for a symmetry operation in 
 triplet form.
 
-Implementation based on ITA5 Table 11.2.1.1 (for 3D)\n
-        ________________________________________________
-        |_detW_|_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
-        |  1         |    |    |  2 |  3 |  4 |  6 |  1 |
-        |__1_________|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
+Implementation based on ITA5 Table 11.2.1.1 (for 3D)
+
+________________________________________________
+|_detW_|_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
+|  1         |    |    |  2 |  3 |  4 |  6 |  1 |
+|__1_________|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
+
 with the elements of the table giving the type of symmetry operation in
 in Hermann-Mauguin notation. The rotation axis and the rotation sense are 
 computed following the rules in ITA6 Sec. 1.2.2.4(1)(b-c).
