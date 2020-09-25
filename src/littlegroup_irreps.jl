@@ -1,7 +1,33 @@
 const JldOrNothing = Union{Nothing,JLD2.JLDFile}
 
 # Little group operations loading
-function get_littlegroups(sgnum::Integer, ::Val{D},
+"""
+    get_littegroups(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3)) 
+                                                        -> Dict{String, LittleGroup{D}}
+
+For given space group number `sgnum` and dimension `D`, return the associated little groups
+(`LittleGroups{D}`s) at high-symmetry k-points, lines, and planes (see also
+[`get_lgirreps`](@ref)).
+
+Returns a `Dict` with little group **k**-point labels as keys and vectors of
+`LittleGroup{D}`s as values.
+
+## Notes
+A conventional crystallographic setting is assumed (as in [`spacegroup`](@ref)).
+
+Unlike `spacegroup`, "centering"-copies of symmetry operations are not included in the
+returned `LittleGroup`s; as an example, space group 110 (body-centered, with centering
+symbol 'I') has a centering translation `[1/2,1/2,1/2]` in the conventional setting:
+the symmetry operations returned by `spacegroup` thus includes e.g. both `{1|0}` and 
+`{1|½,½,½}` while the symmetry operations returned by `get_littlegroups` only include
+`{1|0}` (and so on).
+
+Currently, only `D = 3` is supported.
+
+## References
+The underlying data is sourced from the ISOTROPY dataset: see also [`get_lgirreps`](@ref).
+"""
+function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JldOrNothing=nothing) where D
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
@@ -14,11 +40,9 @@ function get_littlegroups(sgnum::Integer, ::Val{D},
     end
 
     sgops = SymOperation{D}.(sgops_str)
-    Nk = length(klabs)
     lgs = Dict{String, LittleGroup{D}}()
-    @inbounds for kidx in Base.OneTo(Nk)
-        lgs[klabs[kidx]] = LittleGroup{D}(sgnum, KVec(kstrs[kidx]), klabs[kidx],
-                                          sgops[opsidxs[kidx]])
+    @inbounds for (klab, kstr, opsidx) in zip(klabs, kstrs, opsidxs)
+        lgs[klab] = LittleGroup{D}(sgnum, KVec(kstr), klab, sgops[opsidx])
     end
     return lgs
 end
@@ -29,11 +53,41 @@ function get_all_littlegroups(::Val{D}) where D
     end
 end
 # convenience functions without Val(D) usage; avoid internally
-get_littlegroups(sgnum::Integer, D::Integer=3, jldfile::JldOrNothing=nothing) = get_littlegroups(sgnum, Val(D), jldfile)
+get_littlegroups(sgnum::Integer, D::Integer, jldfile::JldOrNothing=nothing) = get_littlegroups(sgnum, Val(D), jldfile)
 get_all_littlegroups(D::Integer=3) = get_all_littlegroups(Val(D))
 
-# Little group irrep loading
-function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=nothing,
+
+#------------------------------------------------------------------------------------------
+# LGIrrep loading
+"""
+    get_lgirreps(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3))
+                                                    -> Dict{String, Vector{LGIrrep{D}}}
+
+For given space group number `sgnum` and dimension `D`, return the associated little group
+(or "small") irreps (`LGIrrep{D}`s) at high-symmetry k-points, lines, and planes. 
+
+Returns a `Dict` with little group **k**-point labels as keys and vectors of `LGIrrep{D}`s
+as values.
+
+## Notes
+- Currently, only `D = 3` is supported.
+- The returned irreps are complex in general. Real irreps (as needed in time-reversal
+  invariant settings) can subsequently be obtained with the [`realify`](@ref) method.
+- Returned irreps are spinless.
+
+## References
+The underlying data is sourced from the ISOTROPY ISO-IR dataset. If used in research, please
+cite the original reference material associated with ISO-IR:
+
+- Stokes, Hatch, & Campbell, [ISO-IR, ISOTROPY Software Suite](https://stokes.byu.edu/iso/irtables.php)
+- Stokes, Campbell, & Cordes, [Acta Cryst. A. **69**, 388-395 (2013)](https://doi.org/10.1107/S0108767313007538).
+
+The ISO-IR dataset is occasionally missing some **k**-points that lie outside the basic
+domain but still resides in the representation domain (i.e. **k**-points with postscripted
+'A', 'B', etc. labels, such as 'ZA'). In such cases, the missing irreps may instead have
+been manually sourced from the Bilbao Crystallographic Database.
+"""
+function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3), lgs_jldfile::JldOrNothing=nothing,
                       irs_jldfile::JldOrNothing=nothing) where D
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
   
@@ -56,7 +110,7 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=no
     
     return lgirsd
 end
-function get_lgirreps(sgnum::Integer, D::Integer=3, lgs_jldfile::JldOrNothing=nothing, 
+function get_lgirreps(sgnum::Integer, D::Integer, lgs_jldfile::JldOrNothing=nothing, 
                       irs_jldfile::JldOrNothing=nothing)
     get_lgirreps(sgnum, Val(D), lgs_jldfile, irs_jldfile)
 end

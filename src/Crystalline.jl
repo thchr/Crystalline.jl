@@ -15,7 +15,7 @@ using LightGraphs, MetaGraphs # → compatibility.jl
 using Requires
 using Compat
 using Statistics: quantile
-using DocStringExtensions: SIGNATURES, TYPEDFIELDS, TYPEDEF
+using DocStringExtensions
 
 import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
              IndexStyle, size, eltype, length,           # ⤶
