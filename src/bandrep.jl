@@ -320,12 +320,16 @@ end
 
 
 """
-    matching_lgs(BRS::BandRepSet)
+    matching_littlegroups(BRS::BandRepSet)
 
 Finds the matching little groups for each *k*-point referenced in `BRS`. This is mainly a 
 a convenience accessor, since e.g. `littlegroup(::SpaceGroup, ::KVec)` could already give
 the required little groups. The benefit here is that the resulting operator sorting of
 the returned little group is identical ISOTROPY's, so we can rely on that later on.
+
+Returns a `Vector{<:LittleGroup}` with ordering identical to that of the k-point labels in 
+`BRS`. Note that this is different from the return type of `get_littlegroups` which returns
+an unordered `Dict`.
 
 ## Note 1
 
@@ -338,23 +342,15 @@ conventional basis.
 An error is thrown if a referenced little group cannot be found (currently, this can happen
 for certain k-points in ``Φ-Ω``, see src/special_representation_domain_kpoints.jl)
 """
-function matching_lgs(BRS::BandRepSet)
+function matching_littlegroups(BRS::BandRepSet)
     lgs = get_littlegroups(num(BRS), Val(3)) # TODO: generalize to D≠3
 
-    # find all k-points in BandRepSet
-    klabs = klabels(BRS)
-
-    find_and_sort_idxs = Vector{Int64}(undef, length(klabs))
-    @inbounds for (idx, klab) in enumerate(klabs)
-        matchidx = findfirst(lg->klabel(lg)==(klab), lgs)
-        if matchidx !== nothing
-            find_and_sort_idxs[idx] = matchidx
-        else
-            throw(DomainError(klab, "could not be found in ISOTROPY dataset"))
-        end
+    klabs_in_brs = klabels(BRS) # find all k-point labels in BandRepSet
+    if !issubset(klabs_in_brs, keys(lgs))
+        throw(DomainError(klabs_in_brs, "Could not locate all LittleGroups from BandRep"))
     end
 
-    return lgs[find_and_sort_idxs]
+    return getindex.(Ref(lgs), klabs_in_brs)
 end
 
 

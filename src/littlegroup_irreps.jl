@@ -15,10 +15,10 @@ function get_littlegroups(sgnum::Integer, ::Val{D},
 
     sgops = SymOperation{D}.(sgops_str)
     Nk = length(klabs)
-    lgs = Vector{LittleGroup{D}}(undef, Nk)
+    lgs = Dict{String, LittleGroup{D}}()
     @inbounds for kidx in Base.OneTo(Nk)
-        lgs[kidx] = LittleGroup{D}(sgnum, KVec(kstrs[kidx]), klabs[kidx], 
-                                   sgops[opsidxs[kidx]])
+        lgs[klabs[kidx]] = LittleGroup{D}(sgnum, KVec(kstrs[kidx]), klabs[kidx],
+                                          sgops[opsidxs[kidx]])
     end
     return lgs
 end
@@ -39,7 +39,7 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=no
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
-    Ps_list, τs_list, type_list, cdml_list = if isnothing(irs_jldfile)
+    Ps_list, τs_list, types_list, cdmls_list = if isnothing(irs_jldfile)
         JLD2.jldopen(DATA_PATH_LGIRREPS_3D, "r") do irs_jldfile
             _load_lgirreps_data(sgnum, irs_jldfile)
         end
@@ -48,17 +48,10 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}, lgs_jldfile::JldOrNothing=no
     end
 
     lgirsd = Dict{String, Vector{LGIrrep{D}}}()
-    @inbounds for (kidx, lg) in enumerate(lgs)
-        klab = klabel(lg)
-        Nirr = length(type_list[kidx])
-        push!(lgirsd, klab=>Vector{LGIrrep{D}}(undef, Nirr))
-        @inbounds for iridx in Base.OneTo(Nirr)
-            lgirsd[klab][iridx] = LGIrrep{D}(cdml_list[kidx][iridx],
-                                             lg,
-                                             Ps_list[kidx][iridx],
-                                             τs_list[kidx][iridx],
-                                             type_list[kidx][iridx])
-        end
+    for (Ps, τs, types, cdmls) in zip(Ps_list, τs_list, types_list, cdmls_list)
+        klab = klabel(first(cdmls))
+        lg   = lgs[klab]
+        lgirsd[klab] = [LGIrrep{D}(cdml, lg, P, τ, type) for (P, τ, type, cdml) in zip(Ps, τs, types, cdmls)]
     end
     
     return lgirsd
@@ -95,10 +88,10 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
     # ≈ 70% of the time in loading all irreps is spent in getting Ps_list and τs_list
     Ps_list::Vector{Vector{Vector{Matrix{ComplexF64}}}}             = jldgroup["matrices_list"]
     τs_list::Vector{Vector{Union{Nothing,Vector{Vector{Float64}}}}} = jldgroup["translations_list"]
-    type_list::Vector{Vector{Int64}}                                = jldgroup["type_list"]
-    cdml_list::Vector{Vector{String}}                               = jldgroup["cdml_list"]
+    types_list::Vector{Vector{Int64}}                               = jldgroup["type_list"]
+    cdmls_list::Vector{Vector{String}}                              = jldgroup["cdml_list"]
 
-    return Ps_list, τs_list, type_list, cdml_list
+    return Ps_list, τs_list, types_list, cdmls_list
 end
 
 

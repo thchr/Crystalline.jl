@@ -208,12 +208,13 @@ function prepare_mpbcalc(sgnum::Integer, flat::AbstractFourierLattice{D},
     return String(take!(io))
 end
 
-# TODO: maybe remove this method? Only parts worth keeping are the matching_lgs+primitivize parts...
+# TODO: Maybe remove this method? 
+#       Only parts worth keeping are the matching_littlegroups+primitivize parts...
 function gen_symeig_mpbcalc(sgnum, D, εin::Real=10.0, εout::Real=1.0; res::Integer=32, id=1)
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
     brs  = bandreps(sgnum, allpaths=false, spinful=false, timereversal=true)
-    lgs  = matching_lgs(brs)
+    lgs  = matching_littlegroups(brs)
 
     cntr = centering(sgnum, D)
     flat = modulate(levelsetlattice(sgnum, D, (1,1,1)))

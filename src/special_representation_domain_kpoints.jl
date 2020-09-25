@@ -433,9 +433,9 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     # so find these points anew effectively). Also, there is no point in trying to map the
     # general point (also denoted Ω by us) to a new point, since it can be obtained by 
     # parameter variation; so we filter that out as well.
-    filter!(lg-> length(klabel(lg)) == 1 && klabel(lg) != "Ω", lgs)
-    kvs = kvec.(lgs)
-    klabs = klabel.(lgs)
+    filter!(klablg_pair-> length(first(klablg_pair)) == 1 && first(klablg_pair) != "Ω", lgs)
+    kvs = kvec.(values(lgs))
+    klabs = klabel.(values(lgs))
     Nk = length(lgs)    
 
     newkvs = [KVec[] for _ in Base.OneTo(Nk)]

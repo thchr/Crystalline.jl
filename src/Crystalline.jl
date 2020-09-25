@@ -67,7 +67,7 @@ export spacegroup, xyzt2matrix, matrix2xyzt,
        issymmorph, littlegroup, kstar,
        multtable, isgroup, checkmulttable,
        pointgroup,
-       primitivize, conventionalize,
+       primitivize, conventionalize, cartesianize,
        reduce_ops, transform,
        issubgroup, isnormal
 
