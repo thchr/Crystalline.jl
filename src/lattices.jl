@@ -4,7 +4,13 @@ abstract type AbstractFourierLattice{D}; end
 getcoefs(flat::AbstractFourierLattice) = flat.orbitcoefs
 getorbits(flat::AbstractFourierLattice) = flat.orbits
 dim(flat::AbstractFourierLattice{D}) where D = D
-
+function (==)(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice)
+    return flat1.orbits == flat2.orbits && flat1.orbitcoefs == flat2.orbitcoefs
+end
+function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; kwargs...)
+    return ( isapprox(flat1.orbits,     flat2.orbits;     kwargs...) && 
+             isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
+end
 """
 UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
 
@@ -209,16 +215,15 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
 end
 
 """
-    primitivize(flat::AbstractFourierLattice, cntr::Char) --> AbstractFourierLattice
+    primitivize(flat::AbstractFourierLattice, cntr::Char) --> ::typeof(flat)
 
-Given `flat` referred to a conventional basis with centering `cntr`, compute the 
-derived (but physically equivalent) lattice `flat′` referred to the associated 
-primitive basis. 
+Given `flat` referred to a conventional basis with centering `cntr`, compute the derived
+(but physically equivalent) lattice `flat′` referred to the associated primitive basis. 
 
-Specifically, if `flat` refers to a direct conventional basis Rs≡(𝐚 𝐛 𝐜) [with 
-coordinate-vectors 𝐫≡(r₁, r₂, r₃)ᵀ] then `flat′` refers to a direct primitive 
-basis Rs′≡(𝐚′ 𝐛′ 𝐜′)≡(𝐚 𝐛 𝐜)P [with coordinate-vectors 𝐫′≡(r₁′, r₂′, r₃′)ᵀ=P⁻¹𝐫],
-where P denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
+Specifically, if `flat` refers to a direct conventional basis `Rs` ``≡ (𝐚 𝐛 𝐜)`` [with 
+coordinate vectors ``𝐫 ≡ (r₁, r₂, r₃)^T``] then `flat′` refers to a direct primitive basis
+`Rs′` ``≡ (𝐚′ 𝐛′ 𝐜′) ≡ (𝐚 𝐛 𝐜)P`` [with coordinate vectors ``𝐫′ ≡ (r₁′, r₂′, r₃′)^T = P⁻¹𝐫``],
+where ``P`` denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
 
 To compute the associated primitive basis vectors, see `primitivize(::DirectBasis)`
 [specifically, `Rs′ = primitivize(Rs, cntr)`].
@@ -275,6 +280,37 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
 
     # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
     return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
+end
+
+"""
+    conventionalize(flat′::AbstractFourierLattice, cntr::Char) --> ::typeof(flat′)
+
+Given `flat′` referred to a primitive basis with centering `cntr`, compute the derived (but
+physically equivalent) lattice `flat` referred to the associated conventional basis. 
+
+See the complementary [`primitivize(::AbstractFourierLattice, ::Char)`](@ref) method
+for additional details.
+"""
+function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
+    # Short-circuit for lattices that have trivial transformation matrices
+    (D == 3 && cntr == 'P') && return flat
+    (D == 2 && cntr == 'p') && return flat
+    D == 1 && return flat
+
+    # see `primitivize(flat, cntr)` for details on transformation
+    P = primitivebasismatrix(cntr, D)
+
+    orbits′ = getorbits(flat′) # vec of vec of G-vectors (in a **primitive** 𝐆-basis)
+    orbits = [[SVector{D, Int}(ntuple(_->0,D)) for j in eachindex(orb′)] for orb′ in orbits′] # prealloc. a vec of vec of G-vecs (to be filled in the **conventional** 𝐆-basis)
+    for (i, orb′) in enumerate(orbits′)
+        for (j, k′) in enumerate(orb′)
+            orbits[i][j] = convert(SVector{D, Int}, P'\k′)
+        end
+    end
+    
+
+    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
+    return typeof(flat′)(orbits, deepcopy(getcoefs(flat′))) # return in the same type as `flat`
 end
 
 """

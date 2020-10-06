@@ -18,6 +18,9 @@ using Crystalline, Test
     include("multtable.jl")
     include("irreps_reality.jl")
 
+    # lattices
+    include("lattices.jl")
+
     # additional k-vectors in Φ-Ω ("special" representation domain vectors)
     include("holosymmetric.jl")
 
