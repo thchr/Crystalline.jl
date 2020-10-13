@@ -17,6 +17,7 @@ using Crystalline, Test
     include("chartable.jl")
     include("multtable.jl")
     include("irreps_reality.jl")
+    include("lgirreps_vs_pgirreps_at_Gamma.jl")
 
     # lattices
     include("lattices.jl")

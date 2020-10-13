@@ -97,11 +97,11 @@ end
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup)
     D = dim(g)
-    xyzt_pgops = sort(xyzt.(pointgroup(g)))
+    xyzt_pgops = sort!(xyzt.(pointgroup(g)))
 
     @inbounds for iuclab in PGS_IUCs[D]
         P = pointgroup(iuclab, D)
-        if sort(xyzt.(P)) == xyzt_pgops # the sorting/xyzt isn't strictly needed; belts & buckles...
+        if sort!(xyzt.(P)) == xyzt_pgops # the sorting/xyzt isn't strictly needed; belts & buckles...
             return P
         end
     end
@@ -122,6 +122,29 @@ function _load_pgirreps_data(iuclab::String, jldfile::JLD2.JLDFile)
 end
 
 # 3D
+"""
+    get_pgirreps(iuclab::String, Val{D}) where D ∈ (1,2,3)
+    get_pgirreps(iuclab::String, D)
+
+Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
+as a vector of `PGIrrep{D}`s.
+
+The irrep labelling follows that of CDML [1] (which implies occasional differences from the
+labelling in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* 
+(1972)).
+
+The data is sourced from the Bilbao Crystallographic Server [2]. If you are using this 
+functionality in an explicit fashion, please cite the original reference [3]:
+
+## References
+[1] Cracknell, Davies, Miller, & Love, Kronecher Product Tables 1 (1979).
+
+[2] Bilbao Crystallographic Server: 
+    https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl
+
+[3] Elcoro et al., 
+    [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
+"""
 function get_pgirreps(iuclab::String, ::Val{3})
     pg = pointgroup(iuclab, Val(3)) # operations
 

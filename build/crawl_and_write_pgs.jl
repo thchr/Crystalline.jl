@@ -71,7 +71,7 @@ end
     crawl_pgirs(pgiuc::String, D::Integer=3, consistency_checks::Bool=true)
 
 Crawl the point group symmetry operations as well as the associated point group irreps for
-the the point group characterized by the IUC label `pgiuc` and dimension `D` from Bilbao's
+the point group characterized by the IUC label `pgiuc` and dimension `D` from Bilbao's
 website. Only works for `D = 3`, since Bilbao doesn't tabulate 1D/2D point group irreps 
 explicitly. Returns a `Vector{PGIrrep{D}}`.
 """

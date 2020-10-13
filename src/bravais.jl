@@ -316,8 +316,8 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
     system = crystalsystem(sgnum, D)
 
     # If the centering type is 'A', then we could in fact always pick
-    # the basis differently such that the centering would be 'B'; in 
-    # other words, base-centered lattices at 'A' and 'B' in fact describe
+    # the basis differently such that the centering would be 'C'; in 
+    # other words, base-centered lattices at 'A' and 'C' in fact describe
     # the same Bravais lattice; there is no significance in trying to 
     # differentiate them - if we do, we end up with 15 Bravais lattices in 
     # 3D rather than 14: so we manually fix that here:
