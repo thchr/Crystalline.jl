@@ -24,14 +24,14 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
-    firstcol_hasnegative = any(signbit, @view op.matrix[:,1])
+    firstcol_hasnegative = any(_has_negative_sign_and_isnonzero, @view op.matrix[:,1])
     for i in 1:D
         printstyled(io, " ", i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
         for j in 1:D
             c = op.matrix[i,j]
             # assume and exploit that a valid symop (in the lattice basis only!) never has an 
             # entry that is more than two characters long (namely, -1) in its rotation parts
-            sep = repeat(' ', 1+(j ≠ 1 || firstcol_hasnegative)-signbit(c))
+            sep = repeat(' ', 1 + (j ≠ 1 || firstcol_hasnegative) - _has_negative_sign_and_isnonzero(c))
             if isinteger(c)
                 cᴵ = convert(Int64, op.matrix[i,j])
                 printstyled(io, sep, cᴵ, color=:light_black)
@@ -47,6 +47,7 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     end
     return nothing
 end
+_has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 
 
 # --- MultTable ---
