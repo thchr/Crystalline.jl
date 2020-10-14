@@ -51,4 +51,23 @@ using Crystalline, Test
         @test compose(compose(g₁, g₂, false), g₃, false) == compose(g₁, compose(g₂, g₃, false), false)
     end
 
+    @testset "Operators in differents bases" begin
+        sgnum = 110 # bravais type "tI"
+        cntr = centering(sgnum, 3) # 'I'
+
+        csg = spacegroup(sgnum, Val(3))                             # conventional basis
+        psg = SpaceGroup{3}(sgnum, primitivize.(csg, cntr, false))  # primitive basis
+
+        # compute a random possible basis for tI bravais type
+        cRs = directbasis(sgnum, Val(3))                            # conventional basis
+        pRs = primitivize(cRs, cntr)                                # primitive basis
+
+        # check that the cartesian representation of the space group operations, obtained
+        # from `csg` & `cRs` versus `psg` and `pRs` agree (as it should)
+        cartRs_from_cRs = Crystalline.cartesianize(csg, cRs)
+        cartRs_from_pRs = Crystalline.cartesianize(psg, pRs)
+
+        @test all(isapprox.(cartRs_from_cRs, cartRs_from_pRs, atol=1e-12))
+    end
+
 end

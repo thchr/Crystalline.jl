@@ -61,7 +61,7 @@ unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
 
 function read_pgops_xyzt(iuclab::String, ::Val{D}=Val(3)) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
-    iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database"))
+    iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
     filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".json"
     ops_str = open(filepath) do io
@@ -96,6 +96,10 @@ end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup)
+    # Note: this method will only find parent point groups with the same setting (i.e. 
+    #       basis) as `g`. From a more general perspective, one might be interested in
+    #       finding any isomorphic parent point group (but that is not achieved here; and is
+    #       not a question with a unique answer either (e.g. PGs 2 and -1 are isomorphic)).
     D = dim(g)
     xyzt_pgops = sort!(xyzt.(pointgroup(g)))
 

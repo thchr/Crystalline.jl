@@ -632,20 +632,20 @@ the `DirectBasis` vectors `Rs[i]`).
 The matrix 𝐑 maps vectors coefficients in a lattice basis 𝐯ˡ to coefficients in a Cartesian
 basis 𝐯ᶜ as 𝐯ˡ = 𝐑⁻¹𝐯ᶜ and vice versa as 𝐯ᶜ = 𝐑𝐯ˡ. Since a general transformation P 
 transforms an "original" vectors with coefficients 𝐯 to new coefficients 𝐯′ via 𝐯′ = P⁻¹𝐯
-and since we here here consider the lattice basis as the "original" bais we have P = 𝐑⁻¹. 
+and since we here here consider the lattice basis as the "original" basis we have P = 𝐑⁻¹. 
 As such, the transformation of the operator `op` transforms as `opᶜ = P⁻¹*opˡ*P`, i.e.
 `opᶜ = transform(opˡ,P) = transform(opˡ,𝐑⁻¹)`.
 
 # Note 2
 The display (e.g. Seitz and xyzt notation) of `SymOperation`s e.g. in the REPL implicitly
 assumes integer coefficients for its point-group matrix: as a consequence, displaying 
-`SymOperation`s in a Cartesian basis may yield undefine behavior. The matrix representation
-remains valid, however.
+`SymOperation`s in a Cartesian basis may produce undefined behavior. The matrix
+representation remains valid, however.
 """
 function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
     𝐑 = basis2matrix(Rs)
-    # avoids inv(𝐑) by not calling out to transform(opˡ, inv(𝐑))
-    op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑\translation(op)]) 
+    # avoids computing inv(𝐑) by _not_ calling out to transform(opˡ, inv(𝐑))
+    op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑*translation(op)])
     return op′
 end
 cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))

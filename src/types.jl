@@ -111,6 +111,7 @@ isgroup(mt::MultTable) = mt.isgroup
 getindex(mt::MultTable, keys...) = indices(mt)[keys...]
 firstindex(mt::MultTable, d) = 1
 lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
+size(mt::MultTable) = size(indices(mt))
 
 # --- 𝐤-vectors ---
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
