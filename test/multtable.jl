@@ -68,7 +68,7 @@ end
 
             for lgir in lgirs
                 for αβγ = [nothing, [1,1,1]*1e-1] # test finite and zero values of αβγ
-                    checkmt = check_multtable_vs_ir(mt, lgir, αβγ; verbose=false)
+                    checkmt = Crystalline.check_multtable_vs_ir(mt, lgir, αβγ; verbose=false)
                     @test all(checkmt)
                     #if !all(checkmt); failcount += 1; end
                 end
@@ -87,7 +87,7 @@ end
                 mt = MultTable(operations(pg))
                 @test mt.isgroup
 
-                checkmt = check_multtable_vs_ir(mt, pgir, nothing; verbose=false)
+                checkmt = Crystalline.check_multtable_vs_ir(mt, pgir, nothing; verbose=false)
                 @test all(checkmt)
             end
         end
