@@ -65,7 +65,6 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export spacegroup, xyzt2matrix, matrix2xyzt,
        ∘, compose,
        issymmorph, littlegroup, kstar,
-       multtable, isgroup, checkmulttable,
        pointgroup,
        primitivize, conventionalize, cartesianize,
        reduce_ops, transform,

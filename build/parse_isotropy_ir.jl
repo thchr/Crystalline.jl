@@ -102,7 +102,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
             optempvec   = parsespaced(readline(io))
             opmatrix[i] = rowmajorreshape(optempvec, (4,4))[1:3,:]./optempvec[16] # surprisingly, this is in row-major form..!
             # note the useful convention that the nonsymmorphic translation always ∈[0,1[; in parts of Bilbao, components are 
-            # occasionally negative; this makes construction of multtables unnecessarily cumbersome
+            # occasionally negative; this makes construction of `MultTable`s unnecessarily cumbersome
 
             # --- ASSOCIATED IRREP ---
             if !kspecial # if this is a general position, we have to incorporate a translational modulation in the point-part of the irreps

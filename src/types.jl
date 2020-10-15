@@ -103,15 +103,13 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct MultTable{D} <: AbstractMatrix{Int64}
     operations::Vector{SymOperation{D}}
-    indices::Matrix{Int64}
+    table::Matrix{Int64} # Cayley table: indexes into `operations`
     isgroup::Bool
 end
-indices(mt::MultTable) = mt.indices
-isgroup(mt::MultTable) = mt.isgroup
-getindex(mt::MultTable, keys...) = indices(mt)[keys...]
+getindex(mt::MultTable, keys...) = mt.table[keys...]
 firstindex(mt::MultTable, d) = 1
-lastindex(mt::MultTable, d::Int64) = size(indices(mt),d)
-size(mt::MultTable) = size(indices(mt))
+lastindex(mt::MultTable, d::Int64) = size(mt.table, d)
+size(mt::MultTable) = size(mt.table)
 
 # --- 𝐤-vectors ---
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -388,8 +386,8 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
                                             # actually appears more natural, since we usually have symmetry 
                                             # operations acting inversely on functions of spatial coordinates. 
                                             # If we swap the sign here, we probably have to swap t₀ in the check
-                                            # for ray-representations in multtable(::MultTable, ::LGIrrep), to 
-                                            # account for this difference. It is not enough just to swap the sign
+                                            # for ray-representations in check_multtable_vs_ir(::MultTable, ::LGIrrep)
+                                            # to account for this difference. It is not enough just to swap the sign
                                             # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
                                             # to account for the fact that it would be -β⁻¹τ that appears in the 
                                             # inverse operation, not just τ. Same applies here, if you want to 
@@ -461,15 +459,15 @@ coefficient matrix αᵢⱼ.
 """
 function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
     k = kvec(lgir)(αβγ)
-    ops = operations(lgir)
-    Nₒₚ = length(ops)
+    lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
+    Nₒₚ = length(lg)
     α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
     # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
     #       here, given the tricks we then perform subsequently?
-    mt = multtable(primitivize.(ops, centering(num(lgir))), verbose=false) 
-    for (row, oprow) in enumerate(ops)
-        for (col, opcol) in enumerate(ops)
-            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(ops[mt[row,col]])
+    mt = MultTable(primitivize(lg)) 
+    for (row, oprow) in enumerate(lg)
+        for (col, opcol) in enumerate(lg)
+            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt[row,col]])
             ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
             α[row,col] = cis(ϕ)
         end

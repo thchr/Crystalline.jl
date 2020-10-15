@@ -52,12 +52,15 @@ _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 
 # --- MultTable ---
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
-    Base.print_matrix(IOContext(io, :compact=>true), mt.indices, "  ")
-    print(io, "\nFor operations:\n  ")
-    for (i,op) in enumerate(mt.operations)
-        print(io, i, " => ", xyzt(op), "\t") # separation could be improved...
-        if mod(i,4) == 0; print(io,"\n  "); end
-    end
+    summary(io, mt)
+    println(io, ":")
+    seitz_ops = seitz.(mt.operations)
+    pretty_table(io,
+        [seitz_ops getindex.(Ref(seitz_ops), mt.table)], # 1st column and table itself
+        vcat("", seitz_ops);                             # 1st row (header)
+        highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
+        vlines = [1,], hlines = [:begin, 1, :end]
+        )
 end
 
 # --- KVec ---
