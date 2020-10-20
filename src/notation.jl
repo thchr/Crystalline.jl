@@ -107,11 +107,12 @@ const SGS_IUC_NOTATION = (
 # ------------------------------------------------------------------------------------------    
 ("p1", "p1m"),
 # ------------------------------------------------------------------------------------------
-# plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974]
+# plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974, or
+# https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
 # ------------------------------------------------------------------------------------------
 (
 # oblique
-"p1",   "p211",
+"p1",   "p2",
 # rectangular ('p' or 'c' centering; c-centered lattices are rhombic in their primitive cell)
 "p1m1", "p1g1", "c1m1", "p2mm", "p2mg", "p2gg", "c2mm",   
 # square
