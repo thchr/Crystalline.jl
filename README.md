@@ -1,7 +1,6 @@
 # Crystalline.jl
 
-[![Documentation][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url]
-
+[![Documentation][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 Work-in-progress research package for crystalline symmetry, irreps, and bandreps.
 
 ## Installation
@@ -23,3 +22,5 @@ julia> using Crystalline
 [ci-status-url]: https://github.com/thchr/Crystalline.jl/actions
 [docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
 [docs-dev-url]: https://thchr.github.io/Crystalline.jl/dev
+[coverage-img]: https://codecov.io/gh/thchr/Crystalline.jl/branch/master/graph/badge.svg
+[coverage-url]: https://codecov.io/gh/thchr/Crystalline.jl
