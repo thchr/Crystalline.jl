@@ -214,6 +214,41 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
 end
 
+
+function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) where D
+    # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred
+    # to the untransformed 𝐆-basis (𝐚* 𝐛* 𝐜*), and we want to instead express it as a coordinate
+    # vector 𝐤′≡(k₁′,k₂′,k₃′)ᵀ referred to the transformed 𝐆-basis (𝐚*′ 𝐛*′ 𝐜*′)≡(𝐚* 𝐛* 𝐜*)(P⁻¹)ᵀ,
+    # where P is the transformation matrix. This is achieved by transforming according to 𝐤′ = Pᵀ𝐤
+    # or, equivalently, (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ. See also `transform(::KVec, ...)` and 
+    # `transform(::ReciprocalBasis, ...)`.
+
+    # vec of vec of G-vectors (in a **untransformed** 𝐆-basis)
+    orbits = getorbits(flat)
+    # prealloc. a vec of vec of k-vecs (to be filled in the **transformed** 𝐆-basis)
+    orbits′ = [Vector{SVector{D, Int}}(undef, length(orb)) for orb in orbits]
+    # transform all k-vecs in the orbits
+    for (i, orb) in enumerate(orbits)
+        for (j, k) in enumerate(orb)
+            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
+        end
+    end
+    # --- Comment regarding the `convert(SVector{D, Int}, ...)` call above: ---
+    # Because primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) consists of "larger" vectors
+    # than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks when we
+    # go to a primitive basis), not every conventional reciprocal lattice coordinate vector
+    # 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does not imply kᵢ′∈ℕ).
+    # However, since `flat` is derived consistent with the symmetries in a conventional
+    # basis, the necessary restrictions will already have been imposed in the creation of
+    # `flat` so that the primivized version will have only integer coefficients (otherwise
+    # the lattice would not be periodic in the primitive cell). I.e. we need not worry that
+    # the conversion is impossible, so long that we transform to a meaningful basis.
+    # The same issue of course isn't relevant for transforming in the reverse direction.
+       
+    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
+    return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
+end
+
 """
     primitivize(flat::AbstractFourierLattice, cntr::Char) --> ::typeof(flat)
 
@@ -225,8 +260,8 @@ coordinate vectors ``𝐫 ≡ (r₁, r₂, r₃)^T``] then `flat′` refers to a
 `Rs′` ``≡ (𝐚′ 𝐛′ 𝐜′) ≡ (𝐚 𝐛 𝐜)P`` [with coordinate vectors ``𝐫′ ≡ (r₁′, r₂′, r₃′)^T = P⁻¹𝐫``],
 where ``P`` denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
 
-To compute the associated primitive basis vectors, see `primitivize(::DirectBasis)`
-[specifically, `Rs′ = primitivize(Rs, cntr)`].
+To compute the associated primitive basis vectors, see
+[`primitivize(::DirectBasis, ::Char)`](@ref) [specifically, `Rs′ = primitivize(Rs, cntr)`].
 
 
 # Examples
@@ -235,6 +270,7 @@ A centered ('c') lattice from plane group 5 in 2D, plotted in its
 conventional and primitive basis (requires `using PyPlot`):
 
 ```julia-repl
+julia> using PyPlot
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
 
 julia> Rs   = directbasis(sgnum, D)     # conventional basis (rectangular)
@@ -246,7 +282,6 @@ julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
 julia> flat′ = primitivize(flat, cntr)  # Fourier lattice in basis of Rs′
 julia> plot(flat′, Rs′)
 ```
-
 """
 function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     # Short-circuit for lattices that have trivial transformation matrices
@@ -254,32 +289,8 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
-    # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred
-    # to the conventional 𝐆-basis (𝐚* 𝐛* 𝐜*), and we want to instead express it as a coordinate
-    # vector 𝐤′≡(k₁′,k₂′,k₃′)ᵀ referred to the primitive 𝐆-basis (𝐚*′ 𝐛*′ 𝐜*′)≡(𝐚* 𝐛* 𝐜*)(P⁻¹)ᵀ,
-    # where P is the transformation matrix. This is achieved by transforming according to 𝐤′ = Pᵀ𝐤
-    # or, equivalently, (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ. See also `primitivize(::KVec)` and 
-    # `primitivize(::ReciprocalBasis)`.
     P = primitivebasismatrix(cntr, D)
-
-    orbits = getorbits(flat) # vec of vec of G-vectors (in a **conventional** 𝐆-basis)
-    orbits′ = [[SVector{D, Int}(ntuple(_->0,D)) for j in eachindex(orb)] for orb in orbits] # prealloc. a vec of vec of G-vecs (to be filled in the **primitive** 𝐆-basis)
-    for (i, orb) in enumerate(orbits)
-        for (j, k) in enumerate(orb)
-            # Note that, because the primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) is "larger"
-            # vectors than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks
-            # when we go to a primitive basis), not every conventional reciprocal lattice 
-            # coordinate vector 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does 
-            # not imply kᵢ′∈ℕ). However, since `flat` is derived consistent with the symmetries 
-            # in a conventional basis, the necessary restrictions will already have been imposed
-            # in the creation of `flat` so that the primivized version will have only integer
-            # coefficients (otherwise the lattice would not be periodic in the primitive cell).
-            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
-        end
-    end
-
-    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
-    return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
+    return transform(flat, P)
 end
 
 """
@@ -288,8 +299,9 @@ end
 Given `flat′` referred to a primitive basis with centering `cntr`, compute the derived (but
 physically equivalent) lattice `flat` referred to the associated conventional basis. 
 
-See the complementary [`primitivize(::AbstractFourierLattice, ::Char)`](@ref) method
-for additional details.
+See also the complementary methods
+[`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real}`](@ref) and
+[`primitivize(::AbstractFourierLattice, ::Char)`](@ref) for additional details.
 """
 function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
     # Short-circuit for lattices that have trivial transformation matrices
@@ -297,20 +309,8 @@ function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
-    # see `primitivize(flat, cntr)` for details on transformation
     P = primitivebasismatrix(cntr, D)
-
-    orbits′ = getorbits(flat′) # vec of vec of G-vectors (in a **primitive** 𝐆-basis)
-    orbits = [[SVector{D, Int}(ntuple(_->0,D)) for j in eachindex(orb′)] for orb′ in orbits′] # prealloc. a vec of vec of G-vecs (to be filled in the **conventional** 𝐆-basis)
-    for (i, orb′) in enumerate(orbits′)
-        for (j, k′) in enumerate(orb′)
-            orbits[i][j] = convert(SVector{D, Int}, P'\k′)
-        end
-    end
-    
-
-    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
-    return typeof(flat′)(orbits, deepcopy(getcoefs(flat′))) # return in the same type as `flat`
+    return transform(flat′, inv(P))
 end
 
 """
