@@ -505,7 +505,7 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
         return transform(Gm, P)
     end
 end
-function conventionalize(Gs::ReciprocalBasis{D}, cntr::Char)
+function conventionalize(Gs::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs
     else         
