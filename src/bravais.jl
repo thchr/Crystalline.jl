@@ -502,15 +502,15 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
         return Gs
     else         
         P = primitivebasismatrix(cntr, D)        
-        return transform(Gm, P)
+        return transform(Gs, P)
     end
 end
-function conventionalize(Gs::ReciprocalBasis{D}, cntr::Char) where D
+function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs
     else         
         P = primitivebasismatrix(cntr, D)        
-        return transform(Gm, inv(P))
+        return transform(Gs′, inv(P))
     end
 end
 
@@ -544,9 +544,7 @@ Sec. 1.5.1.2 and 1.5.2.1).
 """
 function transform(kv::KVec, P::AbstractMatrix{<:Real})
     k₀, kabc = parts(kv)
-    k₀′ = P'*k₀
-    kabc′ = P'*kabc
-    return KVec(k₀′, kabc′)
+    return KVec(P'*k₀, P'*kabc)
 end
 
 """
@@ -563,7 +561,19 @@ Sec. 1.5.1.2 and 1.5.2.1).
 Recall also the distinction between transforming a basis and the coordinates of a vector.
 """
 function primitivize(kv::KVec, cntr::Char)
-    P = primitivebasismatrix(cntr, dim(kv))
-    return transform(kv, P)
+    if cntr == 'P' || cntr == 'p'
+        return kv
+    else
+        P = primitivebasismatrix(cntr, dim(kv))
+        return transform(kv, P)
+    end
 end
-conventionalize(kv::KVec, cntr::Char) = transform(kv, inv(primitivebasismatrix(cntr, dim(kv))))
+
+function conventionalize(kv′::KVec, cntr::Char)
+    if cntr == 'P' || cntr == 'p'
+        return kv′
+    else
+        P = primitivebasismatrix(cntr, dim(kv))
+        return transform(kv′, inv(P))
+    end
+end
