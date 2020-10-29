@@ -512,19 +512,6 @@ function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where
     end
 end
 
-function primitivize(kv::KVec, cntr::Char)
-    k₀, kabc = parts(kv)
-    P = primitivebasismatrix(cntr, dim(kv))
-    # P transforms reciprocal coordinates as 𝐤′ = Pᵀ𝐤
-    # while P transforms direct coordinates as r′=P⁻¹r,
-    # see ITA7 Sec. 1.5.1.2 and 1.5.2.1 (and note the 
-    # distinction between transforming the basis and
-    # the coordinates of a vector!).
-    k₀′ = P'*k₀
-    kabc′ = P'*kabc
-    return KVec(k₀′, kabc′)
-end
-
 """ 
     transform(op::SymOperation, P::Matrix{<:Real}, 
               p::Union{Vector{<:Real}, Nothing}=nothing,

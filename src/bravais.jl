@@ -417,7 +417,7 @@ function reciprocalbasis(Rs::Union{DirectBasis{D}, NTuple{D, Vector{<:Real}}}) w
         # we use SVectors, however, either approach will probably have the same performance.
         Rm = basis2matrix(Rs)
         Gm = 2π.*inv(transpose(Rm))
-        vecs = ntuple(i->Gm[:,i], D)
+        vecs = ntuple(i->Gm[:,i], Val(D))
     end
 
     return ReciprocalBasis{D}(vecs)
@@ -427,14 +427,20 @@ end
 """ 
     primitivize(Vs::Basis, sgnum::Integer) --> Rs′::Basis
 
-Transforms a conventional Basis (either DirectBasis or ReciprocalBasis) `Vs`
+Transforms a conventional `Basis` (either `DirectBasis` or `ReciprocalBasis`) `Vs`
 into its primitive equivalent `Vs′`, provided that its centering differs from
 the conventional (P or p), by inferring the Bravais type from the space group number
-`sgnum` and applying an applying an appropriate (Basis-type specific) transformation. 
+`sgnum` and applying an applying an appropriate (`Basis`-type specific) transformation. 
 """
 function primitivize(Vs::Basis{D}, sgnum::Integer) where D
     cntr = centering(sgnum, D)
     return primitivize(Vs, cntr)
+end
+
+function transform(Rs::DirectBasis{D}, P::AbstractMatrix{<:Real}) where D
+    # Rm′ = Rm*P (w/ Rm a matrix w/ columns of untransformed direct basis vecs Rᵢ)
+    Rm′ = basis2matrix(Rs)*P
+    return DirectBasis{D}(ntuple(i->Rm′[:,i], Val(D)))
 end
 
 """
@@ -450,10 +456,39 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
         return Rs
     else         
         P = primitivebasismatrix(cntr, D)
-        Rm′ = basis2matrix(Rs)*P # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional 
-                                 # direct basis vecs Rᵢ)
-        return DirectBasis{D}(ntuple(i->Rm′[:,i], D))
+        # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional direct basis vecs Rᵢ)
+        return transform(Rs, P)
     end  
+end
+
+"""
+    conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
+
+Transforms a primitive DirectBasis `Rs′` into its conventional equivalent `Rs`, with the 
+transformation dependent on the centering type `cntr` (P, I, F, R, A, C, and p, c); for
+centering P and p, the conventional and primive bases coincide.
+"""
+function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Rs′
+    else         
+        P = primitivebasismatrix(cntr, D)
+        # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive direct basis vecs Rᵢ′)
+        return transform(Rs′, inv(P)) 
+    end  
+end
+
+function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
+        # While the direct basis (𝐚 𝐛 𝐜) transforms like 
+        #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
+        # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
+        #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
+        # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
+
+        # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
+        # vecs Gᵢ)
+        Gm′ = basis2matrix(Gs)/P'
+        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
 end
 
 """
@@ -466,18 +501,19 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs
     else         
-        # While the direct basis (𝐚 𝐛 𝐜) transforms like 
-        #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
-        # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
-        #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
-        # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
-        P = primitivebasismatrix(cntr, D)
-        Gm′ = basis2matrix(Gs)/P' # Gm′ = Gm(P⁻¹)ᵀ = Gm(Pᵀ)⁻¹, w/ Gm a matrix w/ columns of
-                                  # conventional reciprocal vecs Gᵢ)
-        
-        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], D))
-    end 
+        P = primitivebasismatrix(cntr, D)        
+        return transform(Gm, P)
+    end
 end
+function conventionalize(Gs::ReciprocalBasis{D}, cntr::Char)
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Gs
+    else         
+        P = primitivebasismatrix(cntr, D)        
+        return transform(Gm, inv(P))
+    end
+end
+
 # Note that the _coefficients_ of a general 𝐤-vector transform
 # differently than the reciprocal _basis_, which transforms
 # from non-primed to primed variants via a basis matrix 𝐏
@@ -494,23 +530,40 @@ end
 #       = (𝐚* 𝐛* 𝐜*)(k₁ k₂ k₃)ᵀ           (2)  [... by definition]
 # then, combining (1) and (2)
 #     (𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ = (k₁ k₂ k₃)ᵀ
-#  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ 
-
+#  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ
 
 """
-    conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
+    transform(kv::KVec, P::AbstractMatrix{<:Real}) --> kv′::KVec
 
-Transforms a primitive DirectBasis `Rs′` into its conventional equivalent `Rs`, with the 
-transformation dependent on the centering type `cntr` (P, I, F, R, A, C, and p, c); for
-centering P and p, the conventional and primive bases coincide.
+Returns a transformed reciprocal coordinate vector `kv′` from an original reciprocal
+coordinate vector `kv` and a basis change matrix `P`.
+
+Note that a basis change matrix `P` transforms reciprocal coordinates vectors as
+``k′ = Pᵀk`` but transforms direct coordinate vectors as ``r′=P⁻¹r`` (see e.g. ITA7
+Sec. 1.5.1.2 and 1.5.2.1).
 """
-function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
-    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Rs′
-    else         
-        P = primitivebasismatrix(cntr, D)
-        Rm = basis2matrix(Rs′)/P # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive 
-                                # direct basis vecs Rᵢ′)
-        return DirectBasis{D}(ntuple(i->Rm[:,i], D))
-    end  
+function transform(kv::KVec, P::AbstractMatrix{<:Real})
+    k₀, kabc = parts(kv)
+    k₀′ = P'*k₀
+    kabc′ = P'*kabc
+    return KVec(k₀′, kabc′)
 end
+
+"""
+    primitivize(kv::KVec, cntr::Char) --> kv′::KVec
+
+Transforms a conventional reciprocal coordinate vector `kv` to a standard primitive
+basis (specified by the centering type `cntr`), returning the associated reciprocal
+coordinate vector `kv′`.
+
+Note that a basis change matrix ``P`` (as returned by 
+[Crystalline.primitivebasismatrix](@ref)) transforms direct coordinate vectors as
+``r′=P⁻¹r`` but transforms reciprocal coordinates as ``k′ = Pᵀk`` (see e.g. ITA7
+Sec. 1.5.1.2 and 1.5.2.1).
+Recall also the distinction between transforming a basis and the coordinates of a vector.
+"""
+function primitivize(kv::KVec, cntr::Char)
+    P = primitivebasismatrix(cntr, dim(kv))
+    return transform(kv, P)
+end
+conventionalize(kv::KVec, cntr::Char) = transform(kv, inv(primitivebasismatrix(cntr, dim(kv))))

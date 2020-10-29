@@ -41,6 +41,7 @@ function angles(Rs::Basis{D}) where D
     end
     return γ
 end
+
 """
     basis2matrix(Vs::Basis{D}) where D
 
