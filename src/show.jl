@@ -24,16 +24,16 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
-    firstcol_hasnegative = any(_has_negative_sign_and_isnonzero, @view op.matrix[:,1])
+    firstcol_hasnegative = any(_has_negative_sign_and_isnonzero, @view matrix(op)[:,1])
     for i in 1:D
         printstyled(io, " ", i == 1 ? '┌' : (i == D ? '└' : '│'), color=:light_black) # open brace char
         for j in 1:D
-            c = op.matrix[i,j]
+            c = matrix(op)[i,j]
             # assume and exploit that a valid symop (in the lattice basis only!) never has an 
             # entry that is more than two characters long (namely, -1) in its rotation parts
             sep = repeat(' ', 1 + (j ≠ 1 || firstcol_hasnegative) - _has_negative_sign_and_isnonzero(c))
             if isinteger(c)
-                cᴵ = convert(Int64, op.matrix[i,j])
+                cᴵ = convert(Int64, matrix(op)[i,j])
                 printstyled(io, sep, cᴵ, color=:light_black)
             else
                 # just use the same sep even if the symop is specified in a nonstandard basis (e.g.

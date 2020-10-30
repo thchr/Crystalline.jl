@@ -60,40 +60,52 @@ basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct SymOperation{D} <: AbstractMatrix{Float64}
-    matrix::Matrix{Float64}
-    # It doesn't seem to be possible to convert `matrix` from ::Matrix{Float64} to
-    # ::SMatrix{D,D+1,Float64,D*(D+1)} in a nice way, as it is currently impossible to do
-    # computations on type parameters in type definitions, as discussed e.g. in 
+    # It is not possible to store the rotation as an SMatrix{D,D,Float64,D*D} without 
+    # adding an extra type parameter L=D*D. To avoid having to drag that parameter around
+    # *everywhere*, we instead store the rotation as a nested NTuple{D,...} of
+    # NTuple{D,Float64}, and build efficient conversion-mechanisms from this to an SMatrix.
+    # These conversions are pretty much free, because the memory outlay is exactly the same.
+    # Some relevant discussion of related problems is e.g.:
     #   https://github.com/JuliaLang/julia/issues/18466 
     #   https://discourse.julialang.org/t/addition-to-parameter-of-parametric-type/20059
-    # It doesn't help to split `matrix` into a point `R` and a translation part `τ`, since
-    # declaring `R::SMatrix{D,D,Float64,D*D}` also isn't possible; so we'd need to include
-    # a useless `L` type, which would be forced to equal `D*D` in the struct constructor.
-    # Overall, it doesn't seem worth it at this point: could maybe be done for Julia 2.0.
-    # TODO: Splitting `matrix` into a point-group/rotation and a translation part would 
-    # probably be worthwhile though, since we only every really deal with them seperately.
+    rotation_cols::NTuple{D, NTuple{D, Float64}} # store matrix columns as tuples
+    translation::SVector{D, Float64}
 end
+SymOperation(m::AbstractMatrix{<:Real}) = SymOperation{size(m,1)}(float(m))
+function SymOperation{D}(m::AbstractMatrix{Float64}) where D
+    rotation_cols = ntuple((j)->ntuple(i->m[i,j], Val(D)), Val(D))
+    translation   = SVector{D, Float64}(ntuple(j->m[j, D+1], Val(D)))
+    SymOperation{D}(rotation_cols, translation)
+end
+
+# extracting StaticArray representations of the symmetry operation, amenable to linear algebra
+flatten_nested_ntuples(x::NTuple{D, NTuple{D, T}}) where D where T = ntuple((i)->x[(i+D-1)÷D][mod1(i,D)], Val(D*D))
+rotation(op::SymOperation{D}) where D = SMatrix{D, D, Float64, D*D}(flatten_nested_ntuples(op.rotation_cols))
+translation(op::SymOperation{D}) where D = op.translation
+matrix(op::SymOperation{D}) where D = SMatrix{D, D+1, Float64, D*(D+1)}((flatten_nested_ntuples(op.rotation_cols)..., translation(op).data...))
+
+# string constructors
+xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
 SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(m))
 # type-unstable convenience constructors; avoid for anything non-REPL related, if possible
-SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))   
+SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m)) 
 
-matrix(op::SymOperation) = op.matrix
-xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
-dim(::SymOperation{D}) where D = D
 # define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]
 firstindex(::SymOperation) = 1
-lastindex(op::SymOperation{D}) where D = D*(D+1)
-lastindex(op::SymOperation{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D+1 : 1)
+lastindex(::SymOperation{D}) where D = D*(D+1)
+lastindex(::SymOperation{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D+1 : 1)
 IndexStyle(::SymOperation) = IndexLinear()
 size(::SymOperation{D}) where D = (D,D+1)
 eltype(::SymOperation) = Float64
 
-rotation(m::Matrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
-rotation(op::SymOperation)  = rotation(matrix(op))
-translation(m::Matrix{<:Real}) = @view m[:,end]  # translation part of an operation
-translation(op::SymOperation)  = translation(matrix(op))
+rotation(m::AbstractMatrix{<:Real}) = m[:,1:end-1] # rotational (proper or improper) part of an operation
+translation(m::AbstractMatrix{<:Real}) = m[:,end]  # translation part of an operation
+rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for type-stability w/ StaticArrays (returns an SMatrix{D,D,...})
+translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,D+1]      # not strictly needed for type-stability    (returns an SVector{D,...})
+
+dim(::SymOperation{D}) where D = D
 (==)(op1::SymOperation, op2::SymOperation) = (dim(op1) == dim(op2) && xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
 unpack(op::SymOperation) = (rotation(op), translation(op))

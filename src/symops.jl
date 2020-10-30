@@ -45,6 +45,8 @@ See also [`directbasis`](@ref).
 end
 @inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 
+# TODO: make the various transformations between xyzt and matrix form return and take 
+#       SMatrix{D,D+1,...} exclusively.
 function xyzt2matrix(s::AbstractString)
     ssub = split(s, ',')
     D = length(ssub)
@@ -189,48 +191,49 @@ pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 """ 
     (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
 
-Compose two symmetry operations `op1`={W₁|w₁} and `op2`={W₂|w₂}
+Compose two symmetry operations `op1` ``= {W₁|w₁} and `op2` ``= {W₂|w₂}``
 using the composition rule (in Seitz notation)
 
-    {W₁|w₁}{W₂|w₂} = {W₁*W₂|w₁+W₁*w₂}
+    ``{W₁|w₁}∘{W₂|w₂} = {W₁*W₂|w₁+W₁*w₂}``
 
-for symmetry operations opᵢ = {Wᵢ|wᵢ}. By default, the translation part of
-the {W₁*W₂|w₁+W₁*w₂} is reduced to the range [0,1], i.e. computed modulo 1.
-This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e. 
-`true`, by default). Returns another `SymOperation`.
+By default, the translation part of the ``{W₁*W₂|w₁+W₁*w₂}`` is reduced to the range
+``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
+`modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
 function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
     T((∘)(matrix(op1), matrix(op2), modτ))
 end
 function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
     W′ = rotation(op1)*rotation(op2)
-    w′ = translation(op1) .+ rotation(op1)*translation(op2)
+    w′ = translation(op1) + rotation(op1)*translation(op2)
 
     if modτ
-        reduce_translation_to_unitrange!(w′)
+        w′ = reduce_translation_to_unitrange(w′)
     end
 
     return [W′ w′]
 end
 const compose = ∘
 
-function reduce_translation_to_unitrange!(w::AbstractVector{Float64}) # mutates w; reduces components to range [0.0, 1.0[
+function reduce_translation_to_unitrange(w::SVector{D, Float64}) where D # reduces components to range [0.0, 1.0[
     # naïve approach to achieve semi-robust reduction of integer-translation
     # via a slightly awful "approximate" modulo approach; basically just the
     # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
     # around each integer.
-    w .= mod.(w, 1.0)
-    # sometimes, mod(w′, 1.0) can omit reducing values that are very nearly 1.0
+    w′ = mod.(w, 1.0)
+    # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
     # due to floating point errors: we use a tolerance here to round everything 
     # close to 0.0 or 1.0 exactly to 0.0
-    @simd for i in eachindex(w)
-        if isapprox(round(w[i]), w[i], atol=DEFAULT_ATOL)
-            w[i] = zero(eltype(w))
+    w′_cleanup = ntuple(Val(D)) do i
+        @inbounds w′ᵢ = w′[i]
+        if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
+            zero(Float64)
+        else
+            w′ᵢ
         end
     end
-    return w
+    return SVector{D, Float64}(w′_cleanup)
 end
-reduce_translation_to_unitrange(w::AbstractVector{Float64}) = reduce_translation_to_unitrange!(copy(w)) # non-mutating variant
 
 """
     (⊚)(op1::T, op2::T) where T<:SymOperation -->  Vector{Float64}
@@ -246,12 +249,12 @@ Note that ⊚ can be auto-completed in Julia via \\circledcirc+[tab]
 """ 
 function (⊚)(op1::T, op2::T) where T<:SymOperation
     # Translation result _without_ taking `mod`
-    w′ = translation(op1) .+ rotation(op1)*translation(op2)  
+    w′ = translation(op1) + rotation(op1)*translation(op2)  
     # Then we take w′ modulo lattice vectors
     w′′ = reduce_translation_to_unitrange(w′)
-    # Then we subtract the two (reuse w′′ to avoid additional allocations)
-    w′′ .= w′ .- w′′
-    return w′′
+    # Then we subtract the two
+    w′′′ = w′ - w′′
+    return w′′′
 end
 
 """
@@ -540,28 +543,35 @@ function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real},
     return SymOperation{D}([W′ w′])
 end
 
-function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
+function transform_rotation(op::SymOperation{D}, P::AbstractMatrix{<:Real}) where D
     W = rotation(op)
     W′ = P\(W*P)        # = P⁻¹WP
+
     # clean up rounding-errors introduced by transformation (e.g. 
     # occassionally produces -0.0). The rotational part will 
     # always have integer coefficients if it is in the conventional
     # or primitive basis of its lattice; if transformed to a nonstandard
     # lattice, it might not have that though.
-    @inbounds for (idx, el) in enumerate(W′)
-        rel = round(el)
-        if !isapprox(el, rel, atol=DEFAULT_ATOL)
-            rel = el # non-standard lattice transformation; fractional elements 
-                     # (this is why we need Float64 in SymOperation{D})
+    W′_cleanup = ntuple(Val(D*D)) do i
+        @inbounds W′ᵢ = W′[i]
+        rW′ᵢ = round(W′ᵢ)
+        if !isapprox(W′ᵢ, rW′ᵢ, atol=DEFAULT_ATOL)
+            rW′ᵢ = W′ᵢ # non-standard lattice transformation; fractional elements 
+                       # (this is why we need Float64 in SymOperation{D})
         end
         # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative
         # values x∈[-0.5,-0.0] to -0.0 -- and since it is bad for us to have
         # both 0.0 and -0.0 -- we convert -0.0 to 0.0 here
-        if rel===-zero(Float64); rel = zero(Float64); end
+        rW′ᵢ === -zero(Float64) && (rW′ᵢ = zero(Float64))
 
-        W′[idx] = rel
+        return W′ᵢ
     end
-    return W′
+
+    if W′ isa SMatrix{D,D,Float64,D*D}
+        return SMatrix{D,D,Float64,D*D}(W′_cleanup)
+    else # P was not an SMatrix, so output isn't either
+        return copyto!(W′, W′_cleanup)
+    end
 end
 
 function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real}, 
@@ -574,10 +584,9 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     else
         w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
     end
-    # FIXME:/TODO: see https://github.com/JuliaArrays/StaticArrays.jl/issues/796
-    w′ = convert(Vector{Float64}, w′) # in case P, p, or w were a StaticArray...
+
     if modw
-        return reduce_translation_to_unitrange!(w′)
+        return reduce_translation_to_unitrange(w′)
     else
         return w′
     end
