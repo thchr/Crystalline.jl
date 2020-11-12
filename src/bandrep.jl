@@ -87,11 +87,11 @@ end
 
 
 """
-    bandreps(sgnum::Integer; 
+    bandreps(sgnum::Integer, D::Integer=3; 
              allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true)
 
 Returns the `BandRepSet` for space group `sgnum` (provided by the [Bilbao Crystallographic
-Server](http://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl))
+Server](http://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl)) and dimension `D`.
 
 Keyword arguments:
 
@@ -101,16 +101,17 @@ Keyword arguments:
 - `timereversal`: assume presence (`true`, default) or absence (`false`) of time-reversal
                   symmetry.
 """
-function bandreps(sgnum::Integer; 
-                  allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true)
+function bandreps(sgnum::Integer, D::Integer=3;
+                  allpaths::Bool=false, spinful::Bool=false,
+                  timereversal::Bool=true)
+    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
     paths_str = allpaths ? "allpaths" : "maxpaths"
     brtype_str = timereversal ? "elementaryTR" : "elementary"
-    filename = (@__DIR__)*"/../data/bandreps/3d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
+    filename = (@__DIR__)*"/../data/bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
     open(filename) do io
         BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
     end 
 end
-
 
 """
     classification(BRS::BandRepSet) --> String
