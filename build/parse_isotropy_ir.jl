@@ -238,7 +238,7 @@ function littlegroupirrep(ir::SGIrrep3D{<:Complex})
         lgirtrans = ir.translations[lgidx]
     else
         #println("Manually swapped out corrected (CDML) LGIrrep for sgnum ", num(ir), ", irrep ", label(ir))
-        lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir), 3)
+        lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir))
     end
 
     return LGIrrep{3}(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, type(ir))
@@ -282,7 +282,8 @@ end
 
 const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
 @inline function is_erroneous_lgir(sgnum::Integer, irlab::String, D::Integer=3)
-    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
+    D == 1 && return false
+    D ≠ 3 && Crystalline._throw_2d_not_yet_implemented(D)
     @simd for ps in ERRONEOUS_LGIRS
         (ps[1]==sgnum && ps[2]==irlab) && return true
     end 
@@ -290,7 +291,7 @@ const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of t
 end
 
 """
-    manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
+    manually_fixed_lgir(sgnum::Integer, irlab::String)
 
 The small irreps associated with the little group of k-point P ≡ KVec(½,½,½)
 of space group 214 are not correct in ISOTROPY's dataset: specifically, while 
@@ -306,7 +307,7 @@ in is_erroneous_lgir(...), with the constant "erroneous" tuple ERRONEOUS_LGIRS.
 Emailed Stokes & Campton regarding the issue on Sept. 26, 2019; did not yet 
 hear back.
 """
-function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
+function manually_fixed_lgir(sgnum::Integer, irlab::String)
     # TODO: Use their new and corrected dataset (from February 17, 2020) instead of manually
     #       fixing the old dataset.
     #       I already verified that their new dataset is correct (and parses), and that P1
@@ -316,7 +317,6 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
     #       Thus, we should remove this method (here and from other callers), update and
     #       commit the new datasets and then finally regenerate/refresh our own saved format
     #       of the irreps (from build/write_littlegroup_irreps_from_ISOTROPY.jl)
-    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
     if sgnum == 214
         CP  = cis(π/12)/√2   # C*P       ≈ 0.683013 + 0.183013im
         CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im

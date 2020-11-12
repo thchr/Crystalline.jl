@@ -29,10 +29,10 @@ The underlying data is sourced from the ISOTROPY dataset: see also [`get_lgirrep
 """
 function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JldOrNothing=nothing) where D
-    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
+    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
 
     sgops_str, klabs, kstrs, opsidxs = if isnothing(jldfile)
-        JLD2.jldopen(DATA_PATH_LITTLEGROUPS_3D, "r") do jldfile
+        JLD2.jldopen(pathof_littlegroups_data(D), "r") do jldfile
              _load_littlegroups_data(sgnum, jldfile)
         end
     else
@@ -48,7 +48,7 @@ function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
 end
 
 function get_all_littlegroups(::Val{D}) where D
-    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile
+    JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
         return [get_littlegroups(sgnum, Val(D), lgfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
     end
 end
@@ -89,12 +89,12 @@ been manually sourced from the Bilbao Crystallographic Database.
 """
 function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3), lgs_jldfile::JldOrNothing=nothing,
                       irs_jldfile::JldOrNothing=nothing) where D
-    D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
+    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
     Ps_list, τs_list, types_list, cdmls_list = if isnothing(irs_jldfile)
-        JLD2.jldopen(DATA_PATH_LGIRREPS_3D, "r") do irs_jldfile
+        JLD2.jldopen(pathof_lgirreps_data(D), "r") do irs_jldfile
             _load_lgirreps_data(sgnum, irs_jldfile)
         end
     else
@@ -116,8 +116,8 @@ function get_lgirreps(sgnum::Integer, D::Integer, lgs_jldfile::JldOrNothing=noth
 end
 
 function get_all_lgirreps(Dᵛ::Val{D}) where D
-    JLD2.jldopen(Crystalline.DATA_PATH_LITTLEGROUPS_3D,"r") do lgfile
-        JLD2.jldopen(Crystalline.DATA_PATH_LGIRREPS_3D,"r") do irfile
+    JLD2.jldopen(pathof_lgirreps_data(D),"r") do lgfile
+        JLD2.jldopen(pathof_lgirreps_data(D),"r") do irfile
             return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
         end
     end
@@ -125,8 +125,13 @@ end
 get_all_lgirreps(D::Integer=3) = get_all_lgirreps(Val(D))
 
 # ===== utility functions (loads raw data from the harddisk) =====
-const DATA_PATH_LITTLEGROUPS_3D = (@__DIR__)*"/../data/lgirreps/3d/littlegroups_data.jld2"
-const DATA_PATH_LGIRREPS_3D = (@__DIR__)*"/../data/lgirreps/3d/irreps_data.jld2"
+const DATA_LITTLEGROUPS_FILENAME = "littlegroups_data.jld2"
+const DATA_LGIRREPS_FILENAME     = "irreps_data.jld2"
+@inline pathof_littlegroups_data(D::Integer) =
+    joinpath(dirname(@__DIR__), "data/lgirreps", string(D)*"d", DATA_LITTLEGROUPS_FILENAME)
+@inline pathof_lgirreps_data(D::Integer) =
+    joinpath(dirname(@__DIR__), "data/lgirreps", string(D)*"d", DATA_LGIRREPS_FILENAME)
+
 function _load_littlegroups_data(sgnum::Integer, jldfile::JLD2.JLDFile)   
     jldgroup = jldfile[string(sgnum)]
     sgops_str::Vector{String}      = jldgroup["sgops"]

@@ -2,6 +2,8 @@
 
 @noinline _throw_1d2d_not_yet_implemented(D::Integer) = 
     throw(DomainError(D, "dimensions D≠3 not yet supported"))
+@noinline _throw_2d_not_yet_implemented(D::Integer) = 
+    throw(DomainError(D, "dimensions D=2 not yet supported"))
 @noinline _throw_invaliddim(D::Integer) = 
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
 @noinline _throw_invalidcntr(cntr::Char) = 

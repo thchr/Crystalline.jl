@@ -46,7 +46,7 @@ function plot(Rs::Basis{D},
     # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474); 
     # FIXME: may raise an error in later matplotlib releases
     ax.set_aspect("equal", adjustable="box")
-    return nothing
+    return ax
 end
 
 # ::AbstractFourierLattice ----------------------------------------------------------------
