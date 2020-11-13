@@ -116,7 +116,7 @@ function get_lgirreps(sgnum::Integer, D::Integer, lgs_jldfile::JldOrNothing=noth
 end
 
 function get_all_lgirreps(Dᵛ::Val{D}) where D
-    JLD2.jldopen(pathof_lgirreps_data(D),"r") do lgfile
+    JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
         JLD2.jldopen(pathof_lgirreps_data(D),"r") do irfile
             return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
         end

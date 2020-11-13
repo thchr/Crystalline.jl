@@ -4,7 +4,7 @@ if !isdefined(Main, :LGIRS)
     LGIRS  = parselittlegroupirreps() # parsed directly from ISOTROPY's files
 end
 if !isdefined(Main, :LGIRS′)
-    LGIRS′ = get_all_lgirreps(Val(3))  # loaded from our saved .jld2 files
+    LGIRS′ = get_all_lgirreps(Val(3)) # loaded from our saved .jld2 files
 end
 
 @testset "Test equivalence of parsed and loaded LGIrreps" begin
