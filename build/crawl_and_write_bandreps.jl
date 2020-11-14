@@ -55,7 +55,8 @@ function html2dlm(body::String, oplus::Union{String,Char}='⊕')
         r"\<center\>(.*?)\<\/center\>"=>s"\1",  # centering annotations
         "<br>"=>"",                             # linebreak tag in html; no </br> tag exists
         "<font size=\"5\">&uarr;</font>"=>"↑",  # induction arrow
-        r"\<font style\=\"text-decoration:overline;\"\>(.*?)\<\/font\>"=>s"\1ˢ", # spinful irrep
+        r"<font style\=\"text-decoration:overline;\"\>([1-6])\<\/font\>"=>s"-\1", # wyckoff site symmetry groups w/ (roto)inversion (must come before spinful irrep conversion)
+        r"\<font style\=\"text-decoration:overline;\"\>(.*?)\<\/font\>"=>s"\1ˢ",  # spinful irrep
         "&oplus;"=>oplus,                       # special symbols # ⊕
         "&Gamma;"=>'Γ',                                           # Γ
         "&Sigma;"=>'Σ',                                           # Σ
@@ -103,7 +104,8 @@ function writebandreps(sgnum, allpaths, timereversal=true)
     filename = (@__DIR__)*"/../data/bandreps/3d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
     open(filename; write=true, create=true, truncate=true) do io
         write(io, BR_dlm)
-    end 
+    end
+    return nothing
 end
 
 # run to crawl everything... (takes ∼5 min)

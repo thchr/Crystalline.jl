@@ -1,4 +1,4 @@
-Wyckoff pos.|1a(4ˢ)|1a(4ˢ)|1a(4ˢ)|1b(4ˢ)|1b(4ˢ)|1b(4ˢ)|1c(4ˢ)|1c(4ˢ)|1c(4ˢ)|1d(4ˢ)|1d(4ˢ)|1d(4ˢ)|2g(2)|2g(2)|1a(4ˢ)|1a(4ˢ)|1b(4ˢ)|1b(4ˢ)|1c(4ˢ)|1c(4ˢ)|1d(4ˢ)|1d(4ˢ)|2g(2)
+Wyckoff pos.|1a(-4)|1a(-4)|1a(-4)|1b(-4)|1b(-4)|1b(-4)|1c(-4)|1c(-4)|1c(-4)|1d(-4)|1d(-4)|1d(-4)|2g(2)|2g(2)|1a(-4)|1a(-4)|1b(-4)|1b(-4)|1c(-4)|1c(-4)|1d(-4)|1d(-4)|2g(2)
 Band-Rep.|A↑G(1)|B↑G(1)|¹E²E↑G(2)|A↑G(1)|B↑G(1)|¹E²E↑G(2)|A↑G(1)|B↑G(1)|¹E²E↑G(2)|A↑G(1)|B↑G(1)|¹E²E↑G(2)|A↑G(2)|B↑G(2)|¹Eˢ₁²Eˢ₁↑G(2)|¹Eˢ₂²Eˢ₂↑G(2)|¹Eˢ₁²Eˢ₁↑G(2)|¹Eˢ₂²Eˢ₂↑G(2)|¹Eˢ₁²Eˢ₁↑G(2)|¹Eˢ₂²Eˢ₂↑G(2)|¹Eˢ₁²Eˢ₁↑G(2)|¹Eˢ₂²Eˢ₂↑G(2)|¹Eˢ²Eˢ↑G(4)
 Decomposable|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|false|true
 A:(1/2,1/2,1/2)|A₁(1)|A₂(1)|A₃A₄(2)|A₂(1)|A₁(1)|A₃A₄(2)|A₂(1)|A₁(1)|A₃A₄(2)|A₁(1)|A₂(1)|A₃A₄(2)|A₃A₄(2)|A₁(1)⊕A₂(1)|Aˢ₆Aˢ₈(2)|Aˢ₅Aˢ₇(2)|Aˢ₅Aˢ₇(2)|Aˢ₆Aˢ₈(2)|Aˢ₅Aˢ₇(2)|Aˢ₆Aˢ₈(2)|Aˢ₆Aˢ₈(2)|Aˢ₅Aˢ₇(2)|Aˢ₅Aˢ₇(2)⊕Aˢ₆Aˢ₈(2)
