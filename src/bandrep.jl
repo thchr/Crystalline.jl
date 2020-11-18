@@ -104,7 +104,7 @@ Keyword arguments:
 function bandreps(sgnum::Integer, D::Integer=3;
                   allpaths::Bool=false, spinful::Bool=false,
                   timereversal::Bool=true)
-    (D ∉ (1,3) && sgnum ∉ (1,2)) && _throw_2d_not_yet_implemented(D)
+    (D ∉ (1,3) && sgnum ∉ (1,2,16,17)) && _throw_2d_not_yet_implemented(D)
     paths_str = allpaths ? "allpaths" : "maxpaths"
     brtype_str = timereversal ? "elementaryTR" : "elementary"
     filename = (@__DIR__)*"/../data/bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
