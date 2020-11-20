@@ -304,7 +304,7 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
     pretty_table(io,
         [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
         ["" formatirreplabel.(labels(ct))...];    # 1st row (header): irrep labels
-        tf = unicode,
+        tf = tf_unicode,
         highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
@@ -356,7 +356,7 @@ function prettyprint_symmetryvector(io::IO, irvec::Vector{Int}, irlabs::Vector{S
     print(io, ']')
 end
 
-summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), ")")
+summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), " at ", wyck(BR), ")")
 function show(io::IO, ::MIME"text/plain", BR::BandRep)
     summary(io, BR)
     print(io, ":\n ")
@@ -384,7 +384,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         # table contents
         matrix(BRS, true),
         # header
-        chop.(label.(BRS), tail=2); # get rid of the repeating "↑G" part
+        permutedims([wyck.(BRS) chop.(label.(BRS), tail=2)], (2,1)); # get rid of the repeating "↑G" part
         # row names
         row_names = vcat(irreplabels(BRS), "ν"),
         # options/formatting/styling
