@@ -1,6 +1,6 @@
 using Crystalline, Test
 
-@testset "Symmetry operations, Bilbao" begin
+@testset "Symmetry operations" begin
     @testset "Space group #1" begin
         sg = spacegroup(1, 3)
         @test order(sg) == 1
@@ -70,4 +70,19 @@ using Crystalline, Test
         @test all(isapprox.(cartRs_from_cRs, cartRs_from_pRs, atol=1e-12))
     end
 
+    @testset "Groups created from generators" begin # (`generate` default sorts by `seitz`)
+        # generate plane group (17) p6mm from 6⁺ and m₁₀
+        gens = SymOperation.(["x-y,x", "-x+y,y"]) 
+        @test all(generate(gens) .== sort!(operations(spacegroup(17,2)), by=seitz))
+
+        # generate site symmetry group of Wyckoff position 2b in p6mm
+        ops  = SymOperation.(
+                ["x,y","-y+1,x-y+1", "-x+y,-x+1",    # {1|0}, {3⁺|1.0,1.0}, {3⁻|0,1.0}, 
+                "-y+1,-x+1", "-x+y,y", "x,x-y+1"])   # {m₁₁|1.0,1.0}, {m₁₀|0}, {m₀₁|0,1.0}
+        gens = ops[[2,6]]
+        operations(generate(gens, modτ=false)) == sort!(ops, by=seitz)
+
+        # generators do not specify a finite group under "non-modulo" composition
+        @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
+    end
 end
