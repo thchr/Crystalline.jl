@@ -68,7 +68,8 @@ export spacegroup, xyzt2matrix, matrix2xyzt,
        pointgroup,
        primitivize, conventionalize, cartesianize,
        reduce_ops, transform,
-       issubgroup, isnormal
+       issubgroup, isnormal,
+       generate
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation

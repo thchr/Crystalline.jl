@@ -274,22 +274,25 @@ end
 
 
 """
-    MultTable(ops::AbstractVector{<:SymOperation{D}})
+    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true, verbose=false)
 
 Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
-`SymOperation{D}`s
+`SymOperation{D}`s.
+The `modτ` keyword argument controls whether composition of operations is taken modulo
+lattice vectors (`true`, default) or not (`false`).
 
 A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
 of `row ∘ col` operators; the table of indices give the symmetry operators relative to the
 ordering of `ops`.
 """
-function MultTable(ops::AbstractVector{SymOperation{D}}; verbose::Bool=false) where D
+function MultTable(ops::AbstractVector{SymOperation{D}};
+                   modτ::Bool=true, verbose::Bool=false) where D
     havewarned = false
     N = length(ops)
     table = Matrix{Int64}(undef, N,N)
     for (row,oprow) in enumerate(ops)
         for (col,opcol) in enumerate(ops)
-            op′ = oprow ∘ opcol
+            op′ = compose(oprow, opcol, modτ)
             match = findfirst(op′′ -> op′≈op′′, ops)
             if isnothing(match)
                 if !havewarned
@@ -789,3 +792,51 @@ function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVe
     return true
 end
 isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H))
+
+"""
+    $(SIGNATURES)
+
+Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
+
+**Keyword arguments:**
+- `modτ` (default, `true`): the group composition operation can either be taken modulo
+  lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
+  case, the provided generators will also be taken modulo integer lattice translations.
+- `Nmax` (default, `256`): the maximum size of the generated group. This is essentially
+  a cutoff set to ensure halting of execution in case the provided set of generators do not
+  define a *finite* group (especially relevant if `modτ=false`). If more operations than
+  `Nmax` are generated, the method throws an overflow error.
+"""
+function generate(gens::AbstractVector{SymOperation{D}};
+                  modτ::Bool=true,
+                  Nmax::Integer=256) where D
+    ops = if modτ
+        [SymOperation{D}(op.rotation_cols, reduce_translation_to_unitrange(translation(op))) for op in gens]
+    else
+        collect(gens)
+    end
+    
+    while true
+        Nₒₚ = length(ops)
+        # fixme: there's probably a more efficient way to do this?
+        for opᵢ in (@view ops[1:Nₒₚ]) 
+            for opⱼ in (@view ops[1:Nₒₚ])
+                opᵢⱼ = compose(opᵢ, opⱼ, modτ)
+                # fixme: there are some _really_ strange allocations going on here, related
+                #        to the interplay between the `∉` and `push!`ing operations here; no 
+                #        clue why this happens... some sort stack/heap conflict?
+                if opᵢⱼ ∉ ops
+                    push!(ops, opᵢⱼ)
+                    # early out if generators don't seem to form a closed group ...
+                    length(ops) > Nmax && return _throw_overflowed_generation()
+                end
+            end
+        end
+        Nₒₚ == length(ops) && (return GenericGroup{D}(sort!(ops, by=seitz)))
+    end
+end
+
+_throw_overflowed_generation() = 
+    throw(OverflowError("The provided set of generators overflowed Nmax distinct "*
+                        "operations: generators may not form a finite group; "*
+                        "otherwise, try increasing Nmax"))

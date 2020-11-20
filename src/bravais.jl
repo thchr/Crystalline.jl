@@ -56,7 +56,7 @@ end
     
 Return a one-dimensional crystal with lattice period `a`.
 """
-crystal(a::Real) = DirectBasis(SVector{1,Float64}(1.0))
+crystal(a::Real) = DirectBasis(SVector{1,Float64}(float(a)))
 
 # For a three-axis system, α, β, and γ are subject to constraints: specifically, 
 # since they correspond to sides of a (unit-radius) spherical triangle, they 

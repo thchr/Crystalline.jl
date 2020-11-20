@@ -54,6 +54,7 @@ _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
     summary(io, mt)
     println(io, ":")
+    mt.isgroup || (println(io, "  invalid multiplication table"); return nothing)
     seitz_ops = seitz.(mt.operations)
     pretty_table(io,
         [seitz_ops getindex.(Ref(seitz_ops), mt.table)], # 1st column and table itself
@@ -61,6 +62,7 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
         highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
+    return nothing
 end
 
 # --- KVec ---
@@ -106,7 +108,10 @@ string(kv::KVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take
 # --- AbstractGroup ---
 function summary(io::IO, g::T) where T<:AbstractGroup 
     print(io, T)
-    print(io, " #", num(g), " (", label(g), ") with ", order(g), " operations")
+    if !(T <: GenericGroup)
+        print(io, " #", num(g), " (", label(g), ")")
+    end
+    print(io, " with ", order(g), " operations")
 end
 function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
     if !haskey(io, :compact)

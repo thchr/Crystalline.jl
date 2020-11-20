@@ -106,7 +106,13 @@ rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for t
 translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,D+1]      # not strictly needed for type-stability    (returns an SVector{D,...})
 
 dim(::SymOperation{D}) where D = D
-(==)(op1::SymOperation, op2::SymOperation) = (dim(op1) == dim(op2) && xyzt(op1) == xyzt(op2)) && (matrix(op1) == matrix(op2))
+function (==)(op1::SymOperation, op2::SymOperation)
+    if dim(op1) == dim(op2) && op1.rotation_cols == op2.rotation_cols && translation(op1) == translation(op2)
+        return true
+    else
+        return false
+    end
+end
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
@@ -256,7 +262,7 @@ end
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
-dim(g::AbstractGroup{D}) where D = D
+dim(::AbstractGroup{D}) where D = D
 # define the AbstractArray interface for AbstractGroup
 getindex(g::AbstractGroup, keys...) = operations(g)[keys...]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 firstindex(::AbstractGroup) = 1
@@ -266,6 +272,16 @@ size(g::AbstractGroup) = (length(operations(g)),)
 IndexStyle(::AbstractGroup) = IndexLinear()
 eltype(::AbstractGroup{D}) where D = SymOperation{D}
 order(g::AbstractGroup) = length(g)
+
+# --- Generic group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
+struct GenericGroup{D} <: AbstractGroup{D}
+    operations::Vector{SymOperation{D}}
+end
+num(::GenericGroup) = 0
+label(::GenericGroup) = ""
 
 # --- Space group ---
 """
