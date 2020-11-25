@@ -211,13 +211,13 @@ function seitz(op::SymOperation{D}) where D
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w; 0]
     elseif D == 1
-        w_str = !iszero(w[1]) ? unicode_frac(w[1]) : "0"
-        if isone(W[1])
-            return "{1|"*w_str*"}"
-        elseif isone(-W[1])
-            return "{-1|"*w_str*"}"
+        isone(abs(W[1])) || throw(DomainError((W,w), "not a valid 1D symmetry operation"))
+        W_str = signbit(W[1]) ? "-1" : "1"
+        if iszero(w[1])
+            return W_str
         else
-            throw(DomainError((W,w), "not a valid 1D symmetry operation"))
+            w_str = unicode_frac(w[1])
+            return "{"*W_str*"|"*w_str*"}"
         end
     end
 
@@ -292,11 +292,13 @@ function seitz(op::SymOperation{D}) where D
         sense_str = ""
     end
 
-    # --- nonsymmorphic part ---
-    w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:D), ',') : "0"
-        
     # --- combine labels ---
-    return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+    if iszero(w) # symmorphic operation
+        return rot_str * sense_str * axis_str
+    else         # nonsymorphic operation
+        w_str = join((unicode_frac(w[i]) for i in 1:D), ',')
+        return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+    end
 end
 seitz(str::String) = seitz(SymOperation(str))
 
