@@ -35,7 +35,7 @@ for lgirsd in LGIRS
     pg_sortperm = sortperm(pgops, by=seitz) # make sure everything's sorted identically
     pgops = pgops[pg_sortperm]
 
-    lg_sortperm = sortperm(lgops, by=seitz)
+    lg_sortperm = sortperm(lgops_pgpart, by=seitz) # (we sort by the _point group_ part)
     lgops = lgops[lg_sortperm]
     lgops_pgpart = lgops_pgpart[lg_sortperm]
 
@@ -48,8 +48,8 @@ for lgirsd in LGIRS
     if sgnum ∈ 38:41
         # overall, as it relates to our tests below, this effectively swaps the irreps of 
         # the m₁₀₀ and m₀₁₀ operators
-        m₁₀₀_idx = findfirst(op->seitz(op)=="{m₁₀₀|0}", lgops_pgpart)
-        m₀₁₀_idx = findfirst(op->seitz(op)=="{m₀₁₀|0}", lgops_pgpart)
+        m₁₀₀_idx = findfirst(op->seitz(op)=="m₁₀₀", lgops_pgpart)
+        m₀₁₀_idx = findfirst(op->seitz(op)=="m₀₁₀", lgops_pgpart)
         a, b = lg_sortperm[m₁₀₀_idx], lg_sortperm[m₀₁₀_idx]
         lg_sortperm[m₁₀₀_idx], lg_sortperm[m₀₁₀_idx] = b, a
     end
