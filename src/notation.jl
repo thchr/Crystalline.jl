@@ -121,15 +121,15 @@ const SGS_IUC_NOTATION = (
 "p3",   "p3m1", "p31m", "p6",   "p6mm"
 ),
 # ------------------------------------------------------------------------------------------
-# space-group notation (three dimensions) [adapted from https://bruceravel.github.io/demeter/artug/atoms/space.html,
-# see also https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen]
+# space-group notation (three dimensions) following the conventions of ITA and Bilbao:
+# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
 # ------------------------------------------------------------------------------------------
 (
 # triclinic
 "P1",      "P-1",
 # monoclinic
-"P2",      "P21",     "C2",      "Pm",      "Pc",      "Cm",       
-"Cc",      "P2/m",    "P21/m",   "C2/m",    "P2/c",    "P21/c",    
+"P2",      "P21",     "C2",      "Pm",      "Pc",      "Cm",
+"Cc",      "P2/m",    "P21/m",   "C2/m",    "P2/c",    "P21/c",
 "C2/c",
 # orthorhombic
 "P222",    "P2221",   "P21212",  "P212121", "C2221",   "C222",
@@ -140,7 +140,7 @@ const SGS_IUC_NOTATION = (
 "Ima2",    "Pmmm",    "Pnnn",    "Pccm",    "Pban",    "Pmma",
 "Pnna",    "Pmna",    "Pcca",    "Pbam",    "Pccn",    "Pbcm",
 "Pnnm",    "Pmmn",    "Pbcn",    "Pbca",    "Pnma",    "Cmcm",
-"Cmca",    "Cmmm",    "Cccm",    "Cmma",    "Ccca",    "Fmmm",
+"Cmce",    "Cmmm",    "Cccm",    "Cmme",    "Ccce",    "Fmmm",
 "Fddd",    "Immm",    "Ibam",    "Ibca",    "Imma",
 # tetragonal
 "P4",      "P41",     "P42",     "P43",     "I4",      "I41",
@@ -168,12 +168,12 @@ const SGS_IUC_NOTATION = (
 "P63mc",   "P-6m2",   "P-6c2",   "P-62m",   "P-62c",   "P6/mmm",
 "P6/mcc",  "P63/mcm", "P63/mmc",
 # cubic
-"P23",     "F23",     "I23",     "P213",    "I213",    "Pm3",
-"Pn3",     "Fm3",     "Fd3",     "Im3",     "Pa3",     "Ia3",
+"P23",     "F23",     "I23",     "P213",    "I213",    "Pm-3",
+"Pn-3",    "Fm-3",    "Fd-3",    "Im-3",    "Pa-3",    "Ia-3",
 "P432",    "P4232",   "F432",    "F4132",   "I432",    "P4332",
 "P4132",   "I4132",   "P-43m",   "F-43m",   "I-43m",   "P-43n",
-"F-43c",   "I-43d",   "Pm3m",    "Pn3n",    "Pm3n",    "Pn3m",
-"Fm3m",    "Fm3c",    "Fd3m",    "Fd3c",    "Im3m",    "Ia3d"
+"F-43c",   "I-43d",   "Pm-3m",   "Pn-3n",   "Pm-3n",   "Pn-3m",
+"Fm-3m",   "Fm-3c",   "Fd-3m",   "Fd-3c",   "Im-3m",   "Ia-3d"
 )
 )
 
