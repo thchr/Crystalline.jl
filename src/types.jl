@@ -195,11 +195,13 @@ function KVec(str::AbstractString)
         end
         
         # --- "fixed" coordinate, k₀[i] ---
-        m = match(r"(\+|\-)?(([0-9]|/|\.)+)(?!α|u|β|v|γ|w)", coord)
+        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuβvγw])", coord)
         # regex matches any digit sequence, possibly including slashes, that is _not_
-        # followed by one of the free-part identifiers. If there's a '+' or '-' before
-        # the first digit, it is stored in the first capture slot. The digit sequence
-        # is stored in the second capture slot. The third capture slot is redundant.
+        # followed by one of the free-part identifiers αuβvγw (this is the '(?!' bit). 
+        # If a '+' or '-' exist before the first digit, it is included in the match. 
+        # The '(?:' bits in the groups simply makes sure that we don't actually create a
+        # capture group, because we only need the match and not the individual captures 
+        # (i.e. just a small optimization of the regex).
         # We do not allow arithmetic aside from division here, obviously: any extra numbers 
         # terms are ignored.
         if m===nothing   # no constant terms
@@ -209,8 +211,7 @@ function KVec(str::AbstractString)
                 throw(ErrorException("Unexpected parsing error in constant term"))
             end
         else
-            k₀[i] = Crystalline.parsefraction(m.captures[2])
-            m.captures == '-' && (k₀[i] *= -1)
+            k₀[i] = Crystalline.parsefraction(m.match)
         end
     end
     return KVec(k₀, kabc)
