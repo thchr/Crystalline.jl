@@ -4,7 +4,13 @@ abstract type AbstractFourierLattice{D}; end
 getcoefs(flat::AbstractFourierLattice) = flat.orbitcoefs
 getorbits(flat::AbstractFourierLattice) = flat.orbits
 dim(flat::AbstractFourierLattice{D}) where D = D
-
+function (==)(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice)
+    return flat1.orbits == flat2.orbits && flat1.orbitcoefs == flat2.orbitcoefs
+end
+function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; kwargs...)
+    return ( isapprox(flat1.orbits,     flat2.orbits;     kwargs...) && 
+             isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
+end
 """
 UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
 
@@ -45,7 +51,7 @@ end
 # and 
 #   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
 """
-    levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,dim))
+    levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,D))
         --> UnityFourierLattice{D}
 
 Compute a "neutral"/uninitialized Fourier lattice basis, a UnityFourierLattice, consistent
@@ -66,7 +72,7 @@ remain in the "neutral" configuration, where all inter-orbit coefficients are un
 # Examples
 
 Compute a UnityFourierLattice, modulate it with random inter-orbit coefficients via `modulate`,
-and finally plot it:
+and finally plot it (requires `using PyPlot`):
 
 ```julia-repl
 julia> uflat = levelsetlattice(16, 2)
@@ -208,28 +214,63 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
 end
 
+
+function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) where D
+    # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred
+    # to the untransformed 𝐆-basis (𝐚* 𝐛* 𝐜*), and we want to instead express it as a coordinate
+    # vector 𝐤′≡(k₁′,k₂′,k₃′)ᵀ referred to the transformed 𝐆-basis (𝐚*′ 𝐛*′ 𝐜*′)≡(𝐚* 𝐛* 𝐜*)(P⁻¹)ᵀ,
+    # where P is the transformation matrix. This is achieved by transforming according to 𝐤′ = Pᵀ𝐤
+    # or, equivalently, (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ. See also `transform(::KVec, ...)` and 
+    # `transform(::ReciprocalBasis, ...)`.
+
+    # vec of vec of G-vectors (in a **untransformed** 𝐆-basis)
+    orbits = getorbits(flat)
+    # prealloc. a vec of vec of k-vecs (to be filled in the **transformed** 𝐆-basis)
+    orbits′ = [Vector{SVector{D, Int}}(undef, length(orb)) for orb in orbits]
+    # transform all k-vecs in the orbits
+    for (i, orb) in enumerate(orbits)
+        for (j, k) in enumerate(orb)
+            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
+        end
+    end
+    # --- Comment regarding the `convert(SVector{D, Int}, ...)` call above: ---
+    # Because primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) consists of "larger" vectors
+    # than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks when we
+    # go to a primitive basis), not every conventional reciprocal lattice coordinate vector
+    # 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does not imply kᵢ′∈ℕ).
+    # However, since `flat` is derived consistent with the symmetries in a conventional
+    # basis, the necessary restrictions will already have been imposed in the creation of
+    # `flat` so that the primivized version will have only integer coefficients (otherwise
+    # the lattice would not be periodic in the primitive cell). I.e. we need not worry that
+    # the conversion is impossible, so long that we transform to a meaningful basis.
+    # The same issue of course isn't relevant for transforming in the reverse direction.
+       
+    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
+    return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
+end
+
 """
-    primitivize(flat::AbstractFourierLattice, cntr::Char) --> AbstractFourierLattice
+    primitivize(flat::AbstractFourierLattice, cntr::Char) --> ::typeof(flat)
 
-Given `flat` referred to a conventional basis with centering `cntr`, compute the 
-derived (but physically equivalent) lattice `flat′` referred to the associated 
-primitive basis. 
+Given `flat` referred to a conventional basis with centering `cntr`, compute the derived
+(but physically equivalent) lattice `flat′` referred to the associated primitive basis. 
 
-Specifically, if `flat` refers to a direct conventional basis Rs≡(𝐚 𝐛 𝐜) [with 
-coordinate-vectors 𝐫≡(r₁, r₂, r₃)ᵀ] then `flat′` refers to a direct primitive 
-basis Rs′≡(𝐚′ 𝐛′ 𝐜′)≡(𝐚 𝐛 𝐜)P [with coordinate-vectors 𝐫′≡(r₁′, r₂′, r₃′)ᵀ=P⁻¹𝐫],
-where P denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
+Specifically, if `flat` refers to a direct conventional basis `Rs` ``≡ (𝐚 𝐛 𝐜)`` [with 
+coordinate vectors ``𝐫 ≡ (r₁, r₂, r₃)^T``] then `flat′` refers to a direct primitive basis
+`Rs′` ``≡ (𝐚′ 𝐛′ 𝐜′) ≡ (𝐚 𝐛 𝐜)P`` [with coordinate vectors ``𝐫′ ≡ (r₁′, r₂′, r₃′)^T = P⁻¹𝐫``],
+where ``P`` denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
 
-To compute the associated primitive basis vectors, see `primitivize(::DirectBasis)`
-[specifically, `Rs′ = primitivize(Rs, cntr)`].
+To compute the associated primitive basis vectors, see
+[`primitivize(::DirectBasis, ::Char)`](@ref) [specifically, `Rs′ = primitivize(Rs, cntr)`].
 
 
 # Examples
 
 A centered ('c') lattice from plane group 5 in 2D, plotted in its 
-conventional and primitive basis:
+conventional and primitive basis (requires `using PyPlot`):
 
 ```julia-repl
+julia> using PyPlot
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
 
 julia> Rs   = directbasis(sgnum, D)     # conventional basis (rectangular)
@@ -241,7 +282,6 @@ julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
 julia> flat′ = primitivize(flat, cntr)  # Fourier lattice in basis of Rs′
 julia> plot(flat′, Rs′)
 ```
-
 """
 function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     # Short-circuit for lattices that have trivial transformation matrices
@@ -249,39 +289,35 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
-    # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred
-    # to the conventional 𝐆-basis (𝐚* 𝐛* 𝐜*), and we want to instead express it as a coordinate
-    # vector 𝐤′≡(k₁′,k₂′,k₃′)ᵀ referred to the primitive 𝐆-basis (𝐚*′ 𝐛*′ 𝐜*′)≡(𝐚* 𝐛* 𝐜*)(P⁻¹)ᵀ,
-    # where P is the transformation matrix. This is achieved by transforming according to 𝐤′ = Pᵀ𝐤
-    # or, equivalently, (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ. See also `primitivize(::KVec)` and 
-    # `primitivize(::ReciprocalBasis)`.
     P = primitivebasismatrix(cntr, D)
-
-    orbits = getorbits(flat) # vec of vec of G-vectors (in a **conventional** 𝐆-basis)
-    orbits′ = [[SVector{D, Int}(ntuple(_->0,D)) for j in eachindex(orb)] for orb in orbits] # prealloc. a vec of vec of G-vecs (to be filled in the **primitive** 𝐆-basis)
-    for (i, orb) in enumerate(orbits)
-        for (j, k) in enumerate(orb)
-            # Note that, because the primitive reciprocal basis Gs′≡(𝐚*′ 𝐛*′ 𝐜*′) is "larger"
-            # vectors than the conventional basis Gs≡(𝐚* 𝐛* 𝐜*) (since the direct lattice shrinks
-            # when we go to a primitive basis), not every conventional reciprocal lattice 
-            # coordinate vector 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does 
-            # not imply kᵢ′∈ℕ). However, since `flat` is derived consistent with the symmetries 
-            # in a conventional basis, the necessary restrictions will already have been imposed
-            # in the creation of `flat` so that the primivized version will have only integer
-            # coefficients (otherwise the lattice would not be periodic in the primitive cell).
-            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
-        end
-    end
-
-    # the coefficients of flat are unchanged; only the 𝐑- and 𝐆-basis change
-    return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
+    return transform(flat, P)
 end
 
 """
-    modulate(flat::UnityFourierLattice{dim},
+    conventionalize(flat′::AbstractFourierLattice, cntr::Char) --> ::typeof(flat′)
+
+Given `flat′` referred to a primitive basis with centering `cntr`, compute the derived (but
+physically equivalent) lattice `flat` referred to the associated conventional basis. 
+
+See also the complementary methods
+[`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real}`](@ref) and
+[`primitivize(::AbstractFourierLattice, ::Char)`](@ref) for additional details.
+"""
+function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
+    # Short-circuit for lattices that have trivial transformation matrices
+    (D == 3 && cntr == 'P') && return flat
+    (D == 2 && cntr == 'p') && return flat
+    D == 1 && return flat
+
+    P = primitivebasismatrix(cntr, D)
+    return transform(flat′, inv(P))
+end
+
+"""
+    modulate(flat::UnityFourierLattice{D},
     modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
     expon::Union{Nothing, Real}=nothing)
-                            --> ModulatedFourierLattice
+                            --> ModulatedFourierLattice{D}
 
 Derive a concrete, modulated Fourier lattice from `flat`, a UnityFourierLattice 
 struct (that contains the _interrelations_ between orbit coefficients), by 
@@ -302,13 +338,13 @@ If `expon = nothing`, no rescaling is performed.
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
 of a `ModulatedFourierLattice`.
 """
-function modulate(flat::UnityFourierLattice{D},
+function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
                   expon::Union{Nothing, Real}=nothing) where D
     if isnothing(modulation)
         Ncoefs = length(getcoefs(flat))
         mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
-        modulation = mod_r .* cis(mod_ϕ) # ≡ reⁱᵠ (pick modulus and phase uniformly random)
+        modulation = mod_r .* cis.(mod_ϕ) # ≡ reⁱᵠ (pick modulus and phase uniformly random)
     end
     orbits = getorbits(flat); orbitcoefs = getcoefs(flat); # unpacking ...
     
@@ -351,6 +387,12 @@ function normscale!(flat::ModulatedFourierLattice, expon::Real)
     return flat
 end
 
+# -----------------------------------------------------------------------------------------
+# The utilities and methods below are mostly used for plotting (see src/pyplotting.jl).
+# We keep them here since they do not depend on PyPlot and have more general utility in 
+# principle (e.g., exporting associated Meshes).
+
+
 """ 
     calcfourier(xyz, flat::AbstractFourierLattice) --> Float64
 
@@ -368,53 +410,32 @@ function calcfourier(xyz, orbits, orbitcoefs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
             exp_im, exp_re = sincos(2π*dot(G, xyz))
-            f += real(c)*exp_re - imag(c)*exp_im    # ≡ real(exp(2π*1im*dot(G, xyz)))
+            f += real(c)*exp_re - imag(c)*exp_im    # ≡ real(c*exp(2π*1im*dot(G, xyz)))
         end
     end
     return f
 end
 
-"""
-    plot(flat::AbstractFourierLattice, Rs::DirectBasis)
-
-Plots a lattice `flat::AbstractFourierLattice` with lattice vectors
-given by `Rs::DirectBasis`. Possible kwargs are (default in brackets) 
-
-- `N`: resolution [`100`]
-- `filling`: determine isovalue from relative filling fraction [`0.5`]
-- `isoval`: isovalue [nothing (inferred from `filling`)]
-- `repeat`: if not `nothing`, repeats the unit cell an integer number of times [`nothing`]
-- `fig`: figure handle to plot [`nothing`, i.e. opens a new figure]
-
-If both `filling` and `isoval` kwargs simultaneously not equal 
-to `nothing`, then `isoval` takes precedence.
-"""
-function plot(flat::AbstractFourierLattice, Rs::DirectBasis;
-              N::Integer=100, 
-              filling::Union{Real, Nothing}=0.5, 
-              isoval::Union{Real, Nothing}=nothing,
-              repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing)
- 
-    xyz = range(-.5, .5, length=N)
-    vals = calcfouriergridded(xyz, flat, N)
-    if isnothing(isoval)
-        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals), filling) : zero(Float64)
-    end
-    plotiso(xyz,vals,isoval,Rs,repeat,fig)
-
-    return xyz,vals,isoval
-end
-
-
-function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice, 
-                             N::Integer=length(xyz))
+# note: 
+# the "(x,y,z) ordering" depends on dimension D:
+#       D = 2: x runs over cols (dim=2), y over rows (dim=1), i.e. "y-then-x"
+#       D = 3: x runs over dim=1, y over dim=2, z over dim=3, i.e. "x-then-y-then-z"
+# this is because plotting utilities usually "y-then-x", but e.g. Meshing.jl (for 3D
+# isosurfaces) assumes the the more natural "x-then-y-then-z" sorting used here. This does
+# require some care though, because if we export the output of a 3D calculation to Matlab,
+# to use it for isosurface generation, it again requires a sorting like "y-then-x-then-z",
+# so we need to permute dimensions 1 and 2 of the output of `calcfouriergridded` when used 
+# with Matlab.
+function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice{D}, 
+                             N::Integer=length(xyz)) where D
     f = (coords...)-> calcfourier(coords, flat)
     # evaluate f over all gridpoints via broadcasting
-    if dim(flat) == 2
+    if D == 2
+        # x along columns, y along rows: "y-then-x"
         broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
-    elseif dim(flat) == 3
-        # TODO: verify--unclear if this leads to the right ordering of vals wrt x,y,z and plotting packages
+    elseif D == 3
+        # x along dim 1, y along dim 2, z along dim 3: "x-then-y-then-z", equivalent to a
+        # triple loop, ala `for x∈xyz, y∈xyz, z∈xyz; vals[ix,iy,iz] = f(x,y,z); end`
         broadcast!(f, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
     end
     return vals
@@ -423,76 +444,4 @@ function calcfouriergridded(xyz, flat::AbstractFourierLattice{D},
                             N::Integer=length(xyz)) where D
     vals = Array{Float64, D}(undef, ntuple(i->N, D)...)
     return calcfouriergridded!(vals, xyz, flat, N)
-end
-
-
-ivec(i,dim) = begin v=zeros(dim); v[i] = 1.0; return v end # helper function
-# show isocontour of data
-function plotiso(xyz, vals, isoval::Real=0.0, 
-                 Rs=ntuple(i->ivec(i,length(ndims(vals))), length(ndims(vals))),
-                 repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing)  
-    dim = ndims(vals)
-    if dim == 2
-        # convert to a cartesian coordinate system rather than direct basis of Ri
-        N = length(xyz) 
-        X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-        Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-        uc = [[0 0]; Rs[1]'; (Rs[1]+Rs[2])'; (Rs[2])'; [0 0]] .- (Rs[1]+Rs[2])'./2
-        pad = abs((-)(extrema(uc)...))/25
-
-        if isnothing(fig)
-            fig = plt.figure()
-        else
-            fig.clf()
-        end
-        fig.gca().contourf(X,Y,vals; 
-                           levels=[-1e12, isoval, 1e12],
-                           cmap=plt.get_cmap("gray",2))# is also good
-        fig.gca().contour(X,Y,vals,levels=[isoval], colors="w", linestyles="solid")
-        fig.gca().plot(uc[:,1], uc[:,2], color="C4",linestyle="solid")
-        fig.gca().scatter([0],[0],color="C4",s=30, marker="+")
-        
-
-        if !isnothing(repeat) # allow repetitions of unit cell in 2D
-            for r1 in -repeat:repeat
-                for r2 in -repeat:repeat
-                    if r1 == r2 == 0; continue; end
-                    offset = Rs[1].*r1 .+ Rs[2].*r2
-                    fig.gca().contourf(X.+offset[1],Y.+offset[2],vals,levels=[minimum(vals), isoval, maximum(vals)]; cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
-                    fig.gca().contour(X.+offset[1],Y.+offset[2],vals,levels=[isoval], colors="w", linestyles="solid")
-                end
-            end
-            xd = -(-)(extrema(uc[:,1])...); yd = -(-)(extrema(uc[:,2])...)
-            plt.xlim([extrema(uc[:,1])...].+[-1,1].*repeat*xd.+[-1,1].*pad); 
-            plt.ylim([extrema(uc[:,2])...].+[-1,1].*repeat*yd.+[-1,1].*pad);
-        else
-            plt.xlim([extrema(uc[:,1])...].+[-1,1].*pad); plt.ylim([extrema(uc[:,2])...].+[-1,1].*pad);
-        end
-        fig.gca().set_aspect("equal", adjustable="box")
-        fig.gca().set_axis_off()
-
-    elseif dim == 3
-        scene=Scene()
-        Makie.contour!(scene, xyz,xyz,xyz, vals,
-                       levels=[isoval],colormap=:blues, linewidth=.1)
-        Makie.display(scene)
-
-        # marching cubes algorithm to find isosurfaces
-        algo = MarchingCubes(iso=isoval, eps=1e-3)
-        verts, faces = isosurface(vals, algo; 
-                                  origin = SVector(-0.5,-0.5,-0.5), 
-                                  widths = SVector(1.0,1.0,1.0))
-        verts′ = [verts[i][j] for i = 1:length(verts), j = 1:3]
-        faces′ = [faces[i][j] for i = 1:length(faces), j = 1:3]
-
-        #println("Mesh: $(length(verts)) vertices\n", " "^6, "$(length(faces)) faces")
-        isomesh = convert_arguments(Mesh, verts′, faces′)[1]
-
-        # plot isosurface
-        scene = Scene()
-        mesh!(isomesh, color=:grey)
-        display(scene)
-    end
-    return nothing
 end

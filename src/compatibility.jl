@@ -1,4 +1,4 @@
-using SGOps
+using Crystalline
 
 """
     subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int64
@@ -18,16 +18,16 @@ The reduction formula [e.g. Eq. (15) of https://arxiv.org/pdf/1706.09272.pdf] is
 
         nᴳᴴᵢⱼ = |H|⁻¹∑₍ₕ₎ χᴳᵢ(h)χᴴⱼ(h)*
 
-As an example, consider space group 135 and the two compatible k-vectors 
-Γ (a point) and Σ (a plane):
+As an example, consider space group 207 and the two compatible k-vectors 
+Γ (a point) and Σ (a line):
 ```
-    lgirvec = get_lgirreps(135, Val(3))
-    Γ_lgirs = lgirvec[1] # at Γ ≡ [0.0, 0.0, 0.0]
-    Σ_lgirs = lgirvec[4] # at Σ ≡ [α, α, 0.0]
+    lgirsd  = get_lgirreps(207, Val(3));
+    Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
+    Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
 ```
 We can test their compatibility like so:
 ```
-    [[subduction_count(Γi, Σj) for Γi in Γ_lgirs for Σj in Σ_lgirs]
+    [[subduction_count(Γi, Σj) for Γi in Γ_lgirs] for Σj in Σ_lgirs]
     > # Γ₁ Γ₂ Γ₃ Γ₄ Γ₅
     >  [ 1, 0, 1, 1, 2] # Σ₁
     >  [ 0, 1, 1, 2, 1] # Σ₂
@@ -71,7 +71,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
 end
 
 """
-    find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
+    $(SIGNATURES)
 """
 function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     !isspecial(kv) && throw(DomainError(kv, "input kv must be a special k-point"))
@@ -90,47 +90,63 @@ function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     return compat_idxs, compat_αβγs
 end
 
+"""
+    $(SIGNATURES)
+
+Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. If so,
+return an `αβγ′` value such that `kv = kv′(αβγ′)`.
+
+TODO: This method should eventually be merged with the equivalently named method in
+      PhotonicBandConnectivity/src/connectivity.jl, which handles everything more correctly,
+      but currently has a slightly incompatible API.
+"""
 function is_compatible_kvec(kv::KVec, kv′::KVec)
     # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
     #       if we match k-points across a G-vector, we also need to transform the irrep
     #       with a suitable phase factor.
+    isspecial(kv) || throw(DomainError(kv, "must be special"))
+    isspecial(kv′) && return false, nothing
 
-    # TODO: this cannot treat finding a compatible plane to a line
     k₀, _  = parts(kv) 
     k₀′, kabc′ = parts(kv′)
 
     # least squares solve via QR factorization; equivalent to pinv(kabc)*(k₀-k₀′) but faster
-    αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)  
+    αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)
     k′ = k₀′ + kabc′*αβγ′
     # check if least squares solution actually is a solution
-    compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL) 
+    compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL)
 
-    return compat_bool, αβγ′
+    return compat_bool, compat_bool ? αβγ′ : nothing
 end
 
 """
-    compatibility(lgirvec)
+    $(SIGNATURES)
+
+TODO: Seems entirely broken? Not sure what this is supposed to do.
 """
-function compatibility(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(lgirvec))
-    klabs = klabel.(first.(lgirvec))
+function compatibility(lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
+    kvs   = kvec.(first.(values(lgirsd)))
+    klabs = collect(keys(lgirsd))
     Nk    = length(kvs)
     
     # prepare a graph for the connections between k-vectors
     kgraph = MetaDiGraph(Nk)
-    foreach((i,kv,kl)->set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl)), eachindex(kvs), kvs, klabs)
+    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
+        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
+    end
 
-    for (kidxᴳ,lgirs) in enumerate(lgirvec)                 # parent group 
+    for (kidxᴳ, lgirs) in enumerate(values(lgirsd))                 # parent group 
         kvᴳ = kvs[kidxᴳ]
         !isspecial(kvᴳ) && continue # starting point is always a special k-point
         compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
         for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)  # subgroup
+            klabᴴ = kvs[kidxᴴ]
             add_edge!(kgraph, kidxᴳ, kidxᴴ)
             for (iᴳ, Dᴳᵢ) in enumerate(lgirs)
-                for (jᴴ, Dᴴⱼ) in enumerate(lgirvec[kidxᴴ])
+                for (jᴴ, Dᴴⱼ) in enumerate(lgirsd[klabᴴ])
                     nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγᴴ)
                     if !iszero(nᴳᴴᵢⱼ) # add an edge between irreps Dᴳᵢ and Dᴴⱼ
-                        add_edge!()
+                        add_edge!() # FIXME: Uh??
                     end
                 end
             end
@@ -141,19 +157,21 @@ end
 
 
 """
-    connectivity(lgirvec)
+    connectivity(lgirsd)
 """
-function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(lgirvec))
-    klabs = klabel.(first.(lgirvec))
+function connectivity(lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}}) where D
+    kvs   = kvec.(first.(values(lgirsd)))
+    klabs = collect(keys(lgirsd))
     Nk    = length(kvs)
     
     # prepare a graph for the connections between k-vectors
     kgraph = MetaDiGraph(Nk)
-    foreach((i,kv,kl)->set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl)), eachindex(kvs), kvs, klabs)
+    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
+        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
+    end
 
     Nspecial = 0
-    @inbounds for (kidxᴳ,lgirs) in enumerate(lgirvec)       # parent group 
+    @inbounds for (kidxᴳ, lgirs) in enumerate(values(lgirsd)) # parent group 
         kvᴳ = kvs[kidxᴳ]
         if isspecial(kvᴳ)
             Nspecial += 1
@@ -161,21 +179,21 @@ function connectivity(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) whe
             continue # starting point is always a special k-point
         end
         compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
-        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)  # subgroup
+        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)    # subgroup
             add_edge!(kgraph, kidxᴳ, kidxᴴ)
         end
     end
 
     cgraph = MetaGraph(Nspecial) # connectivity graph for special k-vecs
     local_kidx¹ = 0
-    @inbounds for kidx¹ in eachindex(lgirvec)
+    @inbounds for (kidx¹, klab¹) in enumerate(klabs)
         isspecial(kvs[kidx¹]) || continue      # only compare special vectors
         local_kidx¹ += 1
         set_props!(cgraph, local_kidx¹, Dict(:kvec=>kvs[kidx¹], 
-                                             :klab=>klabs[kidx¹], 
+                                             :klab=>klab¹, 
                                              :kidx=>kidx¹)) 
         local_kidx² = 0
-        for kidx² in eachindex(lgirvec)
+        for (kidx²,_) in enumerate(klabs)
             isspecial(kvs[kidx²]) || continue  # only compare special vectors
             local_kidx² += 1
             kidx¹≥kidx² && continue            # avoid double & self-comparisons

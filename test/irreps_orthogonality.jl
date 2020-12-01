@@ -1,9 +1,9 @@
-using SGOps, Test, LinearAlgebra, Printf
+using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
     LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
 end
-#SGOps.add_ΦnotΩ_lgirs!.(LGIRS)
+#Crystalline.add_ΦnotΩ_lgirs!.(LGIRS)
 
 @testset "Irrep orthogonality (complex little groups)" begin
 
@@ -12,10 +12,10 @@ end
 # for each irrep
 # Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
 @testset "1ˢᵗ orthogonality theorem" begin
-    for lgirs in LGIRS       # loop over space groups: lgirs contains _all_ little groups and their irreps
-        for lgirvec in lgirs # loop over little group: lgirvec contains all the associated irreps
-            Nₒₚ = order(first(lgirvec)) # number of elements in little group
-            for lgir in lgirvec # specific irrep {Dᵢ⁽ᵃ⁾} of the little group
+    for lgirsd in LGIRS             # loop over space groups: lgirsd contains _all_ little groups and their irreps
+        for lgirs in values(lgirsd) # loop over little group: lgirs contains all the associated irreps
+            Nₒₚ = order(first(lgirs)) # number of elements in little group
+            for lgir in lgirs # specific irrep {Dᵢ⁽ᵃ⁾} of the little group
                 χ = characters(lgir) # characters χᵢ⁽ᵃ⁾ of every operation
                 @test sum(abs2, χ) ≈ Nₒₚ # check ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾ 
             end
@@ -28,12 +28,12 @@ end
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
 @testset "2ⁿᵈ orthogonality theorem" begin
-    for lgirs in LGIRS          # lgirs: vectors of little group irrep collections
-        for lgirvec in lgirs    # lgirvec:  tuples of distinct little group irreps
-            Nₒₚ = order(first(lgirvec))    
-            for (a, lgir⁽ᵃ⁾) in enumerate(lgirvec) 
+    for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
+        for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
+            Nₒₚ = order(first(lgirs))    
+            for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
                 χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾)
-                for (β, lgir⁽ᵝ⁾) in enumerate(lgirvec)
+                for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
                     χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾)
                     orthog2nd = dot(χ⁽ᵃ⁾, χ⁽ᵝ⁾) # dot conjugates the first vector automatically, 
                                                 # i.e. this is just ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾
@@ -53,14 +53,14 @@ end
     αβγ = nothing#[1,1,1]*1e-1
     debug = false# true
     count = total = 0 # counters
-    for lgirs in LGIRS          # lgirs: vectors of little group irrep collections
-        for lgirvec in lgirs    # lgirvec: vector of distinct little group irreps
-            Nₒₚ = order(first(lgirvec))
-            for (a, lgir⁽ᵃ⁾) in enumerate(lgirvec) 
+    for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
+        for lgirs in values(lgirsd) # lgirs: vector of distinct little group irreps
+            Nₒₚ = order(first(lgirs))
+            for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
                 D⁽ᵃ⁾ = irreps(lgir⁽ᵃ⁾,αβγ)      # vector of irreps in (a)
                 dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
 
-                for (β, lgir⁽ᵝ⁾) in enumerate(lgirvec)
+                for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
                     D⁽ᵝ⁾ = irreps(lgir⁽ᵝ⁾,αβγ)  # vector of irreps in (β)
                     dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
                     δₐᵦ = (a==β)
@@ -99,8 +99,8 @@ end
         end
 	end
 	if debug
-		print("\n\n$(count)/$(total) errored"); 
-		@printf(" (%.2f%%)\n\n", 100*count/total)
+        println("\n\n", count, "/", total, " errored",
+                " (", round(100*count/total, digits=1), "%)\n")
 	end
 end
 end

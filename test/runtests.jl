@@ -1,6 +1,6 @@
-using SGOps, Test
+using Crystalline, Test
 
-@testset "SGOps" begin
+@testset "Crystalline" begin
     # basic symmetry operations
     include("basisvecs.jl")
     include("symops.jl")
@@ -17,6 +17,10 @@ using SGOps, Test
     include("chartable.jl")
     include("multtable.jl")
     include("irreps_reality.jl")
+    include("lgirreps_vs_pgirreps_at_Gamma.jl")
+
+    # lattices
+    include("lattices.jl")
 
     # additional k-vectors in Φ-Ω ("special" representation domain vectors)
     include("holosymmetric.jl")

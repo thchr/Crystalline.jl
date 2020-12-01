@@ -1,19 +1,27 @@
-using SGOps, Test, LinearAlgebra
+using Crystalline, Test, LinearAlgebra
 
+# TODO: Cannot pass unless src/special_representation_domain_kpoints.jl is reincluded in 
+#       src/Crystalline.jl. Currently disabled due to compilation time concerns.
 
 @testset "Representation vs basic domain BZ" begin
 
+# disable if src/special_representation_domain_kpoints.jl is reincluded
+if (@test_broken false) isa Test.Broken
+    println("Skipping tests of src/special_representation_domain_kpoints.jl")
+
+else
+
 @testset "Identification of holosymmetric space groups" begin
     # Check that our cached values of the holosymmetric space group numbers
-    # (stored in SGOps.HOLOSYMMETRIC_SGNUMS) agree with the results of 
-    # SGOps._find_holosymmetric_sgnums(D)
-    recalc_holosgnums = Tuple(tuple(SGOps._find_holosymmetric_sgnums(D)...) for D = 1:3)
-    @test recalc_holosgnums == SGOps.HOLOSYMMETRIC_SGNUMS
+    # (stored in Crystalline.HOLOSYMMETRIC_SGNUMS) agree with the results of 
+    # Crystalline._find_holosymmetric_sgnums(D)
+    recalc_holosgnums = Tuple(tuple(Crystalline._find_holosymmetric_sgnums(D)...) for D = 1:3)
+    @test recalc_holosgnums == Crystalline.HOLOSYMMETRIC_SGNUMS
     
     # Compare our calculation of the holosymmetric space groups with Table 3.10 
     # of CDML: that table lists the `sgnum`s of every _symmorphic_ nonholosymmetric
     # group in 3D, allowing us a sanity check on _find_holosymmetric_sgnums(D::Integer).
-    holo_sgnums    = SGOps._find_holosymmetric_sgnums(3)
+    holo_sgnums    = Crystalline._find_holosymmetric_sgnums(3)
     nonholo_sgnums = filter(sgnum->sgnum∉holo_sgnums, 1:MAX_SGNUM[3])
     symmorph_nonholo_sgnums = filter(issymmorph, nonholo_sgnums)
 
@@ -25,15 +33,15 @@ using SGOps, Test, LinearAlgebra
     @test symmorph_nonholo_sgnums == sort([symmorph_nonholo_sgnums_CDML...])
 
     # Check that our cached values for ARITH_PARTNER_GROUPS remain computed correctly: (avoid bit-rotting)
-    arith_partner_groups′ = Tuple(tuple(getindex.(SGOps._find_arithmetic_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
-    @test SGOps.ARITH_PARTNER_GROUPS == arith_partner_groups′
+    arith_partner_groups′ = Tuple(tuple(getindex.(Crystalline._find_arithmetic_partner.(1:MAX_SGNUM[D], D), 2)...) for D in 1:3)
+    @test Crystalline.ARITH_PARTNER_GROUPS == arith_partner_groups′
 end
 
 
 # Test the corner cases noted for the method `_find_holosymmetric_sgnums`
 @testset "Cornercases and transformations for _find_holosymmetric_sgnums" begin
-    for (sgnum, info) in zip(keys(SGOps.CORNERCASES_SUBSUPER_NORMAL_SGS), 
-                             values(SGOps.CORNERCASES_SUBSUPER_NORMAL_SGS))
+    for (sgnum, info) in zip(keys(Crystalline.CORNERCASES_SUBSUPER_NORMAL_SGS), 
+                             values(Crystalline.CORNERCASES_SUBSUPER_NORMAL_SGS))
         sgnum₀ = info[1] # supergroup number
         P, p = info[2:3] # transformation pair (P,p)
         cntr = centering(sgnum, 3)
@@ -48,42 +56,42 @@ end
         # verify that the G₀′ is indeed a normal, holosymmetric supergroup of G
         @test issubgroup(G₀′ᵖ, Gᵖ) && issubgroup(G₀′, G) # test for both conventional 
         @test isnormal(G₀′ᵖ, Gᵖ)   && isnormal(G₀′, G)   # **and** primitive bases
-        @test SGOps.is_holosymmetric(sgnum₀, 3)
+        @test Crystalline.is_holosymmetric(sgnum₀, 3)
     end
 end
 
 
 @testset "Finding holosymmetric, normal supergroups (\"parent group\")" begin
-    holosym_parents = SGOps.find_holosymmetric_parent.(1:MAX_SGNUM[3],3)
+    holosym_parents = Crystalline.find_holosymmetric_parent.(1:MAX_SGNUM[3],3)
     
     # We know that there should be 24 orphans, as tabulated in CDML.
     # Verify that these are the cases "missed" by find_holosymmetric_parent
     holosym_parents_orphans = findall(isnothing, holosym_parents)
-    @test holosym_parents_orphans == sort(collect(Iterators.flatten(SGOps.ORPHAN_SGNUMS)))
+    @test holosym_parents_orphans == sort(collect(Iterators.flatten(Crystalline.ORPHAN_SGNUMS)))
 end
 
 
 @testset "Test find_holosymmetric_superpointgroup" begin
     # the minimal super point group P₀ of a holosymmetric space group G₀ should equal its isogonal/arithmetic point group F₀
     for D in 1:3
-        for sgnum₀ in SGOps.HOLOSYMMETRIC_SGNUMS[D]
+        for sgnum₀ in Crystalline.HOLOSYMMETRIC_SGNUMS[D]
             G₀ = spacegroup(sgnum₀, D)
             F₀ = pointgroup(G₀)                                            # isogonal/arithmetic point group of G₀
-            P₀ = operations(SGOps.find_holosymmetric_superpointgroup(G₀))  # minimal holosymmetric super point group of G₀
+            P₀ = operations(Crystalline.find_holosymmetric_superpointgroup(G₀))  # minimal holosymmetric super point group of G₀
             @test sort(xyzt.(F₀)) == sort(xyzt.(P₀))
         end
     end
 
     # every space group should have a holosymmetric super point group (i.e. never return nothing)
     for D = 1:3
-        @test !any(sgnum->isnothing(SGOps.find_holosymmetric_superpointgroup(sgnum, D)), 1:MAX_SGNUM[D])
+        @test !any(sgnum->isnothing(Crystalline.find_holosymmetric_superpointgroup(sgnum, D)), 1:MAX_SGNUM[D])
     end
 end
 
 @testset "Compare find_new_kvecs(sgnum, D) to \"new\" kvecs from CDML" begin
     D = 3
     # check that all holosymmetric sgs get no new k-vecs (trivial)
-    @test all(sgnum-> SGOps.find_new_kvecs(sgnum, 3) === nothing, SGOps.HOLOSYMMETRIC_SGNUMS[D])
+    @test all(sgnum-> Crystalline.find_new_kvecs(sgnum, 3) === nothing, Crystalline.HOLOSYMMETRIC_SGNUMS[D])
 
     # check that the new k-vecs from find_new_kvecs(...) agree with those of CDML 
     # for the case of nonholosymmetric sgs [TEST_BROKEN]
@@ -91,16 +99,16 @@ end
     if verbose_debug; more, fewer = Int64[], Int64[]; end
 
     for sgnum in Base.OneTo(MAX_SGNUM[D])
-        SGOps.is_holosymmetric(sgnum, D) && continue # only check holosymmetric sgs
+        Crystalline.is_holosymmetric(sgnum, D) && continue # only check holosymmetric sgs
 
         # look for new kvecs (and mapping) in CDML data; if nothing is there, return an empty 
-        # array of SGOps.KVecMapping
-        arith_partner_sgnum = SGOps.find_arithmetic_partner(sgnum, D)
-        kvmaps_CDML = get(SGOps.ΦNOTΩ_KVECS_AND_MAPS, arith_partner_sgnum, SGOps.KVecMapping[])
+        # array of Crystalline.KVecMapping
+        arith_partner_sgnum = Crystalline.find_arithmetic_partner(sgnum, D)
+        kvmaps_CDML = get(Crystalline.ΦNOTΩ_KVECS_AND_MAPS, arith_partner_sgnum, Crystalline.KVecMapping[])
         newklabs_CDML = [getfield.(kvmaps_CDML, :kᴮlab)...]
 
         # look for new kvecs using our own search implementation
-        _, _, _, newklabs = SGOps.find_new_kvecs(sgnum, D)
+        _, _, _, newklabs = Crystalline.find_new_kvecs(sgnum, D)
         newklabs = collect(Iterators.flatten(newklabs)) # flatten array of array structure
         newklabs .= rstrip.(newklabs, '′') # strip "′" from newklabs
 
@@ -133,7 +141,7 @@ end
 
 @testset "Tabulated orphan parent groups are indeed normal supergroups" begin
     Pᴵ = Matrix{Float64}(I, 3, 3) # trivial transformation rotation (only translation may be nontrivial here)
-    for (sgnum, (parent_sgnum, p)) in pairs(SGOps.ORPHAN_AB_SUPERPARENT_SGNUMS)
+    for (sgnum, (parent_sgnum, p)) in pairs(Crystalline.ORPHAN_AB_SUPERPARENT_SGNUMS)
         G  = operations(spacegroup(sgnum, 3))
         G′ = operations(spacegroup(parent_sgnum, 3)) # basis setting may differ from G (sgs 151-154)
 
@@ -150,4 +158,5 @@ end
     end
 end
 
+end # @test_broken if
 end # outer @testset

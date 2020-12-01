@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
     LGIRS = parselittlegroupirreps()
@@ -8,10 +8,10 @@ end
 
 # check that operations are sorted identically across distinct irreps for fixed sgnum, and k-label
 @testset "Space groups (consistent operator sorting order in ISOTROPY)" begin 
-    for lgirs in LGIRS
-        for lgirvec in lgirs
-            ops = operations(first(lgirvec))
-            for lgir in lgirvec[2:end] # don't need to compare against itself
+    for lgirsd in LGIRS
+        for lgirs in values(lgirsd)
+            ops = operations(first(lgirs))
+            for lgir in lgirs[2:end] # don't need to compare against itself
                 ops′ = operations(lgir)
                 @test all(ops.==ops′)
                 if !all(ops.==ops′)
@@ -28,16 +28,16 @@ end
 
 @testset "Space groups (ISOTROPY: 3D)" begin
     numset=Int64[]
-    for lgirs in LGIRS
-        for lgirvec in lgirs
-            sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
-            ops = operations(first(lgirvec))              # ops in conventional basis
+    for lgirsd in LGIRS
+        for lgirs in values(lgirsd)
+            sgnum = num(first(lgirs)); cntr = centering(sgnum, 3);
+            ops = operations(first(lgirs))          # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
-            mt = multtable(primitive_ops)
-            checkmt = @test isgroup(mt) 
+            mt = MultTable(primitive_ops)
+            @test mt.isgroup
             
             # for debugging
-            #isgroup(mt) && union!(numset, num(first(lgirvec))) # collect info about errors, if any exist
+            #mt.isgroup && union!(numset, num(first(lgirs))) # collect info about errors, if any exist
         end
     end
     # for debugging
@@ -50,8 +50,8 @@ for D in 1:3
             cntr = centering(sgnum, D);
             ops = operations(spacegroup(sgnum, Val(D)))  # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr)      # ops in primitive basis
-            mt = multtable(primitive_ops)
-            checkmt = @test isgroup(mt) 
+            mt = MultTable(primitive_ops)
+            @test mt.isgroup
         end
     end
 end
@@ -59,16 +59,16 @@ end
 
 @testset "Complex LGIrreps" begin
     #failcount = 0
-    for lgirs in LGIRS
-        for lgirvec in lgirs
-            sgnum = num(first(lgirvec)); cntr = centering(sgnum, 3);
-            ops = operations(first(lgirvec))        # ops in conventional basis
+    for lgirsd in LGIRS
+        for lgirs in values(lgirsd)
+            sgnum = num(first(lgirs)); cntr = centering(sgnum, 3);
+            ops = operations(first(lgirs))        # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
-            mt = multtable(primitive_ops)
+            mt = MultTable(primitive_ops)
 
-            for lgir in lgirvec
+            for lgir in lgirs
                 for αβγ = [nothing, [1,1,1]*1e-1] # test finite and zero values of αβγ
-                    checkmt = checkmulttable(mt, lgir, αβγ; verbose=false)
+                    checkmt = Crystalline.check_multtable_vs_ir(mt, lgir, αβγ; verbose=false)
                     @test all(checkmt)
                     #if !all(checkmt); failcount += 1; end
                 end
@@ -84,10 +84,10 @@ end
             pgirs = get_pgirreps(pgiuc, D)
             pg = group(first(pgirs))
             for pgir in pgirs
-                mt = multtable(operations(pg))
-                @test isgroup(mt)
+                mt = MultTable(operations(pg))
+                @test mt.isgroup
 
-                checkmt = checkmulttable(mt, pgir, nothing; verbose=false)
+                checkmt = Crystalline.check_multtable_vs_ir(mt, pgir, nothing; verbose=false)
                 @test all(checkmt)
             end
         end

@@ -129,7 +129,7 @@ const ORPHAN_AB_SUPERPARENT_SGNUMS = ImmutableDict(
 # This extraction was done using Bilbao's MINSUP program (www.cryst.ehu.es/cryst/minsup.html),
 # so the setting is already consistent with ITA.
 # Abbreviations below: min-sup-sg ≡ minimal (normal and holosymmetric) supergroup
-const CORNERCASES_SUBSUPER_NORMAL_SGS = SGOps.ImmutableDict(
+const CORNERCASES_SUBSUPER_NORMAL_SGS = Crystalline.ImmutableDict(
      # group sgnum => (supergroup sgnum, transformation rotation P, transformation translation p)
      17 => (51,  copy.(unpack(SymOperation{3}("z,x,y")))...),            # min-sup-sg
      26 => (51,  copy.(unpack(SymOperation{3}("z,x,y")))...),            # min-sup-sg
@@ -412,10 +412,10 @@ end
 find_map_from_Ω_to_ΦnotΩ(sgnum::Integer, D::Integer=3) = find_map_from_Ω_to_ΦnotΩ(spacegroup(sgnum, D))
 # A sanity check for the above implementation, is to compare the number of distinct maps
 # obtained by first defining 
-#   Nmaps = [length(ops) for ops in SGOps.find_map_from_Ω_to_ΦnotΩ.(keys(SGOps.ΦNOTΩ_KVECS_AND_MAPS),3)]
+#   Nmaps = [length(ops) for ops in Crystalline.find_map_from_Ω_to_ΦnotΩ.(keys(Crystalline.ΦNOTΩ_KVECS_AND_MAPS),3)]
 # against the tabulated maps
 #   maxfreq(x) = maximum(values(StatsBase.countmap(x)))
-#   Nmapsᶜᵈᵐˡ = [maxfreq([x.kᴬlab for x in mapset]) for mapset in values(SGOps.ΦNOTΩ_KVECS_AND_MAPS)]
+#   Nmapsᶜᵈᵐˡ = [maxfreq([x.kᴬlab for x in mapset]) for mapset in values(Crystalline.ΦNOTΩ_KVECS_AND_MAPS)]
 # Then, Nmaps .> Nmapsᶜᵈᵐˡ (not equal, necessarily, because some maps might be trivially related to
 # a k-star or to a G-vector). 
 
@@ -433,9 +433,9 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     # so find these points anew effectively). Also, there is no point in trying to map the
     # general point (also denoted Ω by us) to a new point, since it can be obtained by 
     # parameter variation; so we filter that out as well.
-    filter!(lg-> length(klabel(lg)) == 1 && klabel(lg) != "Ω", lgs)
-    kvs = kvec.(lgs)
-    klabs = klabel.(lgs)
+    filter!(klablg_pair-> length(first(klablg_pair)) == 1 && first(klablg_pair) != "Ω", lgs)
+    kvs = kvec.(values(lgs))
+    klabs = klabel.(values(lgs))
     Nk = length(lgs)    
 
     newkvs = [KVec[] for _ in Base.OneTo(Nk)]
@@ -486,7 +486,7 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
             #       
             #       Easiest ways to inspect our results is as:
             #           sgnum = 75
-            #           v=SGOps.find_new_kvecs(sgnum, 3)
+            #           v=Crystalline.find_new_kvecs(sgnum, 3)
             #           [v[3] string.(v[1]) first.(v[4]) string.(first.(v[2]))] # (only shows "A" generated KVecs though...)
             #
             #       We also have some debugging code for this issue in test/holosymmetric.jl,
@@ -542,7 +542,7 @@ function _find_arithmetic_partner(sg::SpaceGroup)
         end 
         for idx′ in Iterators.flatten((idx₀-1:-1:1, idx₀:N_arith_crys_class))
             sgnum′ = SYMMORPH_SGNUMS[D][idx′]
-            # We have to take the `pointgroup(...)` operation here even though `sgops′` 
+            # We have to take the `pointgroup(...)` operation here even though `sgops` 
             # is symmorphic, because the `SymOperation`s are in a conventional basis 
             # and may contain contain trivial primitive translations if `cntr′ ≠ 'P'`
             sgops′ = sort(pointgroup(spacegroup(sgnum′, D)), by=xyzt)
@@ -649,8 +649,8 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     return d
 end
 
-# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` 
-# (in 3D only) as an ImmutableDict
+# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` (in 3D only) as an 
+# ImmutableDict
 const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()
 
 
@@ -760,8 +760,8 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         # inversion are equivalent to one of the "old" KVecs in Ω. We have verified 
         # this explicitly, see below:
         #       for otype = 1:2
-        #           arith_orphs = SGOps.find_arithmetic_partner.(SGOps.ORPHAN_SGNUMS[otype])
-        #           kvmaps_pg = get.(Ref(SGOps.ΦNOTΩ_KVECS_AND_MAPS), arith_orphs, Ref(nothing))
+        #           arith_orphs = Crystalline.find_arithmetic_partner.(Crystalline.ORPHAN_SGNUMS[otype])
+        #           kvmaps_pg = get.(Ref(Crystalline.ΦNOTΩ_KVECS_AND_MAPS), arith_orphs, Ref(nothing))
         #           check = all.(xyzt.(getfield.(kvmap, :op)) .!= "-x,-y,-z" for kvmap in kvmaps_pg)
         #           display(check) # ⇒ vector of `true`s
         #       end
@@ -776,10 +776,3 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
 
     return kvmaps, orphantype
 end
-
-
-
-# -- "GENERATED" CONSTANTS ---
-
-# Mnemonized data from calling `_ΦnotΩ_kvecs_and_maps_imdict()` (in 3D only) as an ImmutableDict
-const ΦNOTΩ_KVECS_AND_MAPS = _ΦnotΩ_kvecs_and_maps_imdict()

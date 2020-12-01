@@ -102,7 +102,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
             optempvec   = parsespaced(readline(io))
             opmatrix[i] = rowmajorreshape(optempvec, (4,4))[1:3,:]./optempvec[16] # surprisingly, this is in row-major form..!
             # note the useful convention that the nonsymmorphic translation always ∈[0,1[; in parts of Bilbao, components are 
-            # occasionally negative; this makes construction of multtables unnecessarily cumbersome
+            # occasionally negative; this makes construction of `MultTable`s unnecessarily cumbersome
 
             # --- ASSOCIATED IRREP ---
             if !kspecial # if this is a general position, we have to incorporate a translational modulation in the point-part of the irreps
@@ -184,10 +184,11 @@ function readexcept(io::IO,  nb::Integer, except::Union{Char,Nothing}='\n'; all=
 end
 
 function checked_read2eol(io) # read to end of line & check that this is indeed the last character
-    s = readuntil(io, "\n")
-    if !isempty(s); # move to next line & check we didn't miss anything
-        error(s,"Parsing error; unexpected additional characters after expected end of line"); 
-    end
+    s = readline(io)
+    # check that the string indeed is empty; i.e. we didn't miss anything
+    @assert isempty(s) "Parsing error; unexpected additional characters after expected EOL"
+
+    return nothing
 end
 
 function rowmajorreshape(v::AbstractVector, dims::Tuple)
@@ -237,7 +238,7 @@ function littlegroupirrep(ir::SGIrrep3D{<:Complex})
         lgirtrans = ir.translations[lgidx]
     else
         #println("Manually swapped out corrected (CDML) LGIrrep for sgnum ", num(ir), ", irrep ", label(ir))
-        lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir), 3)
+        lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir))
     end
 
     return LGIrrep{3}(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, type(ir))
@@ -245,21 +246,21 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
-    lgirsvec = Vector{Vector{LGIrrep{3}}}()
-    curlab = nothing; accidx = Int64[]
+    lgirsd = Dict{String, Vector{LGIrrep{3}}}()
+    curklab = nothing; accidx = Int64[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
-        if curlab == klabel(ir)
+        if curklab == klabel(ir)
             push!(accidx, idx)
         else
-            if curlab !== nothing
+            if curklab !== nothing
                 lgirs = Vector{LGIrrep{3}}(undef, length(accidx))
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirsvec, lgirs)
+                push!(lgirsd, curklab=>lgirs)
             end
 
-            curlab = klabel(ir)
+            curklab = klabel(ir)
             accidx = [idx,]
         end
     end
@@ -271,15 +272,18 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     for (pos, kidx) in enumerate(accidx)
         lgirs[pos] = littlegroupirrep(irvec[kidx])
     end
-    push!(lgirsvec, lgirs)
+    lastklab = klabel(irvec[last(accidx)])
+    @assert lastklab == "Ω"
+    push!(lgirsd, lastklab=>lgirs)
 
-    return lgirsvec
+    return lgirsd
 end
 
 
 const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
 @inline function is_erroneous_lgir(sgnum::Integer, irlab::String, D::Integer=3)
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
+    D == 1 && return false
+    D ≠ 3 && Crystalline._throw_2d_not_yet_implemented(D)
     @simd for ps in ERRONEOUS_LGIRS
         (ps[1]==sgnum && ps[2]==irlab) && return true
     end 
@@ -287,7 +291,7 @@ const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of t
 end
 
 """
-    manually_fixed_lgir(sgnum::Integer, irlab::String, dim::Integer=3)
+    manually_fixed_lgir(sgnum::Integer, irlab::String)
 
 The small irreps associated with the little group of k-point P ≡ KVec(½,½,½)
 of space group 214 are not correct in ISOTROPY's dataset: specifically, while 
@@ -303,7 +307,7 @@ in is_erroneous_lgir(...), with the constant "erroneous" tuple ERRONEOUS_LGIRS.
 Emailed Stokes & Campton regarding the issue on Sept. 26, 2019; did not yet 
 hear back.
 """
-function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
+function manually_fixed_lgir(sgnum::Integer, irlab::String)
     # TODO: Use their new and corrected dataset (from February 17, 2020) instead of manually
     #       fixing the old dataset.
     #       I already verified that their new dataset is correct (and parses), and that P1
@@ -313,7 +317,6 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String, D::Integer=3)
     #       Thus, we should remove this method (here and from other callers), update and
     #       commit the new datasets and then finally regenerate/refresh our own saved format
     #       of the irreps (from build/write_littlegroup_irreps_from_ISOTROPY.jl)
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
     if sgnum == 214
         CP  = cis(π/12)/√2   # C*P       ≈ 0.683013 + 0.183013im
         CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im
@@ -390,9 +393,8 @@ end
 #               cdmlᴮ = kvmap.kᴮlab # CDML label of "new" KVec kᴮ∈Φ-Ω
 #               cdmlᴬ = kvmap.kᴮlab # CDML label of "old" KVec kᴬ∈Ω
 #               R     = kvmap.op    # Mapping from kᴬ to kᴮ: kᴮ = Rkᴬ
-#               # find index of kᴬ irreps in lgirsvec
-#               idxᴬ = findfirst(lgirs->klabel(first(lgirs))==cdmlᴬ, lgirsvec)
-#               lgirsᴬ = lgirsvec[idxᴬ]
+#               # pick kᴬ irreps in lgirsd
+#               lgirsᴬ = lgirsd[cdmlᴬ]
 #           end
 #           # ... do stuff to lgirsᴬ to get lgirsᴮ via a transformation {R|v}
 #           # derived from a holosymmetric parent group of sgnum and the transformation R
@@ -405,10 +407,10 @@ end
 # manual treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is  
 # already included in ISOTROPY.
 #=
-function add_special_representation_domain_lgirs(lgirvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}) where D
-    D ≠ 3 && SGOps._throw_1d2d_not_yet_implemented(D)
+function add_special_representation_domain_lgirs(lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
+    D ≠ 3 && Crystalline._throw_1d2d_not_yet_implemented(D)
 
-    sgnum = num(first(first(lgirvec)))
+    sgnum = num(first(first(lgirsd)))
 
     # does this space group contain any nontrivial k-vectors in Φ-Ω?
     

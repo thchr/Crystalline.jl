@@ -1,17 +1,17 @@
 """
     crystal(a,b,c,α,β,γ) --> Rs::DirectBasis{3}
 
-Calculate basis vectors `R₁`, `R₂`, `R₃` in a 3D Cartesian basis 
-for a right-handed coordinate system with specified basis vector lengths 
-`a`, `b`, `c` (associated with  `R₁`, `R₂`, `R₃`, respectively)
-and specified interaxial angles `α=∠(R₂,R₃)`, `β=∠(R₃,R₁)`, `γ=∠(R₁,R₂)`,
-with `∠≡angle`.
+Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, ``\\mathbf{R}_3`` in a 3D
+Cartesian basis for a right-handed coordinate system with specified basis vector lengths
+`a`, `b`, `c` (associated with ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, & ``\\mathbf{R}_3``,
+respectively) and specified interaxial angles 
+`α =` ``∠(\\mathbf{R}_2,\\mathbf{R}_3)``, `β =` ``∠(\\mathbf{R}_3,\\mathbf{R}_1)``, 
+`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``, with ``∠`` denoting the angle between two vectors.
 
-For definiteness, the `R₁` basis vector is oriented along the
-x-axis of the Cartesian coordinate system, and the `R₂` axis is 
-placed in the xy-plane.
+For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
+Cartesian coordinate system, and the ``\\mathbf{R}_2`` axis is placed in the ``xy``-plane.
 """
-function crystal(a::Real,b::Real,c::Real,α::Real,β::Real,γ::Real)
+function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
     # consistency checks on interaxial angles (equivalently, sides of the corresponding unit-spherical triangle)
     if !isvalid_sphericaltriangle(α,β,γ)
         throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
@@ -36,13 +36,13 @@ end
 """
     crystal(a,b,γ) --> DirectBasis{2}
 
-Calculate basis vectors `R₁`, `R₂` in a 2D Cartesian basis for a 
-right-handed coordinate system with specified basis vector lengths 
-`a`, `b` (associated with  `R₁`, `R₂`, respectively) and specified 
-interaxial angle `γ=angle(R₁, R₂)`.
+Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2`` in a 2D Cartesian basis for a 
+right-handed coordinate system with specified basis vector lengths `a`, `b` (associated with
+``\\mathbf{R}_1`` & ``\\mathbf{R}_2``, respectively) and specified interaxial angle
+`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``.
 
-For definiteness, the `R₁` basis vector is oriented along the
-x-axis of the Cartesian coordinate system.
+For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
+Cartesian coordinate system.
 """
 function crystal(a::Real,b::Real,γ::Real) 
     R₁ = SVector{2,Float64}(a, 0.0)
@@ -53,9 +53,10 @@ end
 
 """
     crystal(a)  --> DirectBasis{1}
+    
 Return a one-dimensional crystal with lattice period `a`.
 """
-crystal(a::Real) = DirectBasis(SVector{1,Float64}(1.0))
+crystal(a::Real) = DirectBasis(SVector{1,Float64}(float(a)))
 
 # For a three-axis system, α, β, and γ are subject to constraints: specifically, 
 # since they correspond to sides of a (unit-radius) spherical triangle, they 
@@ -73,41 +74,6 @@ function isvalid_sphericaltriangle(α,β,γ)
     return check1 && check2 
 end
 
-
-const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor="black", 
-                            markeredgewidth=1.5, markersize=4.5)
-
-function plot(Rs::DirectBasis{D}) where D
-    if D == 1
-        plot([0, Rs[1]], [0, 0])
-        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
-
-    elseif D == 2
-        corner = sum(Rs)
-        for R in Rs
-            plot([0, R[1]], [0, R[2]]; color="black") # basis vectors
-            plot([R[1], corner[1]], [R[2], corner[2]]; color="grey") # remaining unit cell boundaries
-        end
-        plot([0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
-    elseif D == 3
-        corners = (Rs[1]+Rs[3], Rs[1]+Rs[2], Rs[2]+Rs[3])
-        dirs = ((-1,1,-1), (-1,-1,1), (1,-1,-1))
-        for (i,R) in enumerate(Rs)
-            plot3D([0, R[1]], [0, R[2]], [0, R[3]]; color="black") # basis vectors
-            for (corner,dir) in zip(corners,dirs) # remaining unit cell boundaries
-                plot3D([corner[1], corner[1]+dir[i]*R[1]], 
-                       [corner[2], corner[2]+dir[i]*R[2]], 
-                       [corner[3], corner[3]+dir[i]*R[3]]; color="grey")
-            end
-        end
-        plot3D([0,], [0,], [0,]; ORIGIN_MARKER_OPTS...) # origin
-        plt.gca().set_zlabel("z")
-    end
-    plt.gca().set_xlabel("x"); plt.gca().set_ylabel("y")
-    plt.gca().set_aspect("equal", adjustable="box") # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474)
-    return nothing
-end
-
 °(φ::Real) = deg2rad(φ)
 
 """ 
@@ -119,22 +85,20 @@ Tables 2.1.2.1, 9.1.7.1, & 9.1.7.2 of the International Tables of
 Crystallography, Volume 1 (ITA). 
 There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 
-      |_DIM_|_SYSTEM_______|_CONDITIONS_____________|_FREE PARAMS______|
-      | 1D  | linear       | none                   | a                |
-      |-----|--------------|------------------------|------------------|
-      | 2D  | square       | a=b & γ=90°            | a                |
-      |     | rectangular  | γ=90°                  | a,b              |
-      |     | hexagonal    | a=b & γ=120°           | a                |
-      |     | oblique      | none                   | a,b,γ            |
-      |-----|--------------|------------------------|------------------|
-      | 3D  | cubic        | a=b=c & α=β=γ=90°      | a                |
-      |     | hexagonal    | a=b & α=β=90° & γ=120° | a,c              |
-      |     | trigonal     | ==========||========== | a,c (a,α for hR) |
-      |     | tetragonal   | a=b & α=β=γ=90°        | a,c              |
-      |     | orthorhombic | α=β=γ=90°              | a,b,c            |
-      |     | monoclinic   | α=γ=90°                | a,b,c,β≥90°      |
-      |     | triclinic    | none                   | a,b,c,α,β,γ      |
-      |-----|--------------|------------------------|------------------|
+| DIM | SYSTEM       | CONDITIONS             | FREE PARAMS      |
+|-----|--------------|------------------------|------------------|
+| 1D  | linear       | none                   | a                |
+| 2D  | square       | a=b & γ=90°            | a                |
+|     | rectangular  | γ=90°                  | a,b              |
+|     | hexagonal    | a=b & γ=120°           | a                |
+|     | oblique      | none                   | a,b,γ            |
+| 3D  | cubic        | a=b=c & α=β=γ=90°      | a                |
+|     | hexagonal    | a=b & α=β=90° & γ=120° | a,c              |
+|     | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR) |
+|     | tetragonal   | a=b & α=β=γ=90°        | a,c              |
+|     | orthorhombic | α=β=γ=90°              | a,b,c            |
+|     | monoclinic   | α=γ=90°                | a,b,c,β≥90°      |
+|     | triclinic    | none                   | a,b,c,α,β,γ      |
 
 The DirectBasis input is assumed to use *conventional* basis vectors; 
 i.e. not necessarily primitive. For primitive basis vectors, the 
@@ -233,17 +197,19 @@ function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
     lowthres = (invlow - 1.0)/(invlow + high - 2.0)
     if rand() < lowthres && low < 1.0   # smaller than 1.0
-        r = rand(Uniform(low,1.0))
+        r = rand(_Uniform(low,1.0))
     elseif high > 1.0                   # bigger than 1.0
-        r = rand(Uniform(1.0,high))
+        r = rand(_Uniform(1.0,high))
     else                                # default
-        return rand(Uniform(low,high))
+        return rand(_Uniform(low,high))
     end
 end
 relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
-    directbasis(sgnum, D=3; abclims, αβγlims) ---> DirectBasis{D}
+    directbasis(sgnum, D=3;    abclims, αβγlims)
+    directbasis(sgnum, Val(D); abclims, αβγlims) ---> DirectBasis{D}
+    
 
 Generates a (conventional) DirectBasis for a crystal compatible with 
 the space group number `sgnum` and dimensionality `D`. Free parameters
@@ -258,9 +224,9 @@ can be specified as 2-tuple kwarg `abclims`; similarly, limits on
 the angles `α`, `β`, `γ` can be set via αβγlims (only affects 
 oblique, monoclinic, & triclinic lattices).
 """
-function directbasis(sgnum::Integer, D::Integer=3;
+function directbasis(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                      abclims::NTuple{2,Real}=(0.5,2.0), 
-                     αβγlims::NTuple{2,Real}=(°(30),°(150)))
+                     αβγlims::NTuple{2,Real}=(°(30),°(150))) where D
     system = crystalsystem(sgnum, D)
     if D == 1
         a = 1.0
@@ -277,7 +243,7 @@ function directbasis(sgnum::Integer, D::Integer=3;
             γ = °(120)
         elseif system == "oblique"     # no conditions (free: a,b,γ)
             a = 1.0;    b = relrand(abclims)
-            γ = rand(Uniform(αβγlims...)) 
+            γ = rand(_Uniform(αβγlims...)) 
         else 
             throw(DomainError(system))
         end
@@ -311,15 +277,16 @@ function directbasis(sgnum::Integer, D::Integer=3;
             α = β = γ = °(90)
         elseif system == "monoclinic"   # α=γ=90° (free: a,b,c,β≥90°)
             a = 1.0;            b, c = relrand(abclims, 2)
-            α = γ = °(90);      β = rand(Uniform(°(90), αβγlims[2]))
+            α = γ = °(90);      β = rand(_Uniform(°(90), αβγlims[2]))
             while !isvalid_sphericaltriangle(α,β,γ)  # arbitrary combinations of α,β,γ may not correspond 
-                β = rand(Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
+                β = rand(_Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
             end
         elseif system == "triclinic"    # no conditions (free: a,b,c,α,β,γ)
             a = 1.0;            b, c = relrand(abclims, 2)
-            α, β, γ = rand(Uniform(αβγlims...),3)
-            while !isvalid_sphericaltriangle(α,β,γ)   # arbitrary combinations of α,β,γ may not correspond 
-                α, β, γ = rand(Uniform(αβγlims...),3) # to a valid axis-system; reroll until they do
+            U = _Uniform(αβγlims...)
+            α, β, γ = rand(U), rand(U), rand(U)
+            while !isvalid_sphericaltriangle(α,β,γ) # arbitrary combinations of α,β,γ may not correspond 
+                α, β, γ = rand(U), rand(U), rand(U) # to a valid axis-system; reroll until they do
             end
         else 
             throw(DomainError(system))
@@ -330,6 +297,11 @@ function directbasis(sgnum::Integer, D::Integer=3;
         _throw_invaliddim(D)
     end
 end
+function directbasis(sgnum::Integer, D::Integer;
+            abclims::NTuple{2,Real}=(0.5,2.0), αβγlims::NTuple{2,Real}=(°(30),°(150)))
+    directbasis(sgnum, Val(D); abclims=abclims, αβγlims=αβγlims)
+end
+
 
 const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                                            # 1D
                               ImmutableDict("oblique"=>'m', "rectangular"=>'o', "square"=>'t',         # 2D
@@ -344,8 +316,8 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
     system = crystalsystem(sgnum, D)
 
     # If the centering type is 'A', then we could in fact always pick
-    # the basis differently such that the centering would be 'B'; in 
-    # other words, base-centered lattices at 'A' and 'B' in fact describe
+    # the basis differently such that the centering would be 'C'; in 
+    # other words, base-centered lattices at 'A' and 'C' in fact describe
     # the same Bravais lattice; there is no significance in trying to 
     # differentiate them - if we do, we end up with 15 Bravais lattices in 
     # 3D rather than 14: so we manually fix that here:
@@ -445,7 +417,7 @@ function reciprocalbasis(Rs::Union{DirectBasis{D}, NTuple{D, Vector{<:Real}}}) w
         # we use SVectors, however, either approach will probably have the same performance.
         Rm = basis2matrix(Rs)
         Gm = 2π.*inv(transpose(Rm))
-        vecs = ntuple(i->Gm[:,i], D)
+        vecs = ntuple(i->Gm[:,i], Val(D))
     end
 
     return ReciprocalBasis{D}(vecs)
@@ -455,14 +427,20 @@ end
 """ 
     primitivize(Vs::Basis, sgnum::Integer) --> Rs′::Basis
 
-Transforms a conventional Basis (either DirectBasis or ReciprocalBasis) `Vs`
+Transforms a conventional `Basis` (either `DirectBasis` or `ReciprocalBasis`) `Vs`
 into its primitive equivalent `Vs′`, provided that its centering differs from
 the conventional (P or p), by inferring the Bravais type from the space group number
-`sgnum` and applying an applying an appropriate (Basis-type specific) transformation. 
+`sgnum` and applying an applying an appropriate (`Basis`-type specific) transformation. 
 """
 function primitivize(Vs::Basis{D}, sgnum::Integer) where D
     cntr = centering(sgnum, D)
     return primitivize(Vs, cntr)
+end
+
+function transform(Rs::DirectBasis{D}, P::AbstractMatrix{<:Real}) where D
+    # Rm′ = Rm*P (w/ Rm a matrix w/ columns of untransformed direct basis vecs Rᵢ)
+    Rm′ = basis2matrix(Rs)*P
+    return DirectBasis{D}(ntuple(i->Rm′[:,i], Val(D)))
 end
 
 """
@@ -478,34 +456,64 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
         return Rs
     else         
         P = primitivebasismatrix(cntr, D)
-        Rm′ = basis2matrix(Rs)*P # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional 
-                                 # direct basis vecs Rᵢ)
-        return DirectBasis{D}(ntuple(i->Rm′[:,i], D))
+        # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional direct basis vecs Rᵢ)
+        return transform(Rs, P)
     end  
 end
 
 """
-    primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
-    
-Calculates the **primitive** reciprocal basis associated with a 
-`ReciprocalBasis` `Gs` derived from a lattice with centering type `cntr`.
+    conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
+
+Transforms a primitive DirectBasis `Rs′` into its conventional equivalent `Rs`, with the 
+transformation dependent on the centering type `cntr` (P, I, F, R, A, C, and p, c); for
+centering P and p, the conventional and primive bases coincide.
 """
-function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
+function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Gs
+        return Rs′
     else         
+        P = primitivebasismatrix(cntr, D)
+        # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive direct basis vecs Rᵢ′)
+        return transform(Rs′, inv(P)) 
+    end  
+end
+
+function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
         # While the direct basis (𝐚 𝐛 𝐜) transforms like 
         #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
         # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
         #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
         # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
-        P = primitivebasismatrix(cntr, D)
-        Gm′ = basis2matrix(Gs)/P' # Gm′ = Gm(P⁻¹)ᵀ = Gm(Pᵀ)⁻¹, w/ Gm a matrix w/ columns of
-                                  # conventional reciprocal vecs Gᵢ)
-        
-        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], D))
-    end 
+
+        # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
+        # vecs Gᵢ)
+        Gm′ = basis2matrix(Gs)/P'
+        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
 end
+
+"""
+    primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
+    
+Calculates the **primitive** reciprocal basis associated with an assumed **conventional**
+reciprocal basis `Gs::ReciprocalBasis` with centering type `cntr`.
+"""
+function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Gs
+    else         
+        P = primitivebasismatrix(cntr, D)        
+        return transform(Gs, P)
+    end
+end
+function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Gs
+    else         
+        P = primitivebasismatrix(cntr, D)        
+        return transform(Gs′, inv(P))
+    end
+end
+
 # Note that the _coefficients_ of a general 𝐤-vector transform
 # differently than the reciprocal _basis_, which transforms
 # from non-primed to primed variants via a basis matrix 𝐏
@@ -522,4 +530,50 @@ end
 #       = (𝐚* 𝐛* 𝐜*)(k₁ k₂ k₃)ᵀ           (2)  [... by definition]
 # then, combining (1) and (2)
 #     (𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ = (k₁ k₂ k₃)ᵀ
-#  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ 
+#  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ
+
+"""
+    transform(kv::KVec, P::AbstractMatrix{<:Real}) --> kv′::KVec
+
+Returns a transformed reciprocal coordinate vector `kv′` from an original reciprocal
+coordinate vector `kv` and a basis change matrix `P`.
+
+Note that a basis change matrix `P` transforms reciprocal coordinates vectors as
+``k′ = Pᵀk`` but transforms direct coordinate vectors as ``r′=P⁻¹r`` (see e.g. ITA7
+Sec. 1.5.1.2 and 1.5.2.1).
+"""
+function transform(kv::KVec, P::AbstractMatrix{<:Real})
+    k₀, kabc = parts(kv)
+    return KVec(P'*k₀, P'*kabc)
+end
+
+"""
+    primitivize(kv::KVec, cntr::Char) --> kv′::KVec
+
+Transforms a conventional reciprocal coordinate vector `kv` to a standard primitive
+basis (specified by the centering type `cntr`), returning the associated reciprocal
+coordinate vector `kv′`.
+
+Note that a basis change matrix ``P`` (as returned by 
+[Crystalline.primitivebasismatrix](@ref)) transforms direct coordinate vectors as
+``r′=P⁻¹r`` but transforms reciprocal coordinates as ``k′ = Pᵀk`` (see e.g. ITA7
+Sec. 1.5.1.2 and 1.5.2.1).
+Recall also the distinction between transforming a basis and the coordinates of a vector.
+"""
+function primitivize(kv::KVec, cntr::Char)
+    if cntr == 'P' || cntr == 'p'
+        return kv
+    else
+        P = primitivebasismatrix(cntr, dim(kv))
+        return transform(kv, P)
+    end
+end
+
+function conventionalize(kv′::KVec, cntr::Char)
+    if cntr == 'P' || cntr == 'p'
+        return kv′
+    else
+        P = primitivebasismatrix(cntr, dim(kv))
+        return transform(kv′, inv(P))
+    end
+end

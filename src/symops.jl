@@ -22,20 +22,20 @@ end
 """ 
     spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
-Obtains the space group symmetry operations in xyzt and matrix format
-for a given space group number (`= sgnum`) and dimensionality `D`.
-The symmetry operations are specified relative to the conventional basis
-vector choices, i.e. not necessarily primitive. 
-If desired, operations on a primitive unit cell can be subsequently 
-generated using `primitivize(...)` and `reduce_ops(...)`.
+Return the space group symmetry operations in for a given space group number `sgnum` and 
+dimensionality `D` as a `SpaceGroup{D}`.
+The returned symmetry operations are specified relative to the conventional basis choice,
+i.e. are not necessarily primitive (see [`centering`](@ref)).
+If desired, operations for the primitive unit cell can be subsequently generated using 
+[`primitivize`](@ref) or [`reduce_ops`](@ref).
 
-The default choices for basis vectors are specified in Bilbao as:
-- Unique axis b (cell choice 1) for space groups within the
-    monoclinic system.
+The default choices for the *conventional* basis vectors are specified in Bilbao as: 
+- Unique axis b (cell choice 1) for space groups within the monoclinic system.
 - Obverse triple hexagonal unit cell for R space groups.
-- Origin choice 2 - inversion center at (0,0,0) - for the
-    centrosymmetric space groups for which there are two origin
-    choices, within the orthorhombic, tetragonal and cubic systems.
+- Origin choice 2: inversion center at (0,0,0). (Relevant for the centrosymmetric space
+  groups where there are two origin choices, in the orthorhombic, tetragonal and cubic 
+  systems)
+See also [`directbasis`](@ref).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     sgops_str = read_sgops_xyzt(sgnum, D)
@@ -45,7 +45,9 @@ The default choices for basis vectors are specified in Bilbao as:
 end
 @inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
 
-function xyzt2matrix(s::String)
+# TODO: make the various transformations between xyzt and matrix form return and take 
+#       SMatrix{D,D+1,...} exclusively.
+function xyzt2matrix(s::AbstractString)
     ssub = split(s, ',')
     D = length(ssub)
     xyzt2matrix!(zeros(Float64, D, D+1), ssub)
@@ -189,48 +191,49 @@ pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 """ 
     (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
 
-Compose two symmetry operations `op1`={W₁|w₁} and `op2`={W₂|w₂}
+Compose two symmetry operations `op1` ``= {W₁|w₁} and `op2` ``= {W₂|w₂}``
 using the composition rule (in Seitz notation)
 
-    {W₁|w₁}{W₂|w₂} = {W₁*W₂|w₁+W₁*w₂}
+    ``{W₁|w₁}∘{W₂|w₂} = {W₁*W₂|w₁+W₁*w₂}``
 
-for symmetry operations opᵢ = {Wᵢ|wᵢ}. By default, the translation part of
-the {W₁*W₂|w₁+W₁*w₂} is reduced to the range [0,1], i.e. computed modulo 1.
-This can be toggled off (or on) by the Boolean flag `modτ` (enabled, i.e. 
-`true`, by default). Returns another `SymOperation`.
+By default, the translation part of the ``{W₁*W₂|w₁+W₁*w₂}`` is reduced to the range
+``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
+`modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
 function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
     T((∘)(matrix(op1), matrix(op2), modτ))
 end
 function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
     W′ = rotation(op1)*rotation(op2)
-    w′ = translation(op1) .+ rotation(op1)*translation(op2)
+    w′ = translation(op1) + rotation(op1)*translation(op2)
 
     if modτ
-        reduce_translation_to_unitrange!(w′)
+        w′ = reduce_translation_to_unitrange(w′)
     end
 
     return [W′ w′]
 end
 const compose = ∘
 
-function reduce_translation_to_unitrange!(w::AbstractVector{Float64}) # mutates w; reduces components to range [0.0, 1.0[
+function reduce_translation_to_unitrange(w::SVector{D, Float64}) where D # reduces components to range [0.0, 1.0[
     # naïve approach to achieve semi-robust reduction of integer-translation
     # via a slightly awful "approximate" modulo approach; basically just the
     # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
     # around each integer.
-    w .= mod.(w, 1.0)
-    # sometimes, mod(w′, 1.0) can omit reducing values that are very nearly 1.0
+    w′ = mod.(w, 1.0)
+    # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
     # due to floating point errors: we use a tolerance here to round everything 
     # close to 0.0 or 1.0 exactly to 0.0
-    @simd for i in eachindex(w)
-        if isapprox(round(w[i]), w[i], atol=DEFAULT_ATOL)
-            w[i] = zero(eltype(w))
+    w′_cleanup = ntuple(Val(D)) do i
+        @inbounds w′ᵢ = w′[i]
+        if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
+            zero(Float64)
+        else
+            w′ᵢ
         end
     end
-    return w
+    return SVector{D, Float64}(w′_cleanup)
 end
-reduce_translation_to_unitrange(w::AbstractVector{Float64}) = reduce_translation_to_unitrange!(copy(w)) # non-mutating variant
 
 """
     (⊚)(op1::T, op2::T) where T<:SymOperation -->  Vector{Float64}
@@ -246,12 +249,12 @@ Note that ⊚ can be auto-completed in Julia via \\circledcirc+[tab]
 """ 
 function (⊚)(op1::T, op2::T) where T<:SymOperation
     # Translation result _without_ taking `mod`
-    w′ = translation(op1) .+ rotation(op1)*translation(op2)  
+    w′ = translation(op1) + rotation(op1)*translation(op2)  
     # Then we take w′ modulo lattice vectors
     w′′ = reduce_translation_to_unitrange(w′)
-    # Then we subtract the two (reuse w′′ to avoid additional allocations)
-    w′′ .= w′ .- w′′
-    return w′′
+    # Then we subtract the two
+    w′′′ = w′ - w′′
+    return w′′′
 end
 
 """
@@ -271,21 +274,25 @@ end
 
 
 """
-    multtable(ops::AbstractVector{<:SymOperation{D}})
+    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true, verbose=false)
 
-Compute the multiplication (or Cayley) table of a set of symmetry operations.
-A MultTable is returned, which contains symmetry operations 
-resulting from composition of `row ∘ col` operators; the table of 
-indices give the symmetry operators relative to the ordering of 
-`ops`.
+Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
+`SymOperation{D}`s.
+The `modτ` keyword argument controls whether composition of operations is taken modulo
+lattice vectors (`true`, default) or not (`false`).
+
+A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
+of `row ∘ col` operators; the table of indices give the symmetry operators relative to the
+ordering of `ops`.
 """
-function multtable(ops::AbstractVector{SymOperation{D}}; verbose::Bool=false) where D
+function MultTable(ops::AbstractVector{SymOperation{D}};
+                   modτ::Bool=true, verbose::Bool=false) where D
     havewarned = false
     N = length(ops)
-    indices = Matrix{Int64}(undef, N,N)
+    table = Matrix{Int64}(undef, N,N)
     for (row,oprow) in enumerate(ops)
         for (col,opcol) in enumerate(ops)
-            op′ = oprow ∘ opcol
+            op′ = compose(oprow, opcol, modτ)
             match = findfirst(op′′ -> op′≈op′′, ops)
             if isnothing(match)
                 if !havewarned
@@ -294,20 +301,21 @@ function multtable(ops::AbstractVector{SymOperation{D}}; verbose::Bool=false) wh
                 end
                 match = 0
             end
-            @inbounds indices[row,col] = match
+            @inbounds table[row,col] = match
         end
     end
-    return MultTable{D}(ops, indices, !havewarned)
+    isgroup = !havewarned # TODO: ... bit sloppy; could/ought to check more carefully
+    return MultTable{D}(ops, table, isgroup)
 end
 
 
-function checkmulttable(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) where D
+function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) where D
     ops = operations(lgir)
     sgnum = num(lgir); cntr = centering(sgnum, D)
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices for composition/∘
-    checkmulttable(multtable(primitive_ops), lgir, αβγ; verbose=verbose)
+    check_multtable_vs_ir(MultTable(primitive_ops), lgir, αβγ; verbose=verbose)
 end
-function checkmulttable(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
+function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
     Ds = irreps(ir, αβγ)
     ops = operations(ir)
@@ -315,13 +323,13 @@ function checkmulttable(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbos
         k = kvec(ir)(αβγ)
     end
     N = length(ops)
-    mtindices = indices(mt)
+
     checked = trues(N, N)
     for (i,Dⁱ) in enumerate(Ds)     # rows
         for (j,Dʲ) in enumerate(Ds) # cols
-            @inbounds mtidx = mtindices[i,j]
+            @inbounds mtidx = mt[i,j]
             if iszero(mtidx) && !havewarned
-                @warn "Provided multtable is not a group; cannot compare with irreps"
+                @warn "Provided MultTable is not a group; cannot compare with irreps"
                 checked[i,j] = false
                 havewarned = true
             end
@@ -458,14 +466,14 @@ kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Computes the action of the SymOperation `op`=g on a KVec `kv`=k
-using that g acts on k-vectors as k(G)′ = [g(R)ᵀ]⁻¹k(G), with g 
-in an R-basis and k in a G-basis. Returns a new KVec, that is 
+Computes the action of the SymOperation `op` ``≡ g`` on a KVec `kv` ``≡ k``
+using that ``g`` acts on k-vectors as ``k(G)′ = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
+in an ``R``-basis and k in a ``G``-basis. Returns a new `KVec`, that is 
 possibly distinct from its original only by a reciprocal lattice
 vector (i.e. multiple of integers).
 
-If `checkabc` = false, the free part of KVec is not transformed
-(can be useful in situation where `kabc` is zero, and several 
+If `checkabc = false`, the free part of `KVec` is not transformed
+(can be useful in situation when `kabc` is zero, and several 
 transformations are requested).
 """
 @inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
@@ -478,48 +486,36 @@ end
 
 
 """
-    primitivize(op::SymOperation, cntr::Char) --> SymOperation
+    primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> SymOperation
 
-Transforms a symmetry operation `op`={W|w} from a conventional cell 
-to a primitive cell (specified by its centering character `cntr`), 
-then denoted {W′|w′}; i.e. performs a basis change 
-    {W′|w′} = {P|p}⁻¹{W|w}{P|p}
-where P and p describe basis change and origin shifts, respectively,
-associated with the coordinate transformation. 
+Transforms a symmetry operation `op` ``= {W|w}`` from a conventional cell to a primitive cell
+(specified by its centering character `cntr`), then denoted ``{W′|w′}``; i.e. performs a
+basis change ``{W′|w′} = {P|p}⁻¹{W|w}{P|p}`` where ``P`` and ``p`` describe basis change and
+origin shifts, respectively, of the coordinate transformation.
+
+By default, translation parts of `op′`, i.e. ``w′`` are reduced modulo 1 (`modw = true`); to
+disable this, set `modw = false`.
 
 For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
 """
-function primitivize(op::SymOperation{D}, cntr::Char) where D
+function primitivize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
         # primitive basis: identity-transform, short circuit
         return op
     else
         P = primitivebasismatrix(cntr, D)
-        return transform(op, P, nothing)
+        return transform(op, P, nothing, modw)
     end
 end
 
-function conventionalize(op::SymOperation{D}, cntr::Char) where D
+function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
         # primitive basis: identity-transform, short circuit
         return op
     else
         P = primitivebasismatrix(cntr, D)
-        return transform(op, inv(P), nothing)
+        return transform(op, inv(P), nothing, modw)
     end
-end
-
-function primitivize(kv::KVec, cntr::Char)
-    k₀, kabc = parts(kv)
-    P = primitivebasismatrix(cntr, dim(kv))
-    # P transforms reciprocal coordinates as 𝐤′ = Pᵀ𝐤
-    # while P transforms direct coordinates as r′=P⁻¹r,
-    # see ITA7 Sec. 1.5.1.2 and 1.5.2.1 (and note the 
-    # distinction between transforming the basis and
-    # the coordinates of a vector!).
-    k₀′ = P'*k₀
-    kabc′ = P'*kabc
-    return KVec(k₀′, kabc′)
 end
 
 """ 
@@ -527,16 +523,16 @@ end
               p::Union{Vector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                          --> SymOperation
 
-Transforms a symmetry operation `op = {W|w}` by a rotation matrix `P` and 
-a translation vector `p` (can be `nothing` for zero-translations), producing
-a new symmetry operation `op′ = {W′|w′}`: (see ITA6, Sec. 1.5.2.3.)
+Transforms a symmetry operation `op` ``= {W|w}`` by a rotation matrix `P` and a translation
+vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
+`op′` ``= {W′|w′}``: (see ITA6, Sec. 1.5.2.3.)
 
-        {W′|w′} = {P|p}⁻¹{W|w}{P|p}
-        with   W′ = P⁻¹WP and w′ = P⁻¹(w+Wp-p)
+``{W′|w′} = {P|p}⁻¹{W|w}{P|p}``
+with  ``W′ = P⁻¹WP`` and ``w′ = P⁻¹(w+Wp-p)``
 
-By default, the translation part of `op′`, i.e. `w′`, is reduced to the range 
-[0,1), i.e. computed modulo 1 (corresponding to `modw=true`). This can be 
-disabled by setting `modw=false`.
+By default, the translation part of `op′`, i.e. ``w′``, is reduced to the range ``[0,1)``, 
+i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
+true`).
 
 See also `primitivize` and `conventionalize`. 
 """
@@ -550,28 +546,35 @@ function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real},
     return SymOperation{D}([W′ w′])
 end
 
-function transform_rotation(op::SymOperation, P::AbstractMatrix{<:Real})
+function transform_rotation(op::SymOperation{D}, P::AbstractMatrix{<:Real}) where D
     W = rotation(op)
     W′ = P\(W*P)        # = P⁻¹WP
+
     # clean up rounding-errors introduced by transformation (e.g. 
     # occassionally produces -0.0). The rotational part will 
     # always have integer coefficients if it is in the conventional
     # or primitive basis of its lattice; if transformed to a nonstandard
     # lattice, it might not have that though.
-    @inbounds for (idx, el) in enumerate(W′)
-        rel = round(el)
-        if !isapprox(el, rel, atol=DEFAULT_ATOL)
-            rel = el # non-standard lattice transformation; fractional elements 
-                     # (this is why we need Float64 in SymOperation{D})
+    W′_cleanup = ntuple(Val(D*D)) do i
+        @inbounds W′ᵢ = W′[i]
+        rW′ᵢ = round(W′ᵢ)
+        if !isapprox(W′ᵢ, rW′ᵢ, atol=DEFAULT_ATOL)
+            rW′ᵢ = W′ᵢ # non-standard lattice transformation; fractional elements 
+                       # (this is why we need Float64 in SymOperation{D})
         end
         # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative
         # values x∈[-0.5,-0.0] to -0.0 -- and since it is bad for us to have
         # both 0.0 and -0.0 -- we convert -0.0 to 0.0 here
-        if rel===-zero(Float64); rel = zero(Float64); end
+        rW′ᵢ === -zero(Float64) && (rW′ᵢ = zero(Float64))
 
-        W′[idx] = rel
+        return W′ᵢ
     end
-    return W′
+
+    if W′ isa SMatrix{D,D,Float64,D*D}
+        return SMatrix{D,D,Float64,D*D}(W′_cleanup)
+    else # P was not an SMatrix, so output isn't either
+        return copyto!(W′, W′_cleanup)
+    end
 end
 
 function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real}, 
@@ -584,35 +587,38 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     else
         w′ = P\w                     # = P⁻¹w  [with p = zero(dim(op))]
     end
-    
+
     if modw
-        return mod.(w′, 1.0)
+        return reduce_translation_to_unitrange(w′)
     else
         return w′
     end
 end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
-function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, conv_or_prim::Bool=true) where D
+function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
+                    conv_or_prim::Bool=true, modw::Bool=true) where D
     P = primitivebasismatrix(cntr, D)
-    ops′ = transform.(ops, Ref(P))         # equiv. to `primitivize.(ops, cntr)` [but avoids loading P anew for each SymOperation]
+    ops′ = transform.(ops, Ref(P), nothing, modw) # equiv. to `primitivize.(ops, cntr, modw)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
-    ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=SGOps.DEFAULT_ATOL))
+    ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
 
     if conv_or_prim # (true) return in conventional basis
-        return transform.(ops′_reduced, Ref(inv(P))) # equiv. to conventionalize.(ops′_reduced, cntr)
+        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw) # equiv. to conventionalize.(ops′_reduced, cntr, modw)
     else            # (false) return in primitive basis
         return ops′_reduced
     end
 end
-@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, conv_or_prim::Bool=true)
-    return reduce_ops(operations(slg), centering(slg), conv_or_prim)
+@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, 
+                            conv_or_prim::Bool=true, modw::Bool=true)
+    return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-primitivize(sg::T) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false))
-function primitivize(lg::T) where T<:LittleGroup 
+primitivize(sg::T, modw::Bool=true) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false, modw))
+function primitivize(lg::T, modw::Bool=true) where T<:LittleGroup 
     cntr = centering(lg)
-    kv′  = primitivize(kvec(lg), cntr)              # transform both k-point and operations
-    ops′ = reduce_ops(operations(lg), cntr, false)
+    # transform both k-point and operations
+    kv′  = primitivize(kvec(lg), cntr)
+    ops′ = reduce_ops(operations(lg), cntr, false, modw)
     return T(num(lg), kv′, klabel(lg), ops′)
 end
 
@@ -627,20 +633,20 @@ the `DirectBasis` vectors `Rs[i]`).
 The matrix 𝐑 maps vectors coefficients in a lattice basis 𝐯ˡ to coefficients in a Cartesian
 basis 𝐯ᶜ as 𝐯ˡ = 𝐑⁻¹𝐯ᶜ and vice versa as 𝐯ᶜ = 𝐑𝐯ˡ. Since a general transformation P 
 transforms an "original" vectors with coefficients 𝐯 to new coefficients 𝐯′ via 𝐯′ = P⁻¹𝐯
-and since we here here consider the lattice basis as the "original" bais we have P = 𝐑⁻¹. 
+and since we here here consider the lattice basis as the "original" basis we have P = 𝐑⁻¹. 
 As such, the transformation of the operator `op` transforms as `opᶜ = P⁻¹*opˡ*P`, i.e.
 `opᶜ = transform(opˡ,P) = transform(opˡ,𝐑⁻¹)`.
 
 # Note 2
 The display (e.g. Seitz and xyzt notation) of `SymOperation`s e.g. in the REPL implicitly
 assumes integer coefficients for its point-group matrix: as a consequence, displaying 
-`SymOperation`s in a Cartesian basis may yield undefine behavior. The matrix representation
-remains valid, however.
+`SymOperation`s in a Cartesian basis may produce undefined behavior. The matrix
+representation remains valid, however.
 """
 function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
     𝐑 = basis2matrix(Rs)
-    # avoids inv(𝐑) by not calling out to transform(opˡ, inv(𝐑))
-    op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑\translation(op)]) 
+    # avoids computing inv(𝐑) by _not_ calling out to transform(opˡ, inv(𝐑))
+    op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑*translation(op)])
     return op′
 end
 cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
@@ -771,7 +777,7 @@ function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVe
         for h in opsᴴ
             # check if ghg⁻¹ ∉ G
             h′ = g∘h∘g⁻¹
-            if !isapproxin(h′, opsᴴ, atol=SGOps.DEFAULT_ATOL)
+            if !isapproxin(h′, opsᴴ, atol=Crystalline.DEFAULT_ATOL)
                 if verbose
                     println("\nNormality-check failure:\n",
                             "Found h′ = ", seitz(h′), "\n",
@@ -786,3 +792,51 @@ function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVe
     return true
 end
 isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H))
+
+"""
+    $(SIGNATURES)
+
+Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
+
+**Keyword arguments:**
+- `modτ` (default, `true`): the group composition operation can either be taken modulo
+  lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
+  case, the provided generators will also be taken modulo integer lattice translations.
+- `Nmax` (default, `256`): the maximum size of the generated group. This is essentially
+  a cutoff set to ensure halting of execution in case the provided set of generators do not
+  define a *finite* group (especially relevant if `modτ=false`). If more operations than
+  `Nmax` are generated, the method throws an overflow error.
+"""
+function generate(gens::AbstractVector{SymOperation{D}};
+                  modτ::Bool=true,
+                  Nmax::Integer=256) where D
+    ops = if modτ
+        [SymOperation{D}(op.rotation_cols, reduce_translation_to_unitrange(translation(op))) for op in gens]
+    else
+        collect(gens)
+    end
+    
+    while true
+        Nₒₚ = length(ops)
+        # fixme: there's probably a more efficient way to do this?
+        for opᵢ in (@view ops[1:Nₒₚ]) 
+            for opⱼ in (@view ops[1:Nₒₚ])
+                opᵢⱼ = compose(opᵢ, opⱼ, modτ)
+                # fixme: there are some _really_ strange allocations going on here, related
+                #        to the interplay between the `∉` and `push!`ing operations here; no 
+                #        clue why this happens... some sort stack/heap conflict?
+                if opᵢⱼ ∉ ops
+                    push!(ops, opᵢⱼ)
+                    # early out if generators don't seem to form a closed group ...
+                    length(ops) > Nmax && return _throw_overflowed_generation()
+                end
+            end
+        end
+        Nₒₚ == length(ops) && (return GenericGroup{D}(sort!(ops, by=seitz)))
+    end
+end
+
+_throw_overflowed_generation() = 
+    throw(OverflowError("The provided set of generators overflowed Nmax distinct "*
+                        "operations: generators may not form a finite group; "*
+                        "otherwise, try increasing Nmax"))

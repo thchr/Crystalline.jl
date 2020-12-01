@@ -1,11 +1,11 @@
-using JSON2, SGOps, HTTP, Gumbo
+using JSON2, Crystalline, HTTP, Gumbo
 
 #= Small convenience script to crawl and subsequently write all the xyzt
    forms of the symmetry operations of the 230 three-dimensional space-
    groups. Enables us to just read the symmetry data from the hard-disk
    rather than constantly querying the Bilbao server =#
 for i = 1:230
-    sgops_str = SGOps.crawl_sgops_xyzt(i)
+    sgops_str = Crystalline.crawl_sgops_xyzt(i)
     filename = (@__DIR__)*"/../data/sgops/3d/"*string(i)*".json"
     open(filename; write=true, create=true, truncate=true) do io
         JSON2.write(io, sgops_str)

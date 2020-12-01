@@ -1,4 +1,4 @@
-using SGOps, Test
+using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
     LGIRS = parselittlegroupirreps()
@@ -7,19 +7,16 @@ end
 @testset "Little group order" begin
 # see e.g. Bradley & Cracknell p. 151(bottom)-152(top)
 @testset "Decomposition, order[star{k}]*order[G₀ᵏ] = order[G₀]" begin
-for sgnum = 1:230
+for (sgnum, lgirsd) in enumerate(LGIRS)
     cntr = centering(sgnum, 3)  
     # the "macroscopic" order is defined simply as the length of the 
     # point group associated with the space group
     sgops = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
     order_macroscopic = length(pointgroup(sgops))
     
-    for kidx = 1:length(LGIRS[sgnum])
-        kv = kvec(first(LGIRS[sgnum][kidx]))
-        
-        for iridx = 1:length(LGIRS[sgnum][kidx])
-            lgir = LGIRS[sgnum][kidx][iridx]
-            
+    for lgirs in values(lgirsd)
+        kv = kvec(first(lgirs))    
+        for lgir in lgirs            
             # number of k-vectors in the star of k
             order_kstar = length(kstar(sgops, kv, cntr)) 
             # number of operations in the little group of k
@@ -39,9 +36,9 @@ end
 end
 
 @testset "Macroscopic order, Bilbao vs. ISOTROPY" begin
-    for sgnum = 1:230
-        sgops_bilbao = operations(spacegroup(sgnum, 3))         # from crawling Bilbao
-        sgops_isotropy = operations(first(first(LGIRS[sgnum]))) # from operations on Γ point irreps in ISOTROPY
+    for (sgnum, lgirsd) in enumerate(LGIRS)
+        sgops_bilbao = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
+        sgops_isotropy = operations(first(lgirsd["Γ"])) # from operations on Γ point irreps in ISOTROPY
 
         # note that we don't have to worry about whether the operations 
         # are represented in conventional or primitive bases, and whether 

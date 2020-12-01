@@ -2,6 +2,8 @@
 
 @noinline _throw_1d2d_not_yet_implemented(D::Integer) = 
     throw(DomainError(D, "dimensions D≠3 not yet supported"))
+@noinline _throw_2d_not_yet_implemented(D::Integer) = 
+    throw(DomainError(D, "dimensions D=2 not yet supported"))
 @noinline _throw_invaliddim(D::Integer) = 
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
 @noinline _throw_invalidcntr(cntr::Char) = 
@@ -37,11 +39,9 @@ function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
     end
     t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
     if !isinteger(t)
-        show(io, abs(numerator(t)))
-        print(io, '/')
-        show(io, denominator(t))
+        print(io, abs(numerator(t)), '/', denominator(t))
     else
-        show(io, abs(numerator(t)))
+        print(io, abs(numerator(t)))
     end
     return nothing
 end
@@ -98,7 +98,7 @@ end
 function formatirreplabel(str::AbstractString)
     buf = IOBuffer()
     for c in str
-        if c ∈ ['+','-']
+        if c ∈ ('+','-')
             write(buf, supscriptify(c))
         elseif isdigit(c)
             write(buf, subscriptify(c))
@@ -122,6 +122,7 @@ function normalizesubsup(c::Char)
 end
 
 issubdigit(c::AbstractChar) = (c >= '₀') & (c <= '₉')
+issupdigit(c::AbstractChar) = (c ≥ '⁰') & (c ≤ '⁹') || c == '\u00B3' || c == '\u00B2'
 
 function unicode_frac(x::Number)
     xabs=abs(x)
@@ -177,7 +178,6 @@ function printboxchar(io, i, N)
 end
 
 
-
 function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     buf = IOBuffer()
     while !eof(io)
@@ -193,24 +193,31 @@ end
 
 
 """
-    compact_print_matrix(io)
+    $(SIGNATURES)
 
 Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow` input.
 
 Should never be used for printing very large matrices, as it will not wrap or abbreviate
 rows/columns.
 """
-function compact_print_matrix(io, X::Matrix, prerow, elformat=(x->round(x,digits=2)), sep="")
-    X_formatted = elformat.(X) # allocates; can't be bothered... (could be fixed using MappedArrays)
+function compact_print_matrix(io, X::Matrix, prerow, elformat=identity, sep="  ")
+    X_formatted = round.(elformat.(X), digits=4) # allocates; can't be bothered... (could be fixed using MappedArrays)
     screenheight = screenwidth = typemax(Int)
     rowsA, colsA = UnitRange(axes(X,1)), UnitRange(axes(X,2))
 
+    !haskey(io, :compact) && length(axes(X, 2)) > 1 && (io = IOContext(io, :compact => true))
     A = Base.alignment(io, X_formatted, rowsA, colsA, screenwidth, screenwidth, length(sep))
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
-        print(io, i == first(rowsA) ? '┌' : (i == last(rowsA) ? '└' : '│'), ' ')
-        Base.print_matrix_row(IOContext(io, :compact=>true), X_formatted, A, i, colsA, sep)
-        print(io, ' ', i == first(rowsA) ? '┐' : (i == last(rowsA) ? '┘' : '│'))
+        # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
+        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'), ' ')
+        Base.print_matrix_row(io, X_formatted, A, i, colsA, sep)
+        # TODO: Printing of the closing brackets is not currently well-aligned when the last
+        #       columns' elements have different display width. Should check "print"-length
+        #       of every element in the last column, cross-check with parity of the alignment
+        #       for that column, and use that to figure out how many spaces to insert.
+        print(io, ' ')
+        print(io, i == first(rowsA) ? '⎤' : (i == last(rowsA) ? '⎦' : '⎥'))
         if i != last(rowsA); println(io); end
     end
 end
@@ -245,49 +252,93 @@ end
 
 
 """
-    get_kvpath(kvs::T, Ninterp::Integer) 
-        where T<:AbstractVector{<:AbstractVector{<:Real}} --> Vector{Vector{Float64}}
+    interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer) 
+        --> Vector{Vector{Float64}}, Int64
 
-Compute an interpolated k-path between discrete k-points given in `kvs` (a vector of
-vectors of `Real`s), so that the interpolated path has `Ninterp` points in total.
+Computes an interpolated ``k``-path between the discrete ``k``-points in `kvs`, so that the
+interpolated path has _approximately_ `Ninterp` points in total (typically fewer).
 
-Note that, in general, it is not possible to do this so that all points are equidistant; 
-but points are equidistant in-between the initial discrete points provided in `kvs`.
+Since the actual number of points in the path may deviate from the requested `Ninterp`, the
+actual number of points in the path is returned along with the interpolated itself.
+
+Note that, in general, it is not possible to do this so that all interpolated ``k``-points
+are equidistant; but points are equidistant in-between the initial discrete points provided
+in `kvs`.
+
+See also: [`splice_kvpath`](@ref).
 """
-function get_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
+function interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
     Nkpairs = length(kvs)-1
-    dists = Vector{Float64}(undef, Nkpairs)
+    dists   = Vector{Float64}(undef, Nkpairs)
     @inbounds for i in Base.OneTo(Nkpairs)
         dists[i] = norm(kvs[i] .- kvs[i+1])
     end
-    mindist = mean(dists)
+    totaldist  = sum(dists)
+    N_per_dist = Ninterp/totaldist
 
     kvpath = [float.(kvs[1])]
-    @inbounds for i in  Base.OneTo(Nkpairs)
+    @inbounds for i in Base.OneTo(Nkpairs)
         # try to maintain an even distribution of k-points along path
-        Ninterp_i = round(Int64, dists[i]./mindist*Ninterp)
-        # new k-points
-        newkvs = range(kvs[i],kvs[i+1],length=Ninterp_i)
-        # append new kvecs to kpath
-        append!(kvpath, (@view newkvs[2:end]))
+        Ninterp_i = round(Int64, dists[i]*N_per_dist, RoundUp) # points in current segment
+        new_kvs   = range(kvs[i],kvs[i+1],length=Ninterp_i)
+        append!(kvpath, (@view new_kvs[2:end]))               # append `new_kvs` to `kvpath`
+    end
+    return kvpath, length(kvpath)
+end
+
+"""
+    splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::Integer) 
+                                                                --> Vector{Vector{Float64}}
+
+Computes an interpolated ``k``-path between the discrete ``k``-points in `kvs`, inserting
+`Nsplice` points between each pair of adjacent ``k``-points.
+
+See also [`interpolate_kvpath`](@ref).
+"""
+function splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::Integer)
+    Nkpairs   = length(kvs)-1
+    Nsplice⁺² = Nsplice+2
+    D         = length(first(kvs))
+
+    kvpath = [Vector{Float64}(undef, D) for _ in Base.OneTo(Nkpairs+1 + Nkpairs*Nsplice)]
+    kvpath[1] = kvs[1]
+    start, stop = 2, Nsplice⁺²
+    @inbounds for i in Base.OneTo(Nkpairs)
+        new_kvs = range(kvs[i],kvs[i+1],length=Nsplice⁺²)
+        @views kvpath[start:stop] .= new_kvs[2:end]        # insert `new_kvs` in `kvpath`
+        start  = stop+1
+        stop  += Nsplice⁺²-1
     end
     return kvpath
 end
 
 
-"""
-    ImmutableDict(ps::Pair...)
+if VERSION < v"1.5"
+    """
+        ImmutableDict(ps::Pair...)
 
-Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
-`Base.ImmutableDict` which otherwise only allows construction by iteration.
-
-# TODO: Will be included in Base at some point? Maybe v1.4?
-"""
-function ImmutableDict(ps::Pair{K,V}...) where {K,V}
-    d = ImmutableDict{K,V}()
-    for p in ps # construct iteratively (linked list)
-        d = ImmutableDict(d, p)
+    Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
+    `Base.ImmutableDict` which otherwise only allows construction by iteration.
+    """
+    function Base.ImmutableDict(ps::Pair{K,V}...) where {K,V}
+        d = Base.ImmutableDict{K,V}()
+        for p in ps # construct iteratively (linked list)
+            d = Base.ImmutableDict(d, p)
+        end
+        return d
     end
-    return d
+    Base.ImmutableDict(ps::Pair...) = Base.ImmutableDict(ps)
 end
-ImmutableDict(ps::Pair...) = ImmutableDict(ps)
+
+# Distributions.jl provides a nice Uniform distribution type - but it is not worth adding
+# the high compilation-time of Distributions (~7 s) just for that functionality, so we just
+# copy a subset of the methods and the struct here, distinguishing the struct-pirating by an 
+# underscore. We only copy the scalar rand(..) methods (i.e. no array generators).
+struct _Uniform{T<:Real}
+    a::T # low
+    b::T # high (unchecked...)
+end
+_Uniform(a::Real, b::Real) = _Uniform(promote(a, b)...)
+_Uniform(a::Integer, b::Integer) = _Uniform(float(a), float(b))
+rand(u::_Uniform) = rand(Random.GLOBAL_RNG, u)
+rand(rng::Random.AbstractRNG, u::_Uniform) = u.a + (u.b - u.a) * rand(rng)

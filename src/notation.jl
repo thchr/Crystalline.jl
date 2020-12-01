@@ -21,7 +21,7 @@ IUC/Hermann-Mauguin notation applies in one, two, and three-dimensions.
 For more information, see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
 @inline iuc(sgnum::Integer, D::Integer=3) = SGS_IUC_NOTATION[D][sgnum]
-@inline iuc(sg::SpaceGroup{D}) where D = iuc(num(sg), D)
+@inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
 const hermannmauguin = iuc # alias
 
 """ 
@@ -107,11 +107,12 @@ const SGS_IUC_NOTATION = (
 # ------------------------------------------------------------------------------------------    
 ("p1", "p1m"),
 # ------------------------------------------------------------------------------------------
-# plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974]
+# plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974, or
+# https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
 # ------------------------------------------------------------------------------------------
 (
 # oblique
-"p1",   "p211",
+"p1",   "p2",
 # rectangular ('p' or 'c' centering; c-centered lattices are rhombic in their primitive cell)
 "p1m1", "p1g1", "c1m1", "p2mm", "p2mg", "p2gg", "c2mm",   
 # square
@@ -120,59 +121,59 @@ const SGS_IUC_NOTATION = (
 "p3",   "p3m1", "p31m", "p6",   "p6mm"
 ),
 # ------------------------------------------------------------------------------------------
-# space-group notation (three dimensions) [adapted from https://bruceravel.github.io/demeter/artug/atoms/space.html,
-# see also https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen]
+# space-group notation (three dimensions) following the conventions of ITA and Bilbao:
+# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
 # ------------------------------------------------------------------------------------------
 (
 # triclinic
 "P1",      "P-1",
 # monoclinic
-"P2",      "P21",     "C2",      "Pm",      "Pc",      "Cm",       
-"Cc",      "P2/m",    "P21/m",   "C2/m",    "P2/c",    "P21/c",    
+"P2",      "P2₁",     "C2",      "Pm",      "Pc",      "Cm",
+"Cc",      "P2/m",    "P2₁/m",   "C2/m",    "P2/c",    "P2₁/c",
 "C2/c",
 # orthorhombic
-"P222",    "P2221",   "P21212",  "P212121", "C2221",   "C222",
-"F222",    "I222",    "I212121", "Pmm2",    "Pmc21",   "Pcc2",
-"Pma2",    "Pca21",   "Pnc2",    "Pmn21",   "Pba2",    "Pna21",
-"Pnn2",    "Cmm2",    "Cmc21",   "Ccc2",    "Amm2",    "Aem2",
+"P222",    "P222₁",   "P2₁2₁2",  "P2₁2₁2₁", "C222₁",   "C222",
+"F222",    "I222",    "I2₁2₁2₁", "Pmm2",    "Pmc2₁",   "Pcc2",
+"Pma2",    "Pca2₁",   "Pnc2",    "Pmn2₁",   "Pba2",    "Pna2₁",
+"Pnn2",    "Cmm2",    "Cmc2₁",   "Ccc2",    "Amm2",    "Aem2",
 "Ama2",    "Aea2",    "Fmm2",    "Fdd2",    "Imm2",    "Iba2",
 "Ima2",    "Pmmm",    "Pnnn",    "Pccm",    "Pban",    "Pmma",
 "Pnna",    "Pmna",    "Pcca",    "Pbam",    "Pccn",    "Pbcm",
 "Pnnm",    "Pmmn",    "Pbcn",    "Pbca",    "Pnma",    "Cmcm",
-"Cmca",    "Cmmm",    "Cccm",    "Cmma",    "Ccca",    "Fmmm",
+"Cmce",    "Cmmm",    "Cccm",    "Cmme",    "Ccce",    "Fmmm",
 "Fddd",    "Immm",    "Ibam",    "Ibca",    "Imma",
 # tetragonal
-"P4",      "P41",     "P42",     "P43",     "I4",      "I41",
-"P-4",     "I-4",     "P4/m",    "P42/m",   "P4/n",    "P42/n",
-"I4/m",    "I41/a",   "P422",    "P4212",   "P4122",   "P41212",
-"P4222",   "P42212",  "P4322",   "P43212",  "I422",    "I4122",
-"P4mm",    "P4bm",    "P42cm",   "P42nm",   "P4cc",    "P4nc",
-"P42mc",   "P42bc",   "I4mm",    "I4cm",    "I41md",   "I41cd",
-"P-42m",   "P-42c",   "P-421m",  "P-421c",  "P-4m2",   "P-4c2",
+"P4",      "P4₁",     "P4₂",     "P4₃",     "I4",      "I4₁",
+"P-4",     "I-4",     "P4/m",    "P4₂/m",   "P4/n",    "P4₂/n",
+"I4/m",    "I4₁/a",   "P422",    "P42₁2",   "P4₁22",   "P4₁2₁2",
+"P4₂22",   "P4₂2₁2",  "P4₃22",   "P4₃2₁2",  "I422",    "I4₁22",
+"P4mm",    "P4bm",    "P4₂cm",   "P4₂nm",   "P4cc",    "P4nc",
+"P4₂mc",   "P4₂bc",   "I4mm",    "I4cm",    "I4₁md",   "I4₁cd",
+"P-42m",   "P-42c",   "P-42₁m",  "P-42₁c",  "P-4m2",   "P-4c2",
 "P-4b2",   "P-4n2",   "I-4m2",   "I-4c2",   "I-42m",   "I-42d",
 "P4/mmm",  "P4/mcc",  "P4/nbm",  "P4/nnc",  "P4/mbm",  "P4/mnc",
-"P4/nmm",  "P4/ncc",  "P42/mmc", "P42/mcm", "P42/nbc", "P42/nnm",
-"P42/mbc", "P42/mnm", "P42/nmc", "P42/ncm", "I4/mmm",  "I4/mcm",
-"I41/amd", "I41/acd",
+"P4/nmm",  "P4/ncc",  "P4₂/mmc", "P4₂/mcm", "P4₂/nbc", "P4₂/nnm",
+"P4₂/mbc", "P4₂/mnm", "P4₂/nmc", "P4₂/ncm", "I4/mmm",  "I4/mcm",
+"I4₁/amd", "I4₁/acd",
 # trigonal
-"P3",      "P31",     "P32",     "R3",      "P-3",     "R-3",
-"P312",    "P321",    "P3112",   "P3121",   "P3212",   "P3221",
+"P3",      "P3₁",     "P3₂",     "R3",      "P-3",     "R-3",
+"P312",    "P321",    "P3₁12",   "P3₁21",   "P3₂12",   "P3₂21",
 "R32",     "P3m1",    "P31m",    "P3c1",    "P31c",    "R3m",
 "R3c",     "P-31m",   "P-31c",   "P-3m1",   "P-3c1",   "R-3m",
 "R-3c",
 # hexagonal
-"P6",      "P61",     "P65",     "P62",     "P64",     "P63",
-"P-6",     "P6/m",    "P63/m",   "P622",    "P6122",   "P6522",
-"P6222",   "P6422",   "P6322",   "P6mm",    "P6cc",    "P63cm",
-"P63mc",   "P-6m2",   "P-6c2",   "P-62m",   "P-62c",   "P6/mmm",
-"P6/mcc",  "P63/mcm", "P63/mmc",
+"P6",      "P6₁",     "P6₅",     "P6₂",     "P6₄",     "P6₃",
+"P-6",     "P6/m",    "P6₃/m",   "P622",    "P6₁22",   "P6₅22",
+"P6₂22",   "P6₄22",   "P6₃22",   "P6mm",    "P6cc",    "P6₃cm",
+"P6₃mc",   "P-6m2",   "P-6c2",   "P-62m",   "P-62c",   "P6/mmm",
+"P6/mcc",  "P6₃/mcm", "P6₃/mmc",
 # cubic
-"P23",     "F23",     "I23",     "P213",    "I213",    "Pm3",
-"Pn3",     "Fm3",     "Fd3",     "Im3",     "Pa3",     "Ia3",
-"P432",    "P4232",   "F432",    "F4132",   "I432",    "P4332",
-"P4132",   "I4132",   "P-43m",   "F-43m",   "I-43m",   "P-43n",
-"F-43c",   "I-43d",   "Pm3m",    "Pn3n",    "Pm3n",    "Pn3m",
-"Fm3m",    "Fm3c",    "Fd3m",    "Fd3c",    "Im3m",    "Ia3d"
+"P23",     "F23",     "I23",     "P2₁3",    "I2₁3",    "Pm-3",
+"Pn-3",    "Fm-3",    "Fd-3",    "Im-3",    "Pa-3",    "Ia-3",
+"P432",    "P4₂32",   "F432",    "F4₁32",   "I432",    "P4₃32",
+"P4₁32",   "I4₁32",   "P-43m",   "F-43m",   "I-43m",   "P-43n",
+"F-43c",   "I-43d",   "Pm-3m",   "Pn-3n",   "Pm-3n",   "Pn-3m",
+"Fm-3m",   "Fm-3c",   "Fd-3m",   "Fd-3c",   "Im-3m",   "Ia-3d"
 )
 )
 
@@ -181,14 +182,17 @@ const SGS_IUC_NOTATION = (
 """ 
     seitz(op::SymOperation) --> String
 
-Computes the correponding Seitz notation {β|τ} for a symmetry operation in 
-triplet form.
+Computes the correponding Seitz notation for a symmetry operation in triplet/xyzt form.
 
-Implementation based on ITA5 Table 11.2.1.1 (for 3D)\n
-        ________________________________________________
-        |_detW_|_trW_|_-3_|_-2 |_-1 |__0_|__1_|__2_|__3_|
-        |  1         |    |    |  2 |  3 |  4 |  6 |  1 |
-        |__1_________|_-1_|_-6_|_-4_|_-3_|__m_|____|____|
+Implementation based on ITA5 Table 11.2.1.1, with 3D point group parts inferred from
+the trace and determinant of the matrix ``W`` in the triplet ``{W|w}``.
+
+
+| detW\\trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |
+|-----------|----|----|----|----|---|---|---|
+|  1        |    |    |  2 | 3  | 4 | 6 | 1 |
+|  -1       | -1 | -6 | -4 | -3 | m |   |   |
+
 with the elements of the table giving the type of symmetry operation in
 in Hermann-Mauguin notation. The rotation axis and the rotation sense are 
 computed following the rules in ITA6 Sec. 1.2.2.4(1)(b-c).
@@ -198,22 +202,22 @@ Note that the orientation of axis (i.e. its sign) is not necessarily equal
 to the orientation picked in those tables; it is a matter of convention,
 and the conventions have not been explicated in ITA6.
 
-For 2D operations, we elevate the operation to one in 3D that leaves the 
-3rd coordinate invariant, and then compute results using the 3D procedure.
+2D operations are treated by the same procedure, by elevation in a third dimension; 1D
+operations by a simple inspection of sign.
 """
 function seitz(op::SymOperation{D}) where D
     W = rotation(op); w = translation(op);
-    if D == 2 # we just augment the 2D case by leaving z invariant
+    if D == 2 # augment 2D case by "adding" an invariant z dimension
         W = [W zeros(2); 0.0 0.0 1.0]; 
         w = [w; 0]
     elseif D == 1
-        w_str = !iszero(w[1]) ? unicode_frac(w[1]) : "0"
-        if isone(W[1])
-            return "{1|"*w_str*"}"
-        elseif isone(-W[1])
-            return "{-1|"*w_str*"}"
+        isone(abs(W[1])) || throw(DomainError((W,w), "not a valid 1D symmetry operation"))
+        W_str = signbit(W[1]) ? "-1" : "1"
+        if iszero(w[1])
+            return W_str
         else
-            throw(DomainError((W,w), "not a valid 1D symmetry operation"))
+            w_str = unicode_frac(w[1])
+            return "{"*W_str*"|"*w_str*"}"
         end
     end
 
@@ -223,31 +227,7 @@ function seitz(op::SymOperation{D}) where D
     isapprox(trW′, trW, atol=DEFAULT_ATOL) || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}; got $(trW′)"))
 
     # --- rotation order (and proper/improper determination) ---
-    if detW == 1 # proper rotations
-        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
-            rot = trW + 3
-        elseif trW == 2 # 6-fold rotation
-            rot = 6
-        elseif trW == 3 # identity operation
-            rot = 1
-        else 
-            _throw_seitzerror(trW, detW)
-        end
-    elseif detW == -1 # improper rotations (rotoinversions)
-        if trW == -3     # inversion
-            rot = -1
-        elseif trW == -2 # 6-fold rotoinversion
-            rot = -6
-        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
-            rot = trW - 3
-        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
-            rot = -2
-        else
-            _throw_seitzerror(trW, detW)
-        end
-    else
-        _throw_seitzerror(trW, detW)
-    end
+    rot = rotation_order_3d(detW, trW) # works for 2D also, since we augmented W above
     order = abs(rot)
     rot_str = rot == -2 ? "m" : string(rot)
     
@@ -257,7 +237,7 @@ function seitz(op::SymOperation{D}) where D
     # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮
     # [cf. ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(b)]
     if D == 3 && order == 1 || D == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
-        axis_str = ""                                 # (w/ in plane normals; otherwise along [001])
+        axis_str = ""                 # (w/ in plane normals; otherwise along [001])
         u = D == 2 ? [0, 0, 1] : [0, 0, 0]
     else
         Yₖ = Matrix{Float64}(I, 3, 3) # calculate Yₖ by iteration
@@ -312,11 +292,79 @@ function seitz(op::SymOperation{D}) where D
         sense_str = ""
     end
 
-    # --- nonsymmorphic part ---
-    w_str = !iszero(w) ? join((unicode_frac(w[i]) for i in 1:D), ',') : "0"
-        
     # --- combine labels ---
-    return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+    if iszero(w) # symmorphic operation
+        return rot_str * sense_str * axis_str
+    else         # nonsymorphic operation
+        w_str = join((unicode_frac(w[i]) for i in 1:D), ',')
+        return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+    end
 end
 seitz(str::String) = seitz(SymOperation(str))
-_throw_seitzerror(trW, detW) = throw(ArgumentError("trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
+
+"""
+    rotation_order_3d(detW::Real, trW::Real) --> Int
+
+Determine the integer rotation order of a 3D point group operation with a 3×3 matrix 
+representation `W` (alternatively specified by its determinant `detW` and its trace `trW`).
+
+The rotation order of
+- Proper rotations is positive.
+- Improper (mirrors, inversion, roto-inversions) is negative.
+"""
+function rotation_order_3d(detW::Real, trW::Real)
+    if detW == 1 # proper rotations
+        if -1 ≤ trW ≤ 1 # 2-, 3-, or 4-fold rotation
+            rot = convert(Int, trW) + 3
+        elseif trW == 2 # 6-fold rotation
+            rot = 6
+        elseif trW == 3 # identity operation
+            rot = 1
+        else 
+            _throw_seitzerror(trW, detW)
+        end
+    elseif detW == -1 # improper rotations (rotoinversions)
+        if trW == -3     # inversion
+            rot = -1
+        elseif trW == -2 # 6-fold rotoinversion
+            rot = -6
+        elseif -1 ≤ trW ≤ 0 # 4- and 3-fold rotoinversion
+            rot = convert(Int, trW) - 3
+        elseif trW == 1  # mirror, note that "m" == "-2" conceptually
+            rot = -2
+        else
+            _throw_seitzerror(trW, detW)
+        end
+    else
+        _throw_seitzerror(trW, detW)
+    end
+    
+    return rot
+end
+
+"""
+    rotation_order(W::Matrix{<:Real}) --> Int
+    rotation_order(op::SymOperation)  --> Int
+
+Determine the integer rotation order of a point group operation, input either as a matrix
+`W` or `op::SymOperation`.
+
+The rotation order of
+- Proper rotations is positive.
+- Improper (mirrors, inversion, roto-inversions) is negative.
+"""
+function rotation_order(W::AbstractMatrix{<:Real})
+    if size(W) == (1,1)
+        return convert(Int, W[1,1])
+    elseif size(W) == (2,2) # augment 2D case by "adding" an invariant z dimension
+        W = [W zeros(2); 0.0 0.0 1.0]
+    elseif size(W) ≠ (3,3)
+        throw(DomainError(size(W), "Point group operation must have a dimension ≤3"))
+    end
+
+    return rotation_order_3d(det(W), tr(W))
+end
+rotation_order(op::SymOperation) = rotation_order(rotation(op))
+
+
+_throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
