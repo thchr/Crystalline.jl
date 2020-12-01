@@ -136,10 +136,16 @@ size(mt::MultTable) = size(mt.table)
 # here the matrix kabc is columns of the vectors (𝐚,𝐛,𝐜) while α,β,γ are free
 # parameters ranging over all non-special values (i.e. not coinciding with any 
 # high-sym 𝐤)
+
+abstract type AbstractVec end
+# A type which must have a scalar part (..)₀ and a free part (...)abc.
+# Intended to represent points, lines, planes and volumes in direct (::RVec)
+# or reciprocal space (::KVec)
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct KVec
+struct KVec <: AbstractVec
     k₀::Vector{Float64}
     kabc::Matrix{Float64}
 end
@@ -170,9 +176,6 @@ where the coordinates `x`,`y`, and `z` are strings that can contain fractions,
 decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively,
 {`'u'`,`'v'`,`'w'`}). Returns the associated `KVec`.
 
-Any "fixed"/constant part of a coordinate _must_ precede any free parts, e.g.,
-`x="1+α"` is allowable but `x="α+1"` is not.
-
 Fractions such as `1/2` can be parsed: but use of any other special operator
 besides `/` will result in faulty operations (e.g. do not use `*`).
 """
@@ -186,24 +189,28 @@ function KVec(str::AbstractString)
         for (j, matchgroup) in enumerate((('α','u'),('β','v'),('γ','w')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
-                # TODO: Seems broken for k-planes like KVec("α+β,β,0") due to the α+β term
                 match = searchpriornumerals(coord, pos₂)
                 kabc[i,j] = parse(Float64, match)
             end
         end
         
         # --- "fixed" coordinate, k₀[i] ---
-        sepidx′ = findfirst(r"\b(\+|\-)", coord) # find any +/- separators between fixed and free parts
-        # regex matches '+' or '-', except if they are the first character in 
-        # string (or if they are preceded by space; but that cannot occur here)   
-        if sepidx′===nothing # no separators
+        m = match(r"(\+|\-)?(([0-9]|/|\.)+)(?!α|u|β|v|γ|w)", coord)
+        # regex matches any digit sequence, possibly including slashes, that is _not_
+        # followed by one of the free-part identifiers. If there's a '+' or '-' before
+        # the first digit, it is stored in the first capture slot. The digit sequence
+        # is stored in the second capture slot. The third capture slot is redundant.
+        # We do not allow arithmetic aside from division here, obviously: any extra numbers 
+        # terms are ignored.
+        if m===nothing   # no constant terms
             if last(coord) ∈ ('α','u','β','v','γ','w') # free-part only case
                 continue # k₀[i] is zero already
-            else                                       # constant-part only case
-                k₀[i] = parsefraction(coord)
+            else
+                throw(ErrorException("Unexpected parsing error in constant term"))
             end
-        else # exploit that we require fixed parts to come before free parts
-            k₀[i] = parsefraction(coord[firstindex(coord):prevind(coord, first(sepidx′))])
+        else
+            k₀[i] = Crystalline.parsefraction(m.captures[2])
+            m.captures == '-' && (k₀[i] *= -1)
         end
     end
     return KVec(k₀, kabc)
