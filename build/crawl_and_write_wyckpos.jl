@@ -36,7 +36,7 @@ function _RVec(xyz::Vector{<:SubString}, ::Val{D}) where D
         end
         
         # --- "fixed"/constant coordinate, cnst[i] ---
-        m = match(r"(\+|\-)?(([0-9]|/|\.)+)(?!α|u|β|v|γ|w|x|y|z)", coord)
+        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuxβvyγwz])", coord)
         # regex matches any digit sequence, possibly including slashes, that is _not_
         # followed by one of the free-part identifiers. If there's a '+' or '-' before
         # the first digit, it is stored in the first capture slot. The digit sequence
