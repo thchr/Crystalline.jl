@@ -133,12 +133,15 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) wh
     orbitcoefs = Vector{Vector{ComplexF64}}()
     deleteidx = Vector{Int64}()
     for (o,orb) in enumerate(orbits)
-        start = true; prevspan = []
+        start, prevspan = true, Matrix{ComplexF64}(undef, 0, 0)
+        Norb = length(orb)
+        diffs = Vector{Float64}(undef, Norb)
+        conds = Matrix{ComplexF64}(undef, Norb, Norb)
         for (W⁻¹ᵀ, w) in zip(W⁻¹ᵀs, ws)
-            conds = zeros(ComplexF64, length(orb), length(orb))
+            fill!(conds, zero(ComplexF64))
             for (m, G) in enumerate(orb)
                 G′ = W⁻¹ᵀ*G  # planewave G is transformed to by W⁻¹ᵀ
-                diffs = norm.(Ref(G′) .- orb); 
+                diffs .= norm.(Ref(G′) .- orb)
                 n = argmin(diffs) # find assoc linear index in orbit
                 diffs[n] > DEFAULT_ATOL && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
                 # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
@@ -147,22 +150,23 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) wh
                 conds[n,m] = cis(-2π*dot(G′, w)) # cis(x) = exp(ix)
             end
 
-            nextspan = nullspace(conds-I, atol=NULL_ATOL)          
+            foreach(n -> conds[n,n] -= one(ComplexF64), Base.OneTo(Norb)) # compute `conds-I` in-place
+            nextspan = nullspace(conds, atol=NULL_ATOL)          
             if start
                 prevspan = nextspan
                 start = false
             elseif !isempty(prevspan) && !isempty(nextspan)
-                spansect = nullspace([prevspan -nextspan], atol=NULL_ATOL)[size(prevspan, 2)+1:end,:]
+                spansect = @view nullspace([prevspan -nextspan], atol=NULL_ATOL)[size(prevspan, 2)+1:end,:]
                 prevspan = nextspan*spansect
             else
                 prevspan = nothing; break
             end
         end
-                    
+
         if !isnothing(prevspan)
             if size(prevspan,2) != 1; error("Unexpected size of prevspan"); end
             coefbasis = vec(prevspan)
-            coefbasis ./= coefbasis[argmax(norm(coefbasis, Inf))]
+            coefbasis ./= first(coefbasis)
             push!(orbitcoefs, coefbasis)
         else 
             push!(deleteidx, o)
@@ -176,6 +180,122 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) wh
     permute!(orbitcoefs, perm)
 
     return UnityFourierLattice{D}(orbits, orbitcoefs)
+end
+
+
+function levelsetvectorfield(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) where D
+    # check validity of inputs
+    (sgnum < 1)             && throw(DomainError(sgnum, "sgnum must be greater than 1"))
+    D ∉ (1,2,3)             && _throw_invaliddim(D)
+    D ≠ length(idxmax)      && throw(DomainError((D, idxmax), "D must equal length(idxmax): got (D = $D) ≠ (length(idxmax) = $(length(idxmax)))"))
+    (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
+
+    # prepare
+    sg = spacegroup(sgnum, Dᵛ)
+    sgops = operations(sg)
+    Ws = rotation.(sgops) # operations W in R-basis (point group part)
+    ws = translation.(sgops)
+
+    # We define the "reciprocal orbit" associated with the action of W through (W⁻¹)ᵀ
+    # calculating the operators (W⁻¹)ᵀ in the 𝐆-basis:
+    # The action of a symmetry operator in an 𝐑-basis, i.e. W(𝐑), on a 𝐤 vector in a 
+    # 𝐆-basis, i.e. 𝐤(𝐆), is 𝐤′(𝐆)ᵀ = 𝐤(𝐆)ᵀW(𝐑)⁻¹. To deal with column vectors, we 
+    # transpose, obtaining 𝐤′(𝐆) = [W(𝐑)⁻¹]ᵀ𝐤(𝐆) [details in symops.jl, above littlegroup(...)].
+    W⁻¹ᵀs = transpose.(inv.(Ws))
+    
+    # If idxmax is interpreted as (imax, jmax, ...), then this produces an iterator
+    # over i = -imax:imax, j = -jmax:jmax, ..., where each call returns (..., j, i); 
+    # note that the final order is anti-lexicographical; so we reverse it in the actual
+    # loop for our own sanity's sake
+    reviter = Iterators.product(reverse((:).(.-idxmax, idxmax))...)
+
+    # --- compute orbits ---
+    orbits = Vector{Vector{SVector{D,Int64}}}() # vector to store orbits of G-vectors (in G-basis)
+    for rG in reviter  
+        G = SVector{D,Int64}(reverse(rG)) # fix order and convert to SVector{D,Int64} from Tuple
+
+        skip = false # if G already contained in an orbit; go to next G
+        for orb in orbits
+            isapproxin(G, orb) && (skip=true; break) 
+        end
+        skip && continue
+        
+        neworb = orbit(W⁻¹ᵀs, G) # compute orbit assoc with G-vector
+        # the symmetry transformation may introduce round-off errors, but we know that 
+        # the indices must be integers; fix that here, and check its validity as well
+        neworb′ = [round.(Int64,G′) for G′ in neworb] 
+        if norm(neworb′ .- neworb) > DEFAULT_ATOL; 
+            error("The G-combinations and their symmetry-transforms must be integers"); 
+        end
+        push!(orbits, neworb′) # add orbit to list of orbits
+    end
+
+    # --- restrictions on orbit coeffs. due to nonsymmorphic elements in space group ---
+    d1 = 2
+    orbitcoefs = Vector{Vector{ComplexF64}}()
+    deleteidx = Vector{Int64}()
+    for (o,orb) in enumerate(orbits)
+        start, prevspan = true, Matrix{ComplexF64}(undef, 0, 0)
+        Norb = length(orb)
+        diffs = Vector{Float64}(undef, Norb)
+        conds = ntuple(i->Matrix{ComplexF64}(undef, Norb, Norb), Val(D))
+        for (opidx, (W⁻¹ᵀ, w)) in enumerate(zip(W⁻¹ᵀs, ws))
+            fill!.(conds, zero(ComplexF64))
+            for (m, G) in enumerate(orb)
+                G′ = W⁻¹ᵀ*G  # planewave G is transformed to by W⁻¹ᵀ
+                diffs .= norm.(Ref(G′) .- orb)
+                n = argmin(diffs) # find assoc linear index in orbit
+                diffs[n] > DEFAULT_ATOL && error("Part of an orbit was miscalculated; diff = $(diffs[n])")
+                # the inverse translation is -W⁻¹w; the phase is thus exp(-iG⋅W⁻¹w) which
+                # is equivalent to exp[-i(W⁻¹ᵀG)w]. We use the latter, so we avoid an
+                # unnecessary matrix-vector product [i.e. dot(G, W⁻¹w) = dot(G′, w)]
+                phase = cis(-2π*dot(G′, w)) # cis(x) = exp(ix)
+                for d2 in Base.OneTo(D)
+                    conds[d2][n,m] = phase*Ws[opidx][d1, d2]
+                end
+            end
+
+            foreach(Base.OneTo(Norb)) do n # compute `conds-I` in-place
+                    conds[d1][n,n] -= one(ComplexF64)
+            end
+            nextspan = nullspace(hcat(conds...), atol=NULL_ATOL)          
+            if start
+                prevspan = nextspan
+                start = false
+            elseif !isempty(prevspan) && !isempty(nextspan)
+                spansect = @view nullspace([prevspan -nextspan], atol=NULL_ATOL)[size(prevspan, 2)+1:end,:]
+                prevspan = nextspan*spansect
+            else
+                prevspan = nothing; break
+            end
+        end
+
+        if !isnothing(prevspan)
+            #if size(prevspan,2) != 1; error("Unexpected size of prevspan"); end
+            contains_valid_sols = false
+            for prevspanᵢ in eachcol(prevspan)
+                all(n->abs(prevspanᵢ[n])<1e-10, (Norb*(d1-1)+1):Norb*d1) && continue
+                coefbasis = vec(prevspanᵢ)
+                coefbasis ./= coefbasis[argmax(abs.(coefbasis))]
+                push!(orbitcoefs, coefbasis)
+                contains_valid_sols = true
+                break # todo: remove...
+            end
+            contains_valid_sols || push!(deleteidx, o)
+        else 
+            push!(deleteidx, o)
+        end
+    end
+    deleteat!(orbits, deleteidx)
+
+    # sort in order of descending wavelength (e.g., [0,0,...] term comes first; highest G-combinations come last)
+    @show size(orbits)
+    @show size(orbitcoefs)
+    perm = sortperm(orbits, by=x->norm(first(x)))
+    permute!(orbits, perm)
+    permute!(orbitcoefs, perm)
+
+    return orbits, orbitcoefs
 end
 
 
