@@ -537,7 +537,7 @@ By default, the translation part of `op′`, i.e. ``w'``, is reduced to the rang
 i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
 true`).
 
-See also [`primitivize`](@ref) and [`conventionalize`]](@ref).
+See also [`primitivize`](@ref) and [`conventionalize`](@ref).
 """
 function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
