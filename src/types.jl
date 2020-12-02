@@ -438,50 +438,7 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
         end
     end
 
-    if iscorep(lgir)
-        t = type(lgir) 
-        if t == 2 # Pseudo-real (doubles)
-            return _blockdiag2x2.(P)
-        elseif t == 3 # Complex (conj-doubles)
-            return _blockdiag2x2_conj.(P)
-        else
-            throw(DomainError(type, "Unexpected combination of iscorep=true and type≠{2,3}"))
-        end
-    else
-        return P
-    end
     return P
-end
-
-function _blockdiag2x2(A::Matrix{T}) where T
-    n = LinearAlgebra.checksquare(A)
-    B = zeros(T, 2*n, 2*n)
-    @inbounds for I in 0:1
-        I′ = I*n
-        for i in Base.OneTo(n)
-            i′ = I′+i
-            for j in Base.OneTo(n)
-                B[i′,I′+j] = A[i,j]
-            end
-        end
-    end
-    return B
-end
-function _blockdiag2x2_conj(A::Matrix{T}) where T
-    n = LinearAlgebra.checksquare(A)
-    B = zeros(T, 2*n, 2*n)
-    @inbounds for i in Base.OneTo(n) # upper left block
-        for j in Base.OneTo(n)
-            B[i,j] = A[i,j]
-        end
-    end
-    @inbounds for i in Base.OneTo(n) # lower right block
-        i′ = n+i
-        for j in Base.OneTo(n)
-            B[i′,n+j] = conj(A[i,j])
-        end
-    end
-    return B
 end
 
 """

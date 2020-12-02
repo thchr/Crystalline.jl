@@ -6,17 +6,17 @@ end
 #Crystalline.add_ΦnotΩ_lgirs!.(LGIRS)
 
 @testset "Irrep orthogonality (complex little groups)" begin
+αβγ = Crystalline.TEST_αβγ # for evaluating characters/irreps at non-special points
 
 ## 1ˢᵗ orthogonality theorem (characters): 
 #       ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
-# for each irrep
-# Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
+# for each irrep Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
 @testset "1ˢᵗ orthogonality theorem" begin
     for lgirsd in LGIRS             # loop over space groups: lgirsd contains _all_ little groups and their irreps
         for lgirs in values(lgirsd) # loop over little group: lgirs contains all the associated irreps
             Nₒₚ = order(first(lgirs)) # number of elements in little group
             for lgir in lgirs # specific irrep {Dᵢ⁽ᵃ⁾} of the little group
-                χ = characters(lgir) # characters χᵢ⁽ᵃ⁾ of every operation
+                χ = characters(lgir, αβγ) # characters χᵢ⁽ᵃ⁾ of every operation
                 @test sum(abs2, χ) ≈ Nₒₚ # check ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾ 
             end
         end
@@ -25,16 +25,16 @@ end
 
 ## 2ⁿᵈ orthogonality theorem (characters): 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾  
-# for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
-# i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
+# for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with i running over the 
+# Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
 @testset "2ⁿᵈ orthogonality theorem" begin
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
         for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))    
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
-                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾)
+                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγ)
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
-                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾)
+                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγ)
                     orthog2nd = dot(χ⁽ᵃ⁾, χ⁽ᵝ⁾) # dot conjugates the first vector automatically, 
                                                 # i.e. this is just ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾
                     @test (orthog2nd ≈ (a==β)*Nₒₚ)  atol=1e-12
@@ -50,7 +50,6 @@ end
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
 @testset "Great orthogonality theorem (little group irreps)" begin
-    αβγ = nothing#[1,1,1]*1e-1
     debug = false# true
     count = total = 0 # counters
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections

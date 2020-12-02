@@ -188,28 +188,62 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             # The resulting co-rep of a pseudo-real type of Dᵢ is
             #   D = diag(Dᵢ, Dᵢ)
             # See other details under complex case.
-            idx = first(idxs)
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, lgirs[idx].matrices,
-                                    lgirs[idx].translations, 2, true)
+            lgir = lgirs[idxs[1]]
+            blockmatrices = _blockdiag2x2.(lgir.matrices)
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, lgir.translations, 2, true)
             
         else                      # ⇒ complex        (doubles irreps w/ complex conjugate)
             # The co-rep of a complex type composed of Dᵢ and Dⱼ is 
-            #   D = diag(Dᵢ, Dᵢ*)
-            # Which should be similar to diag(Dⱼ, Dⱼ*). Note that the co-rep is _not_ 
-            # diag(Dᵢ, Dⱼ) in general, since we have only establsihed that Dⱼ ∼ Dᵢ*, not
-            # that Dⱼ = Dᵢ*. We postpone construction of the diagonal block matrix to 
-            # "evaluation" type calls, e.g. `irreps(::LGIrrep)`, which then inspects the
-            # field `iscorep` (set to `true`) below. This is to avoid storing two "free
-            # phase factors" (i.e. τ) which would have opposite signs.
-            idx = first(idxs)
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, lgirs[idx].matrices,
-                                    lgirs[idx].translations, 3, true)
+            #   D = diag(Dᵢ, Dⱼ)
+            # where we know that Dⱼ ∼ Dᵢ*. Note that this is _not_ generally the same as
+            # diag(Dⱼ, Dⱼ*), since we have only established that Dⱼ ∼ Dᵢ*, not Dⱼ = Dᵢ*.
+            # Note also that we require the Dᵢ and Dⱼ irreps to have identical free phases,
+            # i.e. `translations` fields, so that the overall irrep "moves" with a single
+            # phase factor in k-space - we check for that explicitly for now, to be safe.
+            τsᵢ = lgirs[idxs[1]].translations; τsⱼ = lgirs[idxs[2]].translations
+            @assert τsᵢ == τsⱼ
+            blockmatrices = _blockdiag2x2.(lgirs[idxs[1]].matrices, lgirs[idxs[2]].matrices)
+            
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, τsᵢ, 3, true)
         end
     end
     
     return lgirs′
 end
 
+# returns the block diagonal matrix `diag(A1, A2)` (and assumes identically sized and
+# square `A1` and `A2`).
+function _blockdiag2x2(A1::AbstractMatrix{T}, A2::AbstractMatrix{T}) where T
+    n = LinearAlgebra.checksquare(A1)
+    LinearAlgebra.checksquare(A2) == n || throw(DimensionMismatch())
+
+    B = zeros(T, 2n, 2n)
+    for i in Base.OneTo(n)
+        i′ = i+n
+        @inbounds for j in Base.OneTo(n)
+            j′ = j+n
+            B[i,j]   = A1[i,j]
+            B[i′,j′] = A2[i,j]
+        end
+    end
+    return B
+end
+# returns the block diagonal matrix `diag(A, A)` (and assumes square `A`)
+function _blockdiag2x2(A::AbstractMatrix{T}) where T
+    n = LinearAlgebra.checksquare(A)
+
+    B = zeros(T, 2n, 2n)
+    for i in Base.OneTo(n)
+        i′ = i+n
+        @inbounds for j in Base.OneTo(n)
+            j′ = j+n
+            aᵢⱼ = A[i,j]
+            B[i,j]   = aᵢⱼ
+            B[i′,j′] = aᵢⱼ
+        end
+    end
+    return B
+end
 
 """
     herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}},

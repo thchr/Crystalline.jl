@@ -265,7 +265,7 @@ Note that, in general, it is not possible to do this so that all interpolated ``
 are equidistant; but points are equidistant in-between the initial discrete points provided
 in `kvs`.
 
-See also: [`splice_kvpath`](@ref).
+See also [`splice_kvpath`](@ref).
 """
 function interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
     Nkpairs = length(kvs)-1
