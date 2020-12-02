@@ -4,41 +4,43 @@ using Crystalline
     subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int64
 
 For two groups G and H, where H is a subgroup of G, i.e. G>H, with associated 
-irreducible representations `Dᴳᵢ`(g) and `Dᴴⱼ`(h) for elements g∈G and h∈H<G, compute 
-the compatibility relation between the two irreps from the subduction reduction 
-formula (or "magic" formula/Schur orthogonality relation): this is essentially
-how many times `nᴳᴴᵢⱼ` the subduced representation `Dᴳᵢ`↓H contains the irrep `Dᴴⱼ`; 
+irreducible representations `Dᴳᵢ```(g)`` and `Dᴴⱼ```(g)`` for elements ``g∈G`` and
+``h∈H<G``, compute the compatibility relation between the two irreps from the subduction
+reduction formula (or "magic" formula/Schur orthogonality relation): this is essentially
+how many times `nᴳᴴᵢⱼ` the subduced representation `Dᴳᵢ```↓H`` contains the irrep `Dᴴⱼ`; 
 in other words, this gives the compatibility between the two irreps.
 
 Optionally, a vector `αβγᴴⱼ` may be provided, to evaluate the characters/irreps 
-of Dᴳᵢ at a concrete value of αβγ. This is e.g. meaningful for LGIrreps at non-
+of `Dᴳᵢ` at a concrete value of αβγ. This is e.g. meaningful for LGIrreps at non-
 special k-vectors. Defaults to `nothing`.
 
 The reduction formula [e.g. Eq. (15) of https://arxiv.org/pdf/1706.09272.pdf] is:
 
-        nᴳᴴᵢⱼ = |H|⁻¹∑₍ₕ₎ χᴳᵢ(h)χᴴⱼ(h)*
+``nᴳᴴᵢⱼ = |H|^{-1}∑_h χ^G_i(h)χ^H_j(h)*``
 
 As an example, consider space group 207 and the two compatible k-vectors 
 Γ (a point) and Σ (a line):
 ```
-    lgirsd  = get_lgirreps(207, Val(3));
-    Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
-    Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
+lgirsd  = get_lgirreps(207, Val(3));
+Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
+Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
 ```
 We can test their compatibility like so:
 ```
-    [[subduction_count(Γi, Σj) for Γi in Γ_lgirs] for Σj in Σ_lgirs]
-    > # Γ₁ Γ₂ Γ₃ Γ₄ Γ₅
-    >  [ 1, 0, 1, 1, 2] # Σ₁
-    >  [ 0, 1, 1, 2, 1] # Σ₂
+[[subduction_count(Γi, Σj) for Γi in Γ_lgirs] for Σj in Σ_lgirs]
+> # Γ₁ Γ₂ Γ₃ Γ₄ Γ₅
+>  [ 1, 0, 1, 1, 2] # Σ₁
+>  [ 0, 1, 1, 2, 1] # Σ₂
 ```
 This entails the following compatibility relations between irreps at Γ and Σ:
 
-        Γ₁ → Σ₁           degeneracies: 1 → 1
-        Γ₂ → Σ₂                         1 → 1
-        Γ₃ → Σ₁ + Σ₂                    2 → 1 + 1
-        Γ₄ → Σ₁ + 2Σ₂                   3 → 1 + 2
-        Γ₅ → 2Σ₁ + Σ₂                   3 → 2 + 1
+| Compatibility relation | Degeneracies |
+|------------------------|--------------|
+| Γ₁ → Σ₁                | 1 → 1        |
+| Γ₂ → Σ₂                | 1 → 1        |
+| Γ₃ → Σ₁ + Σ₂           | 2 → 1 + 1    |
+| Γ₄ → Σ₁ + 2Σ₂          | 3 → 1 + 2    |
+| Γ₅ → 2Σ₁ + Σ₂          | 3 → 2 + 1    |
 
 where, in this case, all the small irreps are one-dimensional.
 """

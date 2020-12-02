@@ -217,13 +217,13 @@ end
 
 Computes the Herring criterion for a small irrep `lgir::LGIrrep`, from 
 
-``[∑ χ(\\{β|b\\}²)]/[g₀/M(k)]``
+``[∑ χ(\\{β|b\\}²)]/[g_0/M(k)]``
 
 over symmetry operations ``\\{β|b\\}`` that take ``k → -k``. 
-Here ``g₀`` is the order of the point group of the space group and ``M(k)`` is the order
+Here ``g_0`` is the order of the point group of the space group and ``M(k)`` is the order
 of the star(``k``) [both in a primitive basis].
 
-The returned value, ``[∑ χ(\\{β|b\\}²)]/[g₀/M(k)]``, is one of three integers in 
+The returned value, ``[∑ χ(\\{β|b\\}²)]/[g_0/M(k)]``, is one of three integers in 
 ``\\{1,-1,0\\}`` corresponding to {real, pseudoreal, complex} reality. 
 We remind that ISOTROPY's convention (and hence, the `type` field of `LGIrrep`s and 
 `PGIrrep`s) of the same reality types is ``\\{1,2,3\\}``.

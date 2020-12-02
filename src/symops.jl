@@ -191,12 +191,12 @@ pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 """ 
     (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
 
-Compose two symmetry operations `op1` ``= {W₁|w₁}`` and `op2` ``= {W₂|w₂}``
+Compose two symmetry operations `op1` ``= \\{W₁|w₁\\}`` and `op2` ``= \\{W₂|w₂\\}``
 using the composition rule (in Seitz notation)
 
-``{W₁|w₁}∘{W₂|w₂} = {W₁W₂|w₁+W₁w₂}``
+``\\{W₁|w₁\\}∘\\{W₂|w₂\\} = \\{W₁W₂|w₁+W₁w₂\\}``
 
-By default, the translation part of the ``{W₁W₂|w₁+W₁w₂}`` is reduced to the range
+By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is reduced to the range
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
@@ -238,11 +238,11 @@ end
 """
     (⊚)(op1::T, op2::T) where T<:SymOperation -->  Vector{Float64}
 
-Compose two symmetry operations `op1`={W₁|w₁} and `op2`={W₂|w₂} and
-return the quotient of w₁+W₁*w₂ and 1. This functionality complements
+Compose two symmetry operations `op1` ``= \\{W₁|w₁\\}`` and `op2` ``= \\{W₂|w₂\\}`` and
+return the quotient of ``w₁+W₁w₂`` and 1. This functionality complements
 `op1∘op2`, which yields the translation modulo 1; accordingly, 
 `translation(op1∘op2) + op1⊚op2` yields the translation component
-of the composition `op1` and `op2` **without** taking it modulo 1,
+of the composition `op1` and `op2` *without* taking it modulo 1,
 i.e. including any "trivial" lattice translation.
 
 Note that ⊚ can be auto-completed in Julia via \\circledcirc+[tab]
@@ -527,17 +527,17 @@ Transforms a `op` ``= \\{W|w\\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
 `op′` ``= \\{W'|w'\\}``: (see ITA6, Sec. 1.5.2.3)
 
-``\\{W'|w'\\} = \\{P|p\\}⁻¹\\{W|w\\}\\{P|p\\}``
+``\\{W'|w'\\} = \\{P|p\\}^{-1}\\{W|w\\}\\{P|p\\}``
 
-with  
+with
 
-``W' = P⁻¹WP`` and ``w' = P^{-1}(w+Wp-p)``
+``W' = P^{-1}WP`` and ``w' = P^{-1}(w+Wp-p)``
 
 By default, the translation part of `op′`, i.e. ``w'``, is reduced to the range ``[0,1)``, 
 i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
 true`).
 
-See also `primitivize` and `conventionalize`. 
+See also [`primitivize`](@ref) and [`conventionalize`]](@ref).
 """
 function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
@@ -766,7 +766,7 @@ issubgroup(G::T, H::T) where T<:SpaceGroup = issubgroup(operations(G), operation
 Determine whether the operations in group ``H`` are normal in the group ``G`` (each with 
 operations `opsᴳ` and `opsᴴ`), in the sense that 
     
-``ghg⁻¹ ∈ H ∀ g∈G, h∈H``
+``ghg⁻¹ ∈ H, ∀ g∈G, ∀ h∈H``
 
 Returns a Boolean answer (`true` if normal, `false` if not).
 

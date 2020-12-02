@@ -5,8 +5,8 @@ Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, ``\\mathbf{R}_3`` 
 Cartesian basis for a right-handed coordinate system with specified basis vector lengths
 `a`, `b`, `c` (associated with ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, & ``\\mathbf{R}_3``,
 respectively) and specified interaxial angles 
-`α =` ``∠(\\mathbf{R}_2,\\mathbf{R}_3)``, `β =` ``∠(\\mathbf{R}_3,\\mathbf{R}_1)``, 
-`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``, with ``∠`` denoting the angle between two vectors.
+`α` ``= ∠(\\mathbf{R}_2,\\mathbf{R}_3)``, `β` ``= ∠(\\mathbf{R}_3,\\mathbf{R}_1)``, 
+`γ` ``= ∠(\\mathbf{R}_1,\\mathbf{R}_2)``, with ``∠`` denoting the angle between two vectors.
 
 For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
 Cartesian coordinate system, and the ``\\mathbf{R}_2`` axis is placed in the ``xy``-plane.
@@ -39,7 +39,7 @@ end
 Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2`` in a 2D Cartesian basis for a 
 right-handed coordinate system with specified basis vector lengths `a`, `b` (associated with
 ``\\mathbf{R}_1`` & ``\\mathbf{R}_2``, respectively) and specified interaxial angle
-`γ =` ``∠(\\mathbf{R}_1,\\mathbf{R}_2)``.
+`γ` ``= ∠(\\mathbf{R}_1,\\mathbf{R}_2)``.
 
 For definiteness, the ``\\mathbf{R}_1`` basis vector is oriented along the ``x``-axis of the
 Cartesian coordinate system.
@@ -77,28 +77,28 @@ end
 °(φ::Real) = deg2rad(φ)
 
 """ 
-    crystalsystem(R::DirectBasis)
+    crystalsystem(R::DirectBasis{D})
 
 Determine the crystal system of a point lattice specified in a 
-*conventional* DirectBasis using
+*conventional* `DirectBasis{D}` of dimension `D` using
 Tables 2.1.2.1, 9.1.7.1, & 9.1.7.2 of the International Tables of 
 Crystallography, Volume 1 (ITA). 
 There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 
-| DIM | SYSTEM       | CONDITIONS             | FREE PARAMS      |
-|-----|--------------|------------------------|------------------|
-| 1D  | linear       | none                   | a                |
-| 2D  | square       | a=b & γ=90°            | a                |
-|     | rectangular  | γ=90°                  | a,b              |
-|     | hexagonal    | a=b & γ=120°           | a                |
-|     | oblique      | none                   | a,b,γ            |
-| 3D  | cubic        | a=b=c & α=β=γ=90°      | a                |
-|     | hexagonal    | a=b & α=β=90° & γ=120° | a,c              |
-|     | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR) |
-|     | tetragonal   | a=b & α=β=γ=90°        | a,c              |
-|     | orthorhombic | α=β=γ=90°              | a,b,c            |
-|     | monoclinic   | α=γ=90°                | a,b,c,β≥90°      |
-|     | triclinic    | none                   | a,b,c,α,β,γ      |
+| `D`  | System       | Conditions             | Free parameters      |
+|------|--------------|------------------------|----------------------|
+| *1D* | linear       | none                   | a                    |
+| *2D* | square       | a=b & γ=90°            | a                    |
+|      | rectangular  | γ=90°                  | a,b                  |
+|      | hexagonal    | a=b & γ=120°           | a                    |
+|      | oblique      | none                   | a,b,γ                |
+| *3D* | cubic        | a=b=c & α=β=γ=90°      | a                    |
+|      | hexagonal    | a=b & α=β=90° & γ=120° | a,c                  |
+|      | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR)     |
+|      | tetragonal   | a=b & α=β=γ=90°        | a,c                  |
+|      | orthorhombic | α=β=γ=90°              | a,b,c                |
+|      | monoclinic   | α=γ=90°                | a,b,c,β≥90°          |
+|      | triclinic    | none                   | a,b,c,α,β,γ          |
 
 The DirectBasis input is assumed to use *conventional* basis vectors; 
 i.e. not necessarily primitive. For primitive basis vectors, the 
@@ -185,13 +185,13 @@ end
 
 Computes a random number in the range specified by the two-element 
 tuple `lims`. The random numbers are sampled from two uniform 
-distributions, namely [lims[1], 1.0] and [1.0, lims[2]], in such a
+distributions, namely [`lims[1]`, 1] and [1, `lims[2]`], in such a
 way as to ensure that the sampling is uniform over the joint  
-interval [-1/lims[1], -1.0] ∪ [1.0, lims[2]].
+interval [-1/`lims[1]`, -1] ∪ [1, `lims[2]`].
 
 This is useful for ensuring an even sampling of numbers that are
-either smaller or larger than unity. Eg. for `x=relrand((0.2,5.0))`,
-`x` is equally probable to fall in inv(x)∈[1,5] or x∈[1,5].
+either smaller or larger than unity. Eg. for `x = relrand((0.2,5.0))`,
+`x` is equally probable to fall in inv(`x`)∈[1,5] or `x`∈[1,5].
 """
 function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
@@ -208,7 +208,7 @@ relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
     directbasis(sgnum, D=3;    abclims, αβγlims)
-    directbasis(sgnum, Val(D); abclims, αβγlims) ---> DirectBasis{D}
+    directbasis(sgnum, Val(D); abclims, αβγlims) --> DirectBasis{D}
     
 
 Generates a (conventional) DirectBasis for a crystal compatible with 

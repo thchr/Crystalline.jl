@@ -134,9 +134,8 @@ Return the (crystallographic) point group irreps of the IUC label `iuclab` of di
 as a vector of `PGIrrep{D}`s.
 
 ## Notes
-The irrep labelling follows that of CDML [1]
-(which implies occasional differences from the labelling in e.g. Bradley and Cracknell, 
-*The Mathematical Theory of Symmetry in Solids* (1972)).
+The irrep labelling follows the conventions of CDML [1] [which occasionally differ from
+those in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* (1972)].
 
 The data is sourced from the Bilbao Crystallographic Server [2]. If you are using this 
 functionality in an explicit fashion, please cite the original reference [3].
