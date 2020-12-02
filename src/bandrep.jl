@@ -123,7 +123,7 @@ Technically, the calculation answers a question like "what direct product of
 ``\\mathbb{Z}_n`` groups is the the quotient group
 ``X^{\\text{bs}} = \\{\\text{BS}\\}/\\{\\text{AI}\\}`` isomorphic to?".
 
-See e.g. Po, Watanabe, & Vishwanath, Nature Commun. *8*, 50 (2017) for more information.
+See e.g. Po, Watanabe, & Vishwanath, Nature Commun. **8**, 50 (2017) for more information.
 """
 function classification(BRS::BandRepSet)
     # get the diagonal components of the Smith normal decomposition (≥ 0)
@@ -142,7 +142,7 @@ end
 
 Computes the dimension of the (linearly independent parts) of a band representation set.
 This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of Po, Watanabe, & Vishwanath,
-Nature Commun. *8*, 50 (2017). In other words, this is the number of linearly independent
+Nature Commun. **8**, 50 (2017). In other words, this is the number of linearly independent
 basis vectors that span the expansions of a band structure or atomic insulator viewed as
 symmetry-data.
 """ 

@@ -191,12 +191,12 @@ pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 """ 
     (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
 
-Compose two symmetry operations `op1` ``= {W₁|w₁} and `op2` ``= {W₂|w₂}``
+Compose two symmetry operations `op1` ``= {W₁|w₁}`` and `op2` ``= {W₂|w₂}``
 using the composition rule (in Seitz notation)
 
-    ``{W₁|w₁}∘{W₂|w₂} = {W₁*W₂|w₁+W₁*w₂}``
+``{W₁|w₁}∘{W₂|w₂} = {W₁W₂|w₁+W₁w₂}``
 
-By default, the translation part of the ``{W₁*W₂|w₁+W₁*w₂}`` is reduced to the range
+By default, the translation part of the ``{W₁W₂|w₁+W₁w₂}`` is reduced to the range
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
@@ -466,7 +466,7 @@ kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Computes the action of the SymOperation `op` ``≡ g`` on a KVec `kv` ``≡ k``
+Computes the action of `op` ``≡ g`` on a KVec `kv` ``≡ k``
 using that ``g`` acts on k-vectors as ``k(G)′ = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
 in an ``R``-basis and k in a ``G``-basis. Returns a new `KVec`, that is 
 possibly distinct from its original only by a reciprocal lattice
@@ -488,12 +488,12 @@ end
 """
     primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> SymOperation
 
-Transforms a symmetry operation `op` ``= {W|w}`` from a conventional cell to a primitive cell
-(specified by its centering character `cntr`), then denoted ``{W′|w′}``; i.e. performs a
-basis change ``{W′|w′} = {P|p}⁻¹{W|w}{P|p}`` where ``P`` and ``p`` describe basis change and
-origin shifts, respectively, of the coordinate transformation.
+Transforms a symmetry operation `op` ``= \{W|w\}`` from a conventional cell to a primitive
+cell (specified by its centering character `cntr`), then denoted ``\{W'|w'\}``; i.e.
+performs a basis change `op′` ``≡ \{W'|w'\} = \{P|p\}⁻¹\{W|w\}\{P|p\}`` where ``P`` and ``p``
+are the basis change matrix and origin shifts, respectively, of the transformation.
 
-By default, translation parts of `op′`, i.e. ``w′`` are reduced modulo 1 (`modw = true`); to
+By default, translation parts of `op′`, i.e. ``w'`` are reduced modulo 1 (`modw = true`); to
 disable this, set `modw = false`.
 
 For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
@@ -523,14 +523,17 @@ end
               p::Union{Vector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                          --> SymOperation
 
-Transforms a symmetry operation `op` ``= {W|w}`` by a rotation matrix `P` and a translation
+Transforms a `op` ``= \{W|w\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= {W′|w′}``: (see ITA6, Sec. 1.5.2.3.)
+`op′` ``= \{W'|w'\}``: (see ITA6, Sec. 1.5.2.3.)
 
-``{W′|w′} = {P|p}⁻¹{W|w}{P|p}``
-with  ``W′ = P⁻¹WP`` and ``w′ = P⁻¹(w+Wp-p)``
+``\{W'|w'\} = \{P|p\}⁻¹\{W|w\}\{P|p\}``
 
-By default, the translation part of `op′`, i.e. ``w′``, is reduced to the range ``[0,1)``, 
+with  
+
+``W' = P⁻¹WP`` and ``w' = P^{-1}(w+Wp-p)``
+
+By default, the translation part of `op′`, i.e. ``w'``, is reduced to the range ``[0,1)``, 
 i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
 true`).
 
@@ -625,7 +628,7 @@ end
 """
     cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) --> SymOperation{D}
 
-Convert a `SymOperation` `opˡ` from the lattice basis to a Cartesian basis, by computing the
+Converts `opˡ` from a lattice basis to a Cartesian basis, by computing the
 transformed operators `opᶜ = 𝐑*opˡ*𝐑⁻¹` via the Cartesian basis matrix 𝐑 (whose columns are
 the `DirectBasis` vectors `Rs[i]`). 
 
@@ -656,7 +659,7 @@ cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(
                                                 --> Tuple{Int, Vector{Float64}}
 
 Search for an operator `op′` in `ops` which is equivalent, modulo differences
-by **primitive** lattice translations `Δw`, to `op`. Return the index of `op′` in 
+by *primitive* lattice translations `Δw`, to `op`. Return the index of `op′` in 
 `ops`, as well as the primitive translation difference `Δw`. If no match is found
 returns `(nothing, nothing)`.
 
@@ -687,13 +690,13 @@ end
 
 
 """
-    _findsubgroup(opsᴳ, opsᴴ) --> Bool, Vector{Int64}
+    _findsubgroup(opsᴳ, opsᴴ) --> (Bool, Vector{Int64})
 
-Determine whether the group H (with operators `opsᴴ`) is a subgroup
-of the group G (with operators `opsᴳ`), i.e. whether H<G, and returns
+Determine whether the group ``H`` (with operators `opsᴴ`) is a subgroup
+of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
 an indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `false`), such
-that `opsᴳ[idxs] ≡ H`. 
-The first return argument is a Boolean (whether H<G); the second is `idxs`.
+that `opsᴳ[idxs]` ``≡ H``. 
+The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
 
 """
 function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{<:SymOperation{<:Any}}
@@ -711,17 +714,18 @@ end
 _findsubgroup(G::T, H::T) where T<:SpaceGroup = _findsubgroup(operations(G), operations(H))
 
 """
-    issubgroup(opsᴳ::T, opsᴴ::T) --> Bool
+    issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D}} --> Bool
 
-Determine whether the operations in group H are a subgroup of the group G (each with 
-operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation{D}}`),
-i.e. whether H<G. Specifically, this requires that G and H are both groups and that 
-for every h∈H there exists an element g∈G such that h=g.
+Determine whether the operations in group ``H`` are a subgroup of the group ``G`` (each with 
+operations `opsᴳ` and `opsᴴ`, respectively), i.e. whether ``H<G``.
+Specifically, this requires that ``G`` and ``H`` are both groups and that for every ``h∈H``
+there exists an element ``g∈G`` such that ``h=g``.
 
-Returns a Boolean answer (true if normal, false if not).
+Returns a Boolean answer (`true` if normal, `false` if not).
 
-**Note:** This compares space groups rather than space group types, i.e. the 
-comparison assumes a matching setting choice between H and G. To compare space 
+## Note
+This compares space groups rather than space group types, i.e. the 
+comparison assumes a matching setting choice between ``H`` and ``G``. To compare space 
 group types with different conventional settings, they must first be transformed
 to a shared setting.
 """
@@ -756,18 +760,19 @@ issubgroup(G::T, H::T) where T<:SpaceGroup = issubgroup(operations(G), operation
 
 
 """
-    isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) --> Bool
+    isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{SymOperation{D}}
+                                                    --> Bool
 
-Determine whether the operations in group H are normal in the group G (each with 
-operations `opsᴳ` and `opsᴴ`, respectively, of type `T::AbstractVector{SymOperation{D}}`),
-in the sense that 
+Determine whether the operations in group ``H`` are normal in the group ``G`` (each with 
+operations `opsᴳ` and `opsᴴ`), in the sense that 
     
-    ghg⁻¹ ∈ H ∀ g∈G, h∈H
+``ghg⁻¹ ∈ H ∀ g∈G, h∈H``
 
-Returns a Boolean answer (true if normal, false if not).
+Returns a Boolean answer (`true` if normal, `false` if not).
 
-**Note:** This that this compares space groups rather than space group types, i.e. the 
-comparison assumes a matching setting choice between H and G. To compare space 
+## Note 
+This compares space groups rather than space group types, i.e. the 
+comparison assumes a matching setting choice between ``H`` and ``G``. To compare space 
 group types with different conventional settings, they must first be transformed
 to a shared setting.
 """
@@ -798,7 +803,7 @@ isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H)
 
 Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
 
-**Keyword arguments:**
+## Keyword arguments
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
   case, the provided generators will also be taken modulo integer lattice translations.
