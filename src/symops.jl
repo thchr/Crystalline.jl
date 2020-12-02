@@ -466,8 +466,8 @@ kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 """
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Computes the action of `op` ``≡ g`` on a KVec `kv` ``≡ k``
-using that ``g`` acts on k-vectors as ``k(G)′ = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
+Computes the action of `op::SymOperation` ``≡ g`` on `kv::KVec` ``≡ k``
+using that ``g`` acts on k-vectors as ``k(G)' = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
 in an ``R``-basis and k in a ``G``-basis. Returns a new `KVec`, that is 
 possibly distinct from its original only by a reciprocal lattice
 vector (i.e. multiple of integers).
@@ -488,9 +488,9 @@ end
 """
     primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> SymOperation
 
-Transforms a symmetry operation `op` ``= \{W|w\}`` from a conventional cell to a primitive
-cell (specified by its centering character `cntr`), then denoted ``\{W'|w'\}``; i.e.
-performs a basis change `op′` ``≡ \{W'|w'\} = \{P|p\}⁻¹\{W|w\}\{P|p\}`` where ``P`` and ``p``
+Transforms a symmetry operation `op` ``= \\{W|w\\}`` from a conventional cell to a primitive
+cell (specified by its centering character `cntr`), then denoted ``\\{W'|w'\\}``; i.e.
+performs a basis change `op′` ``≡ \\{W'|w'\\} = \\{P|p\\}⁻¹\\{W|w\\}\\{P|p\\}`` where ``P`` and ``p``
 are the basis change matrix and origin shifts, respectively, of the transformation.
 
 By default, translation parts of `op′`, i.e. ``w'`` are reduced modulo 1 (`modw = true`); to
@@ -523,11 +523,11 @@ end
               p::Union{Vector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                          --> SymOperation
 
-Transforms a `op` ``= \{W|w\}`` by a rotation matrix `P` and a translation
+Transforms a `op` ``= \\{W|w\\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= \{W'|w'\}``: (see ITA6, Sec. 1.5.2.3.)
+`op′` ``= \\{W'|w'\\}``: (see ITA6, Sec. 1.5.2.3)
 
-``\{W'|w'\} = \{P|p\}⁻¹\{W|w\}\{P|p\}``
+``\\{W'|w'\\} = \\{P|p\\}⁻¹\\{W|w\\}\\{P|p\\}``
 
 with  
 
