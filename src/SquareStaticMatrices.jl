@@ -67,13 +67,18 @@ end
     @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
 end
 
-function flatten_nested_ntuples(cols::NTuple{D, NTuple{D, T}}) where {D,T}
+function flatten_nested(cols::NTuple{D, NTuple{D, T}}) where {D,T}
     ntuple(Val{D*D}()) do idx
        i, j = (idx+D-1)÷D, mod1(idx, D)
        cols[i][j]
     end
 end
-flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested_ntuples(A.cols)
+flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested(A.cols)
+# equivalent recursive implementation (equal performance for small N but much worse for large N)
+# flatten_nested(cols::NTuple{N, NTuple{N, T}}) where {N,T} = flatten_nested(cols...)
+# flatten_nested(x) = x
+# flatten_nested(x,y) = (x...,y...)
+# flatten_nested(x,y,z...) = (x..., flatten_nested(y, z...)...)
 
 function SMatrix(A::SqSMatrix{D, T})  where {D,T}
     SMatrix{D, D, T, D*D}(flatten(A))
