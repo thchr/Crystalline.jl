@@ -1,5 +1,5 @@
 module SquareStaticMatrices
-# This module defines `SquareSMatrix{D,T}` an analogue of `SMatrix{D,D,T,D*D}` that only needs
+# This module defines `SqSMatrix{D,T}` an analogue of `SMatrix{D,D,T,D*D}` that only needs
 # a single dimensional type parameter, avoiding the redundant type parameter `L=D*D`. 
 # This is desirable if we want to have a square static matrix in some struct but want to
 # avoid dragging the redundant `L` parameter around *everywhere*. 
@@ -18,47 +18,47 @@ using Base: @propagate_inbounds
 import StaticArrays: SMatrix
 import Base: convert, eltype, size, getindex, firstindex, lastindex
 
-export SquareSMatrix
+export SqSMatrix
 
 # ---------------------------------------------------------------------------------------- #
 # struct definition
 
 # an equivalent of `SMatrix{D,D,T,D*D}`, but requiring only a single dimension type
 # parameter, rather than two
-struct SquareSMatrix{D, T} <: AbstractMatrix{T}
+struct SqSMatrix{D, T} <: AbstractMatrix{T}
     data::NTuple{D, NTuple{D, T}} # tuple of column-elements (as tuple elements)
 end
-function getindex(A::SquareSMatrix{D}, i, j) where D
+function getindex(A::SqSMatrix{D}, i, j) where D
     @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
     return @inbounds A.data[j][i]
 end
 
 # ---------------------------------------------------------------------------------------- #
 # AbstractArray interface
-size(::SquareSMatrix{D}) where D = (D,D)
-eltype(::SquareSMatrix{D,T}) where D where T = T
-firstindex(::SquareSMatrix) = 1
-lastindex(::SquareSMatrix{D}) where D = D
-lastindex(::SquareSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
+size(::SqSMatrix{D}) where D = (D,D)
+eltype(::SqSMatrix{D,T}) where D where T = T
+firstindex(::SqSMatrix) = 1
+lastindex(::SqSMatrix{D}) where D = D
+lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 
-@propagate_inbounds function convert(::Type{SquareSMatrix{D, T}}, A::AbstractMatrix{T}) where D where T
+@propagate_inbounds function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix{T}) where D where T
     # TODO: this could be a little bit faster if we used a generated function as they do in
     #       for the StaticArrays ` unroll_tuple(a::AbstractArray, ::Length{L})` method...
     @boundscheck checksquare(A) == D
     data = @inbounds ntuple(Val{D}()) do j
         ntuple(i->A[i,j], Val{D}())
     end
-    SquareSMatrix{D,T}(data)
+    SqSMatrix{D,T}(data)
 end
 
-@propagate_inbounds function SquareSMatrix{D}(A::AbstractMatrix{T}) where D where T
-    convert(SquareSMatrix{D,T}, A)
+@propagate_inbounds function SqSMatrix{D}(A::AbstractMatrix{T}) where D where T
+    convert(SqSMatrix{D,T}, A)
 end
-@propagate_inbounds function SquareSMatrix(A::AbstractMatrix{T}) where T
+@propagate_inbounds function SqSMatrix(A::AbstractMatrix{T}) where T
     D = checksquare(A)
-    @inbounds SquareSMatrix{D}(A::AbstractMatrix{T})
+    @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
 end
 
 function flatten_nested_ntuples(data::NTuple{D, NTuple{D, T}}) where D where T
@@ -67,9 +67,9 @@ function flatten_nested_ntuples(data::NTuple{D, NTuple{D, T}}) where D where T
        data[i][j]
     end
 end
-flatten(A::SquareSMatrix{D,T}) where D where T = flatten_nested_ntuples(A.data)
+flatten(A::SqSMatrix{D,T}) where D where T = flatten_nested_ntuples(A.data)
 
-function SMatrix(A::SquareSMatrix{D, T}) where D where T
+function SMatrix(A::SqSMatrix{D, T}) where D where T
     SMatrix{D, D, T, D*D}(flatten(A))
 end
 
