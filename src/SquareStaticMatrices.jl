@@ -70,7 +70,7 @@ end
 function flatten_nested(cols::NTuple{D, NTuple{D, T}}) where {D,T}
     ntuple(Val{D*D}()) do idx
        i, j = (idx+D-1)÷D, mod1(idx, D)
-       cols[i][j]
+       @inbounds cols[i][j]
     end
 end
 flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested(A.cols)
@@ -83,5 +83,22 @@ flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested(A.cols)
 function SMatrix(A::SqSMatrix{D, T})  where {D,T}
     SMatrix{D, D, T, D*D}(flatten(A))
 end
+
+# use a generated function to stack a "square" NTuple very efficiently: allows efficient
+# conversion from an `SMatrix` to an `SqSmatrix`
+@generated function stack_square_tuple(xs::NTuple{N, T}) where {N,T}
+    D = isqrt(N)
+    if D*D != N 
+        return :(throw(DomainError($N, "called with tuple of non-square length $N")))
+    else
+        exs=[[:(xs[$i+($j-1)*$D]) for i in 1:D] for j in 1:D]
+        quote
+            Base.@_inline_meta
+            @inbounds return $(Expr(:tuple, (map(ex->Expr(:tuple, ex...), exs))...))
+        end
+    end
+end
+convert(::Type{SqSMatrix{D,T}}, A::SMatrix{D,D,T}) where {D,T} = SqSMatrix{D,T}(stack_square_tuple(A.data))
+SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 
 end # module
