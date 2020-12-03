@@ -816,7 +816,8 @@ function generate(gens::AbstractVector{SymOperation{D}};
                   modτ::Bool=true,
                   Nmax::Integer=256) where D
     ops = if modτ
-        [SymOperation{D}(op.rotation_cols, reduce_translation_to_unitrange(translation(op))) for op in gens]
+        [SymOperation{D}(eachcol(op.rotation), 
+         reduce_translation_to_unitrange(translation(op))) for op in gens]
     else
         collect(gens)
     end

@@ -16,7 +16,7 @@ using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
 import StaticArrays: SMatrix
-import Base: convert, eltype, size, getindex, firstindex, lastindex
+import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol
 
 export SqSMatrix
 
@@ -26,34 +26,35 @@ export SqSMatrix
 # an equivalent of `SMatrix{D,D,T,D*D}`, but requiring only a single dimension type
 # parameter, rather than two
 struct SqSMatrix{D, T} <: AbstractMatrix{T}
-    data::NTuple{D, NTuple{D, T}} # tuple of column-elements (as tuple elements)
+    cols::NTuple{D, NTuple{D, T}} # tuple of columns (themselves stored as tuples)
 end
 function getindex(A::SqSMatrix{D}, i, j) where D
     @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
-    return @inbounds A.data[j][i]
+    return @inbounds A.cols[j][i]
 end
 
 # ---------------------------------------------------------------------------------------- #
 # AbstractArray interface
 size(::SqSMatrix{D}) where D = (D,D)
-eltype(::SqSMatrix{D,T}) where D where T = T
+eltype(::SqSMatrix{D,T}) where {D,T} = T
 firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
+eachcol(A::SqSMatrixx) = A.cols
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 
-@propagate_inbounds function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix{T}) where D where T
+@propagate_inbounds function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix{T}) where {D,T}
     # TODO: this could be a little bit faster if we used a generated function as they do in
     #       for the StaticArrays ` unroll_tuple(a::AbstractArray, ::Length{L})` method...
     @boundscheck checksquare(A) == D
-    data = @inbounds ntuple(Val{D}()) do j
+    cols = @inbounds ntuple(Val{D}()) do j
         ntuple(i->A[i,j], Val{D}())
     end
-    SqSMatrix{D,T}(data)
+    SqSMatrix{D,T}(cols)
 end
 
-@propagate_inbounds function SqSMatrix{D}(A::AbstractMatrix{T}) where D where T
+@propagate_inbounds function SqSMatrix{D}(A::AbstractMatrix{T}) where {D,T}
     convert(SqSMatrix{D,T}, A)
 end
 @propagate_inbounds function SqSMatrix(A::AbstractMatrix{T}) where T
@@ -61,15 +62,15 @@ end
     @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
 end
 
-function flatten_nested_ntuples(data::NTuple{D, NTuple{D, T}}) where D where T
+function flatten_nested_ntuples(cols::NTuple{D, NTuple{D, T}}) where {D,T}
     ntuple(Val{D*D}()) do idx
        i, j = (idx+D-1)÷D, mod1(idx, D)
-       data[i][j]
+       cols[i][j]
     end
 end
-flatten(A::SqSMatrix{D,T}) where D where T = flatten_nested_ntuples(A.data)
+flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested_ntuples(A.cols)
 
-function SMatrix(A::SqSMatrix{D, T}) where D where T
+function SMatrix(A::SqSMatrix{D, T})  where {D,T}
     SMatrix{D, D, T, D*D}(flatten(A))
 end
 

@@ -69,9 +69,9 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     # we construct the SqSMatrix's tuple data manually, rather than calling e.g.
     # `convert(SqSMatrix{D, Float64}, @view m[OneTo(D),OneTo(D)])`, just because it is
     # slightly faster that way (maybe the view has a small penalty?)...
-    rotation_cols = ntuple(j -> ntuple(i -> (@inbounds m[i,j]), Val(D)), Val(D))
-    rotation      = SqSMatrix{D, Float64}(rotation_cols)
-    translation   = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
+    tuple_cols  = ntuple(j -> ntuple(i -> (@inbounds m[i,j]), Val(D)), Val(D))
+    rotation    = SqSMatrix{D, Float64}(tuple_cols)
+    translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
     SymOperation{D}(rotation, translation)
 end
 
@@ -80,7 +80,7 @@ rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation
 matrix(op::SymOperation{D}) where D = 
     SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
-                                       translation(op).data...))
+                                       translation(op)...))
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
@@ -95,7 +95,7 @@ firstindex(::SymOperation) = 1
 lastindex(::SymOperation{D}) where D = D*(D+1)
 lastindex(::SymOperation{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D+1 : 1)
 IndexStyle(::SymOperation) = IndexLinear()
-size(::SymOperation{D}) where D = (D,D+1)
+size(::SymOperation{D}) where D = (D, D+1)
 eltype(::SymOperation) = Float64
 
 rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
@@ -105,7 +105,7 @@ translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly
 
 dim(::SymOperation{D}) where D = D
 function (==)(op1::SymOperation, op2::SymOperation)
-    if dim(op1) == dim(op2) && op1.rotation.data == op2.rotation.data && translation(op1) == translation(op2)
+    if dim(op1) == dim(op2) && op1.rotation == op2.rotation && translation(op1) == translation(op2)
         return true
     else
         return false
