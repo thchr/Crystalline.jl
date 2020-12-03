@@ -60,29 +60,27 @@ basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct SymOperation{D} <: AbstractMatrix{Float64}
-    # It is not possible to store the rotation as an SMatrix{D,D,Float64,D*D} without 
-    # adding an extra type parameter L=D*D. To avoid having to drag that parameter around
-    # *everywhere*, we instead store the rotation as a nested NTuple{D,...} of
-    # NTuple{D,Float64}, and build efficient conversion-mechanisms from this to an SMatrix.
-    # These conversions are pretty much free, because the memory outlay is exactly the same.
-    # Some relevant discussion of related problems is e.g.:
-    #   https://github.com/JuliaLang/julia/issues/18466 
-    #   https://discourse.julialang.org/t/addition-to-parameter-of-parametric-type/20059
-    rotation_cols::NTuple{D, NTuple{D, Float64}} # store matrix columns as tuples
-    translation::SVector{D, Float64}
+    rotation    :: SqSMatrix{D, Float64} # a square stack-allocated matrix
+    translation :: SVector{D, Float64}
 end
 SymOperation(m::AbstractMatrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 function SymOperation{D}(m::AbstractMatrix{Float64}) where D
-    rotation_cols = ntuple((j)->ntuple(i->m[i,j], Val(D)), Val(D))
-    translation   = SVector{D, Float64}(ntuple(j->m[j, D+1], Val(D)))
-    SymOperation{D}(rotation_cols, translation)
+    @boundscheck size(m) == (D, D+1)
+    # we construct the SqSMatrix's tuple data manually, rather than calling e.g.
+    # `convert(SqSMatrix{D, Float64}, @view m[OneTo(D),OneTo(D)])`, just because it is
+    # slightly faster that way (maybe the view has a small penalty?)...
+    rotation_cols = ntuple(j -> ntuple(i -> (@inbounds m[i,j]), Val(D)), Val(D))
+    rotation      = SqSMatrix{D, Float64}(rotation_cols)
+    translation   = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
+    SymOperation{D}(rotation, translation)
 end
 
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
-flatten_nested_ntuples(x::NTuple{D, NTuple{D, T}}) where D where T = ntuple((i)->x[(i+D-1)÷D][mod1(i,D)], Val(D*D))
-rotation(op::SymOperation{D}) where D = SMatrix{D, D, Float64, D*D}(flatten_nested_ntuples(op.rotation_cols))
+rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation
-matrix(op::SymOperation{D}) where D = SMatrix{D, D+1, Float64, D*(D+1)}((flatten_nested_ntuples(op.rotation_cols)..., translation(op).data...))
+matrix(op::SymOperation{D}) where D = 
+    SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
+                                       translation(op).data...))
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
@@ -100,14 +98,14 @@ IndexStyle(::SymOperation) = IndexLinear()
 size(::SymOperation{D}) where D = (D,D+1)
 eltype(::SymOperation) = Float64
 
-rotation(m::AbstractMatrix{<:Real}) = m[:,1:end-1] # rotational (proper or improper) part of an operation
-translation(m::AbstractMatrix{<:Real}) = m[:,end]  # translation part of an operation
+rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
+translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of an operation
 rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for type-stability w/ StaticArrays (returns an SMatrix{D,D,...})
-translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,D+1]      # not strictly needed for type-stability    (returns an SVector{D,...})
+translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly needed for type-stability    (returns an SVector{D,...})
 
 dim(::SymOperation{D}) where D = D
 function (==)(op1::SymOperation, op2::SymOperation)
-    if dim(op1) == dim(op2) && op1.rotation_cols == op2.rotation_cols && translation(op1) == translation(op2)
+    if dim(op1) == dim(op2) && op1.rotation.data == op2.rotation.data && translation(op1) == translation(op2)
         return true
     else
         return false

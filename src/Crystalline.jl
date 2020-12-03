@@ -26,6 +26,10 @@ import LinearAlgebra: inv
 import Random                 # → _Uniform in src/utils.jl
 import Random: rand           # ⤶
 
+# include submodules
+include("SquareStaticMatrices.jl")
+using .SquareStaticMatrices # exports SSqMatrix{D,T}
+
 # included files and exports
 include("constants.jl")
 export MAX_SGNUM
