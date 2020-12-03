@@ -40,7 +40,7 @@ eltype(::SqSMatrix{D,T}) where {D,T} = T
 firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
-eachcol(A::SqSMatrixx) = A.cols
+eachcol(A::SqSMatrix) = A.cols
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 
