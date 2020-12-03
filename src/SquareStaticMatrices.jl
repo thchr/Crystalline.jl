@@ -28,10 +28,6 @@ export SqSMatrix
 struct SqSMatrix{D, T} <: AbstractMatrix{T}
     cols::NTuple{D, NTuple{D, T}} # tuple of columns (themselves stored as tuples)
 end
-function getindex(A::SqSMatrix{D}, i, j) where D
-    @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
-    return @inbounds A.cols[j][i]
-end
 
 # ---------------------------------------------------------------------------------------- #
 # AbstractArray interface
@@ -41,6 +37,10 @@ firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
 eachcol(A::SqSMatrix) = A.cols
+function getindex(A::SqSMatrix{D}, i, j) where D
+    @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
+    return @inbounds A.cols[j][i]
+end
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 
@@ -51,6 +51,11 @@ eachcol(A::SqSMatrix) = A.cols
     cols = @inbounds ntuple(Val{D}()) do j
         ntuple(i->A[i,j], Val{D}())
     end
+    SqSMatrix{D,T}(cols)
+end
+
+# allow an NTuple{D,NTuple{D,T}} to be converted automatically to SqSMatrix{D,T} if relevant
+function convert(::Type{SqSMatrix{D, T}}, cols::NTuple{D, NTuple{D, T}}) where {D,T}
     SqSMatrix{D,T}(cols)
 end
 
