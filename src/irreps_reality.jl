@@ -1,5 +1,3 @@
-const TEST_αβγ = [0.123,0.456,0.789] # arbitrary test numbers for KVecs
-
 """
     realify(lgirs::AbstractVector{<:LGIrrep}, verbose::Bool=false)
                                                         --> AbstractVector{<:LGIrrep}
@@ -32,7 +30,8 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Nirr = length(lgirs)
     lg = group(first(lgirs))
     kv = kvec(lg) # must be the same for all irreps in list
-    kv_αβγ = kv(TEST_αβγ)
+    αβγ    = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[Base.OneTo(D)]
+    kv_αβγ = kv(αβγ)
     sgnum = num(lg)
     lgops = operations(lg)
     Nops = order(lg) # order of little group (= number of operations)
@@ -116,10 +115,10 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 # It seems rather tedious to prove that this is the case for all 𝐤s along a
                 # line/plane (α,β,γ). Rather than attempt this, we simply test against an
                 # arbitrary value of (α,β,γ) [superfluous entries are ignored] that is
-                # non-special (i.e. ∉ {0,0.5,1}); this is `TEST_αβγ`.
+                # non-special (i.e. ∉ {0,0.5,1}); this is `αβγ`.
 
                 # Characters of the conjugate of Dᵢ, i.e. tr(Dᵢ*) = tr(Dᵢ)*
-                θχᵢ = conj.(characters(lgir, TEST_αβγ))
+                θχᵢ = conj.(characters(lgir, αβγ))
                 
                 # Find matching complex partner
                 partner = 0
@@ -133,7 +132,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         #     χⁱ(g)* = χʲ(g₋⁻¹gg₋) ∀g ∈ G(k)
                         # with g₋ an element of G that takes 𝐤 to -𝐤, and where χⁱ (χʲ) denotes
                         # the characters of the respective irreps.
-                        χⱼ = characters(lgirs[j], TEST_αβγ)
+                        χⱼ = characters(lgirs[j], αβγ)
                         match = true
                         for n in Base.OneTo(Nops)
                             if k_equiv_kv₋ # 𝐤 = -𝐤 + 𝐆 ⇒ g₋ = I (the unit element), s.t. g₋⁻¹gg₋ = I⁻¹gI = g    (Cornwall's case (3))

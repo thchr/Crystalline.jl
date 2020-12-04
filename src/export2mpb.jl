@@ -240,8 +240,8 @@ function write_lgs_to_mpb!(io::IO, lgs::AbstractVector{<:LittleGroup{D}}) where 
     write(io, "ws",     "=");  _vec2list(io, _vec2vector3∘translation, ops); println(io)
     write(io, "opidxs", "=");  _vec2list(io, _vec2list, idxs2ops);
 
-    # define the k-points across `lgs`, evaluated with (α,β,γ) = (0.25,0.25,0.25)
-    αβγ = fill(0.25, D)
+    # define the k-points across `lgs`, evaluated with (α,β,γ) = TEST_αβγ
+    αβγ   = length(TEST_αβγ) == D ? TEST_αβγ : TEST_αβγ[Base.OneTo(D)]
     kvecs = map(lg->kvec(lg)(αβγ), lgs)
     # ... does not print a newline after last line; should be added by callee if relevant
 

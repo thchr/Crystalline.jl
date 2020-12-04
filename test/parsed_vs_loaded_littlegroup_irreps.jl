@@ -24,8 +24,8 @@ end
                 @test isapprox(kvec(lgir), kvec(lgir′))
                 @test all(operations(lgir) .== operations(lgir′))
                 # test that irreps agree
-                for kabc in (nothing, Crystalline.TEST_αβγ)
-                    @test irreps(lgir) == irreps(lgir′)
+                for αβγ in (nothing, Crystalline.TEST_αβγ)
+                    @test irreps(lgir, αβγ) == irreps(lgir′, αβγ)
                 end
 
             end

@@ -1,10 +1,13 @@
-# SCALARS
-const DEFAULT_ATOL = 1e-12 # absolute tolerance for approximate equality
-const NULL_ATOL = 1e-11    # absolute tolerance for nullspace
-const MAX_SGNUM = (2, 17, 230) # number of space groups in dimensions 1, 2, and 3
+# --- SCALARS ---
+const DEFAULT_ATOL = 1e-12        # absolute tolerance for approximate equality
+const NULL_ATOL    = 1e-11        # absolute tolerance for nullspace
+const MAX_SGNUM    = (2, 17, 230) # number of space groups in dimensions 1, 2, and 3
 
-# LISTS
+# --- VECTORS ---
+# arbitrary test vector for e.g. evaluating KVecs lines/planes/volumes; 3D by default
+const TEST_αβγ = [0.123123123, 0.456456456, 0.789789789]
 
+# --- LISTS ---
 # The following space group numbers are symmorphic; in 3D they each embody one of 
 # the 73 arithmetic crystal classes. Basically, this is the combination of the 14  
 # Bravais lattices with the 32 point groups/geometric crystal classes. Obtained from e.g.
