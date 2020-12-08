@@ -100,5 +100,6 @@ end
 end
 convert(::Type{SqSMatrix{D,T}}, A::SMatrix{D,D,T}) where {D,T} = SqSMatrix{D,T}(stack_square_tuple(A.data))
 SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
+SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T,D*D}, A))
 
 end # module

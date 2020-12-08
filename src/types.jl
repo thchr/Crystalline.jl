@@ -74,7 +74,8 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
     SymOperation{D}(rotation, translation)
 end
-
+SymOperation(r::SMatrix{D,D,<:Real}, t::SVector{D,<:Real}) where D =
+    SymOperation{D}(SqSMatrix{D,Float64}(r), float(t))
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation

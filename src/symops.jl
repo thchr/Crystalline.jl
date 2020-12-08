@@ -180,9 +180,11 @@ Returns a `Vector` of `SymOperation`s.
 """
 function pointgroup(ops::AbstractVector{SymOperation{D}}) where D
     # find SymOperations that are unique with respect to their rotational parts
-    unique_rotation_ops = unique(rotation, ops) 
-    # return rotation-only SymOperations from the above unique set
-    return SymOperation{D}.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, D))))
+    pgops = unique(rotation, ops) 
+    # return rotations only from the above unique set (set translations to zero)
+    map!(pgops, pgops) do op
+        SymOperation{D}(rotation(op), zero(SVector{D, Float64}))
+    end
     # TODO: Return a PointGroup?
 end
 pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
@@ -201,38 +203,38 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
 function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
-    T((∘)(matrix(op1), matrix(op2), modτ))
+    T((∘)(rotation(op1), translation(op1), rotation(op2), translation(op2), modτ)...)
 end
-function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
-    W′ = rotation(op1)*rotation(op2)
-    w′ = translation(op1) + rotation(op1)*translation(op2)
+function (∘)(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SMatrix{D,D,<:Real} where R<:SVector{D,<:Real} where D
+    W′ = W₁*W₂
+    w′ = w₁ + W₁*w₂
 
     if modτ
         w′ = reduce_translation_to_unitrange(w′)
     end
 
-    return [W′ w′]
+    return W′, w′
 end
 const compose = ∘
 
-function reduce_translation_to_unitrange(w::SVector{D, Float64}) where D # reduces components to range [0.0, 1.0[
+function reduce_translation_to_unitrange(w::SVector{D, <:Real}) where D # reduces components to range [0.0, 1.0[
     # naïve approach to achieve semi-robust reduction of integer-translation
     # via a slightly awful "approximate" modulo approach; basically just the
     # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
     # around each integer.
-    w′ = mod.(w, 1.0)
+    w′ = mod.(w, one(eltype(w)))
     # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
     # due to floating point errors: we use a tolerance here to round everything 
     # close to 0.0 or 1.0 exactly to 0.0
     w′_cleanup = ntuple(Val(D)) do i
         @inbounds w′ᵢ = w′[i]
         if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
-            zero(Float64)
+            zero(eltype(w))
         else
             w′ᵢ
         end
     end
-    return SVector{D, Float64}(w′_cleanup)
+    return SVector{D, eltype(w)}(w′_cleanup)
 end
 
 """
@@ -269,7 +271,7 @@ function inv(op::T) where T<:SymOperation
     W⁻¹ = inv(W)
     w⁻¹ = -W⁻¹*w
 
-    return T([W⁻¹ w⁻¹])
+    return T(W⁻¹, w⁻¹)
 end
 
 
@@ -546,7 +548,7 @@ function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real},
     w′ = transform_translation(op, P, p, modw) # = P⁻¹(w+Wp-p)
                                                # with W ≡ rotation(op) and w ≡ translation(op)
 
-    return SymOperation{D}([W′ w′])
+    return SymOperation{D}(W′, w′)
 end
 
 function transform_rotation(op::SymOperation{D}, P::AbstractMatrix{<:Real}) where D
