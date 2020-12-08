@@ -312,7 +312,7 @@ end
 
 
 # --- BandRep ---
-function prettyprint_symmetryvector(io::IO, irvec::Vector{Int}, irlabs::Vector{String})
+function prettyprint_symmetryvector(io::IO, irvec::Vector{<:Real}, irlabs::Vector{String})
     Nⁱʳʳ  = length(irlabs)
     Nⁱʳʳ′ = length(irvec) 
     if !(Nⁱʳʳ′ == Nⁱʳʳ || Nⁱʳʳ′ == Nⁱʳʳ+1)
