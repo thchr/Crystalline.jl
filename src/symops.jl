@@ -183,7 +183,7 @@ function pointgroup(ops::AbstractVector{SymOperation{D}}) where D
     pgops = unique(rotation, ops) 
     # return rotations only from the above unique set (set translations to zero)
     map!(pgops, pgops) do op
-        SymOperation{D}(rotation(op), zero(SVector{D, Float64}))
+        SymOperation{D}(op.rotation, zero(SVector{D, Float64}))
     end
     # TODO: Return a PointGroup?
 end
@@ -203,7 +203,7 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
 function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
-    T((∘)(rotation(op1), translation(op1), rotation(op2), translation(op2), modτ)...)
+    T((∘)(unpack(op1)..., unpack(op2)..., modτ)...)
 end
 function (∘)(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SMatrix{D,D,<:Real} where R<:SVector{D,<:Real} where D
     W′ = W₁*W₂

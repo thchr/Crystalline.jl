@@ -1,31 +1,36 @@
 using Crystalline, Test
 
 @testset "Symmetry operations" begin
-    @testset "Space group #1" begin
+    @testset "Basics" begin
+        # Space group #1
         sg = spacegroup(1, 3)
         @test order(sg) == 1
         @test dim(sg) == 3
         op = sg[1]
         @test matrix(op) == [1.0 0.0 0.0 0.0; 0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0]
         @test xyzt(op) == "x,y,z"
-    end
 
-    @testset "Space group #146" begin
+        # Space group #146
         sg = spacegroup(146, 3)
         @test order(sg) == 9
         @test dim(sg) == 3
         op = sg[9]
         @test matrix(op) ≈ [-1.0  1.0  0.0  1/3; -1.0  0.0  0.0  2/3; 0.0  0.0  1.0  2/3]
         @test xyzt(op) == "-x+y+1/3,-x+2/3,z+2/3"
-    end
 
-    @testset "Plane group #7" begin
+        # Plane group #7
         plg = spacegroup(7, 2)
         @test order(plg) == 4
         @test dim(plg) == 2
         op = plg[2]
         @test matrix(op) ≈ [-1.0 0.0 0.0; 0.0 -1.0 0.0]
         @test xyzt(op) == "-x,-y"
+
+        # Round-trippability of constructors
+        op = SymOperation("-y,x,z+1/2")
+        @test op == SymOperation(rotation(op), translation(op)) 
+        @test op == SymOperation(matrix(op)) # SMatrix
+        @test op == SymOperation(Matrix(op)) # Matrix
     end
 
     @testset "Conversion between xyzt and matrix forms" begin

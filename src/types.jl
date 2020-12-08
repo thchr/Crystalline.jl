@@ -65,7 +65,7 @@ struct SymOperation{D} <: AbstractMatrix{Float64}
 end
 SymOperation(m::AbstractMatrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 function SymOperation{D}(m::AbstractMatrix{Float64}) where D
-    @boundscheck size(m) == (D, D+1)
+    @boundscheck size(m) == (D, D+1) || throw(BoundsError(size(m), "matrix size must be (D, D+1)"))
     # we construct the SqSMatrix's tuple data manually, rather than calling e.g.
     # `convert(SqSMatrix{D, Float64}, @view m[OneTo(D),OneTo(D)])`, just because it is
     # slightly faster that way (maybe the view has a small penalty?)...
@@ -74,8 +74,10 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
     SymOperation{D}(rotation, translation)
 end
-SymOperation(r::SMatrix{D,D,<:Real}, t::SVector{D,<:Real}) where D =
-    SymOperation{D}(SqSMatrix{D,Float64}(r), float(t))
+function SymOperation(r::SMatrix{D,D,<:Real}, 
+                      t::SVector{D,<:Real}=zero(SVector{D, Float64})) where D
+    SymOperation{D}(SqSMatrix{D,Float64}(r), t)
+end
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation
