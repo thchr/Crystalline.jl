@@ -162,14 +162,6 @@ Return total number of free parameters occuring in `v`.
 """
 nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 
-
-"""
-$(TYPEDEF)$(TYPEDFIELDS)
-"""
-struct KVec{D} <: AbstractVec{D}
-    cnst :: SVector{D,Float64}
-    free :: SqSMatrix{D,Float64}
-end
 function T(cnst::AbstractVector{<:Real}) where T<:AbstractVec{D} where D
     return T(cnst, zero(SMatrix{D,D,Float64,D*D}))
 end
@@ -224,8 +216,16 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
     end
     return T(cnst, free)
 end
-for T in (:KVec, #= :RVec =#)
+
+# generate KVec and RVec structs and parsers jointly...
+for T in (:KVec, :RVec)
     @eval begin
+    struct $T{D} <: AbstractVec{D}
+        cnst :: SVector{D,Float64}
+        free :: SqSMatrix{D,Float64}
+    end
+    free(v::$T) = SMatrix(v.free)
+
     @doc """
         $($T){D}(str::AbstractString) --> $($T){D}
         $($T)(str::AbstractString)    --> $($T)
@@ -270,7 +270,7 @@ for T in (:KVec, #= :RVec =#)
     end
 end
 
-# arithmetic with k-vectors
+# arithmetic with abstract vectors
 (-)(v::T) where T<:AbstractVec = T(-constant(v), -free(v))
 for op in (:(-), :(+))
     @eval function $op(v1::T, v2::T) where T<:AbstractVec
@@ -279,6 +279,18 @@ for op in (:(-), :(+))
     end
 end
 zero(v::T) where T<:AbstractVec = T(zero(constant(v)))
+
+# `isapprox` without considerations of lattice-vectors
+function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
+    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
+       
+    return isapprox(cnst1, cnst2; kwargs...) && isapprox(free1, free2; kwargs...)
+end
+function (==)(v1::AbstractVec, v2::AbstractVec)
+    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
+       
+    return cnst1 == cnst2 && free1 == free2
+end
 
 """
     isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
@@ -305,18 +317,7 @@ function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
 
     return kbool && abcbool
 end
-# ... without considerations of G-vectors
-function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
-    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
-       
-    return isapprox(cnst1, cnst2; kwargs...) && isapprox(free1, free2; kwargs...)
-end
 
-function (==)(v1::AbstractVec, v2::AbstractVec)
-    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
-       
-    return cnst1 == cnst2 && free1 == free2
-end
 
 # --- Abstract spatial group ---
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end

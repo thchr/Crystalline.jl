@@ -41,21 +41,21 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        MultTable, LGIrrep, PGIrrep,
-       KVec,
+       KVec, RVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
        matrix, xyzt,                        # ::SymOperation
        getindex, rotation, translation, 
-       issymmorph, ==,
+       issymmorph,
        num, order, operations,              # ::AbstractGroup
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, type, group,
        israyrep, kvec, irreps,              # ::LGIrrep
        isspecial, translations,
-       dim, string, parts,                  # ::KVec
+       dim, parts,                          # ::KVec & RVec
        vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 
        isspinful
 
@@ -73,6 +73,11 @@ export spacegroup, compose,
        reduce_ops, transform,
        issubgroup, isnormal,
        generate
+
+include("wyckoff.jl") # wyckoff positions and site symmetry groups
+export wyckpos, WyckPos,
+       multiplicity, qvec,
+       SiteGroup, orbit
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation
