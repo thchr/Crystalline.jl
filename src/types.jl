@@ -173,8 +173,8 @@ end
 KVec(cnst::AbstractVector{<:Real}) = KVec(cnst, zeros(Float64, length(cnst), length(cnst)))
 KVec(xyzs::T...) where T<:Real = KVec([xyzs...])
 function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
-    k₀, kabc = parts(kv)
-    return k₀ + kabc*αβγ
+    cnst, free = parts(v)
+    return cnst + free*αβγ
 end
 (v::AbstractVec)(αβγ::Vararg{<:Real}) = v([αβγ...])
 (v::AbstractVec)(::Nothing) = constant(v)
@@ -232,14 +232,14 @@ function KVec(str::AbstractString)
 end
 
 # arithmetic with k-vectors
-(-)(v::T) where T<:AbstractVec = T(-constant(kv), -free(kv))
+(-)(v::T) where T<:AbstractVec = T(-constant(v), -free(v))
 for op in (:(-), :(+))
     @eval function $op(v1::T, v2::T) where T<:AbstractVec
         cnst1, free1 = parts(v1); cnst2, free2 = parts(v2) 
         return T($op(cnst1, cnst2), $op(free1,free2))
     end
 end
-zero(v::T) where T<:AbstractVec = T(zero(constant(kv)))
+zero(v::T) where T<:AbstractVec = T(zero(constant(v)))
 
 """
     isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
@@ -272,7 +272,7 @@ function isapprox(kv1::KVec, kv2::KVec, cntr::Char; kwargs...)
     return kbool && abcbool
 end
 # ... without considerations of G-vectors
-function isapprox(v1::AbstractVec, v2::AbstractVec)
+function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
     cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
        
     return isapprox(cnst1, cnst2; kwargs...) && isapprox(free1, free2; kwargs...)
