@@ -439,7 +439,7 @@ end
 function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where D
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
-    checkabc = !iszero(kv.kabc)
+    checkabc = !iszero(free(kv))
     for op in (@view ops[2:end])
         k₀′, kabc′ = parts(compose(op, kv, checkabc))
 
@@ -479,6 +479,10 @@ If `checkabc = false`, the free part of `KVec` is not transformed
 transformations are requested).
 """
 @inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
+    # TODO: We've defined this to act inversely with `op`, which is probably not a terribly
+    #       meaningful default behavior. We should probably go change this; the annoying
+    #       thing is that it is probably used quite frequently and could break a lot of
+    #       stuff potentially.
     k₀, kabc = parts(kv)
     k₀′ = rotation(op)'\k₀
     kabc′ = checkabc ? rotation(op)'\kabc : kabc
