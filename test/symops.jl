@@ -39,8 +39,8 @@ using Crystalline, Test
                     @testset "SG$sgnum ($(dim)D)" begin
                     sg = spacegroup(sgnum, dim)
                     for op in sg
-                        @test all(xyzt2matrix(xyzt(op))   == matrix(op)) # xyzt->matrix
-                        @test all(matrix2xyzt(matrix(op)) == xyzt(op))   # matrix->xyzt
+                        @test all(Crystalline.xyzt2matrix(xyzt(op)) == matrix(op)) # xyzt->matrix
+                        @test all(Crystalline.matrix2xyzt(matrix(op)) == xyzt(op)) # matrix->xyzt
                     end
                 end
             end
