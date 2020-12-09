@@ -458,7 +458,7 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where
         end
 
         if newkbool
-            push!(kstar, KVec(k₀′, kabc′))
+            push!(kstar, KVec{D}(k₀′, kabc′))
         end
     end
     return kstar
@@ -478,7 +478,7 @@ If `checkabc = false`, the free part of `KVec` is not transformed
 (can be useful in situation when `kabc` is zero, and several 
 transformations are requested).
 """
-@inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
+@inline function (∘)(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
     # TODO: We've defined this to act inversely with `op`, which is probably not a terribly
     #       meaningful default behavior. We should probably go change this; the annoying
     #       thing is that it is probably used quite frequently and could break a lot of
@@ -486,7 +486,7 @@ transformations are requested).
     k₀, kabc = parts(kv)
     k₀′ = rotation(op)'\k₀
     kabc′ = checkabc ? rotation(op)'\kabc : kabc
-    return KVec(k₀′, kabc′)
+    return KVec{D}(k₀′, kabc′)
 end
 
 

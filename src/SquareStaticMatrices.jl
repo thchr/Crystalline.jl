@@ -15,7 +15,7 @@ module SquareStaticMatrices
 using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
-import StaticArrays: SMatrix
+import StaticArrays: SMatrix, MMatrix
 import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol
 
 export SqSMatrix
@@ -37,7 +37,7 @@ firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
 eachcol(A::SqSMatrix) = A.cols
-function getindex(A::SqSMatrix{D}, i, j) where D
+function getindex(A::SqSMatrix{D}, i::Integer, j::Integer) where D
     @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
     return @inbounds A.cols[j][i]
 end
@@ -80,8 +80,8 @@ flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested(A.cols)
 # flatten_nested(x,y) = (x...,y...)
 # flatten_nested(x,y,z...) = (x..., flatten_nested(y, z...)...)
 
-function SMatrix(A::SqSMatrix{D, T})  where {D,T}
-    SMatrix{D, D, T, D*D}(flatten(A))
+for M in (:SMatrix, :MMatrix)
+    @eval $M(A::SqSMatrix{D, T}) where {D,T} = $M{D, D, T, D*D}(flatten(A))
 end
 
 # use a generated function to stack a "square" NTuple very efficiently: allows efficient
@@ -98,7 +98,9 @@ end
         end
     end
 end
-convert(::Type{SqSMatrix{D,T}}, A::SMatrix{D,D,T}) where {D,T} = SqSMatrix{D,T}(stack_square_tuple(A.data))
+function convert(::Type{SqSMatrix{D,T}}, A::Union{SMatrix{D,D,T}, MMatrix{D,D,T}}) where {D,T}
+    SqSMatrix{D,T}(stack_square_tuple(A.data))
+end
 SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T,D*D}, A))
 

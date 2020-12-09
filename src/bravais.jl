@@ -542,9 +542,9 @@ Note that a basis change matrix `P` transforms reciprocal coordinates vectors as
 ``k′ = Pᵀk`` but transforms direct coordinate vectors as ``r′=P⁻¹r`` (see e.g. ITA7
 Sec. 1.5.1.2 and 1.5.2.1).
 """
-function transform(kv::KVec, P::AbstractMatrix{<:Real})
+function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     k₀, kabc = parts(kv)
-    return KVec(P'*k₀, P'*kabc)
+    return KVec{D}(P'*k₀, P'*kabc)
 end
 
 """

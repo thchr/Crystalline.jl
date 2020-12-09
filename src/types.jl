@@ -138,7 +138,7 @@ size(mt::MultTable) = size(mt.table)
 # parameters ranging over all non-special values (i.e. not coinciding with any 
 # high-sym 𝐤)
 
-abstract type AbstractVec end
+abstract type AbstractVec{D} end
 # A type which must have a vector field `cnst` (subtyping `AbstractVector`, of length `D`)
 # and a matrix field `free` (subtyping `AbstractMatrix`; of size `(D,D)`).
 # Intended to represent points, lines, planes and volumes in direct (`RVec`) or reciprocal
@@ -146,7 +146,7 @@ abstract type AbstractVec end
 constant(v::AbstractVec)  = v.cnst
 free(v::AbstractVec)      = v.free
 parts(v::AbstractVec)     = (constant(v), free(v))
-dim(v::AbstractVec)       = length(constant(v))
+dim(::AbstractVec{D}) where D = D
 isspecial(v::AbstractVec) = iszero(free(v))
 """
 $(SIGNATURES)
@@ -166,12 +166,14 @@ nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct KVec <: AbstractVec
-    cnst::Vector{Float64}
-    free::Matrix{Float64}
+struct KVec{D} <: AbstractVec{D}
+    cnst :: SVector{D,Float64}
+    free :: SqSMatrix{D,Float64}
 end
-KVec(cnst::AbstractVector{<:Real}) = KVec(cnst, zeros(Float64, length(cnst), length(cnst)))
-KVec(xyzs::T...) where T<:Real = KVec([xyzs...])
+function T(cnst::AbstractVector{<:Real}) where T<:AbstractVec{D} where D
+    return T(cnst, zero(SMatrix{D,D,Float64,D*D}))
+end
+T(xyzs::NTuple{D,<:Real}) where T<:AbstractVec{D} where D = T(SVector{D, Float64}(xyzs))
 function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
     cnst, free = parts(v)
     return cnst + free*αβγ
@@ -180,31 +182,23 @@ end
 (v::AbstractVec)(::Nothing) = constant(v)
 (v::AbstractVec)()          = v(nothing)
 
-""" 
-    KVec(str::AbstractString) --> KVec
 
-Construct a `KVec` struct from a string representations of a *k*-vector, supplied 
-in either of the formats
-        `"(\$x,\$y,\$z)"`, `"[\$x,\$y,\$z]"`, `"\$x,\$y,\$z"`,
-where the coordinates `x`,`y`, and `z` are strings that can contain fractions,
-decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively,
-{`'u'`,`'v'`,`'w'`} or {`'x'`,`'y'`,`'z'`}). Returns the associated `KVec`.
-
-Fractions such as `1/2` can be parsed: but use of any other special operator
-besides `/` will result in faulty operations (e.g. do not use `*`).
-"""
-function KVec(str::AbstractString)
+# parsing `AbstractVec`s from string format
+function _strip_split(str::AbstractString)
     str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
-    xyz = split(str,',')
-    dim = length(xyz)
-    cnst = zeros(Float64, dim); free = zeros(Float64, dim, dim)
+    return split(str,',')
+end
+function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) where D
+    length(xyz) == D || throw(DimensionMismatch("Dimension D doesn't match input string"))
+    cnst = zero(MVector{D, Float64})
+    free = zero(MMatrix{D, D, Float64})
     for (i, coord) in enumerate(xyz)
         # --- "free" coordinates, free[i,:] ---
         for (j, matchgroup) in enumerate((('α','u','x'),('β','v','y'),('γ','w','z')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
-                match = searchpriornumerals(coord, pos₂)
-                free[i,j] = parse(Float64, match)
+                prefix = searchpriornumerals(coord, pos₂)
+                free[i,j] = parse(Float64, prefix)
             end
         end
         
@@ -228,7 +222,52 @@ function KVec(str::AbstractString)
             cnst[i] = parsefraction(m.match)
         end
     end
-    return KVec(cnst, free)
+    return T(cnst, free)
+end
+for T in (:KVec, #= :RVec =#)
+    @eval begin
+    @doc """
+        $($T){D}(str::AbstractString) --> $($T){D}
+        $($T)(str::AbstractString)    --> $($T)
+        $($T)(::AbstractVector, ::AbstractMatrix) --> $($T)
+    
+    Return a `$($T)` by parsing the string representations `str`, supplied in one of the
+    following formats:
+
+    ```jl
+    "(\$1,\$2,\$3)"
+    "[\$1,\$2,\$3]"
+    "\$1,\$2,\$3"
+    ```
+
+    where the coordinates `\$1`,`\$2`, and `\$3` are strings that may contain fractions,
+    decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively and
+    equivalently, {`'u'`,`'v'`,`'w'`} or {`'x'`,`'y'`,`'z'`}).
+    
+    Fractions such as `1/2` and decimal numbers can be parsed: but use of any other special
+    operator besides `/` will produce undefined behavior (e.g. do not use `*`).
+
+    ## Example
+    ```julia-repl
+    julia> $T("0.25,α,0")
+    [0.25, α, 0.0]
+    ```
+    """
+    function $T{D}(str::AbstractString) where D
+        xyz = _strip_split(str)
+        return parse_abstractvec(xyz, $T{D})
+    end
+    function $T(str::AbstractString)
+        xyz = _strip_split(str)
+        D   = length(xyz)
+        return parse_abstractvec(xyz, $T{D})
+    end
+    function $T(cnst::AbstractVector, free::AbstractMatrix)
+        D = length(cnst)
+        all(==(D), size(free)) || throw(DimensionMismatch("Mismatched argument sizes"))
+        $T{D}(SVector{D,Float64}(cnst), SMatrix{D,D,Float64,D*D}(free))
+    end
+    end
 end
 
 # arithmetic with k-vectors
@@ -254,16 +293,11 @@ provided, to include in calls to `Base.isapprox`.
 If `cntr` is not provided, the comparison will not account for equivalence
 by primitive G-vectors.
 """
-function isapprox(kv1::KVec, kv2::KVec, cntr::Char; kwargs...)
+function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
     k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
 
-    dim1, dim2 = length(k₀1), length(k₀2)
-    if dim1 ≠ dim2
-        throw(ArgumentError("dim(kv1)=$(dim1) and dim(kv2)=$(dim2) must be equal"))
-    end
-
     # check if k₀ ≈ k₀′ differ by a _primitive_ 𝐆 vector
-    diff = primitivebasismatrix(cntr, dim1)' * (k₀1 .- k₀2)
+    diff = primitivebasismatrix(cntr, D)' * (k₀1 .- k₀2)
     kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
     # check if kabc1 ≈ kabc2; no need to check for difference by a 
     # 𝐆 vector, since kabc is in interior of BZ
@@ -337,7 +371,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LittleGroup{D} <: AbstractGroup{D}
     num::Int64
-    kv::KVec
+    kv::KVec{D}
     klab::String
     operations::Vector{SymOperation{D}}
 end
@@ -366,7 +400,7 @@ klabel(ir::AbstractIrrep) = klabel(label(ir))
 order(ir::AbstractIrrep)  = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
-dim(ir::AbstractIrrep{D}) where D = D
+dim(::AbstractIrrep{D}) where D = D
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
@@ -571,9 +605,9 @@ eltype(::BandRep) = Int64
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct BandRepSet <: AbstractVector{BandRep}
-    sgnum::Integer          # space group number, sequential
+    sgnum::Int              # space group number, sequential
     bandreps::Vector{BandRep}
-    kvs::Vector{KVec}       # Vector of 𝐤-points
+    kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric?
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included

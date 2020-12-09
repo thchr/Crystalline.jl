@@ -84,7 +84,7 @@ function make_1d_lgirrep(sgnum::Integer, klab::String, cdml_suffix::String,
                          kx, ops::Vector{SymOperation{1}}, scalars::Vector{<:Number}=[1.0,])
     cdml = klab*cdml_suffix
     @show cdml
-    lg   = LittleGroup{1}(sgnum, KVec(string(kx)), klab, ops)
+    lg   = LittleGroup{1}(sgnum, KVec{1}(string(kx)), klab, ops)
     @show lg
     matrices = [fill(ComplexF64(v), 1,1) for v in scalars]
     @show matrices
