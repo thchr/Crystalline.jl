@@ -21,7 +21,8 @@ import Base: getindex, lastindex, firstindex, setindex!, # → indexing interfac
              IndexStyle, size, eltype, length,           # ⤶
              string, isapprox, zero,
              readuntil, vec, show, summary,
-             +, -, ∘, ==, ImmutableDict
+             +, -, ∘, ==, ImmutableDict,
+             isone, one
 import LinearAlgebra: inv
 import Random                 # → _Uniform in src/utils.jl
 import Random: rand           # ⤶
@@ -75,9 +76,9 @@ export spacegroup, compose,
        generate
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
-export wyckpos, WyckPos,
+export get_wycks, WyckPos,
        multiplicity, qvec,
-       SiteGroup, orbit
+       SiteGroup, orbit, cosets, wyck
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation

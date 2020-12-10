@@ -117,6 +117,18 @@ end
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
+one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),
+                                                       zero(SVector{D,Float64}))
+function isone(op::SymOperation{D}) where D
+    @inbounds for D₁ in SOneTo(D)
+        iszero(op.translation[D₁]) || return false
+        for D₂ in SOneTo(D)
+            check = D₁ ≠ D₂ ? iszero(op.rotation[D₁,D₂]) : isone(op.rotation[D₁,D₁])
+            check || return false
+        end
+    end
+    return true
+end
 # --- Multiplication table ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)

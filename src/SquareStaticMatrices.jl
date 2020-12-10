@@ -16,14 +16,14 @@ using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
 import StaticArrays: SMatrix, MMatrix
-import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol
+import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol, one, zero
 
 export SqSMatrix
 
 # ---------------------------------------------------------------------------------------- #
 # struct definition
 
-# an equivalent of `SMatrix{D,D,T,D*D}`, but requiring only a single dimension type
+# an equivalent of `SMatrix{D,D,T}`, but requiring only a single dimension type
 # parameter, rather than two
 struct SqSMatrix{D, T} <: AbstractMatrix{T}
     cols::NTuple{D, NTuple{D, T}} # tuple of columns (themselves stored as tuples)
@@ -81,7 +81,7 @@ flatten(A::SqSMatrix{D,T}) where {D,T} = flatten_nested(A.cols)
 # flatten_nested(x,y,z...) = (x..., flatten_nested(y, z...)...)
 
 for M in (:SMatrix, :MMatrix)
-    @eval $M(A::SqSMatrix{D, T}) where {D,T} = $M{D, D, T, D*D}(flatten(A))
+    @eval $M(A::SqSMatrix{D, T}) where {D,T} = $M{D, D, T}(flatten(A))
 end
 
 # use a generated function to stack a "square" NTuple very efficiently: allows efficient
@@ -102,6 +102,16 @@ function convert(::Type{SqSMatrix{D,T}}, A::Union{SMatrix{D,D,T}, MMatrix{D,D,T}
     SqSMatrix{D,T}(stack_square_tuple(A.data))
 end
 SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
-SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T,D*D}, A))
+SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T}, A))
+
+
+# ---------------------------------------------------------------------------------------- #
+# linear algebra and other methods
+
+# by the magic of julia's compiler, this reduces to the exact same machine code as if we
+# were writing out ntuples ourselves (i.e. the initial construction as an SMatrix is
+# optimized out completely)
+zero(::Type{SqSMatrix{D,T}}) where {D,T} = SqSMatrix{D,T}(zero(SMatrix{D,D,T}))
+one( ::Type{SqSMatrix{D,T}}) where {D,T} = SqSMatrix{D,T}(one(SMatrix{D,D,T}))
 
 end # module
