@@ -10,7 +10,7 @@ CurrentModule = Crystalline
 ```@autodocs
 Modules = [Crystalline]
 Private = false
-Order   = [:types]
+Order   = [:type]
 ```
 
 ## Exported methods
@@ -20,11 +20,9 @@ Private = false
 Order   = [:function]
 ```
 
-## Unexported API
-
-### Methods
+## Exported constants
 ```@autodocs
 Modules = [Crystalline]
-Private = true
-Filter  = t->any(t′->basename(dirname(string(t′.file)))==="src", methods(t)) # restrict to methods in /src/ (e.g. exclude /build/)
+Private = false
+Order   = [:constant]
 ```
