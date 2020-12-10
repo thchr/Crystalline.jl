@@ -6,51 +6,45 @@ using StaticArrays, LinearAlgebra
 
 const BILBAO_URL = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/"
 const WYCK_URL_BASE_3D = BILBAO_URL*"nph-normsets?from=wycksets&gnum="
-wyck_url(sgnum) = WYCK_URL_BASE_3D*string(sgnum)
+wyck_3d_url(sgnum) = WYCK_URL_BASE_3D*string(sgnum)
 
 """ 
-    crawl_wyckpos(sgnum::Integer, D::Integer=3)
+    crawl_wyckpos_3d(sgnum::Integer)
 
-Obtains the Wyckoff positions for a given space group number `sgnum` by crawling the Bilbao
-server; see `WyckPos` for additional details. 
-
-TODO: Only works for `D = 3` currently. 
-TODO: Does not yet compute the associated site symmetry groups.
+Obtains the 3D Wyckoff positions for a given space group number `sgnum` by crawling the
+Bilbao Crystallographic Server; returns a vector of `WyckPos{3}`.
 """
-function crawl_wyckpos(sgnum::Integer, ::Val{D}=Val{3}()) where D
-    D== 3 || throw("not implemented")
-    htmlraw = crawl_wyckpos_html(sgnum, D)
+function crawl_wyckpos_3d(sgnum::Integer)
+    htmlraw = crawl_wyckpos_3d_html(sgnum)
 
     wycks_html = children.(children(children(children(last(children(htmlraw.root)))[3])[5][1]))
     
     Nwyck = length(wycks_html)-1
-    wycks = Vector{WyckPos{D}}(undef, Nwyck)
+    wycks = Vector{WyckPos{3}}(undef, Nwyck)
 
     for (i,el) in enumerate(@view wycks_html[2:end])
         letter, mult_str, sitesym_str, qv_str, _ = getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
 
-        qv = RVec{D}(qv_str)
+        qv = RVec{3}(qv_str)
         mult = parse(Int, mult_str) 
 
-        wycks[i] = WyckPos{D}(mult, only(letter), qv)
+        wycks[i] = WyckPos{3}(mult, only(letter), qv)
     end
     return wycks
 end
 
-function crawl_wyckpos_html(sgnum::Integer, D::Integer=3)
-    if D != 3; error("We do not crawl plane group data; see json files instead; manually crawled.") end
-    if sgnum < 1 || sgnum > 230; error(DomainError(sgnum)); end
+function crawl_wyckpos_3d_html(sgnum::Integer)
+    (sgnum < 1 || sgnum > 230) && error(DomainError(sgnum))
 
-    if D == 3
-        contents = HTTP.request("GET", wyck_url(sgnum))
-        return parsehtml(String(contents.body))
-    else
-        error("We did not yet implement 2D plane groups")
-    end
+    contents = HTTP.request("GET", wyck_3d_url(sgnum))
+    return parsehtml(String(contents.body))
 end
 
-function _write_wyckpos_3d(sgnum::Integer, D::Integer=3)
-    wps = crawl_wyckpos(sgnum, D)
+# ---------------------------------------------------------------------------------------- #
+# CRAWL & SAVE/WRITE 3D WYCKOFF POSITIONS TO `data/wyckpos/3d/...`
+
+function _write_wyckpos_3d(sgnum::Integer)
+    wps = crawl_wyckpos_3d(sgnum)
     open((@__DIR__)*"/../data/wyckpos/3d/"*string(sgnum)*".csv", "w+") do io
         for (idx, wp) in enumerate(wps)
             qstr = strip(string(qvec(wp)), ('[',']'))
@@ -63,4 +57,8 @@ function _write_wyckpos_3d(sgnum::Integer, D::Integer=3)
     end
 end
 
-foreach(_write_wyckpos_3d, 1:230)
+# actually crawl and write 3D Wyckoff positions
+foreach(1:230) do sgnum
+    println(sgnum)
+    _write_wyckpos_3d(sgnum)
+end
