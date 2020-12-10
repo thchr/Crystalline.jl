@@ -467,29 +467,45 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
         P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
-                # note cis(x) = exp(ix)     # Bilbao server; but disagrees (as far as I can tell) with some
-                                            # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
-                                            # and Kovalev's book).
-                                            # In those other references they have Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), but 
-                                            # Inui has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice 
-                                            # actually appears more natural, since we usually have symmetry 
-                                            # operations acting inversely on functions of spatial coordinates. 
-                                            # If we swap the sign here, we probably have to swap t₀ in the check
-                                            # for ray-representations in check_multtable_vs_ir(::MultTable, ::LGIrrep)
-                                            # to account for this difference. It is not enough just to swap the sign
-                                            # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
-                                            # to account for the fact that it would be -β⁻¹τ that appears in the 
-                                            # inverse operation, not just τ. Same applies here, if you want to 
-                                            # adopt the other convention, it should probably not just be a swap 
-                                            # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-                                            # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
-                                            # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY 
-                                            # (also expliciated at https://stokes.byu.edu/iso/irtableshelp.php),
-                                            # so, overall, this is probably the sanest choice for this dataset.
+                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
+                # NOTE/TODO/FIXME:
+                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
+                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
+                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
+                # own _publications_?!).
+                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
+                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
+                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
+                # operations acting _inversely_ on functions of spatial coordinates and
+                # Bloch phases exp(i𝐤⋅𝐫).
+                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
+                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
+                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
+                # this is probably the sanest choice for this dataset.
+                # This weird state of affairs was also noted explicitly by Chen Fang in
+                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
+                #
+                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
+                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
+                # to account for this difference. It is not enough just to swap the sign
+                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
+                # to account for the fact that it would be -β⁻¹τ that appears in the 
+                # inverse operation, not just τ. Same applies here, if you want to 
+                # adopt the other convention, it should probably not just be a swap 
+                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
             end
         end
     end
+    # FIXME: Attempt to flip phase convention. Does not pass tests.
+    #=
+    lg = group(lgir)
+    if !issymmorph(lg)
+        k = kvec(lgir)(αβγ)
+        for (i,op) in enumerate(lg)
+            P[i] .* cis(-4π*dot(k, translation(op)))
+        end
+    end
+    =#
 
     return P
 end
