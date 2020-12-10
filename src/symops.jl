@@ -22,19 +22,23 @@ end
 """ 
     spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
-Return the space group symmetry operations in for a given space group number `sgnum` and 
+Return the space group symmetry operations for a given space group number `sgnum` and 
 dimensionality `D` as a `SpaceGroup{D}`.
-The returned symmetry operations are specified relative to the conventional basis choice,
+The returned symmetry operations are specified relative to the conventional basis vectors,
 i.e. are not necessarily primitive (see [`centering`](@ref)).
-If desired, operations for the primitive unit cell can be subsequently generated using 
-[`primitivize`](@ref) or [`reduce_ops`](@ref).
+If desired, operations for the primitive unit cell can subsequently be generated using 
+[`primitivize`](@ref) or [`Crystalline.reduce_ops`](@ref).
 
-The default choices for the *conventional* basis vectors are specified in Bilbao as: 
+The default choices for the conventional basis vectors follow the conventions of the Bilbao
+Crystallographic Server (or, equivalently, the International Tables of Crystallography), 
+which are:
+
 - Unique axis b (cell choice 1) for space groups within the monoclinic system.
-- Obverse triple hexagonal unit cell for R space groups.
-- Origin choice 2: inversion center at (0,0,0). (Relevant for the centrosymmetric space
+- Obverse triple hexagonal unit cell for rhombohedral space groups.
+- Origin choice 2: inversion center at (0,0,0). (relevant for the centrosymmetric space
   groups where there are two origin choices, in the orthorhombic, tetragonal and cubic 
   systems)
+
 See also [`directbasis`](@ref).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
@@ -531,7 +535,7 @@ end
 
 Transforms a `op` ``= \\{W|w\\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= \\{W'|w'\\}``: (see ITA6, Sec. 1.5.2.3)
+`op′` ``= \\{W'|w'\\}`` (see ITA6 Sec. 1.5.2.3):
 
 ``\\{W'|w'\\} = \\{P|p\\}^{-1}\\{W|w\\}\\{P|p\\}``
 

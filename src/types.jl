@@ -5,10 +5,10 @@ $(TYPEDEF)
 abstract type Basis{D} <: AbstractVector{SVector{D,Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
     @eval begin
-        """
+        @doc """
             $($T){D} <: Basis{D}
 
-        - vecs:NTuple{D, SVector{D, Float64}}
+        - `vecs::NTuple{D, SVector{D, Float64}}`
         """
         struct $T{D} <: Basis{D}
               vecs::NTuple{D,SVector{D,Float64}}
@@ -260,8 +260,8 @@ for T in (:KVec, :RVec)
     operator besides `/` will produce undefined behavior (e.g. do not use `*`).
 
     ## Example
-    ```julia-repl
-    julia> $T("0.25,α,0")
+    ```jldoctest
+    julia> $($T)("0.25,α,0")
     [0.25, α, 0.0]
     ```
     """

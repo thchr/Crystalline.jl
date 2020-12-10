@@ -115,7 +115,7 @@ export get_lgirreps, get_littlegroups,
        get_all_lgirreps
 
 include("lattices.jl")
-export UnityFourierLattice, ModulatedFourierLattice,
+export ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
        modulate, normscale, normscale!, calcfourier
 

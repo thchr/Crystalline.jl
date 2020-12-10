@@ -26,8 +26,24 @@ struct SiteGroup{D} <: AbstractGroup{D}
     operations::Vector{SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
+"""
+    $(SIGNATURES)
+
+Return the cosets of a `SiteGroup` `g`.
+
+The cosets generate the orbit of the Wyckoff position `wyck(g)` (see 
+[`orbit(::SiteGroup, ::WyckPos)`](@ref)) and furnish a left-coset decomposition of the
+underlying space group, jointly with the operations in `g` itself.
+"""
 cosets(g::SiteGroup) = g.cosets
+
+"""
+    $(SIGNATURES)
+
+Return the Wyckoff position associated with a `SiteGroup`.
+"""
 wyck(g::SiteGroup)   = g.wp
+
 function summary(io::IO, g::SiteGroup)
     print(io, typeof(g), " #", num(g), " at ", label(wyck(g)), " = ")
     show(io, MIME"text/plain"(), qvec(wyck(g)))
@@ -114,19 +130,23 @@ which \\eg generate the orbit of the Wyckoff position (see
 jointly with the elements in `g`.
 
 ## Example
-```jldoctest
-julia> sgnum, D = 16, 2;
+```jldoctest sitegroup
+julia> sgnum = 16; D = 2;
+
 julia> wp = get_wycks(sgnum, D)[3] # pick a Wyckoff position
 2b: [0.3333333333333333, 0.6666666666666666]
 
 julia> sg = spacegroup(sgnum, D);
+
 julia> g  = SiteGroup(sg, wp)
 SiteGroup{2} #16 at 2b = [0.333333, 0.666667] with 3 operations:
  1 ────────────────────────────────── (x,y)
  {3⁺|1,1} ──────────────────── (-y+1,x-y+1)
  {3⁻|0,1} ───────────────────── (-x+y,-x+1)
+```
 
-# Multiplication table
+The group structure of a `SiteGroup` can be inspected with `MultTable`:
+```jldoctest sitegroup
 julia> MultTable(g)
 3×3 MultTable{2}:
 ──────────┬──────────────────────────────
@@ -136,9 +156,13 @@ julia> MultTable(g)
  {3⁺|1,1} │ {3⁺|1,1}  {3⁻|0,1}         1
  {3⁻|0,1} │ {3⁻|0,1}         1  {3⁺|1,1}
 ──────────┴──────────────────────────────
+```
 
-# Coset decomposition of space group
+The original space group can be reconstructed from a left-coset decomposition, using the
+operations and cosets contained in a `SiteGroup`:
+```jldoctest sitegroup
 julia> ops = [opʰ∘opᵍ for opʰ in cosets(g) for opᵍ in g];
+
 julia> Set(sg) == Set(ops)
 true
 ```

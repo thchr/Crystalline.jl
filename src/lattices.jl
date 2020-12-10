@@ -12,12 +12,12 @@ function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; 
              isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
 end
 """
-UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
+    UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
 
 A general `D`-dimensional Fourier/plane wave lattice (specified 
 by G-orbits and coefficient interrelations); specifies the allowable 
 interrelations between coefficients within each orbit. The norm of 
-all orbit coefficients is unity. The G-orbits `orbits` (& associated
+all orbit coefficients is unity. The G-orbits `orbits` (and associated
 coefficients) are sorted in order of increasing |G| (low to high).
 """
 struct UnityFourierLattice{D} <: AbstractFourierLattice{D}
@@ -34,7 +34,7 @@ end
     ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
 
 A `D`-dimensional concrete Fourier/plane wave lattice, derived from 
-a UnityFourierLattice by scaling/modulating its orbit coefficients 
+a [`UnityFourierLattice`](@ref) by scaling/modulating its orbit coefficients 
 by complex numbers; in general, the coefficients do not have unit norm.
 """
 struct ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
@@ -300,7 +300,7 @@ Given `flat′` referred to a primitive basis with centering `cntr`, compute the
 physically equivalent) lattice `flat` referred to the associated conventional basis. 
 
 See also the complementary methods
-[`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real}`](@ref) and
+[`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real})`](@ref) and
 [`primitivize(::AbstractFourierLattice, ::Char)`](@ref) for additional details.
 """
 function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
