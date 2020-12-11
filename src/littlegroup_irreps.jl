@@ -29,7 +29,8 @@ The underlying data is sourced from the ISOTROPY dataset: see also [`get_lgirrep
 """
 function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JldOrNothing=nothing) where D
-    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
+     D ∉ (1,2,3) && _throw_invaliddim(D)
+     (D==2 && sgnum ∈ (4,7,8,12)) && error("Nonsymmorphic groups not yet supported in 2D")
 
     sgops_str, klabs, kstrs, opsidxs = if isnothing(jldfile)
         JLD2.jldopen(pathof_littlegroups_data(D), "r") do jldfile
@@ -89,7 +90,8 @@ been manually sourced from the Bilbao Crystallographic Database.
 """
 function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3), lgs_jldfile::JldOrNothing=nothing,
                       irs_jldfile::JldOrNothing=nothing) where D
-    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
+    D ∉ (1,2,3) && _throw_invaliddim(D)
+    (D==2 && sgnum ∈ (4,7,8,12)) && error("Nonsymmorphic groups not yet supported in 2D")
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
