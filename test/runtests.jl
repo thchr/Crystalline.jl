@@ -5,6 +5,9 @@ using Crystalline, Test
     include("basisvecs.jl")
     include("symops.jl")
 
+    include("kvecs.jl")
+    include("wyckoff.jl")
+
     # group checks
     include("littlegroup_orders.jl")
     include("pointgroup.jl")

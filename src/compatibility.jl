@@ -204,7 +204,7 @@ function connectivity(lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}}) where D
             for (nbidx, nb) in enumerate(nbs)
                 # if the neighbor is just the general point Ω≡[α,β,γ], 
                 # we don't consider the two vectors connected
-                if kvs[nb] == KVec(zeros(D), Matrix{Float64}(I, D, D))
+                if kvs[nb] == KVec{D}(zero(SVector{D,Float64}), SMatrix{D,D,Float64,D*D}(I))
                     deleteat!(nbs, nbidx)
                     break
                 end      

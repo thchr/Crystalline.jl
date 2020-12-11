@@ -5,10 +5,10 @@ $(TYPEDEF)
 abstract type Basis{D} <: AbstractVector{SVector{D,Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
     @eval begin
-        """
+        @doc """
             $($T){D} <: Basis{D}
 
-        - vecs:NTuple{D, SVector{D, Float64}}
+        - `vecs::NTuple{D, SVector{D, Float64}}`
         """
         struct $T{D} <: Basis{D}
               vecs::NTuple{D,SVector{D,Float64}}
@@ -65,7 +65,7 @@ struct SymOperation{D} <: AbstractMatrix{Float64}
 end
 SymOperation(m::AbstractMatrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 function SymOperation{D}(m::AbstractMatrix{Float64}) where D
-    @boundscheck size(m) == (D, D+1)
+    @boundscheck size(m) == (D, D+1) || throw(BoundsError(size(m), "matrix size must be (D, D+1)"))
     # we construct the SqSMatrix's tuple data manually, rather than calling e.g.
     # `convert(SqSMatrix{D, Float64}, @view m[OneTo(D),OneTo(D)])`, just because it is
     # slightly faster that way (maybe the view has a small penalty?)...
@@ -74,7 +74,10 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
     SymOperation{D}(rotation, translation)
 end
-
+function SymOperation(r::SMatrix{D,D,<:Real}, 
+                      t::SVector{D,<:Real}=zero(SVector{D, Float64})) where D
+    SymOperation{D}(SqSMatrix{D,Float64}(r), t)
+end
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation
@@ -114,6 +117,18 @@ end
 isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
+one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),
+                                                       zero(SVector{D,Float64}))
+function isone(op::SymOperation{D}) where D
+    @inbounds for D₁ in SOneTo(D)
+        iszero(op.translation[D₁]) || return false
+        for D₂ in SOneTo(D)
+            check = D₁ ≠ D₂ ? iszero(op.rotation[D₁,D₂]) : isone(op.rotation[D₁,D₁])
+            check || return false
+        end
+    end
+    return true
+end
 # --- Multiplication table ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -135,65 +150,64 @@ size(mt::MultTable) = size(mt.table)
 # parameters ranging over all non-special values (i.e. not coinciding with any 
 # high-sym 𝐤)
 
-abstract type AbstractVec end
-# A type which must have a scalar part (..)₀ and a free part (...)abc.
-# Intended to represent points, lines, planes and volumes in direct (::RVec)
-# or reciprocal space (::KVec)
+abstract type AbstractVec{D} end
+# A type which must have a vector field `cnst` (subtyping `AbstractVector`, of length `D`)
+# and a matrix field `free` (subtyping `AbstractMatrix`; of size `(D,D)`).
+# Intended to represent points, lines, planes and volumes in direct (`RVec`) or reciprocal
+# space (`KVec`).
+constant(v::AbstractVec)  = v.cnst
+free(v::AbstractVec)      = v.free
+parts(v::AbstractVec)     = (constant(v), free(v))
+dim(::AbstractVec{D}) where D = D
+isspecial(v::AbstractVec) = iszero(free(v))
+"""
+$(SIGNATURES)
 
+Return a vector whose entries are `true` (`false`) if the free parameters α,β,γ, 
+respectively, occur with nonzero (zero) coefficients in `v`.
 """
-$(TYPEDEF)$(TYPEDFIELDS)
+freeparams(v::AbstractVec)  = map(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 """
-struct KVec <: AbstractVec
-    k₀::Vector{Float64}
-    kabc::Matrix{Float64}
+$(SIGNATURES)
+
+Return total number of free parameters occuring in `v`.
+"""
+nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
+
+function T(cnst::AbstractVector{<:Real}) where T<:AbstractVec{D} where D
+    return T(cnst, zero(SMatrix{D,D,Float64,D*D}))
 end
-KVec(k₀::AbstractVector{<:Real}) = KVec(float.(k₀), zeros(Float64, length(k₀), length(k₀)))
-KVec(k₀s::T...) where T<:Real = KVec([float.(k₀s)...])
-parts(kv::KVec) = (kv.k₀, kv.kabc)
-dim(kv::KVec) = length(kv.k₀)
-isspecial(kv::KVec) = iszero(kv.kabc)
-# returns a vector whose entries are true (false) if α,β,γ, respectively, are free parameters (not featured) in `kv`
-freeparams(kv::KVec)  = map(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) 
-nfreeparams(kv::KVec) = count(j->!iszero(@view kv.kabc[:,j]), Base.OneTo(dim(kv))) # total number of free parameters in `kv`
-function (kv::KVec)(αβγ::AbstractVector{<:Real})
-    k₀, kabc = parts(kv)
-    return k₀ + kabc*αβγ
+T(xyzs::NTuple{D,<:Real}) where T<:AbstractVec{D} where D = T(SVector{D, Float64}(xyzs))
+function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
+    cnst, free = parts(v)
+    return cnst + free*αβγ
 end
-(kv::KVec)(αβγ::Vararg{<:Real, 2}) = kv([αβγ[1], αβγ[2]])
-(kv::KVec)(αβγ::Vararg{<:Real, 3}) = kv([αβγ[1], αβγ[2], αβγ[3]])
-(kv::KVec)() = kv.k₀
-(kv::KVec)(::Nothing) = kv.k₀
+(v::AbstractVec)(αβγ::Vararg{<:Real}) = v([αβγ...])
+(v::AbstractVec)(::Nothing) = constant(v)
+(v::AbstractVec)()          = v(nothing)
 
-""" 
-    KVec(str::AbstractString) --> KVec
 
-Construct a `KVec` struct from a string representations of a *k*-vector, supplied 
-in either of the formats
-        `"(\$x,\$y,\$z)"`, `"[\$x,\$y,\$z]"`, `"\$x,\$y,\$z"`,
-where the coordinates `x`,`y`, and `z` are strings that can contain fractions,
-decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively,
-{`'u'`,`'v'`,`'w'`}). Returns the associated `KVec`.
-
-Fractions such as `1/2` can be parsed: but use of any other special operator
-besides `/` will result in faulty operations (e.g. do not use `*`).
-"""
-function KVec(str::AbstractString)
+# parsing `AbstractVec`s from string format
+function _strip_split(str::AbstractString)
     str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
-    xyz = split(str,',')
-    dim = length(xyz)
-    k₀ = zeros(Float64, dim); kabc = zeros(Float64, dim, dim)
+    return split(str,',')
+end
+function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) where D
+    length(xyz) == D || throw(DimensionMismatch("Dimension D doesn't match input string"))
+    cnst = zero(MVector{D, Float64})
+    free = zero(MMatrix{D, D, Float64})
     for (i, coord) in enumerate(xyz)
-        # --- "free" coordinates, kabc[i,:] ---
-        for (j, matchgroup) in enumerate((('α','u'),('β','v'),('γ','w')))
+        # --- "free" coordinates, free[i,:] ---
+        for (j, matchgroup) in enumerate((('α','u','x'),('β','v','y'),('γ','w','z')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
-                match = searchpriornumerals(coord, pos₂)
-                kabc[i,j] = parse(Float64, match)
+                prefix = searchpriornumerals(coord, pos₂)
+                free[i,j] = parse(Float64, prefix)
             end
         end
         
-        # --- "fixed" coordinate, k₀[i] ---
-        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuβvγw])", coord)
+        # --- "fixed"/constant coordinate, cnst[i] ---
+        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuxβvyγwz])", coord)
         # regex matches any digit sequence, possibly including slashes, that is _not_
         # followed by one of the free-part identifiers αuβvγw (this is the '(?!' bit). 
         # If a '+' or '-' exist before the first digit, it is included in the match. 
@@ -203,23 +217,92 @@ function KVec(str::AbstractString)
         # We do not allow arithmetic aside from division here, obviously: any extra numbers 
         # terms are ignored.
         if m===nothing   # no constant terms
-            if last(coord) ∈ ('α','u','β','v','γ','w') # free-part only case
-                continue # k₀[i] is zero already
+            if last(coord) ∈ ('α','u','x','β','v','y','γ','w','z') # free-part only case
+                continue # cnst[i] is zero already
             else
                 throw(ErrorException("Unexpected parsing error in constant term"))
             end
         else
-            k₀[i] = Crystalline.parsefraction(m.match)
+            cnst[i] = parsefraction(m.match)
         end
     end
-    return KVec(k₀, kabc)
+    return T(cnst, free)
 end
 
-# arithmetic with k-vectors
-(-)(kv::KVec) = KVec(.- kv.k₀, .- kv.kabc)
-(-)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .- kv2.k₀, kv1.kabc .- kv2.kabc)
-(+)(kv1::KVec, kv2::KVec) = KVec(kv1.k₀ .+ kv2.k₀, kv1.kabc .+ kv2.kabc)
-zero(kv::KVec) = KVec(zero(kv.k₀))
+# generate KVec and RVec structs and parsers jointly...
+for T in (:KVec, :RVec)
+    @eval begin
+    struct $T{D} <: AbstractVec{D}
+        cnst :: SVector{D,Float64}
+        free :: SqSMatrix{D,Float64}
+    end
+    free(v::$T) = SMatrix(v.free)
+
+    @doc """
+        $($T){D}(str::AbstractString) --> $($T){D}
+        $($T)(str::AbstractString)    --> $($T)
+        $($T)(::AbstractVector, ::AbstractMatrix) --> $($T)
+    
+    Return a `$($T)` by parsing the string representations `str`, supplied in one of the
+    following formats:
+
+    ```jl
+    "(\$1,\$2,\$3)"
+    "[\$1,\$2,\$3]"
+    "\$1,\$2,\$3"
+    ```
+
+    where the coordinates `\$1`,`\$2`, and `\$3` are strings that may contain fractions,
+    decimal numbers, and "free" parameters {`'α'`,`'β'`,`'γ'`} (or, alternatively and
+    equivalently, {`'u'`,`'v'`,`'w'`} or {`'x'`,`'y'`,`'z'`}).
+    
+    Fractions such as `1/2` and decimal numbers can be parsed: but use of any other special
+    operator besides `/` will produce undefined behavior (e.g. do not use `*`).
+
+    ## Example
+    ```jldoctest
+    julia> $($T)("0.25,α,0")
+    [0.25, α, 0.0]
+    ```
+    """
+    function $T{D}(str::AbstractString) where D
+        xyz = _strip_split(str)
+        return parse_abstractvec(xyz, $T{D})
+    end
+    function $T(str::AbstractString)
+        xyz = _strip_split(str)
+        D   = length(xyz)
+        return parse_abstractvec(xyz, $T{D})
+    end
+    function $T(cnst::AbstractVector, free::AbstractMatrix)
+        D = length(cnst)
+        all(==(D), size(free)) || throw(DimensionMismatch("Mismatched argument sizes"))
+        $T{D}(SVector{D,Float64}(cnst), SMatrix{D,D,Float64,D*D}(free))
+    end
+    end
+end
+
+# arithmetic with abstract vectors
+(-)(v::T) where T<:AbstractVec = T(-constant(v), -free(v))
+for op in (:(-), :(+))
+    @eval function $op(v1::T, v2::T) where T<:AbstractVec
+        cnst1, free1 = parts(v1); cnst2, free2 = parts(v2) 
+        return T($op(cnst1, cnst2), $op(free1,free2))
+    end
+end
+zero(v::T) where T<:AbstractVec = T(zero(constant(v)))
+
+# `isapprox` without considerations of lattice-vectors
+function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
+    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
+       
+    return isapprox(cnst1, cnst2; kwargs...) && isapprox(free1, free2; kwargs...)
+end
+function (==)(v1::AbstractVec, v2::AbstractVec)
+    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
+       
+    return cnst1 == cnst2 && free1 == free2
+end
 
 """
     isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
@@ -234,35 +317,19 @@ provided, to include in calls to `Base.isapprox`.
 If `cntr` is not provided, the comparison will not account for equivalence
 by primitive G-vectors.
 """
-function isapprox(kv1::KVec, kv2::KVec, cntr::Char; kwargs...)
+function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
     k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
 
-    dim1, dim2 = length(k₀1), length(k₀2)
-    if dim1 ≠ dim2
-        throw(ArgumentError("dim(kv1)=$(dim1) and dim(kv2)=$(dim2) must be equal"))
-    end
-
     # check if k₀ ≈ k₀′ differ by a _primitive_ 𝐆 vector
-    diff = primitivebasismatrix(cntr, dim1)' * (k₀1 .- k₀2)
+    diff = primitivebasismatrix(cntr, D)' * (k₀1 .- k₀2)
     kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
     # check if kabc1 ≈ kabc2; no need to check for difference by a 
     # 𝐆 vector, since kabc is in interior of BZ
-    abcbool = isapprox(kabc1, kabc2;  kwargs...)
+    abcbool = isapprox(kabc1, kabc2; kwargs...)
 
     return kbool && abcbool
 end
-# ... without considerations of G-vectors
-function isapprox(kv1::KVec, kv2::KVec; kwargs...) 
-    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
-       
-    return isapprox(k₀1, k₀2; kwargs...) && isapprox(kabc1, kabc2; kwargs...)
-end
 
-function (==)(kv1::KVec, kv2::KVec)   
-    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
-       
-    return k₀1 == k₀2 && kabc1 == kabc2
-end
 
 # --- Abstract spatial group ---
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
@@ -317,7 +384,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LittleGroup{D} <: AbstractGroup{D}
     num::Int64
-    kv::KVec
+    kv::KVec{D}
     klab::String
     operations::Vector{SymOperation{D}}
 end
@@ -346,7 +413,7 @@ klabel(ir::AbstractIrrep) = klabel(label(ir))
 order(ir::AbstractIrrep)  = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
-dim(ir::AbstractIrrep{D}) where D = D
+dim(::AbstractIrrep{D}) where D = D
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
@@ -412,29 +479,45 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
         P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′)) # This follows the convention in Eq. (11.37) of Inui as well as the 
-                # note cis(x) = exp(ix)     # Bilbao server; but disagrees (as far as I can tell) with some
-                                            # other references (e.g. Herring 1937a, Bilbao's _publications_?!, 
-                                            # and Kovalev's book).
-                                            # In those other references they have Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), but 
-                                            # Inui has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice 
-                                            # actually appears more natural, since we usually have symmetry 
-                                            # operations acting inversely on functions of spatial coordinates. 
-                                            # If we swap the sign here, we probably have to swap t₀ in the check
-                                            # for ray-representations in check_multtable_vs_ir(::MultTable, ::LGIrrep)
-                                            # to account for this difference. It is not enough just to swap the sign
-                                            # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
-                                            # to account for the fact that it would be -β⁻¹τ that appears in the 
-                                            # inverse operation, not just τ. Same applies here, if you want to 
-                                            # adopt the other convention, it should probably not just be a swap 
-                                            # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-                                            # Note that the exp(2πi𝐤⋅τ) is also the convention adopted by Stokes
-                                            # et al in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY 
-                                            # (also expliciated at https://stokes.byu.edu/iso/irtableshelp.php),
-                                            # so, overall, this is probably the sanest choice for this dataset.
+                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
+                # NOTE/TODO/FIXME:
+                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
+                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
+                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
+                # own _publications_?!).
+                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
+                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
+                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
+                # operations acting _inversely_ on functions of spatial coordinates and
+                # Bloch phases exp(i𝐤⋅𝐫).
+                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
+                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
+                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
+                # this is probably the sanest choice for this dataset.
+                # This weird state of affairs was also noted explicitly by Chen Fang in
+                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
+                #
+                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
+                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
+                # to account for this difference. It is not enough just to swap the sign
+                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
+                # to account for the fact that it would be -β⁻¹τ that appears in the 
+                # inverse operation, not just τ. Same applies here, if you want to 
+                # adopt the other convention, it should probably not just be a swap 
+                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
             end
         end
     end
+    # FIXME: Attempt to flip phase convention. Does not pass tests.
+    #=
+    lg = group(lgir)
+    if !issymmorph(lg)
+        k = kvec(lgir)(αβγ)
+        for (i,op) in enumerate(lg)
+            P[i] .* cis(-4π*dot(k, translation(op)))
+        end
+    end
+    =#
 
     return P
 end
@@ -551,9 +634,9 @@ eltype(::BandRep) = Int64
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct BandRepSet <: AbstractVector{BandRep}
-    sgnum::Integer          # space group number, sequential
+    sgnum::Int              # space group number, sequential
     bandreps::Vector{BandRep}
-    kvs::Vector{KVec}       # Vector of 𝐤-points
+    kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric?
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included

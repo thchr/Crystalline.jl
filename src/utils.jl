@@ -27,17 +27,17 @@ function parsefraction(str::AbstractString)
 end
 
 """
-    fractionify!(io::IO, x::Real, forcesign::Bool=true, tol::Real=1e-4)
+    fractionify!(io::IO, x::Real, forcesign::Bool=true, tol::Real=1e-6)
 
 Write a string representation of the nearest fraction (within a tolerance `tol`) of `x` to 
 `io`. If `forcesign` is true, the sign character of `x` is printed whether `+` or `-` 
 (otherwise, only printed if `-`).
 """
-function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
+function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-6)
     if forcesign || signbit(x)
         print(io, signaschar(x))
     end
-    t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest 1e-4 neighborhood)
+    t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest `tol` neighborhood)
     if !isinteger(t)
         print(io, abs(numerator(t)), '/', denominator(t))
     else
@@ -45,7 +45,7 @@ function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-4)
     end
     return nothing
 end
-function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-4)
+function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-6)
     buf = IOBuffer()
     fractionify!(buf, x, forcesign, tol)
     return String(take!(buf))
@@ -126,26 +126,27 @@ issupdigit(c::AbstractChar) = (c ≥ '⁰') & (c ≤ '⁹') || c == '\u00B3' || 
 
 function unicode_frac(x::Number)
     xabs=abs(x)
-    if     xabs == 0;   return "0" # early termination for common case & avoids undesirable sign for -0.0
-    elseif xabs ≈ 1/2;  xstr = "½"
-    elseif xabs ≈ 1/3;  xstr = "⅓"
-    elseif xabs ≈ 2/3;  xstr = "⅔"
-    elseif xabs ≈ 1/4;  xstr = "¼"
-    elseif xabs ≈ 3/4;  xstr = "¾"
-    elseif xabs ≈ 1/5;  xstr = "⅕"
-    elseif xabs ≈ 2/5;  xstr = "⅖"
-    elseif xabs ≈ 3/5;  xstr = "⅗"
-    elseif xabs ≈ 4/5;  xstr = "⅘"
-    elseif xabs ≈ 1/6;  xstr = "⅙"
-    elseif xabs ≈ 5/6;  xstr = "⅚"
-    elseif xabs ≈ 1/7;  xstr = "⅐"
-    elseif xabs ≈ 1/8;  xstr = "⅛"
-    elseif xabs ≈ 3/8;  xstr = "⅜"
-    elseif xabs ≈ 5/8;  xstr = "⅝"
-    elseif xabs ≈ 7/8;  xstr = "⅞"
-    elseif xabs ≈ 1/9;  xstr = "⅑"
-    elseif xabs ≈ 1/10; xstr = "⅒"
-    else xstr = string(xabs) # return a conventional string representation
+    if     xabs == 0;    return "0" # early termination for common case & avoids undesirable sign for -0.0
+    elseif isinteger(x); return string(convert(Int, x))
+    elseif xabs ≈ 1/2;   xstr = "½"
+    elseif xabs ≈ 1/3;   xstr = "⅓"
+    elseif xabs ≈ 2/3;   xstr = "⅔"
+    elseif xabs ≈ 1/4;   xstr = "¼"
+    elseif xabs ≈ 3/4;   xstr = "¾"
+    elseif xabs ≈ 1/5;   xstr = "⅕"
+    elseif xabs ≈ 2/5;   xstr = "⅖"
+    elseif xabs ≈ 3/5;   xstr = "⅗"
+    elseif xabs ≈ 4/5;   xstr = "⅘"
+    elseif xabs ≈ 1/6;   xstr = "⅙"
+    elseif xabs ≈ 5/6;   xstr = "⅚"
+    elseif xabs ≈ 1/7;   xstr = "⅐"
+    elseif xabs ≈ 1/8;   xstr = "⅛"
+    elseif xabs ≈ 3/8;   xstr = "⅜"
+    elseif xabs ≈ 5/8;   xstr = "⅝"
+    elseif xabs ≈ 7/8;   xstr = "⅞"
+    elseif xabs ≈ 1/9;   xstr = "⅑"
+    elseif xabs ≈ 1/10;  xstr = "⅒"
+    else                 xstr = string(xabs) # return a conventional string representation
     end
     return signbit(x) ? "-"*xstr : xstr
 end

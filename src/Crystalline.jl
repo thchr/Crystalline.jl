@@ -21,7 +21,8 @@ import Base: getindex, lastindex, firstindex, setindex!, # → indexing interfac
              IndexStyle, size, eltype, length,           # ⤶
              string, isapprox, zero,
              readuntil, vec, show, summary,
-             +, -, ∘, ==, ImmutableDict
+             +, -, ∘, ==, ImmutableDict,
+             isone, one
 import LinearAlgebra: inv
 import Random                 # → _Uniform in src/utils.jl
 import Random: rand           # ⤶
@@ -41,21 +42,21 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        MultTable, LGIrrep, PGIrrep,
-       KVec,
+       KVec, RVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
        matrix, xyzt,                        # ::SymOperation
        getindex, rotation, translation, 
-       issymmorph, ==,
+       issymmorph,
        num, order, operations,              # ::AbstractGroup
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, type, group,
        israyrep, kvec, irreps,              # ::LGIrrep
        isspecial, translations,
-       dim, string, parts,                  # ::KVec
+       dim, parts,                          # ::KVec & RVec
        vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 
        isspinful
 
@@ -66,14 +67,18 @@ export schoenflies, hermannmauguin, iuc,
        centering, seitz
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export spacegroup, xyzt2matrix, matrix2xyzt,
-       ∘, compose,
+export spacegroup, compose,
        issymmorph, littlegroup, kstar,
        pointgroup,
        primitivize, conventionalize, cartesianize,
        reduce_ops, transform,
        issubgroup, isnormal,
        generate
+
+include("wyckoff.jl") # wyckoff positions and site symmetry groups
+export get_wycks, WyckPos,
+       multiplicity, qvec,
+       SiteGroup, orbit, cosets, wyck
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation
@@ -110,7 +115,7 @@ export get_lgirreps, get_littlegroups,
        get_all_lgirreps
 
 include("lattices.jl")
-export UnityFourierLattice, ModulatedFourierLattice,
+export ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
        modulate, normscale, normscale!, calcfourier
 

@@ -66,43 +66,43 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
 end
 
 # --- KVec ---
-function show(io::IO, ::MIME"text/plain", kv::KVec)
-    k₀, kabc = parts(kv)
+function show(io::IO, ::MIME"text/plain", v::AbstractVec)
+    cnst, free = parts(v)
     print(io, '[')
-    if isspecial(kv)
-        for i in eachindex(k₀) 
-            coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
+    if isspecial(v)
+        for i in eachindex(cnst) 
+            coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
             print(io, coord)
             # prepare for next coordinate/termination
-            i == length(k₀) ? print(io, ']') : print(io, ", ")
+            i == length(cnst) ? print(io, ']') : print(io, ", ")
         end
     else
-        for i in eachindex(k₀)
-            # fixed parts
-            if !iszero(k₀[i]) || iszero(@view kabc[i,:]) # don't print zero, if it adds unto anything nonzero
-                coord = k₀[i] == -0.0 ? 0.0 : k₀[i] # normalize -0.0 to 0.0
+        for i in eachindex(cnst)
+            # constant/fixed parts
+            if !iszero(cnst[i]) || iszero(@view free[i,:]) # don't print zero, if it adds unto anything nonzero
+                coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
                 print(io, coord)
             end
             # free-parameter parts
-            for j in eachindex(k₀) 
-                if !iszero(kabc[i,j])
-                    sgn = signaschar(kabc[i,j])
-                    if !(iszero(k₀[i]) && sgn=='+' && iszero(kabc[i,1:j-1])) # don't print '+' if nothing precedes it
+            for j in eachindex(cnst) 
+                if !iszero(free[i,j])
+                    sgn = signaschar(free[i,j])
+                    if !(iszero(cnst[i]) && sgn=='+' && iszero(free[i,1:j-1])) # don't print '+' if nothing precedes it
                         print(io, sgn)
                     end
-                    if abs(kabc[i,j]) != oneunit(eltype(kabc)) # don't print prefactors of 1
-                        print(io, abs(kabc[i,j]))
+                    if abs(free[i,j]) != oneunit(eltype(free)) # don't print prefactors of 1
+                        print(io, abs(free[i,j]))
                     end
                     print(io, j==1 ? 'α' : (j == 2 ? 'β' : 'γ'))
                 end
             end
             # prepare for next coordinate/termination
-            i == length(k₀) ? print(io, ']') : print(io, ", ")
+            i == length(cnst) ? print(io, ']') : print(io, ", ")
         end
     end
     return
 end
-string(kv::KVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take!(io)))
+string(kv::AbstractVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take!(io)))
 
 
 # --- AbstractGroup ---
@@ -312,7 +312,7 @@ end
 
 
 # --- BandRep ---
-function prettyprint_symmetryvector(io::IO, irvec::Vector{Int}, irlabs::Vector{String})
+function prettyprint_symmetryvector(io::IO, irvec::Vector{<:Real}, irlabs::Vector{String})
     Nⁱʳʳ  = length(irlabs)
     Nⁱʳʳ′ = length(irvec) 
     if !(Nⁱʳʳ′ == Nⁱʳʳ || Nⁱʳʳ′ == Nⁱʳʳ+1)

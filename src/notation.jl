@@ -206,99 +206,79 @@ and the conventions have not been explicated in ITA6.
 operations by a simple inspection of sign.
 """
 function seitz(op::SymOperation{D}) where D
-    W = rotation(op); w = translation(op);
-    if D == 2 # augment 2D case by "adding" an invariant z dimension
-        W = [W zeros(2); 0.0 0.0 1.0]; 
-        w = [w; 0]
+    w = translation(op)
+    if D == 3
+        W = rotation(op)
+    elseif D == 2 # augment 2D case by "adding" an invariant z dimension
+        W′ = rotation(op)
+        W  = @inbounds SMatrix{3,3,Float64,9}( # build by column (= [W′ zeros(2); 0 0 1])
+                W′[1], W′[2], 0.0, W′[3], W′[4], 0.0, 0.0, 0.0, 1.0 )
     elseif D == 1
+        W = rotation(op)
         isone(abs(W[1])) || throw(DomainError((W,w), "not a valid 1D symmetry operation"))
         W_str = signbit(W[1]) ? "-1" : "1"
         if iszero(w[1])
             return W_str
         else
             w_str = unicode_frac(w[1])
-            return "{"*W_str*"|"*w_str*"}"
+            return '{'*W_str*'|'*w_str*'}'
         end
+    else
+        throw(DomainError(D, "dimension different from 1, 2, or 3 is not supported"))
     end
 
-    detW = det(W); detW′, detW = detW, round(Int64, detW) # det, then round & flip
-    isapprox(detW′, detW, atol=DEFAULT_ATOL) || throw(ArgumentError("det W must be an integer for a SymOperation {W|w}; got $(detW′)"))
-    trW  = tr(W);  trW′,  trW  = trW, round(Int64, trW)   # tr, then round & flip
-    isapprox(trW′, trW, atol=DEFAULT_ATOL) || throw(ArgumentError("tr W must be an integer for a SymOperation {W|w}; got $(trW′)"))
+    detW′ = det(W); detW = round(Int64, detW′) # det, then trunc & check
+    isapprox(detW′, detW, atol=DEFAULT_ATOL) || throw(DomainError(detW′, "det W must be an integer for a SymOperation {W|w}"))
+    trW′  = tr(W);  trW  = round(Int64, trW′)   # tr, then trunc & check
+    isapprox(trW′,  trW,  atol=DEFAULT_ATOL) || throw(DomainError(trW′,  "tr W must be an integer for a SymOperation {W|w}"))
+
+    io_pgop = IOBuffer()
+    iszero(w) || print(io_pgop, '{')
 
     # --- rotation order (and proper/improper determination) ---
     rot = rotation_order_3d(detW, trW) # works for 2D also, since we augmented W above
     order = abs(rot)
-    rot_str = rot == -2 ? "m" : string(rot)
-    
-    # --- rotation axis (for order ≠ 1)---
-    # the rotation axis 𝐮 is determined from the product of
-    # 𝐘ₖ(𝐖) ≡ (d𝐖)ᵏ⁻¹+(d𝐖)ᵏ⁻² + ... + (d𝐖) + 𝐈 where d ≡ det(𝐖) 
-    # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮
-    # [cf. ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(b)]
-    if D == 3 && order == 1 || D == 2 && rot ≠ -2 # only need orientation in 2D for mirrors 
-        axis_str = ""                 # (w/ in plane normals; otherwise along [001])
-        u = D == 2 ? [0, 0, 1] : [0, 0, 0]
+    if rot == -2
+        print(io_pgop, 'm')
     else
-        Yₖ = Matrix{Float64}(I, 3, 3) # calculate Yₖ by iteration
-        for j=1:order-1
-            term = W^j
-            if detW^j == -1;
-                Yₖ .-= term 
-            else
-                Yₖ .+= term
-            end
-        end
-        u = zeros(Float64, 3)
-        while iszero(u)
-            v = rand(3); 
-            u = Yₖ*v # there is near-infinitesimal chance that u is zero for random v, but we check anyway.
-        end
-        norm = minimum(Base.Filter(x->x>DEFAULT_ATOL,abs.(u))) # minimum nonzero element
-        u ./= norm # normalize
-        u′, u  = u, round.(Int64, u) # convert from float to integer and check validity of conversion
-        isapprox(u′, u, atol=DEFAULT_ATOL) || throw(ArgumentError("the rotation axis must be equivalent to an integer vector by appropriate normalization; got $(u′)"))
-        # the sign of u is arbitrary: we adopt the convention of '-' elements
-        # coming "before" '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1]
-        # and [-1 1 -1] is picked over [1 -1 1]; note that this impacts the 
-        # sense of rotation which depends on the sign of the rotation axis;
-        # finally, if all elements have the same sign (or zero), we pick a  
-        # positive overall sign ('+')
-        if all(x -> x≤0, u)
-            u .*= -1
+        print(io_pgop, rot)
+    end
+    
+    if order ≠ 1
+        # --- rotation axis (for order ≠ 1)---
+        u = if D == 2 && rot ≠ -2   # only need orientation in 2D for mirrors 
+            SVector{3,Int}(0, 0, 1)
         else
-            negidx = findfirst(signbit, u)
-            firstnonzero = findfirst(x -> x≠0, u) # don't need to bother taking abs, as -0 = 0 for integers (and floats)
-            if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3)
-                u .*= -1 
+            uv = rotation_axis_3d(W, detW, order)
+            SVector{3,Int}((uv[1], uv[2], uv[3]))
+        end
+
+        if !(D == 2 && rot ≠ -2)
+            # (for 2D, ignore z-component)
+            join(io_pgop, (subscriptify(string(uᵢ)) for uᵢ in u[SOneTo(D)]))
+        end
+        
+        # --- rotation sense (for order > 2}) ---
+        # ±-rotation sense is determined from sign of det(𝐙) where
+        # 𝐙 ≡ [𝐮|𝐱|det(𝐖)𝐖𝐱] where 𝐱 is an arbitrary vector that 
+        # is not parallel to 𝐮. [ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(c)]
+        if order > 2
+            x = rand(-1:1, SVector{3, Int})
+            while iszero(x×u) # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
+                x = rand(-1:1, SVector{3, Int}) 
             end
+            Z = hcat(u, x, detW*(W*x))
+            print(io_pgop, signbit(det(Z)) ? '⁻' : '⁺')
         end
-
-        axis_str = subscriptify(join(string(u[i]) for i in 1:D)) # for 2D, ignore z-component
-    end
-    
-    # --- rotation sense (for order > 2}) ---
-    # ±-rotation sense is determined from sign of det(𝐙) where
-    # 𝐙 ≡ [𝐮|𝐱|det(𝐖)𝐖𝐱] where 𝐱 is an arbitrary vector that 
-    # is not parallel to 𝐮. [ITA6  Vol. A, p. 16, Sec. 1.2.2.4(1)(c)]
-    if order > 2
-        while true
-            global x = rand(Int64, 3)
-            iszero(x×u) || break # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
-        end
-        Z = [u x (detW*W*x)]
-        sense_str = signbit(det(Z)) ? "⁻" : "⁺"
-    else
-        sense_str = ""
     end
 
-    # --- combine labels ---
-    if iszero(w) # symmorphic operation
-        return rot_str * sense_str * axis_str
-    else         # nonsymorphic operation
-        w_str = join((unicode_frac(w[i]) for i in 1:D), ',')
-        return '{' * rot_str * sense_str * axis_str * '|' * w_str * '}'
+    # --- add translation for nonsymorphic operations ---
+    if !iszero(w)
+        print(io_pgop, '|')
+        join(io_pgop, (unicode_frac(wᵢ) for wᵢ in w), ',')
+        print(io_pgop, '}')
     end
+    return String(take!(io_pgop))
 end
 seitz(str::String) = seitz(SymOperation(str))
 
@@ -356,8 +336,10 @@ The rotation order of
 function rotation_order(W::AbstractMatrix{<:Real})
     if size(W) == (1,1)
         return convert(Int, W[1,1])
-    elseif size(W) == (2,2) # augment 2D case by "adding" an invariant z dimension
-        W = [W zeros(2); 0.0 0.0 1.0]
+    elseif size(W) == (2,2)
+        # we augment 2D case by effectively "adding" an invariant z dimension, extending
+        # into 3D: then we just shortcut to what det and tr of that "extended" matrix is
+        return rotation_order_3d(det(W), tr(W) + one(eltype(W)))
     elseif size(W) ≠ (3,3)
         throw(DomainError(size(W), "Point group operation must have a dimension ≤3"))
     end
@@ -366,5 +348,56 @@ function rotation_order(W::AbstractMatrix{<:Real})
 end
 rotation_order(op::SymOperation) = rotation_order(rotation(op))
 
+function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
+    # the rotation axis 𝐮 of a 3D rotation 𝐖 of order k is determined from the product of 
+    #       𝐘ₖ(𝐖) ≡ (d𝐖)ᵏ⁻¹+(d𝐖)ᵏ⁻² + ... + (d𝐖) + 𝐈 where d ≡ det(𝐖) 
+    # with an arbitrary vector 𝐯 that is not perpendicular to 𝐮 [cf. ITA6  Vol. A, p. 16,
+    # Sec. 1.2.2.4(1)(b)]
+
+    order ≤ 0 && throw(DomainError(order, "order must be positive (i.e. not include sign)"))
+    # if W is the identity or inversion, the notion of an axis doesn't make sense
+    isone(order) && throw(DomainError(order, "order must be non-unity (i.e. operation must not be identity or inversion)"))
+
+    Yₖ   = SMatrix{3,3,Float64}(I) # calculate Yₖ by iteration
+    term = SMatrix{3,3,eltype(W)}(I)
+    for j in Base.OneTo(order-1)
+        term = term*W # iteratively computes Wʲ
+        if detW^j == -1;
+            Yₖ = Yₖ - term 
+        else
+            Yₖ = Yₖ + term
+        end
+    end
+    u′ = Yₖ*rand(SVector{3, Float64})
+    while LinearAlgebra.norm(u′) < 1e-6
+        # there is near-infinitesimal chance that u′ is zero for random v, but check anyway
+        u′ = Yₖ*rand(SVector{3, Float64})
+    end
+    norm = minimum(Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
+    u′ = u′/norm # normalize
+    u  = round.(Int64, u′) # convert from float to integer and check validity of conversion
+    if !isapprox(u′, u, atol=DEFAULT_ATOL)
+        throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))
+    end
+    # the sign of u is arbitrary: we adopt the convention of '-' elements coming "before"
+    # '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1] and [-1 1 -1] is picked over
+    # [1 -1 1]; note that this impacts the sense of rotation which depends on the sign of
+    # the rotation axis; finally, if all elements have the same sign (or zero), we pick a
+    # positive overall sign ('+')
+    if all(≤(0), u)
+        u = -u
+    else
+        negidx = findfirst(signbit, u)
+        firstnonzero = findfirst(≠(0), u) # don't need to bother taking abs, as -0 = 0 for integers (and floats)
+        if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3)
+            u = -u 
+        end
+    end
+
+    return u
+
+end
+rotation_axis_3d(W::AbstractMatrix)   = rotation_axis_3d(W, det(W), rotation_order(W))
+rotation_axis_3d(op::SymOperation{3}) = (W=rotation(op); rotation_axis_3d(W, det(W), abs(rotation_order(W))))
 
 _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))

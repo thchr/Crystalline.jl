@@ -532,19 +532,19 @@ end
 #     (𝐏⁻¹)ᵀ(k₁′ k₂′ k₃′)ᵀ = (k₁ k₂ k₃)ᵀ
 #  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ
 
-"""
+@doc raw"""
     transform(kv::KVec, P::AbstractMatrix{<:Real}) --> kv′::KVec
 
 Returns a transformed reciprocal coordinate vector `kv′` from an original reciprocal
 coordinate vector `kv` and a basis change matrix `P`.
 
 Note that a basis change matrix `P` transforms reciprocal coordinates vectors as
-``k′ = Pᵀk`` but transforms direct coordinate vectors as ``r′=P⁻¹r`` (see e.g. ITA7
-Sec. 1.5.1.2 and 1.5.2.1).
+``k' = P^{\text{T}}k`` but transforms direct coordinate vectors as ``r'=P^{-1}r`` (see e.g.
+ITA7 Secs. 1.5.1.2 and 1.5.2.1).
 """
-function transform(kv::KVec, P::AbstractMatrix{<:Real})
+function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     k₀, kabc = parts(kv)
-    return KVec(P'*k₀, P'*kabc)
+    return KVec{D}(P'*k₀, P'*kabc)
 end
 
 """
@@ -555,7 +555,7 @@ basis (specified by the centering type `cntr`), returning the associated recipro
 coordinate vector `kv′`.
 
 Note that a basis change matrix ``P`` (as returned by 
-[Crystalline.primitivebasismatrix](@ref)) transforms direct coordinate vectors as
+[`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors as
 ``r′=P⁻¹r`` but transforms reciprocal coordinates as ``k′ = Pᵀk`` (see e.g. ITA7
 Sec. 1.5.1.2 and 1.5.2.1).
 Recall also the distinction between transforming a basis and the coordinates of a vector.

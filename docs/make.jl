@@ -1,6 +1,10 @@
 using Documenter
 using Crystalline
 
+# make sure we actually do `using Crystalline` before calling doctests (as described in
+# https://juliadocs.github.io/Documenter.jl/stable/man/doctests/#Module-level-metadata)
+DocMeta.setdocmeta!(Crystalline, :DocTestSetup, :(using Crystalline); recursive=true)
+
 makedocs(
     modules = [Crystalline],
     sitename = "Crystalline",

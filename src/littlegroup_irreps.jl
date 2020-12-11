@@ -43,7 +43,7 @@ function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
     sgops = SymOperation{D}.(sgops_str)
     lgs = Dict{String, LittleGroup{D}}()
     @inbounds for (klab, kstr, opsidx) in zip(klabs, kstrs, opsidxs)
-        lgs[klab] = LittleGroup{D}(sgnum, KVec(kstr), klab, sgops[opsidx])
+        lgs[klab] = LittleGroup{D}(sgnum, KVec{D}(kstr), klab, sgops[opsidx])
     end
     return lgs
 end

@@ -28,7 +28,7 @@ function find_representation(symvals::AbstractVector{<:Number},
                              lgirs::AbstractVector{<:AbstractIrrep},
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
                              assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
-                             atol::Float64=DEFAULT_ATOL)
+                             atol::Real=DEFAULT_ATOL)
     ct = CharacterTable(lgirs, αβγ)
     χs = ct.chartable # character table as matrix (irreps-as-columns & operations-as-rows)
 
@@ -68,14 +68,17 @@ function find_representation(symvals::AbstractVector{<:Number},
 
     #inv_g_order = inv(order(first(lgirs)))                         # [not used; see above]
     #ms = inv_g_order .* (χs' * symvals) # irrep multiplicities obtained from (2b)
-    
     ms = χs\symvals # Adrian's approach
+    residual = χs*ms - symvals
+    if !isapprox(norm(residual), 0, atol=1e-3)
+        @warn "computed multiplicities have a large residual and may not solve χm = s" residual_norm=norm(residual) residual=residual
+    end
 
     # check that imaginary part is numerically zero and that all entries are representible
     # in type assert_return_T
     msℝ = real.(ms)
     if !isapprox(msℝ, ms,  atol=atol)
-        throw("Non-negligible imaginary components found in irrep multicity ms (maximum "*
+        error("Non-negligible imaginary components found in irrep multicity ms (maximum "*
               "imaginary component is $(maximum(imag, ms)))")
     end
     if assert_return_T <: Integer
@@ -97,9 +100,10 @@ end
 function find_representation(multiplet_symvals::AbstractVector{<:AbstractVector{<:Number}}, 
                              lgirs::AbstractVector{<:LGIrrep}, 
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int)
+                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
+                             atol::Real=DEFAULT_ATOL)
     # If multiple symmetry values are given, as a vector of vectors, we take their sum over
     # the band-multiplet to determine irrep of the overall multiplet (see discussion in main
     # method)
-    return find_representation(sum.(multiplet_symvals), lgirs, αβγ, assert_return_T) 
+    find_representation(sum.(multiplet_symvals), lgirs, αβγ, assert_return_T, atol=atol) 
 end

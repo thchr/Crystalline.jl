@@ -22,19 +22,23 @@ end
 """ 
     spacegroup(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
-Return the space group symmetry operations in for a given space group number `sgnum` and 
+Return the space group symmetry operations for a given space group number `sgnum` and 
 dimensionality `D` as a `SpaceGroup{D}`.
-The returned symmetry operations are specified relative to the conventional basis choice,
+The returned symmetry operations are specified relative to the conventional basis vectors,
 i.e. are not necessarily primitive (see [`centering`](@ref)).
-If desired, operations for the primitive unit cell can be subsequently generated using 
-[`primitivize`](@ref) or [`reduce_ops`](@ref).
+If desired, operations for the primitive unit cell can subsequently be generated using 
+[`primitivize`](@ref) or [`Crystalline.reduce_ops`](@ref).
 
-The default choices for the *conventional* basis vectors are specified in Bilbao as: 
+The default choices for the conventional basis vectors follow the conventions of the Bilbao
+Crystallographic Server (or, equivalently, the International Tables of Crystallography), 
+which are:
+
 - Unique axis b (cell choice 1) for space groups within the monoclinic system.
-- Obverse triple hexagonal unit cell for R space groups.
-- Origin choice 2: inversion center at (0,0,0). (Relevant for the centrosymmetric space
+- Obverse triple hexagonal unit cell for rhombohedral space groups.
+- Origin choice 2: inversion center at (0,0,0). (relevant for the centrosymmetric space
   groups where there are two origin choices, in the orthorhombic, tetragonal and cubic 
   systems)
+
 See also [`directbasis`](@ref).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
@@ -180,9 +184,11 @@ Returns a `Vector` of `SymOperation`s.
 """
 function pointgroup(ops::AbstractVector{SymOperation{D}}) where D
     # find SymOperations that are unique with respect to their rotational parts
-    unique_rotation_ops = unique(rotation, ops) 
-    # return rotation-only SymOperations from the above unique set
-    return SymOperation{D}.(hcat.(rotation.(unique_rotation_ops), Ref(zeros(Float64, D))))
+    pgops = unique(rotation, ops) 
+    # return rotations only from the above unique set (set translations to zero)
+    map!(pgops, pgops) do op
+        SymOperation{D}(op.rotation, zero(SVector{D, Float64}))
+    end
     # TODO: Return a PointGroup?
 end
 pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
@@ -201,38 +207,38 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 """
 function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
-    T((∘)(matrix(op1), matrix(op2), modτ))
+    T((∘)(unpack(op1)..., unpack(op2)..., modτ)...)
 end
-function (∘)(op1::T, op2::T, modτ::Bool=true) where T<:AbstractMatrix{Float64}
-    W′ = rotation(op1)*rotation(op2)
-    w′ = translation(op1) + rotation(op1)*translation(op2)
+function (∘)(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SMatrix{D,D,<:Real} where R<:SVector{D,<:Real} where D
+    W′ = W₁*W₂
+    w′ = w₁ + W₁*w₂
 
     if modτ
         w′ = reduce_translation_to_unitrange(w′)
     end
 
-    return [W′ w′]
+    return W′, w′
 end
 const compose = ∘
 
-function reduce_translation_to_unitrange(w::SVector{D, Float64}) where D # reduces components to range [0.0, 1.0[
+function reduce_translation_to_unitrange(w::SVector{D, <:Real}) where D # reduces components to range [0.0, 1.0[
     # naïve approach to achieve semi-robust reduction of integer-translation
     # via a slightly awful "approximate" modulo approach; basically just the
     # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
     # around each integer.
-    w′ = mod.(w, 1.0)
+    w′ = mod.(w, one(eltype(w)))
     # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
     # due to floating point errors: we use a tolerance here to round everything 
     # close to 0.0 or 1.0 exactly to 0.0
     w′_cleanup = ntuple(Val(D)) do i
         @inbounds w′ᵢ = w′[i]
         if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
-            zero(Float64)
+            zero(eltype(w))
         else
             w′ᵢ
         end
     end
-    return SVector{D, Float64}(w′_cleanup)
+    return SVector{D, eltype(w)}(w′_cleanup)
 end
 
 """
@@ -269,7 +275,7 @@ function inv(op::T) where T<:SymOperation
     W⁻¹ = inv(W)
     w⁻¹ = -W⁻¹*w
 
-    return T([W⁻¹ w⁻¹])
+    return T(W⁻¹, w⁻¹)
 end
 
 
@@ -437,7 +443,7 @@ end
 function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where D
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
-    checkabc = !iszero(kv.kabc)
+    checkabc = !iszero(free(kv))
     for op in (@view ops[2:end])
         k₀′, kabc′ = parts(compose(op, kv, checkabc))
 
@@ -456,7 +462,7 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where
         end
 
         if newkbool
-            push!(kstar, KVec(k₀′, kabc′))
+            push!(kstar, KVec{D}(k₀′, kabc′))
         end
     end
     return kstar
@@ -476,11 +482,15 @@ If `checkabc = false`, the free part of `KVec` is not transformed
 (can be useful in situation when `kabc` is zero, and several 
 transformations are requested).
 """
-@inline function (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true)
+@inline function (∘)(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
+    # TODO: We've defined this to act inversely with `op`, which is probably not a terribly
+    #       meaningful default behavior. We should probably go change this; the annoying
+    #       thing is that it is probably used quite frequently and could break a lot of
+    #       stuff potentially.
     k₀, kabc = parts(kv)
     k₀′ = rotation(op)'\k₀
     kabc′ = checkabc ? rotation(op)'\kabc : kabc
-    return KVec(k₀′, kabc′)
+    return KVec{D}(k₀′, kabc′)
 end
 
 
@@ -525,7 +535,7 @@ end
 
 Transforms a `op` ``= \\{W|w\\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= \\{W'|w'\\}``: (see ITA6, Sec. 1.5.2.3)
+`op′` ``= \\{W'|w'\\}`` (see ITA6 Sec. 1.5.2.3):
 
 ``\\{W'|w'\\} = \\{P|p\\}^{-1}\\{W|w\\}\\{P|p\\}``
 
@@ -546,7 +556,7 @@ function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real},
     w′ = transform_translation(op, P, p, modw) # = P⁻¹(w+Wp-p)
                                                # with W ≡ rotation(op) and w ≡ translation(op)
 
-    return SymOperation{D}([W′ w′])
+    return SymOperation{D}(W′, w′)
 end
 
 function transform_rotation(op::SymOperation{D}, P::AbstractMatrix{<:Real}) where D
