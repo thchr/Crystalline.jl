@@ -77,7 +77,7 @@ end
 
 
 # ---------------------------------------------------------------------------------------- #
-# Little groups and little groups irreps from 1D: just manually written down
+# 1D line groups: little groups irreps written down manually
 
 LGIRS_1D = [Dict{String, Vector{LGIrrep{1}}}() for _ in 1:2]
 function make_1d_lgirrep(sgnum::Integer, klab::String, cdml_suffix::String,
@@ -106,12 +106,20 @@ LGIRS_1D[2]["X"] = [make_1d_lgirrep(2, "X", "₁⁺", 0.5, SymOperation{1}.(["x"
 LGIRS_1D[2]["Ω"] = [make_1d_lgirrep(2, "Ω", "₁", "u", [SymOperation{1}("x")], [1.0]) ]
 
 # ---------------------------------------------------------------------------------------- #
+# 2D plane groups: little groups irreps extracted for symmorphic groups via point groups
+
+include("lg_irreps_2d.jl") # defines the variable LGIRS_2D′
+
+# ---------------------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------------------- #
 # actually write .jld files for 1D and 3D
 
 # 3D (from ISOTROPY)
 __write_littlegroupirreps() = __write_littlegroupirreps(parselittlegroupirreps())
 #__write_littlegroupirreps()
+
+# 2D (from point group matching)
+__write_littlegroupirreps(LGIRS_2D′)
 
 # 1D (manual)
 __write_littlegroupirreps(LGIRS_1D)
