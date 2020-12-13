@@ -108,7 +108,7 @@ LGIRS_1D[2]["Ω"] = [make_1d_lgirrep(2, "Ω", "₁", "u", [SymOperation{1}("x")]
 # ---------------------------------------------------------------------------------------- #
 # 2D plane groups: little groups irreps extracted for symmorphic groups via point groups
 
-include("lg_irreps_2d.jl") # defines the variable LGIRS_2D′
+include("setup_2d_littlegroup_irreps.jl") # defines the variable LGIRS_2D′
 
 # ---------------------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------------------- #
