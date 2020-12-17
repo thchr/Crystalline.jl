@@ -78,14 +78,14 @@ using Crystalline, Test
     @testset "Groups created from generators" begin # (`generate` default sorts by `seitz`)
         # generate plane group (17) p6mm from 6⁺ and m₁₀
         gens = SymOperation.(["x-y,x", "-x+y,y"]) 
-        @test all(generate(gens) .== sort!(operations(spacegroup(17,2)), by=seitz))
+        @test Set(generate(gens)) == Set(spacegroup(17,2))
 
         # generate site symmetry group of Wyckoff position 2b in p6mm
         ops  = SymOperation.(
                 ["x,y","-y+1,x-y+1", "-x+y,-x+1",    # {1|0}, {3⁺|1.0,1.0}, {3⁻|0,1.0}, 
                 "-y+1,-x+1", "-x+y,y", "x,x-y+1"])   # {m₁₁|1.0,1.0}, {m₁₀|0}, {m₀₁|0,1.0}
         gens = ops[[2,6]]
-        operations(generate(gens, modτ=false)) == sort!(ops, by=seitz)
+        @test Set(generate(gens, modτ=false)) == Set(ops)
 
         # generators do not specify a finite group under "non-modulo" composition
         @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
