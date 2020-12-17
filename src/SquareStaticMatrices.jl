@@ -44,12 +44,12 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 
-@propagate_inbounds function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix{T}) where {D,T}
+@propagate_inbounds @inline function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix) where {D,T}
     # TODO: this could be a little bit faster if we used a generated function as they do in
     #       for the StaticArrays ` unroll_tuple(a::AbstractArray, ::Length{L})` method...
     @boundscheck checksquare(A) == D
-    cols = @inbounds ntuple(Val{D}()) do j
-        ntuple(i->A[i,j], Val{D}())
+    cols = ntuple(Val{D}()) do j
+        ntuple(i->convert(T, @inbounds A[i,j]), Val{D}())
     end
     SqSMatrix{D,T}(cols)
 end
@@ -59,9 +59,8 @@ function convert(::Type{SqSMatrix{D, T}}, cols::NTuple{D, NTuple{D, T}}) where {
     SqSMatrix{D,T}(cols)
 end
 
-@propagate_inbounds function SqSMatrix{D}(A::AbstractMatrix{T}) where {D,T}
-    convert(SqSMatrix{D,T}, A)
-end
+@propagate_inbounds SqSMatrix{D,T}(A::AbstractMatrix) where {D,T}  = convert(SqSMatrix{D,T}, A)
+@propagate_inbounds SqSMatrix{D}(A::AbstractMatrix{T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 @propagate_inbounds function SqSMatrix(A::AbstractMatrix{T}) where T
     D = checksquare(A)
     @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
@@ -98,8 +97,8 @@ end
         end
     end
 end
-function convert(::Type{SqSMatrix{D,T}}, A::Union{SMatrix{D,D,T}, MMatrix{D,D,T}}) where {D,T}
-    SqSMatrix{D,T}(stack_square_tuple(A.data))
+@inline function convert(::Type{SqSMatrix{D,T}}, A::Union{SMatrix{D,D,T}, MMatrix{D,D,T}}) where {D,T}
+    SqSMatrix{D,T}(@inbounds stack_square_tuple(A.data))
 end
 SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T}, A))

@@ -174,10 +174,6 @@ Return total number of free parameters occuring in `v`.
 """
 nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 
-function T(cnst::AbstractVector{<:Real}) where T<:AbstractVec{D} where D
-    return T(cnst, zero(SMatrix{D,D,Float64,D*D}))
-end
-T(xyzs::NTuple{D,<:Real}) where T<:AbstractVec{D} where D = T(SVector{D, Float64}(xyzs))
 function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
     cnst, free = parts(v)
     return cnst + free*αβγ
@@ -274,10 +270,11 @@ for T in (:KVec, :RVec)
         D   = length(xyz)
         return parse_abstractvec(xyz, $T{D})
     end
-    function $T(cnst::AbstractVector, free::AbstractMatrix)
+    function $T(cnst::AbstractVector, 
+                free::AbstractMatrix=zero(SqSMatrix{length(cnst), Float64}))
         D = length(cnst)
-        all(==(D), size(free)) || throw(DimensionMismatch("Mismatched argument sizes"))
-        $T{D}(SVector{D,Float64}(cnst), SMatrix{D,D,Float64,D*D}(free))
+        @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
+        $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
     end
 end
