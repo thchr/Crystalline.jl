@@ -50,7 +50,7 @@ end
 
 function get_all_littlegroups(::Val{D}) where D
     JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
-        return [get_littlegroups(sgnum, Val(D), lgfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
+        return [get_littlegroups(sgnum, Val(D), lgfile) for sgnum in OneTo(MAX_SGNUM[D])]
     end
 end
 # convenience functions without Val(D) usage; avoid internally
@@ -120,7 +120,7 @@ end
 function get_all_lgirreps(Dᵛ::Val{D}) where D
     JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
         JLD2.jldopen(pathof_lgirreps_data(D),"r") do irfile
-            return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in Base.OneTo(MAX_SGNUM[D])]
+            return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in OneTo(MAX_SGNUM[D])]
         end
     end
 end

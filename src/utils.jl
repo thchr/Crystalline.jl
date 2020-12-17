@@ -271,14 +271,14 @@ See also [`splice_kvpath`](@ref).
 function interpolate_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Ninterp::Integer)
     Nkpairs = length(kvs)-1
     dists   = Vector{Float64}(undef, Nkpairs)
-    @inbounds for i in Base.OneTo(Nkpairs)
+    @inbounds for i in OneTo(Nkpairs)
         dists[i] = norm(kvs[i] .- kvs[i+1])
     end
     totaldist  = sum(dists)
     N_per_dist = Ninterp/totaldist
 
     kvpath = [float.(kvs[1])]
-    @inbounds for i in Base.OneTo(Nkpairs)
+    @inbounds for i in OneTo(Nkpairs)
         # try to maintain an even distribution of k-points along path
         Ninterp_i = round(Int64, dists[i]*N_per_dist, RoundUp) # points in current segment
         new_kvs   = range(kvs[i],kvs[i+1],length=Ninterp_i)
@@ -301,10 +301,10 @@ function splice_kvpath(kvs::AbstractVector{<:AbstractVector{<:Real}}, Nsplice::I
     Nsplice⁺² = Nsplice+2
     D         = length(first(kvs))
 
-    kvpath = [Vector{Float64}(undef, D) for _ in Base.OneTo(Nkpairs+1 + Nkpairs*Nsplice)]
+    kvpath = [Vector{Float64}(undef, D) for _ in OneTo(Nkpairs+1 + Nkpairs*Nsplice)]
     kvpath[1] = kvs[1]
     start, stop = 2, Nsplice⁺²
-    @inbounds for i in Base.OneTo(Nkpairs)
+    @inbounds for i in OneTo(Nkpairs)
         new_kvs = range(kvs[i],kvs[i+1],length=Nsplice⁺²)
         @views kvpath[start:stop] .= new_kvs[2:end]        # insert `new_kvs` in `kvpath`
         start  = stop+1

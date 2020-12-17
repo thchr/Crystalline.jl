@@ -360,7 +360,7 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
 
     Yₖ   = SMatrix{3,3,Float64}(I) # calculate Yₖ by iteration
     term = SMatrix{3,3,eltype(W)}(I)
-    for j in Base.OneTo(order-1)
+    for j in OneTo(order-1)
         term = term*W # iteratively computes Wʲ
         if detW^j == -1;
             Yₖ = Yₖ - term 

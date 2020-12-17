@@ -17,6 +17,8 @@ using Compat
 using Statistics: quantile
 using DocStringExtensions
 
+using Base: OneTo
+
 import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
              IndexStyle, size, eltype, length,           # ⤶
              string, isapprox, zero,

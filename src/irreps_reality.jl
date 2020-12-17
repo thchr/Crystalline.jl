@@ -30,7 +30,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Nirr = length(lgirs)
     lg = group(first(lgirs))
     kv = kvec(lg) # must be the same for all irreps in list
-    αβγ    = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[Base.OneTo(D)]
+    αβγ    = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[OneTo(D)]
     kv_αβγ = kv(αβγ)
     sgnum = num(lg)
     lgops = operations(lg)
@@ -56,7 +56,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     # ║   but TR will not change the degeneracy at 𝐤 itself. Cornwall
     # ║   refers to this as "Case (1)" on p. 151.
     if !isapproxin(-kv, kstar(sgops, kv, cntr), cntr; atol=DEFAULT_ATOL)
-        corep_idxs = [[i] for i in Base.OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
+        corep_idxs = [[i] for i in OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
         verbose && println(klabel(lg), "ᵢ ∀i (type x) ⇒  no additional degeneracy (star{k} ∌ -k)")
 
     else
@@ -134,7 +134,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         # the characters of the respective irreps.
                         χⱼ = characters(lgirs[j], αβγ)
                         match = true
-                        for n in Base.OneTo(Nops)
+                        for n in OneTo(Nops)
                             if k_equiv_kv₋ # 𝐤 = -𝐤 + 𝐆 ⇒ g₋ = I (the unit element), s.t. g₋⁻¹gg₋ = I⁻¹gI = g    (Cornwall's case (3))
                                 χⱼ_g₋⁻¹gg₋ = χⱼ[n]
                             else           # 𝐤 not equivalent to -𝐤, i.e. 𝐤 ≠ -𝐤 + 𝐆, but -𝐤 is in the star of 𝐤 (Cornwall's case (2))
@@ -171,14 +171,14 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Ncoreps = length(corep_idxs)
 
     # New small co-rep labels (composite)
-    newlabs = Tuple(join(label(lgirs[i]) for i in corep_idxs[i′]) for i′ in Base.OneTo(Ncoreps))
+    newlabs = Tuple(join(label(lgirs[i]) for i in corep_idxs[i′]) for i′ in OneTo(Ncoreps))
 
     # Build a vector of "new" small irreps (small co-reps), following B&C p. 616 & Inui p.
     # 298-299. For pseudo-real and complex co-reps, we set a flag `iscorep = true`, to
     # indicate to "evaluation" methods, such as `irreps(::LGIrrep)`, that a diagonal
     # "doubling" is required (see below).
     lgirs′ = Vector{LGIrrep{D}}(undef, Ncoreps)
-    for i′ in Base.OneTo(Ncoreps)
+    for i′ in OneTo(Ncoreps)
         idxs = corep_idxs[i′]
         if length(idxs) == 1      # ⇒ real or type x (unchanged irreps)
             lgirs′[i′] = lgirs[idxs[1]] # has iscorep = false flag set already
@@ -217,9 +217,9 @@ function _blockdiag2x2(A1::AbstractMatrix{T}, A2::AbstractMatrix{T}) where T
     LinearAlgebra.checksquare(A2) == n || throw(DimensionMismatch())
 
     B = zeros(T, 2n, 2n)
-    for i in Base.OneTo(n)
+    for i in OneTo(n)
         i′ = i+n
-        @inbounds for j in Base.OneTo(n)
+        @inbounds for j in OneTo(n)
             j′ = j+n
             B[i,j]   = A1[i,j]
             B[i′,j′] = A2[i,j]
@@ -232,9 +232,9 @@ function _blockdiag2x2(A::AbstractMatrix{T}) where T
     n = LinearAlgebra.checksquare(A)
 
     B = zeros(T, 2n, 2n)
-    for i in Base.OneTo(n)
+    for i in OneTo(n)
         i′ = i+n
-        @inbounds for j in Base.OneTo(n)
+        @inbounds for j in OneTo(n)
             j′ = j+n
             aᵢⱼ = A[i,j]
             B[i,j]   = aᵢⱼ

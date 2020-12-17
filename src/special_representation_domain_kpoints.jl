@@ -181,7 +181,7 @@ See `is_holosymmetric` for description of holosymmetric space groups and of
 their connection to the representation and basic domains Φ and Ω.
 """
 function _find_holosymmetric_sgnums(D::Integer)
-    bravaistypes = bravaistype.(Base.OneTo(MAX_SGNUM[D]),D)
+    bravaistypes = bravaistype.(OneTo(MAX_SGNUM[D]), D)
     uniquebravaistypes = unique(bravaistypes) # Bravais types (1, 5, & 14 in 1D, 2D, & 3D)
 
     # find maximum point groups for each bravais type
@@ -438,8 +438,8 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     klabs = klabel.(values(lgs))
     Nk = length(lgs)    
 
-    newkvs = [KVec[] for _ in Base.OneTo(Nk)]
-    newklabs = [String[] for _ in Base.OneTo(Nk)]
+    newkvs   = [KVec[]   for _ in OneTo(Nk)]
+    newklabs = [String[] for _ in OneTo(Nk)]
     for (kidx, (kv, klab)) in enumerate(zip(kvs, klabs))
         for (Ridx, R) in enumerate(Rs)
             newkv = R∘kv

@@ -78,7 +78,7 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
     if isnothing(isoval)
         # we don't want to "double count" the BZ edges - so to avoid that, exclude the last 
         # index of each dimension (same approach as in `filling2isoval`)
-        isoidxs = Base.OneTo(N-1)
+        isoidxs = OneTo(N-1)
         vals′ = if D == 2;     (@view vals[isoidxs, isoidxs])
                 elseif D == 3; (@view vals[isoidxs, isoidxs, isoidxs])
                 end
@@ -202,14 +202,14 @@ end
 function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::Basis{3})
     Nᵛᵉʳᵗˢ = length(verts); Nᶠᵃᶜᵉˢ = length(faces)
     verts′ = Matrix{Float64}(undef, Nᵛᵉʳᵗˢ, 3)
-    @inbounds @simd for j in Base.OneTo(3) # Cartesian xyz-coordinates
+    @inbounds @simd for j in (1,2,3) # Cartesian xyz-coordinates
         R₁ⱼ, R₂ⱼ, R₃ⱼ = Rs[1][j], Rs[2][j], Rs[3][j]
-        for i in Base.OneTo(Nᵛᵉʳᵗˢ) # vertices
+        for i in OneTo(Nᵛᵉʳᵗˢ) # vertices
             verts′[i,j] = verts[i][1]*R₁ⱼ + verts[i][2]*R₂ⱼ + verts[i][3]*R₃ⱼ
         end
     end
     # convert `faces` from Nᶠᵃᶜᵉˢ-vector of 3-vectors to Nᶠᵃᶜᵉˢ×3 matrix
-    faces′ = [faces[i][j] for i = Base.OneTo(Nᶠᵃᶜᵉˢ), j = Base.OneTo(3)]
+    faces′ = [faces[i][j] for i in OneTo(Nᶠᵃᶜᵉˢ), j in (1,2,3)]
     return verts′, faces′
 end
 

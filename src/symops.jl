@@ -110,10 +110,10 @@ const IDX2XYZ = ('x', 'y', 'z')
 function matrix2xyzt(O::AbstractMatrix{<:Real})
     D = size(O,1)
     buf = IOBuffer()
-    @inbounds for i in Base.OneTo(D)
+    @inbounds for i in OneTo(D)
         # point group part
         firstchar = true
-        for j in Base.OneTo(D)
+        for j in OneTo(D)
             Oᵢⱼ = O[i,j]
             if !iszero(Oᵢⱼ)
                 if !firstchar || signbit(Oᵢⱼ)
@@ -748,7 +748,7 @@ function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D
             ΔW .= rotation(h) .- rotation(g)
             Δw .= translation(h) .- translation(g)
 
-            @inbounds @simd for i in Base.OneTo(D) # consider two operations identical if they differ by a near-integer translation
+            @inbounds @simd for i in SOneTo(D) # consider two operations identical if they differ by a near-integer translation
                 rΔwᵢ = round(Δw[i])
                 if isapprox(Δw[i], rΔwᵢ, atol=DEFAULT_ATOL)
                     Δw[i] = zero(Float64)
@@ -835,12 +835,12 @@ function generate(gens::AbstractVector{SymOperation{D}};
     while true
         Nₒₚ = length(ops)
         # fixme: there's probably a more efficient way to do this?
-        for opᵢ in (@view ops[1:Nₒₚ]) 
-            for opⱼ in (@view ops[1:Nₒₚ])
+        for opᵢ in (@view ops[OneTo(Nₒₚ)]) 
+            for opⱼ in (@view ops[OneTo(Nₒₚ)])
                 opᵢⱼ = compose(opᵢ, opⱼ, modτ)
                 # fixme: there are some _really_ strange allocations going on here, related
                 #        to the interplay between the `∉` and `push!`ing operations here; no 
-                #        clue why this happens... some sort stack/heap conflict?
+                #        clue why this happens... some sort of stack/heap conflict?
                 if opᵢⱼ ∉ ops
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
@@ -848,7 +848,7 @@ function generate(gens::AbstractVector{SymOperation{D}};
                 end
             end
         end
-        Nₒₚ == length(ops) && (return GenericGroup{D}(sort!(ops, by=seitz)))
+        Nₒₚ == length(ops) && (return GenericGroup{D}(ops))
     end
 end
 

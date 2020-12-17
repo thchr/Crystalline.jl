@@ -241,7 +241,7 @@ function write_lgs_to_mpb!(io::IO, lgs::AbstractVector{<:LittleGroup{D}}) where 
     write(io, "opidxs", "=");  _vec2list(io, _vec2list, idxs2ops);
 
     # define the k-points across `lgs`, evaluated with (α,β,γ) = TEST_αβγ
-    αβγ   = length(TEST_αβγ) == D ? TEST_αβγ : TEST_αβγ[Base.OneTo(D)]
+    αβγ   = length(TEST_αβγ) == D ? TEST_αβγ : TEST_αβγ[OneTo(D)]
     kvecs = map(lg->kvec(lg)(αβγ), lgs)
     # ... does not print a newline after last line; should be added by callee if relevant
 
@@ -277,7 +277,7 @@ function lattice_from_mpbparams(io::IO)
 
     # --- basis vectors ---
     rewinding_readuntil(io, "rvecs=")
-    vecs = Tuple(Vector{Float64}(undef, D) for _ in Base.OneTo(D))
+    vecs = Tuple(Vector{Float64}(undef, D) for _ in OneTo(D))
     for R in vecs
         readuntil(io, "(vector3 ")
         coords = split.(readuntil(io, ')'))

@@ -49,7 +49,7 @@ end
 function get_irrepvecs(brtags)
     Nklabs = length(first(brtags)) # there's equally many (composite) irrep tags in each band representation
     irlabs = Vector{String}()
-    for kidx in Base.OneTo(Nklabs)
+    for kidx in OneTo(Nklabs)
         irlabs_at_kidx = Vector{String}()
         for tag in getindex.(brtags, kidx) # tag could be a combination like Γ1⊕2Γ₂ (or something simpler, like Γ₁)
             for irrep in split(tag, '⊕')
@@ -63,7 +63,7 @@ function get_irrepvecs(brtags)
         append!(irlabs, irlabs_at_kidx)
     end
 
-    irvecs = [zeros(Int64, length(irlabs)) for _=Base.OneTo(length(brtags))]
+    irvecs = [zeros(Int64, length(irlabs)) for _ in OneTo(length(brtags))]
     for (bridx, tags) in enumerate(brtags)
         for (kidx,tag) in enumerate(tags)
             for irrep in split(tag, '⊕') # note this irrep tag may contain numerical prefactors!
@@ -224,7 +224,7 @@ function wyckbasis(BRS::BandRepSet)
     #T, T⁻¹ = F.T, F.Tinv,
 
     nnz = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
-    nzidxs = Base.OneTo(nnz)
+    nzidxs = OneTo(nnz)
 
     # If we apply S⁻¹ to a given set of (integer) symmetry data 𝐧, the result 
     # should be the (integer) factors qᵢCᵢ (Cᵢ=Λᵢ here) discussed in Tang, Po,

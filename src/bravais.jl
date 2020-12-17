@@ -181,7 +181,7 @@ function crystalsystem(sgnum::Integer, D::Integer=3)
 end
 
 """
-    relrand(lims::NTuple{2,Real}, N=1) --> Vector{Float64}
+    relrand(lims::NTuple{2,Real}) --> Float64
 
 Computes a random number in the range specified by the two-element 
 tuple `lims`. The random numbers are sampled from two uniform 
@@ -204,7 +204,6 @@ function relrand(lims::NTuple{2,<:Real})
         return rand(_Uniform(low,high))
     end
 end
-relrand(lims::NTuple{2,<:Real}, N) = [relrand(lims) for i=Base.OneTo(N)]
 
 """ 
     directbasis(sgnum, D=3;    abclims, αβγlims)
@@ -273,16 +272,16 @@ function directbasis(sgnum::Integer, Dᵛ::Val{D}=Val(3);
             a = b = 1.0;        c = relrand(abclims)
             α = β = γ = °(90)
         elseif system == "orthorhombic" # α=β=γ=90° (free: a,b,c)
-            a = 1.0;            b, c = relrand(abclims, 2)
+            a = 1.0;            b, c = relrand(abclims), relrand(abclims)
             α = β = γ = °(90)
         elseif system == "monoclinic"   # α=γ=90° (free: a,b,c,β≥90°)
-            a = 1.0;            b, c = relrand(abclims, 2)
+            a = 1.0;            b, c = relrand(abclims), relrand(abclims)
             α = γ = °(90);      β = rand(_Uniform(°(90), αβγlims[2]))
             while !isvalid_sphericaltriangle(α,β,γ)  # arbitrary combinations of α,β,γ may not correspond 
                 β = rand(_Uniform(°(90), αβγlims[2])) # to a valid axis-system; reroll until they do
             end
         elseif system == "triclinic"    # no conditions (free: a,b,c,α,β,γ)
-            a = 1.0;            b, c = relrand(abclims, 2)
+            a = 1.0;            b, c = relrand(abclims), relrand(abclims)
             U = _Uniform(αβγlims...)
             α, β, γ = rand(U), rand(U), rand(U)
             while !isvalid_sphericaltriangle(α,β,γ) # arbitrary combinations of α,β,γ may not correspond 

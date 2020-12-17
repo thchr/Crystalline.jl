@@ -23,7 +23,7 @@ const PGS_NUM2IUC = (
 const PGS_IUCs = map(x->tuple(Iterators.flatten(x)...), PGS_NUM2IUC)
 # a tuple of ImmutableDicts, giving maps from iuc label to point group number
 const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(x->lab∈x, PGS_NUM2IUC[D])
-                           for lab in PGS_IUCs[D]]...) for D = Base.OneTo(3)]...)
+                           for lab in PGS_IUCs[D]]...) for D in (1,2,3)]...)
 # The IUC notation for point groups can be mapped to the Schoenflies notation, but the 
 # mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C3v but 
 # correspond to different axis orientations. 

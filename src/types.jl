@@ -458,7 +458,7 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
                     matrices::Vector{Matrix{ComplexF64}}, 
                     translations_sentinel::Nothing, # sentinel value for all-zero translations
                     type::Int64) where D
-    translations = [zeros(Float64,D) for _=Base.OneTo(order(lg))]
+    translations = [zeros(Float64,D) for _=OneTo(order(lg))]
     return LGIrrep{D}(cdml, lg, matrices, translations, type)
 end
 group(lgir::LGIrrep) = lgir.lg
