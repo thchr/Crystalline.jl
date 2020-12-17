@@ -276,6 +276,8 @@ for T in (:KVec, :RVec)
         @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
         $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
+    $T(xs::Vararg{<:Any, D}) where D = $T{D}(SVector{D, Float64}(xs), zero(SqSMatrix{D,Float64}))
+    $T(xs::NTuple{D, <:Any}) where D = $T{D}(SVector{D, Float64}(xs), zero(SqSMatrix{D,Float64}))
     end
 end
 
