@@ -110,7 +110,7 @@ a bash script of the following kind:
         
     unset IFS; # restore usual command-substitution word-splitting practice
 ```
-on gbar, `PATH_TO_MPB_EXECUTABLE` is `~/postdoc/mpb-transform-dev/1.8-dev/bin/mpb`.
+where `PATH_TO_MPB_EXECUTABLE` is the path to the MPB executable.
 Locally, in `mpb-ctl` we have a file `run-fourier-lattice.sh` which performs the 
 above, with `calcname` specified as an input parameter (assumed to be a subfolder
 `/input/`).

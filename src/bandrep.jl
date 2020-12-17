@@ -228,8 +228,8 @@ function wyckbasis(BRS::BandRepSet)
 
     # If we apply S⁻¹ to a given set of (integer) symmetry data 𝐧, the result 
     # should be the (integer) factors qᵢCᵢ (Cᵢ=Λᵢ here) discussed in Tang, Po,
-    # [...], Nature Physics 15, 470 (2019). Conversely, the rows of S gives an integer-
-    # coefficient basis for all gapped band structures, while the rows of S*diagm(Λ)
+    # [...], Nature Physics 15, 470 (2019). Conversely, the columns of S gives an integer-
+    # coefficient basis for all gapped band structures, while the columns of S*diagm(Λ)
     # generates all atomic insulator band structures (assuming integer coefficients).
     # See also your notes in scripts/derive_sg2_bandrep.jl
     return S[:, nzidxs], diagm(F)[:,nzidxs], S⁻¹[:, nzidxs]
