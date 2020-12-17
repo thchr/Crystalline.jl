@@ -469,27 +469,31 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where
 end
 kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 
-"""
+@doc raw"""
     (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Computes the action of `op::SymOperation` ``≡ g`` on `kv::KVec` ``≡ k``
-using that ``g`` acts on k-vectors as ``k(G)' = [g(R)ᵀ]⁻¹k(G)``, with ``g`` 
-in an ``R``-basis and k in a ``G``-basis. Returns a new `KVec`, that is 
-possibly distinct from its original only by a reciprocal lattice
-vector (i.e. multiple of integers).
+Return the composition (or action) of `op` on a reciprocal-space vector `kv`, i.e. 
+`kv' = op ∘ kv`.
 
-If `checkabc = false`, the free part of `KVec` is not transformed
-(can be useful in situation when `kabc` is zero, and several 
-transformations are requested).
+`op` and `kv` are assumed to be specified in the direct lattice and reciprocal lattice 
+bases, respectively (this is the default behavior in Crystalline). As a result, `op` acts
+on `kv` via the transpose of its matrix form, i.e. the `kv` vector is multiplied by 
+`transpose(rotation(op))`. 
+That is, for a given reciprocal vector ``\mathbf{k}`` (i.e. `kv`) and operation ``g`` (i.e.
+`op`) with rotation part ``\mathbf{R}`` (i.e. `rotation(op)`), we define
+```math
+\mathbf{k}' ≡ g∘\mathbf{k} = \mathbf{R}^{\text{T}}\mathbf{k}
+```
+The action of ``g`` on ``\mathbf{k}`` is invariant under any translation parts of ``g``,
+i.e. translations do not act in reciprocal space.
+
+If `checkabc = false`, the free part of `KVec` is not transformed (can be improve 
+performance in situations when `kabc` is zero, and several transformations are requested).
 """
 @inline function (∘)(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
-    # TODO: We've defined this to act inversely with `op`, which is probably not a terribly
-    #       meaningful default behavior. We should probably go change this; the annoying
-    #       thing is that it is probably used quite frequently and could break a lot of
-    #       stuff potentially.
     k₀, kabc = parts(kv)
-    k₀′ = rotation(op)'\k₀
-    kabc′ = checkabc ? rotation(op)'\kabc : kabc
+    k₀′ = rotation(op)'*k₀
+    kabc′ = checkabc ? rotation(op)'*kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
 
@@ -734,10 +738,9 @@ there exists an element ``g∈G`` such that ``h=g``.
 Returns a Boolean answer (`true` if normal, `false` if not).
 
 ## Note
-This compares space groups rather than space group types, i.e. the 
-comparison assumes a matching setting choice between ``H`` and ``G``. To compare space 
-group types with different conventional settings, they must first be transformed
-to a shared setting.
+This compares space groups rather than space group types, i.e. the comparison assumes a
+matching setting choice between ``H`` and ``G``. To compare space group types with different
+conventional settings, they must first be transformed to a shared setting.
 """
 function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D}} where D
     ΔW = Matrix{Float64}(undef, D, D) # work matrices
