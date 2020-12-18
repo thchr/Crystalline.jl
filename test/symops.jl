@@ -3,7 +3,7 @@ using Crystalline, Test
 @testset "Symmetry operations" begin
     @testset "Basics" begin
         # Space group #1
-        sg = spacegroup(1, 3)
+        sg = spacegroup(1, Val(3))
         @test order(sg) == 1
         @test dim(sg) == 3
         op = sg[1]
@@ -11,7 +11,7 @@ using Crystalline, Test
         @test xyzt(op) == "x,y,z"
 
         # Space group #146
-        sg = spacegroup(146, 3)
+        sg = spacegroup(146, Val(3))
         @test order(sg) == 9
         @test dim(sg) == 3
         op = sg[9]
@@ -19,7 +19,7 @@ using Crystalline, Test
         @test xyzt(op) == "-x+y+1/3,-x+2/3,z+2/3"
 
         # Plane group #7
-        plg = spacegroup(7, 2)
+        plg = spacegroup(7, 2) # keep as 2 (rather than Val(2)) intentionally, to test...
         @test order(plg) == 4
         @test dim(plg) == 2
         op = plg[2]
@@ -27,7 +27,8 @@ using Crystalline, Test
         @test xyzt(op) == "-x,-y"
 
         # Round-trippability of constructors
-        op = SymOperation("-y,x,z+1/2")
+        op = SymOperation{3}("-y,x,z+1/2")
+        @test op == S"-y,x,z+1/2"
         @test op == SymOperation(rotation(op), translation(op)) 
         @test op == SymOperation(matrix(op)) # SMatrix
         @test op == SymOperation(Matrix(op)) # Matrix

@@ -69,7 +69,7 @@ export schoenflies, hermannmauguin, iuc,
        centering, seitz
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export spacegroup, compose,
+export @S_str, spacegroup, compose,
        issymmorph, littlegroup, kstar,
        pointgroup,
        primitivize, conventionalize, cartesianize,
