@@ -48,14 +48,14 @@ function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
     return lgs
 end
 
-function get_all_littlegroups(::Val{D}) where D
+function get_all_littlegroups(::Val{D}=Val(3)) where D
     JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
         return [get_littlegroups(sgnum, Val(D), lgfile) for sgnum in OneTo(MAX_SGNUM[D])]
     end
 end
 # convenience functions without Val(D) usage; avoid internally
 get_littlegroups(sgnum::Integer, D::Integer, jldfile::JldOrNothing=nothing) = get_littlegroups(sgnum, Val(D), jldfile)
-get_all_littlegroups(D::Integer=3) = get_all_littlegroups(Val(D))
+get_all_littlegroups(D::Integer) = get_all_littlegroups(Val(D))
 
 
 #------------------------------------------------------------------------------------------
@@ -117,14 +117,14 @@ function get_lgirreps(sgnum::Integer, D::Integer, lgs_jldfile::JldOrNothing=noth
     get_lgirreps(sgnum, Val(D), lgs_jldfile, irs_jldfile)
 end
 
-function get_all_lgirreps(Dᵛ::Val{D}) where D
+function get_all_lgirreps(Dᵛ::Val{D}=Val(3)) where D
     JLD2.jldopen(pathof_littlegroups_data(D),"r") do lgfile
         JLD2.jldopen(pathof_lgirreps_data(D),"r") do irfile
             return [get_lgirreps(sgnum, Dᵛ, lgfile, irfile) for sgnum in OneTo(MAX_SGNUM[D])]
         end
     end
 end
-get_all_lgirreps(D::Integer=3) = get_all_lgirreps(Val(D))
+get_all_lgirreps(D::Integer) = get_all_lgirreps(Val(D))
 
 # ===== utility functions (loads raw data from the harddisk) =====
 const DATA_LITTLEGROUPS_FILENAME = "littlegroups_data.jld2"
