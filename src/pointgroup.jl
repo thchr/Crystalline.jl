@@ -80,9 +80,10 @@ end
 @inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
 
 @inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
-    iucs = PGS_NUM2IUC[D][pgnum]
-    length(iucs) < setting && throw(DomainError(setting, "invalid setting request"))
-    return iucs[setting]
+    @boundscheck 1 ≤ pgnum ≤ length(PGS_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PGS_NUM2IUC"))
+    iucs = @inbounds PGS_NUM2IUC[D][pgnum]
+    @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PGS_NUM2IUC[pgnum]"))
+    return @inbounds iucs[setting]
 end
 @inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Int=1) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
@@ -190,5 +191,10 @@ function get_pgirreps(iuclab::String, ::Val{1})
     end
     return PGIrrep{1}.(cdmls, Ref(pg), matrices, Ref(1))
 end
-get_pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D)
-get_pgirreps(iuclab::String, D::Integer) = get_pgirreps(iuclab, Val(D))
+get_pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D) # if D ∉ (1,2,3)
+get_pgirreps(iuclab::String, D::Integer)  = get_pgirreps(iuclab, Val(D))
+function get_pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
+    iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
+    return get_pgirreps(iuc, Dᵛ)
+end
+get_pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = get_pgirreps(pgnum, Val(D), setting)
