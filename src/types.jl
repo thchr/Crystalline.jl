@@ -65,7 +65,7 @@ struct SymOperation{D} <: AbstractMatrix{Float64}
 end
 SymOperation(m::AbstractMatrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 function SymOperation{D}(m::AbstractMatrix{Float64}) where D
-    @boundscheck size(m) == (D, D+1) || throw(BoundsError(size(m), "matrix size must be (D, D+1)"))
+    @boundscheck size(m) == (D, D+1) || throw(DomainError(size(m), "matrix size must be (D, D+1)"))
     # we construct the SqSMatrix's tuple data manually, rather than calling e.g.
     # `convert(SqSMatrix{D, Float64}, @view m[OneTo(D),OneTo(D)])`, just because it is
     # slightly faster that way (maybe the view has a small penalty?)...
