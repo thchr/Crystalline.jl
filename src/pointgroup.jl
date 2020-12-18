@@ -53,8 +53,7 @@ const IUC2SCHOENFLIES_PGS = ImmutableDict(
 function pointgroup_iuc2num(iuclab::String, D::Integer)
     return get(PGS_IUC2NUM[D], iuclab, nothing)
 end
-
-pointgroup_iuc2schoenflies(iuclab::String) = IUC2SCHOENFLIES_PGS[iuclab]
+schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
 
 # --- Point groups & operators ---
 unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
