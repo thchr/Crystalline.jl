@@ -31,7 +31,7 @@ end
 #       ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ = δₐᵦδₙⱼδₘₖNₒₚ⁽ᵃ⁾/dim(D⁽ᵃ⁾)
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
-@testset "Great orthogonoality theorem (point group irreps)" begin
+@testset "Great orthogonality theorem (point group irreps)" begin
     αβγ = nothing
     for D in 1:3
         for pgiuc in PGS_IUCs[D]

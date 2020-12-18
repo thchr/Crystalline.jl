@@ -4,3 +4,9 @@
 # line endings simultaneously: so we just pick unix-style
 # (treats everything in the repo as text: should be okay)
 * text eol=lf
+*.csv text
+*.jl text
+*.json text
+*.md text
+*.pdf binary
+*.jld2 binary

@@ -1,4 +1,4 @@
-using Crystalline, HTTP, Gumbo, JLD2, ProgressMeter
+using Crystalline, HTTP, Gumbo, JLD2, ProgressMeter, StaticArrays
 
 const BILBAO_PG_URL_BASE = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl?tipogrupo=spg&pointspace=point&"
 
@@ -168,7 +168,7 @@ function __crawl_and_write_3d_pgirreps()
 
 
     # we only save the point group irreps.
-    filename_irreps = savepath*"/pgirreps_data"
+    filename_irreps = savepath*"/irreps_data"
 
     JLD2.jldopen(filename_irreps*".jld2", "w") do irreps_file
         @showprogress for pgiuc in PGS_IUCs[3]
