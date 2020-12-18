@@ -21,7 +21,7 @@ Returns the filepath of the saved .jld2 files.
 """
 function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}}}) where D
 
-    savepath = (@__DIR__)*"/../data/lgirreps/"*string(D)*"d/"
+    savepath = (@__DIR__)*"/../data/lgirreps/"*string(D)*"d"
     filename_lgs    = savepath*"/littlegroups_data"
     filename_irreps = savepath*"/irreps_data"
     
@@ -70,7 +70,7 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
     end # end of loop
 
     end # close irreps_file
-    end # close irreps_file
+    end # close littlegroups_file
 
     return filename_lgs, filename_irreps
 end
