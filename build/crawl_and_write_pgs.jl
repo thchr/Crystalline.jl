@@ -1,4 +1,4 @@
-using Crystalline, HTTP, Gumbo, JLD2
+using Crystalline, HTTP, Gumbo, JLD2, ProgressMeter
 
 const BILBAO_PG_URL_BASE = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl?tipogrupo=spg&pointspace=point&"
 
@@ -99,7 +99,7 @@ function crawl_pgirs(pgiuc::String, D::Integer=3; consistency_checks::Bool=true)
                                Ref(r"</tr>.*"=>"")) # remove "tail"
     pgops_strs = split.(pgops_str, " ", keepempty=false) # matrix elements, row by row
     pgops_matrices = [collect(reshape(parse.(Int, strs), (3,3))') for strs in pgops_strs]
-    pgops     = SymOperation{3}.(hcat.(pgops_matrices, Ref(zeros(Int, 3))))
+    pgops = SymOperation.(SMatrix{3,3,Float64}.(pgops_matrices))
     # build point group PointGroup{3} from extracted pgops
     pgnum = Crystalline.pointgroup_iuc2num(pgiuc, 3)
     pg = PointGroup{3}(pgnum, pgiuc, pgops) # note that sorting matches pointgroup(...)
@@ -171,7 +171,7 @@ function __crawl_and_write_3d_pgirreps()
     filename_irreps = savepath*"/pgirreps_data"
 
     JLD2.jldopen(filename_irreps*".jld2", "w") do irreps_file
-        for pgiuc in PGS_IUCs[3]
+        @showprogress for pgiuc in PGS_IUCs[3]
             # ==== crawl and prepare irreps data ====
             pgirs = crawl_pgirs(pgiuc, 3; consistency_checks=true)
             matrices = [pgir.matrices for pgir in pgirs]
