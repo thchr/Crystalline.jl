@@ -1,11 +1,4 @@
 Manifest.toml
 */Manifest.toml
-test/isosurfvis/isosurfdata.mat
-*.obj
-*.blend
-*.blend1
-*.png
-*.svg
-*.pdf
 *.vscode
-*.mat
+*.pdf
