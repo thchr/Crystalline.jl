@@ -78,6 +78,8 @@ function SymOperation(r::SMatrix{D,D,<:Real},
                       t::SVector{D,<:Real}=zero(SVector{D, Float64})) where D
     SymOperation{D}(SqSMatrix{D,Float64}(r), t)
 end
+SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
+SymOperation{D}(t::AbstractVector{<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
 translation(op::SymOperation{D}) where D = op.translation
@@ -90,7 +92,8 @@ xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
 SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(m))
 # type-unstable convenience constructors; avoid for anything non-REPL related, if possible
 SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
-SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m)) 
+SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)
+SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m))
 
 # define the AbstractArray interface for SymOperation
 getindex(op::SymOperation, keys...) = matrix(op)[keys...]
