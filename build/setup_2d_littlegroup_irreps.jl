@@ -67,17 +67,22 @@ end
 # correct the reality type by calling out to herring explicitly
 LGIRSD_2D′ = Dict{Int, Dict{String, Vector{LGIrrep{2}}}}()
 for (sgnum, LGIRSD_2D) in LGIRSD_2D
-    sg    = reduce_ops(spacegroup(sgnum, Val(2)))
-    LGIRSD_2D′[sgnum] = Dict{String, Vector{LGIrrep{2}}}()
+    sg = reduce_ops(spacegroup(sgnum, Val(2)))
 
+    LGIRSD_2D′[sgnum] = Dict{String, Vector{LGIrrep{2}}}()
     for (klab, lgirs) in LGIRSD_2D
         lgirs′ = LGIrrep{2}[]
         for lgir in lgirs
+            herring_type  = herring(lgir, sg) # -1 => pseudoreal, 0 => complex, 1 => real
+            isotropy_type = herring_type == +1 ? 1 : # real       (1)
+                            herring_type == -1 ? 2 : # pseudoreal (2)
+                            herring_type ==  0 ? 3 : # complex    (3)
+                            error("invalid reality type")
             lgir′ = LGIrrep{2}(label(lgir), group(lgir), lgir.matrices, lgir.translations,
-                               herring(lgir, sg), false)
+                              isotropy_type , false)
             push!(lgirs′, lgir′)        
         end
-        LGIRSD_2D′[sgnum][klab]= lgirs
+        LGIRSD_2D′[sgnum][klab]= lgirs′
     end
 end
 LGIRS_2D′ = [LGIRSD_2D for (key, LGIRSD_2D) in LGIRSD_2D′]
