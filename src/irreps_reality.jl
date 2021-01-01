@@ -310,24 +310,51 @@ function herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::
     end
 
     # check that output is a real integer and then convert to that for output...
-    if norm(imag(s)) < DEFAULT_ATOL 
+    if norm(imag(s)) < DEFAULT_ATOL
         sInt = round(Int,real(s)); 
-    else 
-        throw(error("Herring criterion should yield a real value; obtained complex s=$(s)")) 
+    else
+        _throw_reality_not_real(s)
     end
-    if norm(sInt-real(s)) > DEFAULT_ATOL 
-        throw(error("Herring criterion should yield an integer; obtained s=$(s)"))
-    end
+    norm(sInt-real(s)) > DEFAULT_ATOL && _throw_reality_not_integer(real(s))
 
     # sInt = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
     herring_type = Int64(sInt/normalization)
-    if herring_type ∉ (0,1,-1)
-        throw(DomainError(herring_type, "Calculation of the Herring criterion incorrectly "*
-                                        "produced a value ∉ (0,1,-1)"))
-    end
+    herring_type ∉ (0,1,-1) && _throw_reality_outofbounds(herring_type)
 
-    return Int64(sInt/normalization) # return [∑ χ({β|b}²)]/[g₀/M(k)]
+    return herring_type # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end
 
-# TODO: Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
-#           g⁻¹∑ χ(g²) = {1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)}
+# Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
+#   g⁻¹∑ χ(g²) = {1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)}
+function reality_criterion(pgir::PGIrrep)
+    χs = characters(pgir)
+    pg = group(pgir)
+
+    fs_type = zero(eltype(χs))
+    for op in pg
+        op² = op∘op
+        idx = findfirst(≈(op²), pg)
+        if idx == nothing
+            error("unexpectedly did not find group element for op²")
+        else
+            fs_type += χs[idx]
+        end
+    end
+
+    fs_type /= order(pg)
+    if norm(imag(fs_type)) < DEFAULT_ATOL 
+        fs_type_int = round(Int, real(fs_type))
+        if isapprox(fs_type_int, real(fs_type), atol=DEFAULT_ATOL)
+            fs_type_int ∉ (0,1,-1) && _throw_reality_outofbounds(fs_type_int)
+            return fs_type_int
+        else
+            _throw_reality_not_integer(real(fs_type))
+        end
+    else 
+        _throw_reality_not_real(fs_type)
+    end 
+end
+
+@noinline _throw_reality_not_integer(x) = error("Criterion must produce an integer; obtained non-integer value = $(x)")
+@noinline _throw_reality_not_real(x)    = error("Criterion must yield a real value; obtained complex value = $(x)")
+@noinline _throw_reality_outofbounds(x) = throw(DomainError(x, "Calculation of the reality criterion incorrectly produced a value ∉ (0,1,-1)"))
