@@ -250,18 +250,6 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
             print(io, ")]")
         end
     end
-    
-    # Least-effort way to indicate nontrivial (pseudo-real/complex) co-representations
-    # TODO: Improve printing of pseudo-real and complex LGIrrep co-representations?
-    if iscorep(lgir) 
-        if type(lgir) == 2     # pseudo-real
-            print(io, " + block-repetition")
-        elseif type(lgir) == 3 # complex
-            print(io, " + conjugate-block-repetition")
-        else
-            throw(DomainError(type, "Unexpected combination of iscorep=true and type≠{2,3}"))
-        end
-    end
 end
 function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
                                   nindent::Integer, nboxdelims::Integer=45)  
