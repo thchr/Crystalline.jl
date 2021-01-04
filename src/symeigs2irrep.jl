@@ -30,7 +30,7 @@ function find_representation(symvals::AbstractVector{<:Number},
                              assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
                              atol::Real=DEFAULT_ATOL)
     ct = CharacterTable(lgirs, αβγ)
-    χs = ct.chartable # character table as matrix (irreps-as-columns & operations-as-rows)
+    χs = characters(ct) # character table as matrix (irreps-as-columns & operations-as-rows)
 
     # METHOD/THEORY: From projection operators, we have
     #   (dⱼ/|g|) ∑ᵢ χᵢⱼ*sᵢ = nⱼ   ∀j                                                    (1)

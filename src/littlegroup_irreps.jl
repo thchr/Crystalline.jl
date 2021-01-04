@@ -117,30 +117,6 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
 end
 
 
-
-# unexported character table convenience constructors (see also CharacterTable(::AbstractVector{<:AbstractIrrep})))
-# TODO: Move these to types.jl and fix inconsistent method naming?
-function chartable(klab::String, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
-    lgirsd = get_lgirreps(sgnum, Dᵛ)
-    CharacterTable(lgirsd[klab], αβγ)
-end
-chartable(klab::String, sgnum::Integer, D::Integer=3, αβγ=nothing) = 
-    chartable(klab, sgnum, Val(D), αβγ)
-
-
-function chartable(kv::KVec, sgnum::Integer, Dᵛ::Val, αβγ=nothing)
-    lgirsd = get_lgirreps(sgnum, Dᵛ)
-    kidx = findfirst(x->kvec(first(x))==kv, lgirsd)
-    if kidx === nothing
-        throw(DomainError(kv, "Could not find input `kv` in the requested space group"))
-    else
-        return CharacterTable(lgirsd[kidx], αβγ)
-    end
-end
-chartable(kv::KVec, sgnum::Integer, D::Integer=3, αβγ=nothing) = 
-    chartable(kv, sgnum, Val(D), αβγ)
-
-
 # old attempt at trying to have the data files open all the time, whenever the 
 # module is called, and then closed afterwards. Ultimately, this only worked 
 # rather sporadically and seemed quite buggy (though it was faster, since

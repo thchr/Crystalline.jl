@@ -590,9 +590,9 @@ struct CharacterTable{D}
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
     tag::String
 end
-CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, 
-                  irlabs::Vector{String}, 
-                  chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
+CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, irlabs::Vector{String}, 
+    chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
+
 operations(ct::CharacterTable) = ct.ops
 labels(ct::CharacterTable) = ct.irlabs
 characters(ct::CharacterTable) = ct.chartable
