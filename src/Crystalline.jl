@@ -133,7 +133,7 @@ export prepare_mpbcalc, prepare_mpbcalc!
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
 # - optional code-loading, using Requires.
-const DATA_DIR = (@__DIR__)*"/data"
+const DATA_DIR = dirname(@__DIR__)*"/data"
 function __init__()
     # Open LGIrrep and LittleGroup data files for read access on package load (this saves
     # us a lot of time, compared to doing `jldopen` each time we need to e.g. call 
