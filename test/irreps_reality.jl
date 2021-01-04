@@ -46,7 +46,7 @@ end # @testset "Herring criterion"
 # the ordinary irreps and `realify`
 LGIRS′ = [Dict(klab=>realify(lgirs) for (klab,lgirs) in lgirsd) for lgirsd in LGIRS]
 
-function corep_orthogonality_factor(lgir::AbstractIrrep)
+function corep_orthogonality_factor(lgir)
     if iscorep(lgir)
         r = reality(lgir)
         r == PSEUDOREAL && return 4
