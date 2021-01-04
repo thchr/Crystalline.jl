@@ -119,9 +119,9 @@ Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in spa
 `sg` (or with space group number `sgnum`; in this case, the dimensionality is inferred from
 `wp`).
 
-`g` contains as operations that are isomorphic to the those contained in `sg` (in the sense
-that they might differ by lattice vectors) that leave the Wyckoff position `wp` invariant,
-such that `all(op -> wp == op∘wp, g)` is true.
+`g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
+that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
+invariant, such that `all(op -> wp == op∘wp, g)` is true.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
