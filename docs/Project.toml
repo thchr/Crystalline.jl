@@ -1,4 +1,3 @@
 [deps]
-Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
+Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-LiveServer = "16fef848-5104-11e9-1b77-fb7a48bbb589"
