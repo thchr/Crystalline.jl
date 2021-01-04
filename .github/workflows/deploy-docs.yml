@@ -18,7 +18,7 @@ jobs:
           version: '1' # latest release
       - name: Install dependencies
         # add the BoffinStuff registry (in addition to General), which is needed for SmithNormalForm; _then_ develop package
-        run: julia --project=docs/ -e 'using Pkg; Pkg.Registry.add([RegistrySpec("General"), RegistrySpec(url="https://github.com/wildart/BoffinStuff.git")]); Pkg.update(); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: julia --project=docs/ -e 'using Pkg; Pkg.Registry.add([RegistrySpec("General"), RegistrySpec(url="https://github.com/wildart/BoffinStuff.git")]); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
