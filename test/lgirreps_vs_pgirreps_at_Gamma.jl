@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
+    LGIRS = get_littlegroups.(1:MAX_SGNUM[3], Val(3))
 end
 
 # this file tests the consistency between little group irreps at the Γ point and the 

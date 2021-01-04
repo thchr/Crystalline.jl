@@ -114,8 +114,7 @@ export ΦnotΩ_kvecs
 =#
 
 include("littlegroup_irreps.jl")
-export get_lgirreps, get_littlegroups,
-       get_all_lgirreps
+export get_lgirreps, get_littlegroups
 
 include("lattices.jl")
 export ModulatedFourierLattice,
@@ -131,9 +130,23 @@ export bandreps, matrix, classification, basisdim
 include("export2mpb.jl")
 export prepare_mpbcalc, prepare_mpbcalc!
 
-# Optional code-loading, using Requires.
+## __init__
+# - open .jld2 data files, so we don't need to keep opening/closing them
+# - optional code-loading, using Requires.
 function __init__()
-    
+    # open LGIrrep and LittleGroup data files for read access on package load (this saves
+    # us a lot of time, compared to doing `jldopen` each time we need to e.g. call 
+    # `get_lgirreps`, where the time for opening/closing would otherwise dominate)
+    @time begin
+    global LGIRREPS_JLDFILES = ImmutableDict((D=>JLD2.jldopen("data/lgirreps/$(D)d/irreps_data.jld2", "r")       for D in (1,2,3))...)
+    global LGS_JLDFILES      = ImmutableDict((D=>JLD2.jldopen("data/lgirreps/$(D)d/littlegroups_data.jld2", "r") for D in (1,2,3))...)
+    global PGIRREPS_JLDFILE  = JLD2.jldopen("data/pgirreps/3d/irreps_data.jld2", "r") # only has 3D data; no need for Dict
+    end
+    # ensure we close files on exit
+    atexit(() -> foreach(jldfile -> close(jldfile), values(LGIRREPS_JLDFILES)))
+    atexit(() -> foreach(jldfile -> close(jldfile), values(LGS_JLDFILES)))
+    atexit(() -> close(PGIRREPS_JLDFILE))
+
     # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
     @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
         include("compat/pyplot.jl") # loads PyPlot and Meshing
@@ -141,7 +154,6 @@ function __init__()
                plot_lattice_from_mpbparams, 
                mesh_3d_levelsetlattice
     end
-
 end
 
 end # module

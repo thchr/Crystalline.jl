@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = get_all_lgirreps(Val(3)) # ≡ parselittlegroupirreps()
+    LGIRS = get_littlegroups.(1:MAX_SGNUM[3], Val(3))
 end
 #Crystalline.add_ΦnotΩ_lgirs!.(LGIRS)
 

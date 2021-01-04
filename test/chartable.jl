@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
-if !isdefined(Main, :LGIRS′)
-    LGIRS = get_all_lgirreps(Val(3))  # loaded from our saved .jld2 files
+if !isdefined(Main, :LGIRS)
+    LGIRS = get_littlegroups.(1:MAX_SGNUM[3], Val(3))
 end
 
 @testset "CharacterTable and orthogonality theorems" begin

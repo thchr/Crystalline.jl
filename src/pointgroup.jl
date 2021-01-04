@@ -114,10 +114,9 @@ function find_parent_pointgroup(g::AbstractGroup)
 end
 
 # --- POINT GROUP IRREPS ---
-const DATA_PATH_PGIRREPS_3D = (@__DIR__)*"/../data/pgirreps/3d/irreps_data.jld2"
-
-function _load_pgirreps_data(iuclab::String, jldfile::JLD2.JLDFile)
-    jldgroup = jldfile[unmangle_pgiuclab(iuclab)] 
+# loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
+function _load_pgirreps_data(iuclab::String)
+    jldgroup = PGIRREPS_JLDFILE[unmangle_pgiuclab(iuclab)] 
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]
@@ -152,9 +151,7 @@ functionality in an explicit fashion, please cite the original reference [3].
 function get_pgirreps(iuclab::String, ::Val{3}=Val(3))
     pg = pointgroup(iuclab, Val(3)) # operations
 
-    matrices, realities, cdmls = JLD2.jldopen(DATA_PATH_PGIRREPS_3D, "r") do irs_jldfile
-        _load_pgirreps_data(iuclab, irs_jldfile) # irrep matrices, realities, & labels
-    end
+    matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     
     return PGIrrep{3}.(cdmls, Ref(pg), matrices, Reality.(realities))
 end
@@ -168,9 +165,7 @@ function get_pgirreps(iuclab::String, ::Val{2})
     #     operators and irreps each, so the setting difference doesn't matter.
     #     That the settings and sorting indeed agree between 2D and 3D is tested in 
     #     scripts/compare_pgops_3dvs2d.jl
-    matrices, realities, cdmls = JLD2.jldopen(DATA_PATH_PGIRREPS_3D, "r") do irs_jldfile
-        _load_pgirreps_data(iuclab, irs_jldfile) # irrep matrices, realities, & labels
-    end
+    matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     
     return PGIrrep{2}.(cdmls, Ref(pg), matrices, Reality.(realities))
 end

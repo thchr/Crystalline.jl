@@ -1,16 +1,16 @@
 using Crystalline, Test
 
-if !isdefined(Main, :LGIRS)
-    LGIRS  = parselittlegroupirreps() # parsed directly from ISOTROPY's files
-end
 if !isdefined(Main, :LGIRS′)
-    LGIRS′ = get_all_lgirreps(Val(3)) # loaded from our saved .jld2 files
+    LGIRS′ = parselittlegroupirreps() # parsed directly from ISOTROPY's files
+end
+if !isdefined(Main, :LGIRS)
+    LGIRS  = get_littlegroups.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files
 end
 
 @testset "Test equivalence of parsed and loaded LGIrreps" begin
     for sgnum in 1:230
-        lgirsd  = LGIRS[sgnum]  # parsed variant
-        lgirsd′ = LGIRS′[sgnum] # loaded variant
+        lgirsd′ = LGIRS′[sgnum] # parsed variant
+        lgirsd  = LGIRS[sgnum]  # loaded variant
 
         @test length(lgirsd) == length(lgirsd′)
         for (kidx, (klab, lgirs)) in enumerate(lgirsd)
@@ -27,7 +27,6 @@ end
                 for αβγ in (nothing, Crystalline.TEST_αβγ)
                     @test irreps(lgir, αβγ) == irreps(lgir′, αβγ)
                 end
-
             end
         end
     end
