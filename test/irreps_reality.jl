@@ -1,4 +1,5 @@
 using Crystalline, Test, LinearAlgebra
+using Crystalline: iscorep
 
 if !isdefined(Main, :LGIRS)
     LGIRS = get_all_lgirreps(Val(3))
@@ -6,19 +7,16 @@ end
 
 @testset "Coreps/physically real irreps" begin
 
-# Compare our calculation of the Herring criterion with the tabulated
-# reality types in ISOTROPY
+# Compare evaluation of the Herring criterion with the tabulated realities in ISOTROPY
 @testset "Herring criterion" begin
     #= error_count = 0 =#       # for debugging
     for (sgnum, lgirsd) in enumerate(LGIRS)
         sgops = operations(first(lgirsd["Γ"])) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
         for lgirs in values(lgirsd)
             for lgir in lgirs
-                iso_rawtype = type(lgir)
-                iso_type = iso_rawtype == 1 ? 1 : (iso_rawtype == 2 ? -1 : 0) # map ISOTROPY's types from {1,2,3} to {1,-1,0} = {real, pseudoreal, complex}
+                iso_reality = reality(lgir)
                 #= try =#       # for debugging
-                herring_type = herring(lgir, sgops)
-                @test iso_type ≈ herring_type
+                @test iso_reality == calc_reality(lgir, sgops)
                 #= catch err    # for debugging
                     if true
                         println(sgnum, ", ", 
@@ -48,7 +46,16 @@ end # @testset "Herring criterion"
 # the ordinary irreps and `realify`
 LGIRS′ = [Dict(klab=>realify(lgirs) for (klab,lgirs) in lgirsd) for lgirsd in LGIRS]
 
-corep_orthogonality_factor(lgir) = lgir.iscorep ? (lgir.type == 2 ? 4 : 2) : 1
+function corep_orthogonality_factor(lgir::AbstractIrrep)
+    if iscorep(lgir)
+        r = reality(lgir)
+        r == PSEUDOREAL && return 4
+        r == COMPLEX    && return 2
+        error(DomainError(r, "unreachable; invalid combination of iscorep=true and reality type"))
+    else
+        return 1
+    end
+end
 
 ## 2ⁿᵈ orthogonality theorem (characters) [automatically includes 1ˢᵗ orthog. theorem also]: 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦfNₒₚ⁽ᵃ⁾  

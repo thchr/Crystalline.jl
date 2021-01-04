@@ -396,18 +396,41 @@ kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
 
+# --- Reality type enum ---
+# 1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
+"""
+    Reality <: Enum{Int8}
+
+Enum type with instances
+
+```  
+REAL = 1
+PSEUDOREAL = -1
+COMPLEX = 0
+```
+
+The return value of [`reality(::AbstractIrrep)`](@ref) and [`calc_reality`](@ref) is an
+instance of `Reality`. The reality type of an irrep is relevant for constructing "physically
+real" irreps (co-reps) via [`realify`](@ref).
+"""
+@enum Reality::Int8 begin
+    REAL       = 1
+    PSEUDOREAL = -1
+    COMPLEX    = 0
+end
+
 # --- Abstract group irreps ---
 """ 
-    AbstractIrrep{D} (abstract type)
+    AbstractIrrep{D}
 
 Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `matrices`,
-and `type` (and possibly `translations`). Must implement a function `irreps` that returns
+and `reality` (and possibly `translations`). Must implement a function `irreps` that returns
 the associated irrep matrices.
 """
 abstract type AbstractIrrep{D} end
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
-type(ir::AbstractIrrep) = ir.type
+reality(ir::AbstractIrrep) = ir.reality
 translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
@@ -430,7 +453,8 @@ struct PGIrrep{D} <: AbstractIrrep{D}
     cdml::String
     pg::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
-    type::Int64
+    reality::Reality
+    #iscorep::Bool # TODO: implement realify for PGIrrep
 end
 irreps(pgir::PGIrrep, αβγ::Nothing=nothing) = pgir.matrices
 group(pgir::PGIrrep) = pgir.pg
@@ -447,24 +471,24 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
-    lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group (and dimension as type parameter)
+    lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
-    type::Int64 # real, pseudo-real, or complex (⇒ 1, 2, or 3)
-    iscorep::Bool # Whether this irrep really represents a corep (only relevant for `type`s 2 and 3; leads to special handling for `irreps(..)` and printing)
+    reality::Reality
+    iscorep::Bool # Whether this irrep really represents a corep (the distinction is only meaningful for PSEUDOREAL & COMPLEX realities)
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
                     translations::Vector{Vector{Float64}},
-                    type::Int64) where D
-    return LGIrrep{D}(cdml, lg, matrices, translations, type, false)
+                    reality::Reality) where D
+    return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
                     translations_sentinel::Nothing, # sentinel value for all-zero translations
-                    type::Int64) where D
+                    reality::Reality) where D
     translations = [zeros(Float64,D) for _=OneTo(order(lg))]
-    return LGIrrep{D}(cdml, lg, matrices, translations, type)
+    return LGIrrep{D}(cdml, lg, matrices, translations, reality)
 end
 group(lgir::LGIrrep) = lgir.lg
 iscorep(lgir::LGIrrep) = lgir.iscorep

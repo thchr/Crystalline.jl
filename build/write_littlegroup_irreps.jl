@@ -52,8 +52,8 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
         translations_list = [Union{Nothing, Vector{Vector{Float64}}}[
                                     all(iszero, translations(lgir)) ? nothing : translations(lgir) 
                                     for lgir in lgirs] for lgirs in values(lgirsd)] # dreadful generator, but OK...
-        type_list = [[type(lgir) for lgir in lgirs] for lgirs in values(lgirsd)]
-        cdml_list = [[label(lgir) for lgir in lgirs] for lgirs in values(lgirsd)]
+        realities_list = [[Integer(reality(lgir)) for lgir in lgirs] for lgirs in values(lgirsd)]
+        cdml_list      = [[label(lgir) for lgir in lgirs] for lgirs in values(lgirsd)]
         
         # ==== save data ====
         # little groups
@@ -63,10 +63,10 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
         littlegroups_file[string(sgnum)*"/opsidx_list"] = opsidx_list
 
         # irreps
-        irreps_file[string(sgnum)*"/matrices_list"] = matrices_list
+        irreps_file[string(sgnum)*"/matrices_list"]     = matrices_list
         irreps_file[string(sgnum)*"/translations_list"] = translations_list
-        irreps_file[string(sgnum)*"/type_list"] = type_list
-        irreps_file[string(sgnum)*"/cdml_list"] = cdml_list
+        irreps_file[string(sgnum)*"/realities_list"]    = realities_list # ::Vector{Int8}
+        irreps_file[string(sgnum)*"/cdml_list"]         = cdml_list
     end # end of loop
 
     end # close irreps_file
@@ -90,7 +90,7 @@ function make_1d_lgirrep(sgnum::Integer, klab::String, cdml_suffix::String,
     @show matrices
     translations = [zeros(1) for _ in scalars]
     @show translations
-    return LGIrrep{1}(cdml, lg, matrices, translations, 0, false)
+    return LGIrrep{1}(cdml, lg, matrices, translations, REAL, false)
 end
 
 # Line group 1
@@ -115,8 +115,7 @@ include("setup_2d_littlegroup_irreps.jl") # defines the variable LGIRS_2D′
 # actually write .jld files for 1D and 3D
 
 # 3D (from ISOTROPY)
-__write_littlegroupirreps() = __write_littlegroupirreps(parselittlegroupirreps())
-#__write_littlegroupirreps()
+__write_littlegroupirreps(parselittlegroupirreps())
 
 # 2D (from point group matching)
 __write_littlegroupirreps(LGIRS_2D′)

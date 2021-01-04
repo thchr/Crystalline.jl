@@ -9,7 +9,7 @@ struct SGIrrep3D{T} <: AbstractIrrep{3} where T
     irdim::Int64    # dimensionality of irrep (i.e. size)
     sgnum::Int64    # space group number
     sglabel::String # Hermann-Mauguin label of space group
-    type::Int64     # real, pseudo-real, or complex (1, 2, or 3)
+    reality::Reality # real, pseudo-real, or complex
     order::Int64    # number of operations
     knum::Int64     # number of 𝐤-vecs in star
     pmknum::Int64   # number of ±𝐤-vecs in star
@@ -49,19 +49,26 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
         sglabel = filter(!isequal(' '), readuntil(io, "\""))
         skip(io, 2)
         irlabel = roman2greek(filter(!isequal(' '), readuntil(io, "\"")))
-        # read irdim, irtype, knum, pmknum, opnum (rest of line; split at spaces)
+        # read irdim, irreality, knum, pmknum, opnum (rest of line; split at spaces)
         #       irdim  : dimension of IR
-        #       irtype : type of IR (see Sec. 5 of Acta Cryst. (2013). A69, 388)
-        #                   - type 1 : intrinsically real IR
-        #                   - type 2 : intrinsically complex IR, but equiv. to its 
-        #                              own complex conjugate; pseudoreal
-        #                   - type 3 : intrinsically complex IR, inequivalent to 
-        #                              its own complex conjugate
+        #       irreality : reality of IR (see Sec. 5 of Acta Cryst. (2013). A69, 388)
+        #                   - 1 : intrinsically real IR
+        #                   - 2 : intrinsically complex IR, but equiv. to its 
+        #                         own complex conjugate; pseudoreal
+        #                   - 3 : intrinsically complex IR, inequivalent to 
+        #                         its own complex conjugate
         #       knum   : # of 𝐤-points in 𝐤-star
         #       pmknum : # of 𝐤-points in ±𝐤-star
         #       opnum  : number of symmetry elements in little group of 𝐤-star
         #                (i.e. order of little group of 𝐤-star)
-        irdim, irtype, knum, pmknum, opnum = parsespaced(String(readline(io)))
+        irdim, irreality′, knum, pmknum, opnum = parsespaced(String(readline(io)))
+        
+        # --- REMAP REALITY TYPE TO USUAL CONVENTION ---
+        # ISOTROPY's convention is: 1 => REAL, 2 => PSEUDOREAL, and 3 => COMPLEX.
+        # Our convention (consistent with the Herring and Frobenius-Schur criteria) is
+        # instead that REAL = 1, PSEUDOREAL = -1, and COMPLEX = 0, as in encoded in the 
+        # Reality enum. We make the swap here, so we get a single consistent convention.
+        irreality = fix_isotropy_reality_convention(irreality′)
 
         # --- READ VECTORS IN THE (±)𝐤-STAR (those not related by ±symmetry) ---
         # this is a weird subtlelty: Stokes et al store their 4×4 𝐤-matrices
@@ -125,13 +132,9 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
         end
 
         # --- STORE DATA IN VECTOR OF IRREPS ---
-        irrep = SGIrrep3D{T}(irnum,    irlabel,    irdim,
-                             sgnum,    sglabel,
-                             irtype,   opnum,      
-                             knum,     pmknum,   kspecial,
-                             KVec.(k, kabc),  
-                             SymOperation{3}.(opmatrix),
-                             irtranslation, irmatrix)
+        irrep = SGIrrep3D{T}(irnum, irlabel, irdim, sgnum, sglabel, irreality,    
+                             opnum, knum, pmknum, kspecial, KVec.(k, kabc),
+                             SymOperation{3}.(opmatrix), irtranslation, irmatrix)
         length(irreps) < sgnum && push!(irreps, Vector{SGIrrep3D{T}}()) # new space group idx
         push!(irreps[sgnum], irrep)
       
@@ -195,6 +198,13 @@ function rowmajorreshape(v::AbstractVector, dims::Tuple)
     return PermutedDimsArray(reshape(v, dims), reverse(ntuple(i->i, length(dims))))
 end
 
+function fix_isotropy_reality_convention(iso_reality::Integer)
+    iso_reality == 1 && return REAL
+    iso_reality == 2 && return PSEUDOREAL
+    iso_reality == 3 && return COMPLEX
+    throw(DomainError(iso_reality, "unreachable: unexpected ISOTROPY reality value"))
+end
+
 const tabfloats = (sqrt(3)/2, sqrt(2)/2, sqrt(3)/4, cos(π/12)/sqrt(2), sin(π/12)/sqrt(2))
 """ 
     reprecision_data(x::Float64) --> Float64
@@ -241,7 +251,7 @@ function littlegroupirrep(ir::SGIrrep3D{<:Complex})
         lgirmatrices, lgirtrans = manually_fixed_lgir(num(ir), label(ir))
     end
 
-    return LGIrrep{3}(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, type(ir))
+    return LGIrrep{3}(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, reality(ir), false)
 end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))

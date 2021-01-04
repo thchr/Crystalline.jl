@@ -43,6 +43,7 @@ export splice_kvpath, interpolate_kvpath
 include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
+       Reality, REAL, PSEUDOREAL, COMPLEX,
        MultTable, LGIrrep, PGIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
@@ -55,7 +56,7 @@ export SymOperation,                        # types
        num, order, operations,              # ::AbstractGroup
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
-       label, type, group,
+       label, reality, group,
        israyrep, kvec, irreps,              # ::LGIrrep
        isspecial, translations,
        dim, parts,                          # ::KVec & RVec
@@ -95,7 +96,7 @@ export crystal, crystalsystem,
        directbasis, reciprocalbasis
 
 include("irreps_reality.jl")
-export herring, realify
+export calc_reality, realify
 
 include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 

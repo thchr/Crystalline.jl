@@ -95,7 +95,7 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3), lgs_jldfile::JldOrNot
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
-    Ps_list, τs_list, types_list, cdmls_list = if isnothing(irs_jldfile)
+    Ps_list, τs_list, realities_list, cdmls_list = if isnothing(irs_jldfile)
         JLD2.jldopen(pathof_lgirreps_data(D), "r") do irs_jldfile
             _load_lgirreps_data(sgnum, irs_jldfile)
         end
@@ -104,10 +104,10 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3), lgs_jldfile::JldOrNot
     end
 
     lgirsd = Dict{String, Vector{LGIrrep{D}}}()
-    for (Ps, τs, types, cdmls) in zip(Ps_list, τs_list, types_list, cdmls_list)
+    for (Ps, τs, realities, cdmls) in zip(Ps_list, τs_list, realities_list, cdmls_list)
         klab = klabel(first(cdmls))
         lg   = lgs[klab]
-        lgirsd[klab] = [LGIrrep{D}(cdml, lg, P, τ, type) for (P, τ, type, cdml) in zip(Ps, τs, types, cdmls)]
+        lgirsd[klab] = [LGIrrep{D}(cdml, lg, P, τ, Reality(reality)) for (P, τ, reality, cdml) in zip(Ps, τs, realities, cdmls)]
     end
     
     return lgirsd
@@ -149,10 +149,10 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
     # ≈ 70% of the time in loading all irreps is spent in getting Ps_list and τs_list
     Ps_list::Vector{Vector{Vector{Matrix{ComplexF64}}}}             = jldgroup["matrices_list"]
     τs_list::Vector{Vector{Union{Nothing,Vector{Vector{Float64}}}}} = jldgroup["translations_list"]
-    types_list::Vector{Vector{Int64}}                               = jldgroup["type_list"]
+    realities_list::Vector{Vector{Int8}}                            = jldgroup["realities_list"]
     cdmls_list::Vector{Vector{String}}                              = jldgroup["cdml_list"]
 
-    return Ps_list, τs_list, types_list, cdmls_list
+    return Ps_list, τs_list, realities_list, cdmls_list
 end
 
 

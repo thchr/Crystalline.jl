@@ -152,12 +152,12 @@ function crawl_pgirs(pgiuc::String, D::Integer=3; consistency_checks::Bool=true)
     irreps_labs = replace.(replace.(irrreps_labs_html, Ref(PGS_HTML_REPLACEMENTS[2])), 
                     Ref(PGS_HTML_REPLACEMENTS[3]))
     irreps_labs .= replace.(irreps_labs, Ref("GM"=>"Γ"))
-    irreps_realities = parse.(Int64, strip.(string.(getindex.(labs_and_realities_html, 
-                                                    lastindex.(labs_and_realities_html))),
-                                            Ref(['(', ')'])))
+    irreps_realities = parse.(Int8, strip.(string.(getindex.(labs_and_realities_html, 
+                                                   lastindex.(labs_and_realities_html))),
+                                           Ref(['(', ')'])))
     
     # --- return a vector of extracted point group irreps ::Vector{PGIrrep{3}} ---
-    return PGIrrep{3}.(irreps_labs, Ref(pg), irreps_mats, irreps_realities)
+    return PGIrrep{3}.(irreps_labs, Ref(pg), irreps_mats, Reality.(irreps_realities))
 end
 
 
@@ -174,18 +174,18 @@ function __crawl_and_write_3d_pgirreps()
         @showprogress for pgiuc in PGS_IUCs[3]
             # ==== crawl and prepare irreps data ====
             pgirs = crawl_pgirs(pgiuc, 3; consistency_checks=true)
-            matrices = [pgir.matrices for pgir in pgirs]
-            types = [type(pgir) for pgir in pgirs]
-            cdmls = [label(pgir) for pgir in pgirs]
+            matrices  = [pgir.matrices for pgir in pgirs]
+            realities = [reality(pgir) for pgir in pgirs]
+            cdmls     = [label(pgir) for pgir in pgirs]
 
             # ==== save irreps ====
             # we do not save the point group operations anew; they are already stored in 
             # "data/pgops/..."; note that we explicitly checked the sorting and equivalence 
             # of operations when pgirs was crawled above (cf. flag `consistency_checks=true`)
             unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
-            irreps_file[unmangled_pgiuc*"/matrices"] = matrices
-            irreps_file[unmangled_pgiuc*"/types"] = types
-            irreps_file[unmangled_pgiuc*"/cdmls"] = cdmls
+            irreps_file[unmangled_pgiuc*"/matrices"]  = matrices
+            irreps_file[unmangled_pgiuc*"/realities"] = Integer.(realities)
+            irreps_file[unmangled_pgiuc*"/cdmls"]     = cdmls
         end
     end
     return filename_irreps

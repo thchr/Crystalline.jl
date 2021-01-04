@@ -6,15 +6,15 @@ From `lgirs`, a vector of `LGIrrep`s, determine the associated (gray) co-represe
 i.e. the "real", or "physical" irreps that are relevant in scenarios with time-reversal
 symmetry.
 
-For `LGIrrep` that are real (`type=1`), or that characterize a k-point 𝐤 which is not
+For `LGIrrep` that are `REAL`, or that characterize a k-point 𝐤 which is not
 equivalent to -𝐤 (i.e. its star does not include both 𝐤 and -𝐤; equivalently, the little
 group includes time-reversal symmetry), the associated co-representations are just the 
 original irreps themselves. 
-For pseudo-real (`type=2`) and complex (`type=3`) `LGIrrep`s where ±𝐤 are equivalent, the
+For `PSEUDOREAL` and `COMPLEX` `LGIrrep`s where ±𝐤 are equivalent, the
 associated co-representations are built from pairs of irreps that "stick" together. This
 method computes this pairing and sets the `LGIrrep` field `iscorep` to true, to indicate
 that the resulting "paired irrep" (i.e. the co-representation) should be doubled with 
-itself (pseudo-real type) or its complex conjugate (complex type).
+itself (`PSEUDOREAL` reality) or its complex conjugate (`COMPLEX` reality).
 
 ### Background
 For background, see p. 650-652 (and 622-626 for point groups) in Bradley & Cracknell's book.
@@ -76,7 +76,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         end
 
         # -𝐤 is part of star{𝐤}; we infer reality of irrep from ISOTROPY's data (could also 
-        # be done using `herring(...)`). ⇒ deduce new small irreps (... small co-reps).
+        # be done using `calc_reality(...)`) ⇒ deduce new small irreps (... small co-reps)
         corep_idxs = Vector{Vector{Int64}}()
         skiplist = Vector{Int64}()
         for (i, lgir) in enumerate(lgirs)
@@ -84,14 +84,14 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             iscorep(lgir) && throw(DomainError(iscorep(lgir), "should not be called with LGIrreps that have iscorep=true"))
             verbose && i ≠ 1 && print("  │ ")
 
-            if type(lgir) == 1     # real
+            if reality(lgir) == REAL
                 push!(corep_idxs, [i])
                 if verbose
                     println(formatirreplabel(label(lgir)), 
                             " (real) ⇒  no additional degeneracy")
                 end
 
-            elseif type(lgir) == 2 # pseudo-real
+            elseif reality(lgir) == PSEUDOREAL
                 # doubles irrep on its own
                 push!(corep_idxs, [i, i])
                 if verbose
@@ -99,7 +99,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                             " (pseudo-real) ⇒  doubles degeneracy"); 
                 end
 
-            elseif type(lgir) == 3 # complex
+            elseif reality(lgir) == COMPLEX
                 # In this case, there must exist a "partner" irrep (say, Dⱼ) which is
                 # equivalent to the complex conjugate of the current irrep (say, Dᵢ), i.e.
                 # an equivalence Dⱼ ∼ Dᵢ*; we next search for this equivalence.
@@ -123,8 +123,8 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 # Find matching complex partner
                 partner = 0
                 for j = i+1:Nirr
-                    if j ∉ skiplist && type(lgirs[j]) == 3 # only check if j has not previously matched; 
-                                                           # similarly, only check if the jth irrep is complex.
+                    # only check if jth irrep has not previously matched and is complex
+                    if j ∉ skiplist && reality(lgirs[j]) == COMPLEX
 
                         # Note that we require only equivalence of Dᵢ* and Dⱼ; not equality.
                         # Cornwell describes (p. 152-153 & 188) a neat trick for checking this
@@ -163,7 +163,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 push!(corep_idxs, [i, partner])
                 
             else
-                throw(ArgumentError("Invalid real/pseudo-real/complex type = $(type(lgir))"))
+                throw(ArgumentError("Invalid real/pseudo-real/complex reality = $(reality(lgir))"))
             end
         end
     end
@@ -184,15 +184,16 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             lgirs′[i′] = lgirs[idxs[1]] # has iscorep = false flag set already
 
         elseif idxs[1] == idxs[2] # ⇒ pseudoreal     ("self"-doubles irreps)
-            # The resulting co-rep of a pseudo-real type of Dᵢ is
+            # The resulting co-rep of a pseudo-real irrep Dᵢ is
             #   D = diag(Dᵢ, Dᵢ)
             # See other details under complex case.
             lgir = lgirs[idxs[1]]
             blockmatrices = _blockdiag2x2.(lgir.matrices)
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, lgir.translations, 2, true)
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, lgir.translations,
+                                    PSEUDOREAL, true)
             
         else                      # ⇒ complex        (doubles irreps w/ complex conjugate)
-            # The co-rep of a complex type composed of Dᵢ and Dⱼ is 
+            # The co-rep of a complex irreps Dᵢ and Dⱼ is 
             #   D = diag(Dᵢ, Dⱼ)
             # where we know that Dⱼ ∼ Dᵢ*. Note that this is _not_ generally the same as
             # diag(Dⱼ, Dⱼ*), since we have only established that Dⱼ ∼ Dᵢ*, not Dⱼ = Dᵢ*.
@@ -203,7 +204,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             @assert τsᵢ == τsⱼ
             blockmatrices = _blockdiag2x2.(lgirs[idxs[1]].matrices, lgirs[idxs[2]].matrices)
             
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, τsᵢ, 3, true)
+            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, τsᵢ, COMPLEX, true)
         end
     end
     
@@ -244,39 +245,43 @@ function _blockdiag2x2(A::AbstractMatrix{T}) where T
     return B
 end
 
-"""
-    herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}},
-            αβγ::Union{Vector{<:Real},Nothing}=nothing)        --> Tuple{Int, Int}
+@doc raw"""
+    calc_reality(lgir::LGIrrep, 
+                 sgops::AbstractVector{SymOperation{D}},
+                 αβγ::Union{Vector{<:Real},Nothing}=nothing) --> ::(Enum Reality)
 
-Computes the Herring criterion for a small irrep `lgir::LGIrrep`, from 
+Compute and return the reality of a `lgir::LGIrrep` using the Herring criterion.
 
-``[∑ χ(\\{β|b\\}²)]/[g_0/M(k)]``
+The computed value is one of three integers in ``{1,-1,0}``.
+In practice, this value is returned via a member of the Enum `Reality`, which has instances
+`REAL = 1`, `PSEUDOREAL = -1`, and `COMPLEX = 0`.
 
-over symmetry operations ``\\{β|b\\}`` that take ``k → -k``. 
-Here ``g_0`` is the order of the point group of the space group and ``M(k)`` is the order
-of the star(``k``) [both in a primitive basis].
+## Optional arguments
+As a sanity check, a value of `αβγ` can be provided to check for invariance along a symmetry
+symmetry line/plane/general point in k-space. The reality must be invariant to this choice.
 
-The returned value, ``[∑ χ(\\{β|b\\}²)]/[g_0/M(k)]``, is one of three integers in 
-``\\{1,-1,0\\}`` corresponding to {real, pseudoreal, complex} reality. 
-We remind that ISOTROPY's convention (and hence, the `type` field of `LGIrrep`s and 
-`PGIrrep`s) of the same reality types is ``\\{1,2,3\\}``.
-
+## Note 
 The provided space group operations `sgops` **must** be the set reduced by primitive
 translation vectors; i.e. using `spacegroup(...)` directly is **not** allowable in general
 (since the irreps we reference only include these "reduced" operations). This reduced set
 of operations can be obtained e.g. from the Γ point irreps of ISOTROPY's dataset, or
 alternatively, from `reduce_ops(spacegroup(...), true)`.
 
-As a sanity check, a value of `αβγ` can be provided to check for invariance
-along a symmetry line/plane/general point in k-space. Obviously, the reality 
-type should invariant to this choice.
+## Implementation
+The Herring criterion evaluates the following sum
 
-**Implementation:** 
-See e.g. Inui's Eq. (13.48), Dresselhaus, p. 618, and 
-and Herring's original paper at https://doi.org/10.1103/PhysRev.52.361.
-We mainly followed Cornwell, p. 150-152 & 187-188.
+``[∑ χ({β|b}²)]/[g_0/M(k)]``
+
+over symmetry operations ``{β|b}`` that take ``k → -k``. Here ``g_0`` is the order of the
+point group of the space group and ``M(k)`` is the order of star(``k``) [both in a primitive
+basis].
+
+See e.g. Cornwell, p. 150-152 & 187-188 (which we mainly followed), Inui Eq. (13.48), 
+Dresselhaus, p. 618, or [Herring's original paper](https://doi.org/10.1103/PhysRev.52.361).
 """
-function herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
+function calc_reality(lgir::LGIrrep, 
+                      sgops::AbstractVector{SymOperation{D}}, 
+                      αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
     iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
     lgops = operations(lgir)
     kv = kvec(lgir)
@@ -303,58 +308,40 @@ function herring(lgir::LGIrrep, sgops::AbstractVector{SymOperation{D}}, αβγ::
     pgops = pointgroup(sgops) # point group assoc. w/ space group
     g₀ = length(pgops) # order of pgops (denoted h, or macroscopic order, in Bradley & Cracknell)
     Mk = length(kstar(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
-    normalization = round(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
-    if !isapprox(normalization, g₀/Mk)
-        throw(ErrorException("The little group is not factored by its point group and "*
-                             "star{k}: this should never happen"))
-    end
-
-    # check that output is a real integer and then convert to that for output...
-    if norm(imag(s)) < DEFAULT_ATOL
-        sInt = round(Int,real(s)); 
-    else
-        _throw_reality_not_real(s)
-    end
-    norm(sInt-real(s)) > DEFAULT_ATOL && _throw_reality_not_integer(real(s))
-
-    # sInt = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
-    herring_type = Int64(sInt/normalization)
-    herring_type ∉ (0,1,-1) && _throw_reality_outofbounds(herring_type)
-
-    return herring_type # return [∑ χ({β|b}²)]/[g₀/M(k)]
+    normalization = convert(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
+    
+    # s = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
+    type_float = real(s)/normalization
+    type       = round(Int8, type_float)
+    # check that output is a valid: real integer in (0,1,-1)
+    isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
+    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(real(s))
+    
+    return Reality(type) # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end
 
 # Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
-#   g⁻¹∑ χ(g²) = {1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)}
-function reality_criterion(pgir::PGIrrep)
+#   |g|⁻¹∑ χ(g²) = {1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)}
+function calc_reality(pgir::PGIrrep)
     χs = characters(pgir)
     pg = group(pgir)
 
-    fs_type = zero(eltype(χs))
+    s = zero(eltype(χs))
     for op in pg
         op² = op∘op
         idx = findfirst(≈(op²), pg)
-        if idx == nothing
-            error("unexpectedly did not find group element for op²")
-        else
-            fs_type += χs[idx]
-        end
+        idx == nothing && error("unexpectedly did not find group element for op²")
+
+        s += χs[idx]
     end
 
-    fs_type /= order(pg)
-    if norm(imag(fs_type)) < DEFAULT_ATOL 
-        fs_type_int = round(Int, real(fs_type))
-        if isapprox(fs_type_int, real(fs_type), atol=DEFAULT_ATOL)
-            fs_type_int ∉ (0,1,-1) && _throw_reality_outofbounds(fs_type_int)
-            return fs_type_int
-        else
-            _throw_reality_not_integer(real(fs_type))
-        end
-    else 
-        _throw_reality_not_real(fs_type)
-    end 
+    type_float = real(s)/order(pg)
+    type      = round(Int8, type_float)
+    isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
+    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(real(s))
+
+    return Reality(type) # return |g|⁻¹∑ χ(g²)
 end
 
 @noinline _throw_reality_not_integer(x) = error("Criterion must produce an integer; obtained non-integer value = $(x)")
 @noinline _throw_reality_not_real(x)    = error("Criterion must yield a real value; obtained complex value = $(x)")
-@noinline _throw_reality_outofbounds(x) = throw(DomainError(x, "Calculation of the reality criterion incorrectly produced a value ∉ (0,1,-1)"))

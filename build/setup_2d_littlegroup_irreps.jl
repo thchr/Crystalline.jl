@@ -56,15 +56,16 @@ for (sgnum, (klabs, kvs)) in PLANE2KVEC
         cdmls        = Ref(klab).*last.(label.(pgirs))
         matrices     = getfield.(pgirs, Ref(:matrices))
         translations = [zeros(2) for _ in lg]
-        type         = -1 # sentinel value for undetermined reality type; fixed below
-        pgirs_types  = getfield.(pgirs, Ref(:type))
+        pgirs_realities = reality.(pgirs)
 
-        lgirs = LGIrrep{2}.(cdmls, Ref(lg), matrices, Ref(translations), pgirs_types, false)
+        lgirs = LGIrrep{2}.(cdmls, Ref(lg), matrices, Ref(translations), pgirs_realities, false)
         LGIRSD_2D[sgnum][klab] = lgirs
     end
 end
 
-# correct the reality type by calling out to herring explicitly
+# correct the reality by calling out to `calc_reality` explicitly (the thing to guard
+# against here is that the Herring criterion and the Frobenius-Schur criterion need not 
+# agree: i.e. LGIrreps do not necessarily inherit the reality of a parent PGIrrep)
 LGIRSD_2D′ = Dict{Int, Dict{String, Vector{LGIrrep{2}}}}()
 for (sgnum, LGIRSD_2D) in LGIRSD_2D
     sg = reduce_ops(spacegroup(sgnum, Val(2)))
@@ -73,13 +74,9 @@ for (sgnum, LGIRSD_2D) in LGIRSD_2D
     for (klab, lgirs) in LGIRSD_2D
         lgirs′ = LGIrrep{2}[]
         for lgir in lgirs
-            herring_type  = herring(lgir, sg) # -1 => pseudoreal, 0 => complex, 1 => real
-            isotropy_type = herring_type == +1 ? 1 : # real       (1)
-                            herring_type == -1 ? 2 : # pseudoreal (2)
-                            herring_type ==  0 ? 3 : # complex    (3)
-                            error("invalid reality type")
+            reality_type  = calc_reality(lgir, sg) # -1 => pseudoreal, 0 => complex, 1 => real
             lgir′ = LGIrrep{2}(label(lgir), group(lgir), lgir.matrices, lgir.translations,
-                              isotropy_type , false)
+                               reality_type , false)
             push!(lgirs′, lgir′)        
         end
         LGIRSD_2D′[sgnum][klab]= lgirs′
