@@ -1,4 +1,3 @@
-# probably ought to do this with show/repr and a custom mime type to be idiomatic
 function lattice2mpb(flat::AbstractFourierLattice)
     orbits = getorbits(flat); coefs = getcoefs(flat)
     Nterms = sum(length, coefs)
