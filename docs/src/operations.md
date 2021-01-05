@@ -2,7 +2,7 @@
 Author = "Thomas Christensen"
 ```
 
-# `SymOperation{D}`
+# Symmetry operations
 
 A [`SymOperation{D}`](@ref) is a representation of a spatial symmetry operation $g=\{W|w\}$, composed of a rotational $W$ and a translation part $w$.
 The rotational and translation parts are assumed to share the same basis system; by default, operations returned by tools in Crystalline.jl will return operations in the conventional setting of International Tables of Crystallography, Volume A (ITA).
