@@ -627,7 +627,7 @@ struct BandRep <: AbstractVector{Int64}
     wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
-    dim::Integer     # Dimension (i.e. # of bands) in band rep
+    dim::Int         # Dimension (i.e. # of bands) in band rep
     decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
     irvec::Vector{Int64}   # Vector that references irlabs of a parent BandRepSet; nonzero
