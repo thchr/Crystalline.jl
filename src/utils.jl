@@ -211,7 +211,7 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=identity, sep="  "
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
         # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
-        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'), ' ')
+        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'), ' ') # FIXME: the display of '⎡' and '⎣' is broken in VSCode's integrated terminal :(
         Base.print_matrix_row(io, X_formatted, A, i, colsA, sep)
         # TODO: Printing of the closing brackets is not currently well-aligned when the last
         #       columns' elements have different display width. Should check "print"-length
