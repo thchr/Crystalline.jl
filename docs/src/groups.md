@@ -6,7 +6,7 @@ Author = "Thomas Christensen"
 
 ## Symmetry operations `SymOperation{D}`
 
-A `SymOperation{D}` is a representation of a spatial symmetry operation $g=\{W|w\}$, composed of a rotational $W$ and a translation part $w$.
+A `[SymOperation{D}](@ref)` is a representation of a spatial symmetry operation $g=\{W|w\}$, composed of a rotational $W$ and a translation part $w$.
 The rotational and translation parts are assumed to share the same basis system; by default, operations returned by tools in Crystalline.jl will return operations in the conventional setting of International Tables of Crystallography, Volume A (ITA).
 
 `SymOperation`s can be constructed in two ways, either by explicitly specifying the $W$ and $w$:
@@ -53,7 +53,7 @@ op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
 op1 ∘ op2
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.
-To obtain compute "unreduced" composition, the alternative `compose` variant of `∘` can be used with an optional third argument `false`:
+To compute "unreduced" composition, the alternative `[compose](@ref)` variant of `[∘](@ref)` can be used with an optional third argument `false`:
 ```@example operations
 compose(op1, op2′, false)
 ```
@@ -65,8 +65,8 @@ inv(op1) # inv(3₁₁₁⁺)
 ```
 
 ## Groups
-All groups in Crystalline are concrete instances of the abstract supertype `AbstractGroup{D}`, referring to a group in `D` dimensions. `AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
-Crystalline currently supports four group types: `SpaceGroup`, `LittleGroup`, `PointGroup`, and `SiteGroup`.
+All groups in Crystalline are concrete instances of the abstract supertype `[AbstractGroup{D}](@ref)`, referring to a group in `D` dimensions. `AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
+Crystalline currently supports four group types: `[SpaceGroup](@ref)`, `[LittleGroup](@ref)`, `[PointGroup](@ref)`, and `[SiteGroup](@ref)`.
 
 ### `SpaceGroup`
 
@@ -78,7 +78,7 @@ D     = 3  # dimension
 sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
 sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called with a `Val{D}` dimension to ensure type stability; here we have D::Int instead for simplicity
 ```
-We can test that `sg` indeed is a group (under composition with reduced translations) using
+We can test that `sg` indeed forms a group under our previously defined composition operator, using `[MultTable](@ref)`:
 ```@example spacegroup
 MultTable(sg)
 ```
