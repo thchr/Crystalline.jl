@@ -36,9 +36,9 @@ matrix(op)
 
 ## Operator composition
 Composition of two operators $g_1$ and $g_2$ is defined by 
-$$
-g_1 ∘ g_2 = \{W_1|w_1\}∘\{W_2|w_2\} = \{W_1W_2|w_1 + W_1w_2\}
-$$
+```math
+g_1 \circ g_2 = \{W_1|w_1\} \circ \{W_2|w_2\} = \{W_1W_2|w_1 + W_1w_2\}
+```
 We can compose two `SymOperation`s in Crystalline via:
 ```@example operations
 op1 = S"z,x,y" # 3₁₁₁⁺
