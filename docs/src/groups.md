@@ -59,7 +59,7 @@ compose(op1, op2′, false)
 ```
 
 ### Operator inverses
-The operator inverse is defined as $\{W|w\} = \{W^{-1}|-W^{-1}w\}$ and is accessible in Crystalline via
+The operator inverse is defined as $\{W|w\} = \{W^{-1}|-W^{-1}w\}$ and can be computed via
 ```@example operations
 inv(op1) # inv(3₁₁₁⁺)
 ```
@@ -74,9 +74,9 @@ Access to space groups in a conventional setting is facilitated via:
 ```@example spacegroup
 using Crystalline
 
-sgnum = 16
-D     = 3
-sg    = spacegroup(sgnum, D) # if possible, `spacegroup` should be called with a `Val{D}` dimension, to ensure type stability
+D     = 3  # dimension
+sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
+sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called with a `Val{D}` dimension to ensure type stability; here we have D::Int instead for simplicity
 ```
 We can test that `sg` indeed is a group (under composition with reduced translations) using
 ```@example spacegroup
