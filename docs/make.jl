@@ -12,7 +12,8 @@ makedocs(
     authors = "Thomas Christensen and contributors",
     pages   = [
         "Home"                            => "index.md",
-        "Operations and groups"           => "groups.md",
+        "Symmetry operations"             => "operations.md",
+        "Groups"                          => "groups.md",
         "Irreps"                          => "irreps.md",
         "Bravais types and bases"         => "bravais.md",
         "Elementary band representations" => "bandreps.md",
