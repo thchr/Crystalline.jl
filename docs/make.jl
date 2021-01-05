@@ -11,8 +11,13 @@ makedocs(
     format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
     authors = "Thomas Christensen and contributors",
     pages   = [
-        "Home" => "index.md",
-        "API"  => "api.md"
+        "Home"                            => "index.md",
+        "Operations and groups"           => "groups.md",
+        "Irreps"                          => "irreps.md",
+        "Bravais types and bases"         => "bravais.md",
+        "Elementary band representations" => "bandreps.md",
+        "Lattices"                        => "lattices.md",
+        "API"                             => "api.md"
     ]
 )
 
