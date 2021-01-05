@@ -1,3 +1,7 @@
+```@meta
+Author = "Thomas Christensen"
+```
+
 # Symmetry operations and groups
 
 ## Symmetry operations `SymOperation{D}`
@@ -7,7 +11,7 @@ The rotational and translation parts are assumed to share the same basis system;
 
 `SymOperation`s can be constructed in two ways, either by explicitly specifying the $W$ and $w$:
 
-```@example 1
+```@example operations
 using Crystalline, StaticArrays
 W, w = (@SMatrix [1 0 0; 0 0 1; 0 1 0]), (@SVector [0, 0.5, 0])
 op = SymOperation(W, w)
@@ -22,13 +26,13 @@ In the above output, three equivalent notations for the symmetry operation are g
 
 ### Components
 The components of a `SymOperation` can be accessed - although it should rarely be needed:
-```@example 1
+```@example operations
 rotation(op)
 ```
-```@example 1
+```@example operations
 translation(op)
 ```
-```@example 1
+```@example operations
 matrix(op)
 ```
 
@@ -38,27 +42,26 @@ $$
 g_1 ∘ g_2 = \{W_1|w_1\}∘\{W_2|w_2\} = \{W_1W_2|w_1 + W_1w_2\}
 $$
 We can compose two `SymOperation`s in Crystalline via:
-```@example
+```@example operations
 op1 = S"z,x,y" # 3₁₁₁⁺
 op2 = S"z,y,x" # m₋₁₀₁
 op3 = op1 ∘ op2
 ```
 Note that composition is taken modulo integer lattice translations by default, such that
-```@example 2
-op1 = S"z,x,y"  # 3₁₁₁⁺
+```@example operations
 op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
 op1 ∘ op2
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.
 To obtain compute "unreduced" composition, the alternative `compose` variant of `∘` can be used with an optional third argument `false`:
-```@example 2
+```@example operations
 compose(op1, op2′, false)
 ```
 
 ### Operator inverses
 The operator inverse is defined as $\{W|w\} = \{W^{-1}|-W^{-1}w\}$ and is accessible in Crystalline via
-```@example 2
-inv(op1)
+```@example operations
+inv(op1) # inv(3₁₁₁⁺)
 ```
 
 ## Groups
@@ -68,12 +71,14 @@ Crystalline currently supports four group types: `SpaceGroup`, `LittleGroup`, `P
 ### `SpaceGroup`
 
 Access to space groups in a conventional setting is facilitated via:
-```@example 3
+```@example spacegroup
+using Crystalline
+
 sgnum = 16
 D     = 3
 sg    = spacegroup(sgnum, D) # if possible, `spacegroup` should be called with a `Val{D}` dimension, to ensure type stability
 ```
 We can test that `sg` indeed is a group (under composition with reduced translations) using
-```@example 3
+```@example spacegroup
 MultTable(sg)
 ```
