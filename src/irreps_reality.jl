@@ -72,7 +72,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         else
             # This is a bit silly: if k_equiv_kv₋ = true, we will never use g₋; but I'm not sure if 
             # the compiler will figure that out, or if it will needlessly guard against missing g₋?
-            g₋ = SymOperation{D}(hcat(I, zeros(D))) # ... the unit element I
+            g₋ = one(SymOperation{D}) # ... the unit element I
         end
 
         # -𝐤 is part of star{𝐤}; we infer reality of irrep from ISOTROPY's data (could also 
@@ -80,7 +80,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         corep_idxs = Vector{Vector{Int64}}()
         skiplist = Vector{Int64}()
         for (i, lgir) in enumerate(lgirs)
-            if i ∈ skiplist; continue; end # already matched to this irrep previously; i.e. already included now
+            i ∈ skiplist && continue # already matched to this irrep previously; i.e. already included now
             iscorep(lgir) && throw(DomainError(iscorep(lgir), "should not be called with LGIrreps that have iscorep=true"))
             verbose && i ≠ 1 && print("  │ ")
 
@@ -140,8 +140,9 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                             else           # 𝐤 not equivalent to -𝐤, i.e. 𝐤 ≠ -𝐤 + 𝐆, but -𝐤 is in the star of 𝐤 (Cornwall's case (2))
                                 g₋⁻¹gg₋ = compose(compose(inv(g₋), lgops[n], false), g₋, false)
                                 n′, Δw = findequiv(g₋⁻¹gg₋, lgops, cntr)
-                                χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
-                            end
+                                if n′ === nothing || Δw === nothing
+                                    error("unexpectedly did not find little group element matching g₋⁻¹gg₋")
+                                end
                             
                             match = isapprox(θχᵢ[n], χⱼ_g₋⁻¹gg₋; atol=DEFAULT_ATOL)
                             if !match # ⇒ not a match
@@ -157,13 +158,13 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         end
                     end
                 end
-                partner === 0 && throw(ErrorException("Didn't find a matching complex partner for $(label(lgir))"))
+                partner == 0 && error("Didn't find a matching complex partner for $(label(lgir))")
                 push!(skiplist, partner)
 
                 push!(corep_idxs, [i, partner])
                 
             else
-                throw(ArgumentError("Invalid real/pseudo-real/complex reality = $(reality(lgir))"))
+                throw(ArgumentError("unreachable: invalid real/pseudo-real/complex reality = $(reality(lgir))"))
             end
         end
     end
@@ -279,7 +280,7 @@ basis].
 See e.g. Cornwell, p. 150-152 & 187-188 (which we mainly followed), Inui Eq. (13.48), 
 Dresselhaus, p. 618, or [Herring's original paper](https://doi.org/10.1103/PhysRev.52.361).
 """
-function calc_reality(lgir::LGIrrep, 
+function calc_reality(lgir::LGIrrep{D}, 
                       sgops::AbstractVector{SymOperation{D}}, 
                       αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
     iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
@@ -287,7 +288,7 @@ function calc_reality(lgir::LGIrrep,
     kv = kvec(lgir)
     kv₋ = -kv
     cntr = centering(num(lgir), D)
-    Ds = irreps(lgir, αβγ) # irrep matrices
+    χs = characters(lgir, αβγ)
     kv_αβγ = kv(αβγ)
 
     s = zero(ComplexF64)
@@ -299,7 +300,7 @@ function calc_reality(lgir::LGIrrep,
             # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(2πi𝐤⋅𝐭)
             idx_of_op²_in_lgops, Δw_op² = findequiv(op², lgops, cntr)
             ϕ_op² = cis(2π*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cis(x) = exp(ix)]
-            χ_op² = ϕ_op²*tr(Ds[idx_of_op²_in_lgops]) # χ(op²)
+            χ_op² = ϕ_op²*χs[idx_of_op²_in_lgops] # χ(op²)
 
             s += χ_op²
         end
@@ -315,7 +316,7 @@ function calc_reality(lgir::LGIrrep,
     type       = round(Int8, type_float)
     # check that output is a valid: real integer in (0,1,-1)
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
-    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(real(s))
+    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
     
     return Reality(type) # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end
@@ -330,18 +331,18 @@ function calc_reality(pgir::PGIrrep)
     for op in pg
         op² = op∘op
         idx = findfirst(≈(op²), pg)
-        idx == nothing && error("unexpectedly did not find group element for op²")
+        idx == nothing && error("unexpectedly did not find point group element matching op²")
 
         s += χs[idx]
     end
 
     type_float = real(s)/order(pg)
-    type      = round(Int8, type_float)
+    type       = round(Int8, type_float)
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
-    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(real(s))
+    isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
 
     return Reality(type) # return |g|⁻¹∑ χ(g²)
 end
 
-@noinline _throw_reality_not_integer(x) = error("Criterion must produce an integer; obtained non-integer value = $(x)")
+@noinline _throw_reality_not_integer(x) = error("Criterion must yield an integer; obtained non-integer value = $(x)")
 @noinline _throw_reality_not_real(x)    = error("Criterion must yield a real value; obtained complex value = $(x)")

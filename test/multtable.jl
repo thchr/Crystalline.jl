@@ -1,7 +1,7 @@
 using Crystalline, Test
 
 if !isdefined(Main, :LGIRS)
-    LGIRS = parselittlegroupirreps()
+    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
 end
 
 @testset "Multiplication tables" begin
