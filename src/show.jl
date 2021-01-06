@@ -170,7 +170,7 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
                                       ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
         v = @inbounds printP[1]
-        prettyformat_irrep_scalars(io, v, ϕabc_contrib)
+        prettyprint_irrep_scalars(io, v, ϕabc_contrib)
 
     else # matrix case
         formatter(x) = round(x, digits=4)
