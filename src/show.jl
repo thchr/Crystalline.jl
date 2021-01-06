@@ -59,7 +59,7 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     pretty_table(io,
         [seitz_ops getindex.(Ref(seitz_ops), mt.table)], # 1st column and table itself
         vcat("", seitz_ops);                             # 1st row (header)
-        highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
+        highlighters = Highlighter((data,i,j) -> j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
     return nothing
@@ -289,7 +289,7 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
         [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
         ["" formatirreplabel.(labels(ct))...];    # 1st row (header): irrep labels
         tf = tf_unicode,
-        highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
+        highlighters = Highlighter((data,i,j) -> j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
 end
@@ -376,7 +376,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
 
     # print a "title" line and the irrep labels
     println(io, "BandRepSet (#", num(BRS), "): ",
-                length(BRS), " BandReps, ", 
+                length(BRS), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(BRS) ? "½" : "1", " ",
                 istimeinvar(BRS) ? "w/" : "w/o", " TR)")
