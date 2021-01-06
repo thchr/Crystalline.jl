@@ -202,7 +202,7 @@ Should never be used for printing very large matrices, as it will not wrap or ab
 rows/columns.
 """
 function compact_print_matrix(io, X::Matrix, prerow, elformat=identity, sep="  ")
-    X_formatted = round.(elformat.(X), digits=4) # allocates; can't be bothered... (could be fixed using MappedArrays)
+    X_formatted = elformat.(X) # allocates; can't be bothered... (could be fixed using MappedArrays)
     screenheight = screenwidth = typemax(Int)
     rowsA, colsA = UnitRange(axes(X,1)), UnitRange(axes(X,2))
 

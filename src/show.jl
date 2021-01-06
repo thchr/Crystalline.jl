@@ -169,39 +169,43 @@ end
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
                                       ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
-        v = printP[1]
-        if isapprox(v, real(v), atol=DEFAULT_ATOL)          # real scalar
-            if ϕabc_contrib && abs(real(v)) ≈ 1.0
-                signbit(real(v)) && print(io, '-')
-            else
-                print(io, real(v))
-            end
-        elseif isapprox(v, imag(v)*im, atol=DEFAULT_ATOL)   # imaginary scalar
-            if ϕabc_contrib && abs(imag(v)) ≈ 1.0
-                signbit(imag(v)) && print(io, '-')
-            else
-                print(io, imag(v))
-            end
-            print(io, "i")
-        else                                                # complex scalar (print as polar)
-            vρ, vθ = abs(v), angle(v)
-            vθ /= π
-            print(io, vρ  ≈ 1.0 ? "" : vρ, "exp(") 
-            if abs(vθ) ≈ 1.0
-                signbit(vθ) && print(io, '-')
-            else
-                print(io, vθ)
-            end
-            print(io, "iπ)")
-            #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
-        end
+        v = @inbounds printP[1]
+        prettyformat_irrep_scalars(io, v, ϕabc_contrib)
 
     else # matrix case
-        formatter = x->(xr = real(x); xi = imag(x);
-                        ComplexF64(abs(xr) > DEFAULT_ATOL ? xr : 0.0,
-                                   abs(xi) > DEFAULT_ATOL ? xi : 0.0)) # round small complex components to zero
+        formatter(x) = round(x, digits=4)
         # FIXME: not very optimal; e.g. makes a whole copy and doesn't handle displaysize
         compact_print_matrix(io, printP, prefix, formatter)
+    end
+end
+function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
+                                    atol::Real=DEFAULT_ATOL)
+
+    if isapprox(v, real(v), atol=atol)          # real scalar
+        if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
+            signbit(real(v)) && print(io, '-')
+        else
+            print(io, real(v))
+        end
+    elseif isapprox(v, imag(v)*im, atol=atol)   # imaginary scalar
+        if ϕabc_contrib && isapprox(abs(imag(v)), 1.0, atol=atol)
+            signbit(imag(v)) && print(io, '-')
+        else
+            print(io, imag(v))
+        end
+        print(io, "i")
+    else                                        # complex scalar (print as polar)
+        vρ, vθ = abs(v), angle(v)
+        vθ /= π
+        isapprox(vρ, 1.0, atol=atol) && print(io, vρ)
+        print(io, "exp(") 
+        if isapprox(abs(vθ), 1.0, atol=atol)
+            signbit(vθ) && print(io, '-')
+        else
+            print(io, vθ)
+        end
+        print(io, "iπ)")
+        #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
 function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
