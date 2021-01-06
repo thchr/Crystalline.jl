@@ -273,14 +273,14 @@ for T in (:KVec, :RVec)
         D   = length(xyz)
         return parse_abstractvec(xyz, $T{D})
     end
-    function $T(cnst::AbstractVector, 
-                free::AbstractMatrix=zero(SqSMatrix{length(cnst), Float64}))
+    function $T(cnst::AbstractVector{<:Real}, 
+                free::AbstractMatrix{<:Real}=zero(SqSMatrix{length(cnst), Float64}))
         D = length(cnst)
         @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
         $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
-    $T(xs::Vararg{<:Any, D}) where D = $T{D}(SVector{D, Float64}(xs), zero(SqSMatrix{D,Float64}))
-    $T(xs::NTuple{D, <:Any}) where D = $T{D}(SVector{D, Float64}(xs), zero(SqSMatrix{D,Float64}))
+    $T(xs::Vararg{<:Real, D}) where D = $T(SVector{D, Float64}(xs))
+    $T(xs::NTuple{D, <:Real}) where D = $T(SVector{D, Float64}(xs))
     end
 end
 
@@ -292,7 +292,7 @@ for op in (:(-), :(+))
         return T($op(cnst1, cnst2), $op(free1,free2))
     end
 end
-zero(v::T) where T<:AbstractVec = T(zero(constant(v)))
+zero(v::T) where T<:AbstractVec{D} where D = T(zero(SVector{D,Float64}), zero(SqSMatrix{D,Float64}))
 
 # `isapprox` without considerations of lattice-vectors
 function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
