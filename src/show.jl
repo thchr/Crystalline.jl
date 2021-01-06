@@ -282,16 +282,8 @@ end
 # --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
     chars = characters(ct)
-    chars_formatted = Array{Union{Float64, ComplexF64, Int64, Complex{Int64}}}(undef, size(chars))
-    for (idx, c) in enumerate(chars)
-        chars_formatted[idx] = if isreal(c)
-            isinteger(real(c)) ? convert(Int64, real(c)) : real(c)
-        else
-            ((isinteger(real(c)) && isinteger(imag(c))) 
-                      ? convert(Int64, real(c)) + convert(Int64, imag(c))
-                      : c)
-        end
-    end
+    chars_formatted = _stringify_characters.(chars, digits=8)
+
     println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
     pretty_table(io,
         [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
@@ -300,6 +292,27 @@ function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
         highlighters = Highlighter((data,i,j) -> i==1 || j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
+end
+function _stringify_characters(c::Number; digits=8)
+    c′ = round(c, digits=digits)
+    cr, ci = reim(c′)
+    if iszero(ci)     # real
+        isinteger(cr) && return string(Int(cr))
+        return string(cr)
+
+    elseif iszero(cr) # imaginary
+        isinteger(ci) && return string(Int(ci))*"im"
+        return string(ci)*"im"
+
+    else              # complex
+        (isinteger(cr) && isinteger(ci)) && return _complex_as_compact_string(Complex{Int}(cr,ci))
+        return _complex_as_compact_string(c′)
+    end
+end
+function _complex_as_compact_string(c::Complex) # usual string(::Complex) has spaces; avoid that
+    io = IOBuffer()
+    print(io, real(c), signaschar(imag(c)), abs(imag(c)), "im")
+    return String(take!(io))
 end
 
 
