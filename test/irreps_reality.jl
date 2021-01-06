@@ -2,7 +2,7 @@ using Crystalline, Test, LinearAlgebra
 using Crystalline: iscorep
 
 if !isdefined(Main, :LGIRS)
-    LGIRS = get_littlegroups.(1:MAX_SGNUM[3], Val(3))
+    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
 end
 
 @testset "Coreps/physically real irreps" begin
