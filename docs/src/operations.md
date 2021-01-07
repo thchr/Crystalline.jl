@@ -35,12 +35,12 @@ We can compose two `SymOperation`s in Crystalline via:
 ```@example operations
 op1 = S"z,x,y" # 3₁₁₁⁺
 op2 = S"z,y,x" # m₋₁₀₁
-op3 = op1 ∘ op2
+op1 ∘ op2
 ```
 Note that composition is taken modulo integer lattice translations by default, such that
 ```@example operations
 op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
-op1 ∘ op2
+op1 ∘ op2′ # equivalent to compose(op1, op2′, true)
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.
 To compute "unreduced" composition, the alternative [`compose`](@ref) variant of [`∘`](@ref) can be used with an optional third argument `false`:
