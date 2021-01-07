@@ -143,6 +143,8 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                                 if n′ === nothing || Δw === nothing
                                     error("unexpectedly did not find little group element matching g₋⁻¹gg₋")
                                 end
+                                χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
+                            end
                             
                             match = isapprox(θχᵢ[n], χⱼ_g₋⁻¹gg₋; atol=DEFAULT_ATOL)
                             if !match # ⇒ not a match
