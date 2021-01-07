@@ -106,12 +106,12 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 # When we check for equivalence between irreps Dᵢ* and Dⱼ we must account 
                 # for the possibility of a 𝐤-dependence in the matrix-form of the irreps; 
                 # specifically, for an element g, its small irrep is
-                #     Dᵢ[g] = exp(2πik⋅τᵢ[g])Pᵢ[g],
+                #     Dᵢ[g] = exp(-2πik⋅τᵢ[g])Pᵢ[g],
                 # where, crucially, for symmetry lines, planes, and general points 𝐤 depends
                 # on (one, two, and three) free parameters (α,β,γ).
                 # Thus, for equivalence of irreps Dᵢ* and Dⱼ we require that
                 #     Dᵢ*[g] ~ Dⱼ[g]       ∀g ∈ G(k)
-                #  ⇔ exp(-2πik⋅τᵢ[g])Pᵢ*[g] ~ exp(2πik⋅τⱼ[g])Pⱼ[g]
+                #  ⇔ exp(2πik⋅τᵢ[g])Pᵢ*[g] ~ exp(-2πik⋅τⱼ[g])Pⱼ[g]
                 # It seems rather tedious to prove that this is the case for all 𝐤s along a
                 # line/plane (α,β,γ). Rather than attempt this, we simply test against an
                 # arbitrary value of (α,β,γ) [superfluous entries are ignored] that is
@@ -119,7 +119,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
 
                 # Characters of the conjugate of Dᵢ, i.e. tr(Dᵢ*) = tr(Dᵢ)*
                 θχᵢ = conj.(characters(lgir, αβγ))
-                
+                #println(label(lgir), "=> ", θχᵢ)
                 # Find matching complex partner
                 partner = 0
                 for j = i+1:Nirr
@@ -135,6 +135,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                         χⱼ = characters(lgirs[j], αβγ)
                         match = true
                         for n in OneTo(Nops)
+                            #println("g₋ = ", seitz(g₋))
                             if k_equiv_kv₋ # 𝐤 = -𝐤 + 𝐆 ⇒ g₋ = I (the unit element), s.t. g₋⁻¹gg₋ = I⁻¹gI = g    (Cornwall's case (3))
                                 χⱼ_g₋⁻¹gg₋ = χⱼ[n]
                             else           # 𝐤 not equivalent to -𝐤, i.e. 𝐤 ≠ -𝐤 + 𝐆, but -𝐤 is in the star of 𝐤 (Cornwall's case (2))
@@ -143,8 +144,15 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                                 if n′ === nothing || Δw === nothing
                                     error("unexpectedly did not find little group element matching g₋⁻¹gg₋")
                                 end
-                                χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
+                                #println("g = ", seitz(lgops[n]), ", g₋⁻¹gg₋ = ", seitz(g₋⁻¹gg₋), "   =>   Δw = ", Δw)
+                                ϕ          = cis(-2π*dot(kv_αβγ, Δw))
+                                #println("   phase = ", ϕ)
+                                χⱼ_g₋⁻¹gg₋ = ϕ .* χⱼ[n′] # cis(x) = exp(ix)
+                            
                             end
+                            #println(χⱼ_g₋⁻¹gg₋)
+                            #println(θχᵢ[n])
+                            #println()
                             
                             match = isapprox(θχᵢ[n], χⱼ_g₋⁻¹gg₋; atol=DEFAULT_ATOL)
                             if !match # ⇒ not a match
@@ -299,10 +307,16 @@ function calc_reality(lgir::LGIrrep{D},
             op² = compose(op, op, false) # this is op∘op, _including_ trivial lattice translation parts
             # find the equivalent of `op²` in `lgops`; this may differ by a number of 
             # primitive lattice vectors `w_op²`; the difference must be included when 
-            # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(2πi𝐤⋅𝐭)
-            idx_of_op²_in_lgops, Δw_op² = findequiv(op², lgops, cntr)
-            ϕ_op² = cis(2π*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cis(x) = exp(ix)]
+            # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(-2πi𝐤⋅𝐭)
+            idx_of_op²_in_lgops, Δw_op² = findequiv(op², lgops, cntr) # Δw_op² is in the conventional basis
+            if idx_of_op²_in_lgops === nothing || Δw_op² === nothing
+                error("unexpectedly did not find little group element matching op²")
+            end
+            # phase accumulated by "pure" lattice translation parts [cis(x) = exp(ix)]
+            ϕ_op² = cis(-2π*dot(kv_αβγ, Δw_op²))
             χ_op² = ϕ_op²*χs[idx_of_op²_in_lgops] # χ(op²)
+            println(seitz(op²), ": Δw_op² = ", Δw_op²)
+            println("   χ = ", χs[idx_of_op²_in_lgops], ",   ϕ = ", ϕ_op², ",   ϕχ = ", χ_op²)
 
             s += χ_op²
         end

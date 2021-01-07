@@ -394,7 +394,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             Dⁱʲ = Dⁱ*Dʲ
             # If 𝐤 is on the BZ boundary and if the little group is nonsymmorphic
             # the representation could be a ray representation (see Inui, p. 89),
-            # such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(i*𝐤⋅𝐭₀) where
+            # such that DᵢDⱼ = αᵢⱼᵏDₖ with a phase factor αᵢⱼᵏ = exp(-i*𝐤⋅𝐭₀) where
             # 𝐭₀ is a lattice vector 𝐭₀ = τᵢ + βᵢτⱼ - τₖ, for symmetry operations
             # {βᵢ|τᵢ}. To ensure we capture this, we include this phase here.
             # See Inui et al. Eq. (5.29) for explanation.
@@ -406,25 +406,28 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             if ir isa LGIrrep
                 t₀ = translation(ops[i]) .+ rotation(ops[i])*translation(ops[j]) .- 
                      translation(ops[mtidx])
-                ϕ =  2π*dot(k, t₀) # accumulated ray-phase
-                match = Dⁱʲ ≈ cis(ϕ)*Ds[mtidx] # cis(x) = exp(ix)
+                ϕ =  2π*dot(k, t₀)
+                phase = cis(-ϕ)     # accumulated ray-phase
             else
-                match = Dⁱʲ ≈ Ds[mtidx]
+                phase = true
             end
+            match = Dⁱʲ ≈ phase*Ds[mtidx]
             if !match
                 checked[i,j] = false
                 if !havewarned
                     if verbose
                         println("""Provided irreps do not match group multiplication table for group $(num(ir)) in irrep $(label(ir)):
                                  First failure at (row,col) = ($(i),$(j));
-                                 Expected idx $(mtidx), got idx $(findall(D′ -> D′≈Dⁱʲ, Ds))""")
+                                 Expected idx $(mtidx), got idx $(findall(D′ -> phase*D′≈Dⁱʲ, Ds))""")
                         print("Expected irrep = ")
                         if ir isa LGIrrep
-                            println(cis(ϕ)*Ds[mtidx])
+                            println(phase*Ds[mtidx])
                         else
                             println(Dⁱʲ)
                         end
                         println("Got irrep      = $(Dⁱʲ)")
+                        println()
+                        println("Characters: ", characters(ir, αβγ))
                     end
                     havewarned = true
                 end
@@ -726,11 +729,11 @@ cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(
 
 Search for an operator `op′` in `ops` which is equivalent, modulo differences
 by *primitive* lattice translations `Δw`, to `op`. Return the index of `op′` in 
-`ops`, as well as the primitive translation difference `Δw`. If no match is found
-returns `(nothing, nothing)`.
+`ops`, as well as the translation difference `Δw` (in a conventional basis).
+If no match is found returns `(nothing, nothing)`.
 
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
-the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
+the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(-2πik⋅`Δw`)Dⱼᵏ[`op′`]
 """
 function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}}, cntr::Char) where D
     W = rotation(op)
@@ -747,7 +750,7 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}}, cn
         if W == Wⱼ # rotation-part of op and opⱼ is identical
             # check if translation-part of op and opⱼ is equivalent, modulo a primitive lattice translation
             if all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), w′.-wⱼ′)
-                return j, w.-wⱼ
+                return j, w.-wⱼ # return Δw in conventional basis
             end
         end
     end

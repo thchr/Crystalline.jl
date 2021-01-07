@@ -211,6 +211,7 @@ end
 function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
     # unpack
     k₀, kabc = parts(lgir.lg.kv)
+    # TODO: This printing is now wrong relative to irreps() if we flip the phase convention
     P = lgir.matrices[i]
     τ = lgir.translations[i]
 

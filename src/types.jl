@@ -498,14 +498,14 @@ issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), 
                              kvec(lgir), centering(num(lgir), dim(lgir)))
 function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
-    P = lgir.matrices
-    τ = lgir.translations
-    if !iszero(τ)
-        k = kvec(lgir)(αβγ)
-        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
-        for (i,τ′) in enumerate(τ)
-            if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
+    Ps = deepcopy(lgir.matrices) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
+    τs = lgir.translations
+    k  = kvec(lgir)(αβγ)
+
+    if !iszero(τs)
+        for (i,τ) in enumerate(τs)
+            if !iszero(τ) && !iszero(k)
+                Ps[i] .*= cis(2π*dot(k,τ))  # note cis(x) = exp(ix)
                 # NOTE/TODO/FIXME:
                 # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
                 # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
@@ -534,20 +534,80 @@ function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
             end
         end
     end
-    # FIXME: Attempt to flip phase convention. Does not pass tests.
-    #=
-    lg = group(lgir)
-    if !issymmorph(lg)
-        k = kvec(lgir)(αβγ)
-        for (i,op) in enumerate(lg)
-            P[i] .* cis(-4π*dot(k, translation(op)))
+    # TODO/FIXME: Attempt to flip phase convention. Does not pass tests.
+    if dim(lgir) == 3 # only relevant for ISOTROPY dataset
+        _flip_phase_convention!(Ps, operations(lgir), k, kvec(lgir), spacegroup(num(lgir), 3),
+                                centering(num(lgir), dim(lgir)))
+    end
+
+    return Ps
+end
+function _flip_phase_convention!(Ps::Vector, ops::AbstractVector{<:SymOperation{D}},
+                                 k::SVector{D, Float64}, kv::KVec{D}, sg, cntr::Char) where D
+    if !iszero(k)
+        if any(!iszero∘translation, ops) # if any ops have nonzero translation
+            @inbounds for (i,op) in enumerate(ops)
+                op′ = primitivize(op, cntr)
+                if all(xyz -> isinteger(2xyz), translation(op′))
+                    Ps[i] .*= cis(-4π*dot(k, translation(op)))
+                else
+                    #println("      2τ translation is not integral: ", 2translation(op′))
+                    idx = findfirst(sg) do op # look for an op s.t. op∘k=-k mod G
+                        kv′ = op∘kv
+                        Δ   = primitivize(kv′ + kv, cntr) # op∘kv - (-kv)
+                        free_bool = all(x->isapprox(x, 0, atol=1e-10), free(Δ))
+                        cnst_bool = all(x->isinteger(round(x, digits=5)), constant(Δ))
+                        free_bool && cnst_bool
+                    end
+                    if idx === nothing
+                        error("=======> could not find an op in sg that transforms (primitive) k=$(string(primitivize(kv, cntr))) → -k")
+                    else
+                        op = sg[idx]
+                        error(seitz(op), " in sg would transform $(string(kv)) → $(string(compose(op,kv)))")
+                    end
+                    # TODO/FIXME:
+                    # we need a more careful flip here! we don't know the irrep of
+                    # {1|2τ} unless 2τ is an integer vector (when considered in the
+                    # primitive basis). what we actually need to do here could be to
+                    # look for another transformation that isn't just {-1|0}, which 
+                    # we can actually use to achieve our intended purpose.
+                    # NOTE:
+                    # The above simple search for a "partner" doesn't seem to work well
+                    # generally: also, I'm not at all sure about the idea of having 
+                    # the op∘k=-k check done "mod G"; doesn't seem too sane. Maybe the
+                    # right thing to do for these cases is to look at the approach taken
+                    # by Bradley and Cracknell to solve the basic vs. representation
+                    # domain problem; the problems are actually rather related when you
+                    # think about it.
+                    #
+                    # QUESTION:
+                    # Are the little groups of k and -k identical? We define them as
+                    #   G(±k) = { g∈G | g(±k) = ±k mod K }   [with space group G]
+                    # Indeed, they are, since
+                    #   gk = k + K
+                    # implies
+                    #   -gk = - (k + K)   ⇔   g(-k) = -k - K = -k mod K
+                    # so any g∈G(k) is also in G(-k).
+                    #
+                    # NOTE:
+                    # The core idea is that we have to find _some_ operator h={R|r} that
+                    # obeys the following criteria:
+                    #   1.  Rk = -k
+                    #   2.  hgh⁻¹ ∈ G(k) for every g∈G(k) _possibly_ up to integer 
+                    #       translations
+                    # The main issue we have right now with, implicitly, always picking 
+                    # h as inversion, is that this breaks point 2 (that G(k) is conjugate
+                    # under h) in the case where there are operations g = {W|w} with 
+                    # 2w ∉ ℝ (i.e. not integral; e.g. w = 1/3, 2/3, 1/4, 3/4, 1/6, etc.)
+                    # I don't think we need to choose h as some operation in G in the first
+                    # place; could be whatever.
+
+                end
+            end
         end
     end
-    =#
-
-    return P
+    return nothing
 end
-
 """
     israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
 
@@ -570,7 +630,7 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
         for (col, opcol) in enumerate(lg)
             t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt[row,col]])
             ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
-            α[row,col] = cis(ϕ)
+            α[row,col] = cis(-ϕ)
         end
     end
     return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α

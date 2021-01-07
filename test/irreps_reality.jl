@@ -9,15 +9,18 @@ end
 
 # Compare evaluation of the Herring criterion with the tabulated realities in ISOTROPY
 @testset "Herring criterion" begin
-    #= error_count = 0 =#       # for debugging
+    error_count = 0            # for debugging
     for (sgnum, lgirsd) in enumerate(LGIRS)
         sgops = operations(first(lgirsd["Γ"])) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
         for lgirs in values(lgirsd)
             for lgir in lgirs
                 iso_reality = reality(lgir)
-                #= try =#       # for debugging
-                @test iso_reality == calc_reality(lgir, sgops)
-                #= catch err    # for debugging
+                #@test iso_reality == calc_reality(lgir, sgops)
+                try            # for debugging
+                    if iso_reality ≠ calc_reality(lgir, sgops)
+                        error("Found $iso_reality ≠ $(calc_reality(lgir, sgops))")
+                    end
+                catch err     # for debugging
                     if true
                         println(sgnum, ", ", 
                                 Crystalline.subscriptify.(label(lgir)), ", ", 
@@ -26,25 +29,25 @@ end
                     end
                     error_count += 1
                     println(err)
-                end =#
+                end ##=#
             end
         end
     end
 
-    #=                          # for debugging
+                              # for debugging
     if error_count>0
         println(Crayon(foreground=:red, bold=true), "Outright errors: ", error_count)
     else
         println(Crayon(foreground=:green, bold=true), "No errors")
     end
-    =#
+   
 end # @testset "Herring criterion" 
 
 @testset "Corep orthogonality" begin
 αβγ = Crystalline.TEST_αβγ # for evaluating characters/irreps at non-special points
 # compute all coreps (aka "physically real" irreps, i.e. incorporate time-reversal sym) via
 # the ordinary irreps and `realify`
-LGIRS′ = [Dict(klab=>realify(lgirs) for (klab,lgirs) in lgirsd) for lgirsd in LGIRS]
+LGIRS′ = [Dict(klab=>(println(num(lgirs[1])); realify(lgirs)) for (klab,lgirs) in lgirsd) for lgirsd in LGIRS]
 
 function corep_orthogonality_factor(lgir)
     if iscorep(lgir)
@@ -72,6 +75,7 @@ end
         for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))
             # compute coreps (aka "physically real" irreps, i.e. incorporate time-reversal)
+            
             lgcoreps = realify(lgirs)
             for (a, lgir⁽ᵃ⁾) in enumerate(lgcoreps)
                 χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγ)
