@@ -23,16 +23,8 @@ There is also a string macro accessor `@S_str` that allows triplet input via `S"
 In the above output, three equivalent notations for the symmetry operation are given: first, the Seitz notation {m₀₋₁₁|0,½,0}, then the triplet notation (x,z+1/2,y), and finally the explicit matrix notation.
 
 ## Components
-The components of a `SymOperation` can be accessed - although it should rarely be needed:
-```@example operations
-rotation(op)
-```
-```@example operations
-translation(op)
-```
-```@example operations
-matrix(op)
-```
+The rotation and translation parts $W$ and $w$ of a `SymOperation{D}` $\{W|w\}$ can be accessed via [`rotation`](@ref) and [`translation`](@ref),  returning an `SMatrix{D, D, Float64}` and an `SVector{D, Float64}`, respectively.
+The "augmented" matrix $[W|w]$ can similarly be obtained via [`matrix`](@ref).
 
 ## Operator composition
 Composition of two operators $g_1$ and $g_2$ is defined by 
