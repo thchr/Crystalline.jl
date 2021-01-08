@@ -38,9 +38,9 @@ SpaceGroup{3} #16 (P222) with 4 operations:
  2₀₁₀ ─────────────────────────── (-x,y,-z)
  2₁₀₀ ─────────────────────────── (x,-y,-z)
 
-julia> lgirs = get_lgirreps(16, Val(3)); # load a dictionary of small irreps and their little groups for space group #16
+julia> lgirs = get_lgirreps(16, Val(3)); # load a dictionary of small irreps and their little groups for space group #16, indexed by their k-point labels
 
-julia> lgirs["Γ"] # inspect the small irreps at the Γ point
+julia> lgirs["A"] # inspect the small irreps at the A point
 LGIrrep{3}: #16 (P222) at A = [α, 0.0, 0.5]
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
@@ -57,7 +57,7 @@ A₂ ─┬───────────────────────
     │     -1.0
     └─────────────────────────────────────────────
 
-julia> CharacterTable(lgirs["Γ"]) # build the character table for the Γ point small irreps
+julia> CharacterTable(lgirs["Γ"]) # compute the character table for the small irreps at the Γ point
 CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
