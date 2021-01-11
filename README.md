@@ -2,14 +2,16 @@
 
 [![Documentation][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 
-Work-in-progress research package for crystalline symmetry, irreps, and bandreps.
+Tools for crystalline symmetry implemented in the Julia language, with a focus on photonic crystals.
+
+This package provides access e.g. to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
 
 ## Installation
 
-The package is not currently registred in the General registry, and additionally relies on a package not listed in General ([SmithNormalForm.jl](https://github.com/wildart/SmithNormalForm.jl)). 
-As a result, installation is slightly more complicated than ordinarily (albeit, not by much).
+The package is not currently registred in the General registry, and additionally relies on a package not listed in General. 
+As a result, installation is a tad more complicated than ordinarily.
 
-To install, enter the `pkg>` prompt by typing `]` at the REPL. Then execute the following commands:
+To install, enter the `pkg>` prompt by typing `]` at the Julia REPL. Then execute the following commands:
 ```julia
 (@v1.5) pkg> registry add https://github.com/wildart/BoffinStuff.git # needed for the unregistred package SmithNormalForm (which Crystalline depends on)
 (@v1.5) pkg> add https://github.com/thchr/Crystalline.jl
