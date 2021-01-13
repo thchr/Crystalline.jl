@@ -1,13 +1,15 @@
 # === frequent error messages ===
 
-@noinline _throw_1d2d_not_yet_implemented(D::Integer) = 
+@noinline _throw_1d2d_not_yet_implemented(D::Integer) =
     throw(DomainError(D, "dimensions D≠3 not yet supported"))
-@noinline _throw_2d_not_yet_implemented(D::Integer) = 
+@noinline _throw_2d_not_yet_implemented(D::Integer) =
     throw(DomainError(D, "dimensions D=2 not yet supported"))
-@noinline _throw_invaliddim(D::Integer) = 
+@noinline _throw_invaliddim(D::Integer) =
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
-@noinline _throw_invalidcntr(cntr::Char) = 
+@noinline _throw_invalidcntr(cntr::Char) =
     throw(DomainError(cntr, "centering must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
+@noinline _throw_invalid_sgnum(sgnum::Integer, D::Integer) =
+    throw(DomainError(sgnum, "sgnum cannot exceed $(MAX_SGNUM[D]) for dimension D=$(D)"))
 
 # === string manipulation ===
 """ 

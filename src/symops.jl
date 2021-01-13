@@ -24,10 +24,7 @@ number `sgnum` by reading from json files; see `spacegroup` for additional
 details. Much faster than crawling; generally preferred.
 """
 function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
-    D ∉ (1,2,3) && _throw_invaliddim(D)
-    if sgnum < 1 || D == 3 && sgnum > 230 || D == 2 && sgnum > 17 || D == 1 && sgnum > 2
-        throw(DomainError(sgnum, "sgnum must be in range 1:2 in 1D, 1:17 in 2D, and in 1:230 in 3D")) 
-    end
+    @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
     filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".json"
     sgops_str::Vector{String} = open(filepath) do io
@@ -35,6 +32,20 @@ function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
     end
 
     return sgops_str
+end
+
+function _check_valid_sgnum_and_dim(sgnum::Integer, D::Integer)
+    if D == 3 
+        sgnum > 230 && _throw_invalid_sgnum(sgnum, D)
+    elseif D == 2
+        sgnum > 17  && _throw_invalid_sgnum(sgnum, D)
+    elseif D == 1
+        sgnum > 2   && _throw_invalid_sgnum(sgnum, D)
+    else
+        _throw_invaliddim(D)
+    end
+    sgnum < 1 && throw(DomainError(sgnum, "sgnum must be a positive integer"))
+    return nothing
 end
 
 """ 
@@ -65,7 +76,7 @@ See also [`directbasis`](@ref).
 
     return SpaceGroup{D}(sgnum, sgops)
 end
-@inline spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D)) # behind a function barrier for type-inference's sake
+spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
 # TODO: make the various transformations between xyzt and matrix form return and take 
 #       SMatrix{D,D+1,...} exclusively.
@@ -156,35 +167,58 @@ function matrix2xyzt(O::AbstractMatrix{<:Real})
 end
 
 
-
 """
     issymmorph(op::SymOperation, cntr::Char) --> Bool
 
-Checks whether a given symmetry operation `op` is symmorphic (true) or
-nonsymmorphic (false). The operation is assumed to be given in a 
-conventional basis; but the check requires that the translation is zero 
-in a primitive basis. Accordingly, the centering `cntr` must provided.
+Return whether a given symmetry operation `op` is symmorphic (`true`) or nonsymmorphic
+(`false`). 
+
+The operation is assumed provided in conventional basis with centering type `cntr`: 
+checking symmorphism is then equivalent to checking whether the operation's translation
+part is zero or a lattice vector in the associated primitive basis.
 """
 @inline function issymmorph(op::SymOperation, cntr::Char)
     P = primitivebasismatrix(cntr, dim(op))
     w_primitive = transform_translation(op, P, nothing) # translation in a primitive basis
     return iszero(w_primitive)
 end
+
 """
     issymmorph(sg::AbstractGroup) --> Bool
 
-Checks whether a given space group `sg` is symmorphic (true) or
-nonsymmorphic (false).
+Return whether a given space group `sg` is symmorphic (`true`) or nonsymmorphic (`false`).
 """
-issymmorph(g::Union{SpaceGroup,LittleGroup}) = all(op->issymmorph(op, centering(g)), operations(g))
+function issymmorph(g::Union{SpaceGroup,LittleGroup})
+    all(op->issymmorph(op, centering(g)), operations(g))
+end
+issymmorph(::PointGroup) = true
 
 """
     issymmorph(sgnum::Integer, D::Integer=3) --> Bool
 
-Checks whether a given space group `sgnum` (of dimensionality `D`)
-is symmorphic (true) or nonsymmorphic (false).
+Return whether the space group with number `sgnum` and dimensionality `D` is symmorphic 
+(`true`) or nonsymmorphic (`false`).
+
+Equivalent to `issymmorph(spacegroup(sgnum, D))` but uses memoization for performance.
 """
-issymmorph(sgnum::Integer, D::Integer=3) = issymmorph(spacegroup(sgnum, D))
+function issymmorph(sgnum::Integer, D::Integer=3)
+    @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
+
+    # check against memoized look-up of calling `issymmorph(spacegroup(sgnum, D))`
+    if D == 3
+        return sgnum ∈ (1, 2, 3, 5, 6, 8, 10, 12, 16, 21, 22, 23, 25, 35, 38, 42, 44, 47, 
+                        65, 69, 71, 75, 79, 81, 82, 83, 87, 89, 97, 99, 107, 111, 115, 119, 
+                        121, 123, 139, 143, 146, 147, 148, 149, 150, 155, 156, 157, 160, 
+                        162, 164, 166, 168, 174, 175, 177, 183, 187, 189, 191, 195, 196, 
+                        197, 200, 202, 204, 207, 209, 211, 215, 216, 217, 221, 225, 229)
+    elseif D == 2
+        return sgnum ∉ (4, 7, 8, 12)
+    elseif D == 1
+        return true
+    else
+        error("unreachable: file a bug report")
+    end
+end
 
 # ----- POINT GROUP ASSOCIATED WITH SPACE/PLANE GROUP (FULL OR LITTLE) ---
 """

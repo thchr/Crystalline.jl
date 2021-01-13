@@ -91,4 +91,21 @@ using Crystalline, Test
         # generators do not specify a finite group under "non-modulo" composition
         @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
     end
+
+    @testset "Error types and domain checking" begin
+        @test_throws DomainError spacegroup(231, 3)    
+        @test_throws DomainError spacegroup(-1,  2)
+        @test_throws DomainError spacegroup(2,   0)
+        @test_throws DomainError spacegroup(41,  5)
+    end
+
+    @testset "Checking symmorphic space groups" begin
+        # we do a memoized look-up for `issymmorph(::Integer, ::Integer)`: ensure that it 
+        # agrees with explicit calculations
+        for D in (1,2,3)
+            for sgnum in 1:MAX_SGNUM[D]
+                @test issymmorph(sgnum, D) == issymmorph(spacegroup(sgnum, D))
+            end
+        end
+    end
 end
