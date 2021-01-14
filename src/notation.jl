@@ -249,13 +249,12 @@ function seitz(op::SymOperation{D}) where D
         u = if D == 2 && rot ≠ -2   # only need orientation in 2D for mirrors 
             SVector{3,Int}(0, 0, 1)
         else
-            uv = rotation_axis_3d(W, detW, order)
-            SVector{3,Int}((uv[1], uv[2], uv[3]))
+            rotation_axis_3d(W, detW, order)
         end
 
         if !(D == 2 && rot ≠ -2)
             # (for 2D, ignore z-component)
-            join(io_pgop, (subscriptify(string(uᵢ)) for uᵢ in u[SOneTo(D)]))
+            join(io_pgop, (subscriptify(string(u[i])) for i in SOneTo(D)))
         end
         
         # --- rotation sense (for order > 2}) ---
@@ -401,3 +400,205 @@ rotation_axis_3d(W::AbstractMatrix)   = rotation_axis_3d(W, det(W), rotation_ord
 rotation_axis_3d(op::SymOperation{3}) = (W=rotation(op); rotation_axis_3d(W, det(W), abs(rotation_order(W))))
 
 _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for detW = $(detW) is not a valid symmetry operation; see ITA5 Vol A, Table 11.2.1.1"))
+
+
+
+# -----------------------------------------------------------------------------------------
+# MULLIKEN NOTATION
+
+
+# Rough guidelines are e.g. in http://www.pci.tu-bs.de/aggericke/PC4e/Kap_IV/Mulliken.html &
+# xuv.scs.illinois.edu/516/handouts/Mulliken%20Symbols%20for%20Irreducible%20Representations.pdf
+# The "canonical" standard/most explicit resource is probably Pure & Appl. Chem., 69, 1641
+# (1997), see e.g. https://core.ac.uk/download/pdf/9423.pdf or Mulliken's own 'Report on
+# Notation for the Spectra of Polyatomic Molecules' (https://doi.org/10.1063/1.1740655)
+#
+# Note that the convention's choices not terribly specific when it comes to cornercases,
+# such as for B-type labels with 3 indices or E-type labels with 1/2 indices
+function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
+    D ∈ (1,2,3) || _throw_invaliddim(D)
+    if ir isa LGIrrep && !issymmorphic(num(ir), D)
+        error("notation not defined for `LGIrrep`s of nonsymmorphic space groups")
+    end
+       
+    g   = group(ir)
+    χs  = characters(ir)
+    irD = irdim(ir)
+
+    # --- determine "main" label of the irrep (A, B, E, or T) ---
+    idxs_principal = find_principal_rotations(g) # find all "maximal" (=principal) rotations
+    op_principal   = g[first(idxs_principal)]    # a representative principal rotation
+    axis_principal = D == 1              ? nothing : # associcated rotation axis
+                     isone(op_principal) ? nothing :
+                     D == 2              ? SVector(0,0,1) :
+                  #= D == 3 =#             rotation_axis_3d(op_principal)
+    lab = if irD == 1     # A or B
+        χ′s = @view χs[idxs_principal]
+        # if character of rotation around _any_ principal rotation axis (i.e. maximum 
+        # rotation order) is negative, then label is B; otherwise A. If complex character
+        # label is ¹E or ²E
+        if all(x->isapprox(abs(real(x)), 1, atol=DEFAULT_ATOL), χ′s) # => real irrep 
+            any(isapprox(-1, atol=DEFAULT_ATOL), χ′s) ? "B" : "A"
+
+        else                                                         # => complex irrep
+            # must then be a complex rep; label is ¹E or ²E. the convention at e.g. Bilbao
+            # seems to be to (A) pick a principal rotation with positive sense ("⁺"),  
+            # then (B) look at its character, χ, then (C) if Imχ < 0 => assign ¹
+            # superscript, if Imχ > 0 => assign ² superscript. this is obviously a very
+            # arbitrary convention, but I guess it's as good as any
+            idx⁺ = findfirst(idx->seitz(g[idx])[end] == '⁺', idxs_principal)
+            idx⁺ === nothing && (idx⁺ = 1) # in case of 2-fold rotations where 2⁺ = 2⁻
+
+            imag(χ′s[idx⁺]) < 0 ? "¹E" : "²E"
+        end
+
+    elseif irD == 2 # E (reality is always real for PGIrreps w/ irD = 3)
+        "E"
+
+    elseif irD == 3 # T (reality is always real for PGIrreps w/ irD = 3)
+        "T"
+
+    else
+        throw(DomainError(irD, "the dimensions of a crystallographic point group irrep "*
+                               "is expected to be between 1 and 3"))
+        # in principle, 4 => "G" and 5 => "H", but irreps of dimension larger than 3 never
+        # arise for crystallographic point groups; not even when considering time-reversal
+    end
+
+    # --> number subscript ₁, ₂, ₃
+    # NOTE: these rules are very messy and also not well-documented; it is especially
+    #       bad for E and T labels; there, I've just inferred a rule that works for the
+    #       crystallographic point groups, simply by comparing to published tables (e.g.,
+    #       Bilbao and http://symmetry.jacobs-university.de/)
+    if axis_principal !== nothing
+        if lab == "A" || lab == "B"
+            # ordinarily, we can follow a "simple" scheme - but there is an arbitrary 
+            # choice involved when we have point groups 222 or mmm - where we need to assign
+            # 3 different labels to B-type irreps
+
+            # special rules needed for "222" (C₂) and "mmm" (D₂ₕ) groups
+            # check B-type label and point group 222 [identity + 3×(2-fold rotation)] or
+            # mmm [identity + 3×(2-fold rotation + mirror) + inversion]
+            istricky_B_case = if lab == "B"
+                (length(g)==4 && count(op->rotation_order(op)==2, g) == 3)      || # 222
+                (length(g)==8 && count(op->abs(rotation_order(op))==2, g) == 6)    # mmm
+            else
+                false
+            end
+
+            if !istricky_B_case
+                # find a 2-fold rotation or mirror whose axis is ⟂ to principal axis
+                idxᴬᴮ = if D == 3 
+                    findfirst(g) do op
+                        abs(rotation_order(op)) == 2 && 
+                        dot(rotation_axis_3d(op), axis_principal) == 0
+                    end
+
+                elseif D == 2
+                    findfirst(op -> rotation_order(op) == -2, g)
+
+                end
+                if idxᴬᴮ !== nothing
+                    lab *= real(χs[idxᴬᴮ]) > 0 ? '₁' : '₂'
+                end
+            
+            else # tricky B case (222 or mmm)
+                # there's no way to do this independently of a choice of setting; we just 
+                # follow what seems to be the norm and _assume_ the presence of 2₀₀₁, 2₀₁₀,
+                # and 2₁₀₀; if they don't exist, things will go bad! ... no way around it
+                idxˣ = findfirst(op->seitz(op)=="2₁₀₀", g)
+                idxʸ = findfirst(op->seitz(op)=="2₀₁₀", g)
+                idxᶻ = findfirst(op->seitz(op)=="2₀₀₁", g)
+                if idxˣ === nothing || idxʸ === nothing || idxᶻ === nothing
+                    error("cannot assign tricky B-type labels for nonconventional axis settings")
+                end
+                χsˣʸᶻ = (χs[idxˣ], χs[idxʸ], χs[idxᶻ])
+                lab *= χsˣʸᶻ == (-1,-1,+1) ? '₁' :
+                       χsˣʸᶻ == (-1,+1,-1) ? '₂' :
+                       χsˣʸᶻ == (+1,-1,-1) ? '₃' : error("unexpected character combination")
+            end
+
+
+        elseif lab == "E" || lab == "¹E" || lab == "²E"
+            # TODO
+            # disambiguation needed for pgs 6 (C₆), 6/m (C₆ₕ), 622 (D₆), 6mm (C₆ᵥ), 
+            # 6/mmm (D₆ₕ)
+            # rule seems to be that we look at the 2-fold rotation operation aligned with
+            # the principal axis; denoting this operation by 2, the rule is:
+            #   χ(2) = -1  =>  E₁
+            #   χ(2) = +1  =>  E₂ 
+            idxᴱ = findfirst(g) do op
+                rotation_order(op) == 2 && (D==2 || rotation_axis_3d(op) == axis_principal)
+            end
+            if idxᴱ !== nothing
+                lab *= real(χs[idxᴱ]) < 0 ? '₁' : '₂'
+            end
+
+        elseif lab == "T"
+            # disambiguation of T symbols is only needed for 432 (O), -43m (Td) and m-3m
+            # (Oₕ) pgs; the disambiguation can be done by checking the sign of the character
+            # of a principal rotation; which in this case is always a 4-fold proper or 
+            # improper rotation ±4, the rule thus is:
+            #   χ(±4) = -1  =>  T₂
+            #   χ(±4) = +1  =>  T₁
+            # to avoid also adding unnecessary subscripts to pgs 23 and m-3 (whose T-type
+            # irreps are already disambiguated), we check if the principal rotation has
+            # order 4 - if not, this automatically excludes 23 and m-3.
+
+            if abs(rotation_order(op_principal)) == 4
+                # we only need to check a single character; all ±4 rotations have the same
+                # character in this cornercase
+                lab *= real(χs[first(idxs_principal)]) > 0 ? '₁' : '₂'
+            end
+        end
+    end
+
+    # --> letter subscript g, ᵤ and prime superscript ′, ′′
+    idx_inversion = findfirst(op -> isone(-rotation(op)), g)
+    if idx_inversion !== nothing
+        # --> letter subscript g, ᵤ
+        # rule applies for groups with inversion -1:
+        #   χ(-1) = +1  =>  _g [gerade ~ even]
+        #   χ(-1) = -1  =>  ᵤ  [ungerade ~ odd]
+        lab *= real(χs[idx_inversion]) > 0 ? 'g' : 'ᵤ'
+
+    elseif length(g) > 1
+        # --> prime superscript ′, ′′
+        # rule applies for groups without inversion and with a mirror aligned with a 
+        # principal inversion axis; most often m₀₀₁ in 3D _or_ for the 2-element group
+        # consisting only of {1, "mᵢⱼₖ"}. Denoting the mirror by "m", the rule is:
+        #   χ(m) = +1  =>  ′
+        #   χ(m) = -1  =>  ′′
+        # rule is relevant only for point groups m, -6, -62m in 3D and m in 2D
+        idxᵐ = if length(g) == 2 
+            findfirst(op -> occursin("m", seitz(op)), g) # check if {1, "mᵢⱼₖ"} case
+            
+        elseif D == 3
+            # mirror aligned with principal axis casecan now assume that D == 3
+            # (only occurs if D = 3; so if D = 2, we just move on)
+            findfirst(g) do op # find aligned mirror
+                (rotation_order(op) == -2) && (rotation_axis_3d(op) == axis_principal)
+            end
+        end
+
+        if idxᵐ !== nothing
+            lab *= real(χs[idxᵐ]) > 0 ? "′" : "′′"
+        end
+    end
+
+    return lab
+end
+
+function find_principal_rotations(ops::AbstractGroup{D}) where D
+    # this doesn't distinguish between rotation direction; i.e., picks either ⁺ or ⁻ 
+    # depending on ordering of `ops`. if there are no rotations, then we expect that there
+    # will at least always be an identity operation - otherwise, we throw an error
+    # may pick either a proper or improper rotation; picks a proper rotation if max order
+    # of proper rotation exceeds order of max improper rotation
+    rots = rotation_order.(ops)
+    maxrot, maxidx = findmax(rots) # look for proper
+    minrot, minidx = findmin(rots) # look for improper rotations
+    rot = maxrot ≥ abs(minrot) ? maxrot : minrot
+    idxs = findall(==(rot), rots)
+    return idxs::Vector{Int}
+end

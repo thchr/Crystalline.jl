@@ -67,7 +67,7 @@ include("show.jl") # custom printing for structs defined in src/types.jl
 
 include("notation.jl")
 export schoenflies, hermannmauguin, iuc,
-       centering, seitz
+       centering, seitz, mulliken
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,
