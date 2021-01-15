@@ -134,7 +134,8 @@ as a vector of `PGIrrep{D}`s.
 
 ## Notes
 The irrep labelling follows the conventions of CDML [1] [which occasionally differ from
-those in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* (1972)].
+those in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* 
+(1972)]. For associated Mulliken ("spectroscopist") notation, see [`mulliken`](@ref).
 
 The data is sourced from the Bilbao Crystallographic Server [2]. If you are using this 
 functionality in an explicit fashion, please cite the original reference [3].

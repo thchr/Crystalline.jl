@@ -5,8 +5,11 @@ using Crystalline, Test
     include("basisvecs.jl")
     include("symops.jl")
 
+    # abstractvecs
     include("kvecs.jl")
     include("wyckoff.jl")
+
+    include("notation.jl")
 
     # group checks
     include("littlegroup_orders.jl")

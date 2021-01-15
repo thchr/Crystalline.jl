@@ -404,9 +404,88 @@ _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for 
 
 
 # -----------------------------------------------------------------------------------------
-# MULLIKEN NOTATION
+# MULLIKEN NOTATION FOR POINT GROUP IRREPS
 
+_ID = ImmutableDict
+const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
+    # sorted in ascending order wrt. Γᵢ CDML sorting; i.e. as 
+    #       Γ₁, Γ₂, ... 
+    #   or  Γ₁⁺, Γ₁⁻, Γ₂⁺, Γ₂⁻, ...
+    # the association between CDMl and Mulliken labels are obtained obtained from
+    # https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg
+    # note that e.g., https://www.cryst.ehu.es/rep/point.html cannot be used, because the 
+    # Γ-labels there do not always refer to the CDML convention; more likely, the B&C 
+    # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
+    # point group irrep crawl script
+    # includes all labels in PGS_IUCs[3]
+    "1"     => _ID("Γ₁"=>"A"),
+    "-1"    => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ"),
+    "2"     => _ID("Γ₁"=>"A", "Γ₂"=>"B"),
+    "m"     => _ID("Γ₁"=>"A′", "Γ₂"=>"A′′"),
+    "2/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ"),
+    "222"   => _ID("Γ₁"=>"A", "Γ₂"=>"B₁", "Γ₃"=>"B₃", "Γ₄"=>"B₂"),
+    "mm2"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁"),
+    "mmm"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"B₃g", "Γ₃⁻"=>"B₃ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ"),
+    "4"     => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
+    "-4"    => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
+    "4/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"¹Eg", "Γ₄⁻"=>"¹Eᵤ"),
+    "422"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"),
+    "4mm"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"),
+    "-42m"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"), # setting 1
+    "-4m2"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"), # setting 2 *** swapped B₂ and A₂; seems to be a typo in Bilbao? ***
+    "4/mmm" => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"A₂g", "Γ₃⁻"=>"A₂ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ", "Γ₅⁺"=>"Eg", "Γ₅⁻"=>"Eᵤ"),
+    "3"     => _ID("Γ₁"=>"A", "Γ₂"=>"²E", "Γ₃"=>"¹E"),
+    "-3"    => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"²Eg", "Γ₂⁻"=>"²Eᵤ", "Γ₃⁺"=>"¹Eg", "Γ₃⁻"=>"¹Eᵤ"),
+    "312"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
+    "321"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
+    "3m1"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
+    "31m"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
+    "-31m"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 1
+    "-3m1"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 2
+    "6"     => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E₁", "Γ₄"=>"²E₂", "Γ₅"=>"¹E₁", "Γ₆"=>"¹E₂"),
+    "-6"    => _ID("Γ₁"=>"A′", "Γ₂"=>"A′′", "Γ₃"=>"²E′", "Γ₄"=>"²E′′", "Γ₅"=>"¹E′", "Γ₆"=>"¹E′′"),
+    "6/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²E₁g", "Γ₃⁻"=>"²E₁ᵤ", "Γ₄⁺"=>"²E₂g", "Γ₄⁻"=>"²E₂ᵤ", "Γ₅⁺"=>"¹E₁g", "Γ₅⁻"=>"¹E₁ᵤ", "Γ₆⁺"=>"¹E₂g", "Γ₆⁻"=>"¹E₂ᵤ"),
+    "622"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
+    "6mm"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
+    "-62m"  => _ID("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 1
+    "-6m2"  => _ID("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 2
+    "6/mmm" => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"B₂g", "Γ₃⁻"=>"B₂ᵤ", "Γ₄⁺"=>"B₁g", "Γ₄⁻"=>"B₁ᵤ", "Γ₅⁺"=>"E₂g", "Γ₅⁻"=>"E₂ᵤ", "Γ₆⁺"=>"E₁g", "Γ₆⁻"=>"E₁ᵤ"),
+    "23"    => _ID("Γ₁"=>"A", "Γ₂"=>"¹E", "Γ₃"=>"²E", "Γ₄"=>"T"),
+    "m-3"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"¹Eg", "Γ₂⁻"=>"¹Eᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"Tg", "Γ₄⁻"=>"Tᵤ"),
+    "432"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₁", "Γ₅"=>"T₂"),
+    "-43m"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₂", "Γ₅"=>"T₁"),
+    "m-3m"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
+)
+function mulliken(pgir::PGIrrep{D}) where D
+    pglab = label(group(pgir))
+    return PGIRLABS_CDML2MULLIKEN_3D[pglab][label(pgir)]
+end
 
+#=
+# ATTEMPT AT ACTUALLY IMPLEMENTING THE MULLIKEN NOTATION OURSELVES, USING THE "RULES"
+# UNFORTUNATELY, THERE IS A LACK OF SPECIFICATION OF THESE RULES; THIS E.G. IMPACTS:
+#       - ¹ and ² superscripts to E labels: no rules, whatsoever. Cannot reverse-engineer
+#         whatever the "rule" is (if there is any) that fits all point groups; e.g., rule
+#         seems different between e.g. {4, -4, 4/m} and {6, -6, 23, m-3}. the rule we went
+#         with below works for {4, -4, 4/m}, but not {6, -6, 23, m-3}
+#       - how to infer that a ₁₂₃ subscript to a label is not needed (i.e. that the label
+#         is already unambiguous? there just doesn't seem to be any way to infer this
+#         generally, without looking at all the different irreps at the same time.
+#       - straaange corner cases for A/B label assignment; e.g. -6m2 is all A labels,
+#         but the principal rotation (-6) has characters with both positive and negative 
+#         sign; so the only way strictly A-type labels could be assigned if we pick some
+#         other principal rotation, e.g. 3₀₀₁... that doesn't make sense.
+#       - sometimes, subscript assignment differs, e.g. for 622: B₁ vs. B₂. the rule used
+#         to pick subscripts are ambiguous here, because there are two sets of two-fold
+#         rotation operations perpendicular to the principal axis - and they have opposite
+#         signs; so the assignment of ₁₂ subscripts depends on arbitrarily picking one of
+#         these sets.
+#       - more issues probably exist...
+# BECAUSE OF THIS, WE JUST OPT TO ULTIMATELY JUST NOT IMPLEMENT THIS OURSELVES, AND INSTEAD
+# RESTRICT OURSELVES TO GETTING THE MULLIKEN NOTATION ONLY FOR TABULATED POINT GROUPS BY
+# COMPARING WITH THE ASSOCIATED LABELS
+#
+# TENTATIVE IMPLEMENTATION:
 # Rough guidelines are e.g. in http://www.pci.tu-bs.de/aggericke/PC4e/Kap_IV/Mulliken.html &
 # xuv.scs.illinois.edu/516/handouts/Mulliken%20Symbols%20for%20Irreducible%20Representations.pdf
 # The "canonical" standard/most explicit resource is probably Pure & Appl. Chem., 69, 1641
@@ -426,7 +505,8 @@ function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
     irD = irdim(ir)
 
     # --- determine "main" label of the irrep (A, B, E, or T) ---
-    idxs_principal = find_principal_rotations(g) # find all "maximal" (=principal) rotations
+    # find all "maximal" (=principal) rotations, including improper ones
+    idxs_principal = find_principal_rotations(g, include_improper=true)
     op_principal   = g[first(idxs_principal)]    # a representative principal rotation
     axis_principal = D == 1              ? nothing : # associcated rotation axis
                      isone(op_principal) ? nothing :
@@ -487,7 +567,10 @@ function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
             end
 
             if !istricky_B_case
-                # find a 2-fold rotation or mirror whose axis is ⟂ to principal axis
+                # simple scheme: 
+                # find a 2-fold rotation or mirror (h) whose axis is ⟂ to principal axis:
+                #   χ(h) = +1  =>  ₁
+                #   χ(h) = -1  =>  ₂
                 idxᴬᴮ = if D == 3 
                     findfirst(g) do op
                         abs(rotation_order(op)) == 2 && 
@@ -588,17 +671,36 @@ function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
 
     return lab
 end
+=#
 
-function find_principal_rotations(ops::AbstractGroup{D}) where D
+"""
+$(SIGNATURES)
+
+Return the the indices of the "maximal" rotations among a set of operations `ops`, i.e. 
+those of maximal order (the "principal rotations").
+
+## Keyword arguments
+- `include_improper` (`=false`): if `true`, improper rotations are included in the
+  consideration. If the order of improper and proper rotations is identical, only 
+  the indices of the proper rotations are returned. If the maximal (signed) rotation
+  order is -2 (a mirror), it is ignored, and the index of the identity operation is
+  returned.
+"""
+function find_principal_rotations(ops::AbstractVector{SymOperation{D}}; 
+                                  include_improper::Bool=false) where D
     # this doesn't distinguish between rotation direction; i.e., picks either ⁺ or ⁻ 
     # depending on ordering of `ops`. if there are no rotations, then we expect that there
     # will at least always be an identity operation - otherwise, we throw an error
     # may pick either a proper or improper rotation; picks a proper rotation if max order
     # of proper rotation exceeds order of max improper rotation
     rots = rotation_order.(ops)
-    maxrot, maxidx = findmax(rots) # look for proper
-    minrot, minidx = findmin(rots) # look for improper rotations
-    rot = maxrot ≥ abs(minrot) ? maxrot : minrot
+    maxrot = maximum(rots)     # look for proper rotations
+    rot = if include_improper
+        minrot = minimum(rots) # look for improper rotations
+        maxrot ≥ abs(minrot) ? maxrot : (minrot == -2 ? maxrot : minrot)
+    else
+        maxrot
+    end
     idxs = findall(==(rot), rots)
     return idxs::Vector{Int}
 end
