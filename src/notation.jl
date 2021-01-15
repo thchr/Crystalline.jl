@@ -406,7 +406,6 @@ _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for 
 # -----------------------------------------------------------------------------------------
 # MULLIKEN NOTATION FOR POINT GROUP IRREPS
 
-_ID = ImmutableDict
 const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     # sorted in ascending order wrt. Γᵢ CDML sorting; i.e. as 
     #       Γ₁, Γ₂, ... 
@@ -418,44 +417,71 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
     # point group irrep crawl script
     # includes all labels in PGS_IUCs[3]
-    "1"     => _ID("Γ₁"=>"A"),
-    "-1"    => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ"),
-    "2"     => _ID("Γ₁"=>"A", "Γ₂"=>"B"),
-    "m"     => _ID("Γ₁"=>"A′", "Γ₂"=>"A′′"),
-    "2/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ"),
-    "222"   => _ID("Γ₁"=>"A", "Γ₂"=>"B₁", "Γ₃"=>"B₃", "Γ₄"=>"B₂"),
-    "mm2"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁"),
-    "mmm"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"B₃g", "Γ₃⁻"=>"B₃ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ"),
-    "4"     => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
-    "-4"    => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
-    "4/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"¹Eg", "Γ₄⁻"=>"¹Eᵤ"),
-    "422"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"),
-    "4mm"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"),
-    "-42m"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"), # setting 1
-    "-4m2"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"), # setting 2 *** swapped B₂ and A₂; seems to be a typo in Bilbao? ***
-    "4/mmm" => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"A₂g", "Γ₃⁻"=>"A₂ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ", "Γ₅⁺"=>"Eg", "Γ₅⁻"=>"Eᵤ"),
-    "3"     => _ID("Γ₁"=>"A", "Γ₂"=>"²E", "Γ₃"=>"¹E"),
-    "-3"    => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"²Eg", "Γ₂⁻"=>"²Eᵤ", "Γ₃⁺"=>"¹Eg", "Γ₃⁻"=>"¹Eᵤ"),
-    "312"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
-    "321"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
-    "3m1"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
-    "31m"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
-    "-31m"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 1
-    "-3m1"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 2
-    "6"     => _ID("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E₁", "Γ₄"=>"²E₂", "Γ₅"=>"¹E₁", "Γ₆"=>"¹E₂"),
-    "-6"    => _ID("Γ₁"=>"A′", "Γ₂"=>"A′′", "Γ₃"=>"²E′", "Γ₄"=>"²E′′", "Γ₅"=>"¹E′", "Γ₆"=>"¹E′′"),
-    "6/m"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²E₁g", "Γ₃⁻"=>"²E₁ᵤ", "Γ₄⁺"=>"²E₂g", "Γ₄⁻"=>"²E₂ᵤ", "Γ₅⁺"=>"¹E₁g", "Γ₅⁻"=>"¹E₁ᵤ", "Γ₆⁺"=>"¹E₂g", "Γ₆⁻"=>"¹E₂ᵤ"),
-    "622"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
-    "6mm"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
-    "-62m"  => _ID("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 1
-    "-6m2"  => _ID("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 2
-    "6/mmm" => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"B₂g", "Γ₃⁻"=>"B₂ᵤ", "Γ₄⁺"=>"B₁g", "Γ₄⁻"=>"B₁ᵤ", "Γ₅⁺"=>"E₂g", "Γ₅⁻"=>"E₂ᵤ", "Γ₆⁺"=>"E₁g", "Γ₆⁻"=>"E₁ᵤ"),
-    "23"    => _ID("Γ₁"=>"A", "Γ₂"=>"¹E", "Γ₃"=>"²E", "Γ₄"=>"T"),
-    "m-3"   => _ID("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"¹Eg", "Γ₂⁻"=>"¹Eᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"Tg", "Γ₄⁻"=>"Tᵤ"),
-    "432"   => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₁", "Γ₅"=>"T₂"),
-    "-43m"  => _ID("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₂", "Γ₅"=>"T₁"),
-    "m-3m"  => _ID("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
+    "1"     => ImmutableDict("Γ₁"=>"A"),
+    "-1"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ"),
+    "2"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B"),
+    "m"     => ImmutableDict("Γ₁"=>"A′", "Γ₂"=>"A′′"),
+    "2/m"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ"),
+    "222"   => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B₁", "Γ₃"=>"B₃", "Γ₄"=>"B₂"),
+    "mm2"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁"),
+    "mmm"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"B₃g", "Γ₃⁻"=>"B₃ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ"),
+    "4"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
+    "-4"    => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E", "Γ₄"=>"¹E"),
+    "4/m"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"¹Eg", "Γ₄⁻"=>"¹Eᵤ"),
+    "422"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"),
+    "4mm"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"),
+    "-42m"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"), # setting 1
+    "-4m2"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"), # setting 2 *** swapped B₂ and A₂; seems to be a typo in Bilbao? ***
+    "4/mmm" => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"A₂g", "Γ₃⁻"=>"A₂ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ", "Γ₅⁺"=>"Eg", "Γ₅⁻"=>"Eᵤ"),
+    "3"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"²E", "Γ₃"=>"¹E"),
+    "-3"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"²Eg", "Γ₂⁻"=>"²Eᵤ", "Γ₃⁺"=>"¹Eg", "Γ₃⁻"=>"¹Eᵤ"),
+    "312"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
+    "321"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
+    "3m1"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 1
+    "31m"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E"), # setting 2
+    "-31m"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 1
+    "-3m1"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ"), # setting 2
+    "6"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃"=>"²E₁", "Γ₄"=>"²E₂", "Γ₅"=>"¹E₁", "Γ₆"=>"¹E₂"),
+    "-6"    => ImmutableDict("Γ₁"=>"A′", "Γ₂"=>"A′′", "Γ₃"=>"²E′", "Γ₄"=>"²E′′", "Γ₅"=>"¹E′", "Γ₆"=>"¹E′′"),
+    "6/m"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺"=>"²E₁g", "Γ₃⁻"=>"²E₁ᵤ", "Γ₄⁺"=>"²E₂g", "Γ₄⁻"=>"²E₂ᵤ", "Γ₅⁺"=>"¹E₁g", "Γ₅⁻"=>"¹E₁ᵤ", "Γ₆⁺"=>"¹E₂g", "Γ₆⁻"=>"¹E₂ᵤ"),
+    "622"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
+    "6mm"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
+    "-62m"  => ImmutableDict("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 1
+    "-6m2"  => ImmutableDict("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 2
+    "6/mmm" => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"B₂g", "Γ₃⁻"=>"B₂ᵤ", "Γ₄⁺"=>"B₁g", "Γ₄⁻"=>"B₁ᵤ", "Γ₅⁺"=>"E₂g", "Γ₅⁻"=>"E₂ᵤ", "Γ₆⁺"=>"E₁g", "Γ₆⁻"=>"E₁ᵤ"),
+    "23"    => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"¹E", "Γ₃"=>"²E", "Γ₄"=>"T"),
+    "m-3"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"¹Eg", "Γ₂⁻"=>"¹Eᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"Tg", "Γ₄⁻"=>"Tᵤ"),
+    "432"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₁", "Γ₅"=>"T₂"),
+    "-43m"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"E", "Γ₄"=>"T₂", "Γ₅"=>"T₁"),
+    "m-3m"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
 )
+
+"""
+    $(SIGNATURES)
+
+Return the Mulliken label of a point group irrep `pgir`.
+
+## Notes
+This functionality is a simple mapping between the tabulated CDML point group irrep labels
+and associated Mulliken labels, using the listings at the [Bilbao Crystallographic
+Database](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+
+Ignoring subscript, the rough rules associated with assignment of Mulliken labels are [*]:
+
+1. **Irrep dimensionality**: 
+    - **1D irreps**: if a real irrep, assign A or B (B if antisymmetric under a principal 
+      rotation); if a complex irrep, assigned label ¹E or ²E.
+    - **2D irreps**: assign label E
+    - **3D irreps**: assign label T
+2. ***u* and *g* subscripts**: if the group contains inversion, indicate whether irrep is
+   symmetric (g ~ gerade) or antisymmetric (ᵤ ~ ungerade) under inversion.
+3. **Prime superscripts**: if the group contains a mirror *m* aligned with a principal 
+   rotation axis, but does *not* contain inversion, indicate whether irrep is symmetric (′) 
+   or antisymmetric (′′) under this mirror.
+4. **Numeral subscripts**: the rules for assignment of numeral subscripts are too
+   too complicated in general - and indeed, we are unaware of a general coherent rule -- to
+   describe here.
+"""
 function mulliken(pgir::PGIrrep{D}) where D
     pglab = label(group(pgir))
     return PGIRLABS_CDML2MULLIKEN_3D[pglab][label(pgir)]
@@ -648,7 +674,7 @@ function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
     elseif length(g) > 1
         # --> prime superscript ′, ′′
         # rule applies for groups without inversion and with a mirror aligned with a 
-        # principal inversion axis; most often m₀₀₁ in 3D _or_ for the 2-element group
+        # principal rotation axis; most often m₀₀₁ in 3D _or_ for the 2-element group
         # consisting only of {1, "mᵢⱼₖ"}. Denoting the mirror by "m", the rule is:
         #   χ(m) = +1  =>  ′
         #   χ(m) = -1  =>  ′′
