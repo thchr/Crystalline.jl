@@ -49,7 +49,7 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
 end
 _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 # print arrays of `SymOperation`s compactly
-show(io::IO, op::SymOperation) = print(io, seitz(opseitz))
+show(io::IO, op::SymOperation) = print(io, seitz(op))
 
 # --- MultTable ---
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
