@@ -47,7 +47,7 @@ function _write_wyckpos_3d(sgnum::Integer)
     wps = crawl_wyckpos_3d(sgnum)
     open((@__DIR__)*"/../data/wyckpos/3d/"*string(sgnum)*".csv", "w+") do io
         for (idx, wp) in enumerate(wps)
-            qstr = strip(string(qvec(wp)), ('[',']'))
+            qstr = strip(string(vec(wp)), ('[',']'))
             for repl in ('α'=>'x', 'β'=>'y', 'γ'=>'z', " "=>"")
                 qstr = replace(qstr, repl)
             end
@@ -58,7 +58,7 @@ function _write_wyckpos_3d(sgnum::Integer)
 end
 
 # actually crawl and write 3D Wyckoff positions
-foreach(1:230) do sgnum
+foreach(1:MAX_SGNUM[3]) do sgnum
     println(sgnum)
     _write_wyckpos_3d(sgnum)
 end

@@ -12,7 +12,7 @@ using Crystalline: constant, free
                 g = SiteGroup(sg, wp)
                 @test MultTable(g).isgroup
 
-                qv = qvec(wp)
+                qv = vec(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
                     qv′ = op∘qv
@@ -24,7 +24,7 @@ using Crystalline: constant, free
                 # all have coordinates in [0,1)
                 wpreps = orbit(g, wp) # wyckoff position representatives
                 @test all(wpreps) do wp
-                    all(xyz->xyz≥(-neg_error_tol) && xyz<1, constant(qvec(wp)))
+                    all(xyz->xyz≥(-neg_error_tol) && xyz<1, constant(wp))
                 end
 
                 # test that `g` and `cosets(g)` furnishes a left-coset decomposition of `sg`

@@ -80,7 +80,7 @@ export @S_str, spacegroup, compose,
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export get_wycks, WyckPos,
-       multiplicity, qvec,
+       multiplicity, vec,
        SiteGroup, orbit, cosets, wyck
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data

@@ -7,16 +7,16 @@ struct WyckPos{D} <: AbstractVec{D}
     letter :: Char
     qv     :: RVec{D} # associated with a single representative
 end
-qvec(wp::WyckPos)     = wp.qv
-free(wp::WyckPos)     = free(qvec(wp))
-constant(wp::WyckPos) = constant(qvec(wp))
+vec(wp::WyckPos)      = wp.qv
+free(wp::WyckPos)     = free(vec(wp))
+constant(wp::WyckPos) = constant(vec(wp))
 
 multiplicity(wp::WyckPos) = wp.mult
 label(wp::WyckPos) = string(multiplicity(wp), wp.letter)
 
 function show(io::IO, ::MIME"text/plain", wp::WyckPos)
     print(io, wp.mult, wp.letter, ": ")
-    show(io, MIME"text/plain"(), qvec(wp))
+    show(io, MIME"text/plain"(), vec(wp))
 end
 
 # Site symmetry groups
@@ -46,7 +46,7 @@ wyck(g::SiteGroup)   = g.wp
 
 function summary(io::IO, g::SiteGroup)
     print(io, typeof(g), " #", num(g), " at ", label(wyck(g)), " = ")
-    show(io, MIME"text/plain"(), qvec(wyck(g)))
+    show(io, MIME"text/plain"(), vec(wyck(g)))
     print(io, " with ", length(g), " operations")
 end
 
@@ -109,7 +109,7 @@ function (∘)(op::SymOperation{D}, qv::RVec{D}) where D
     return RVec{D}(cnst′, free′)
 end
 (∘)(op::SymOperation{D}, wp::WyckPos{D}) where D = WyckPos{D}(multiplicity(wp), wp.letter,
-                                                              op∘qvec(wp))
+                                                              op∘vec(wp))
 
 
 """
@@ -178,7 +178,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
     siteops  = Vector{SymOperation{D}}(undef, Nsite)
     cosets   = Vector{SymOperation{D}}(undef, Ncoset)
     orbitqvs = Vector{RVec{D}}(undef, Ncoset)
-    qv       = qvec(wp)
+    qv       = vec(wp)
     
     # both cosets and site symmetry group contains the identity operation, and the orbit 
     # automatically contains qv; add them outside loop
