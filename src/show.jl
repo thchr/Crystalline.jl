@@ -48,7 +48,8 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     return nothing
 end
 _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
-
+# print arrays of `SymOperation`s compactly
+show(io::IO, op::SymOperation) = print(io, seitz(opseitz))
 
 # --- MultTable ---
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
@@ -102,8 +103,9 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     end
     return
 end
-string(kv::AbstractVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), kv); String(take!(io)))
-
+string(v::AbstractVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), v); String(take!(io)))
+# print arrays of `AbstractVec`s compactly
+show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 
 # --- AbstractGroup ---
 function summary(io::IO, g::T) where T<:AbstractGroup 
