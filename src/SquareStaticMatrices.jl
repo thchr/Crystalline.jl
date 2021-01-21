@@ -16,7 +16,7 @@ using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
 import StaticArrays: SMatrix, MMatrix
-import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol, one, zero,
+import Base: convert, size, getindex, firstindex, lastindex, eachcol, one, zero,
              IndexStyle
 
 export SqSMatrix
@@ -33,7 +33,6 @@ end
 # ---------------------------------------------------------------------------------------- #
 # AbstractArray interface
 size(::SqSMatrix{D}) where D = (D,D)
-eltype(::SqSMatrix{D,T}) where {D,T} = T
 firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)

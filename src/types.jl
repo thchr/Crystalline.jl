@@ -96,7 +96,6 @@ SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m))
 @propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
 IndexStyle(::Type{<:SymOperation}) = IndexLinear()
 size(::SymOperation{D}) where D = (D, D+1)
-eltype(::SymOperation) = Float64
 
 rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of an operation
@@ -338,7 +337,6 @@ order(g::AbstractGroup) = length(g)
 @propagate_inbounds setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
 size(g::AbstractGroup) = size(operations(g))
 IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
-eltype(::AbstractGroup{D}) where D = SymOperation{D}
 
 # --- Generic group ---
 """
@@ -643,7 +641,6 @@ dim(BR::BandRep)     = BR.dim
 size(BR::BandRep)      = (length(BR.irvec),) # number of irreps samplable by BandRep
 @propagate_inbounds getindex(BR::BandRep, i::Int) = BR.irvec[i]
 IndexStyle(::Type{<:BandRep})  = IndexLinear()
-eltype(::BandRep)      = Int
 
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -671,7 +668,6 @@ reps(BRS::BandRepSet)        = BRS.bandreps
 size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
 @propagate_inbounds getindex(BRS::BandRepSet, i::Int) = reps(BRS)[i]
 IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
-eltype(::BandRepSet) = BandRep
 
 """
     matrix(BRS::BandRepSet[, includedim::Bool=false])

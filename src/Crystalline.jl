@@ -19,8 +19,8 @@ using DocStringExtensions
 
 using Base: OneTo, @propagate_inbounds 
 
-import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
-             IndexStyle, size, eltype, length,           # ⤶
+import Base: getindex, setindex!,      # → iteration/AbstractArray interface
+             IndexStyle, size, length, # ⤶
              string, isapprox, zero,
              readuntil, vec, show, summary,
              +, -, ∘, ==, ImmutableDict,
