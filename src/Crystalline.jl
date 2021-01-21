@@ -21,6 +21,7 @@ using Base: OneTo, @propagate_inbounds
 
 import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              IndexStyle, size, length, # ⤶
+             iterate,
              string, isapprox, zero,
              readuntil, vec, show, summary,
              +, -, ∘, ==, ImmutableDict,

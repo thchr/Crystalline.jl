@@ -638,9 +638,10 @@ Get the number of bands included in a single BandRep `BR`; i.e. the "band fillin
 dim(BR::BandRep)     = BR.dim
 
 # define the AbstractArray interface for BandRep
-size(BR::BandRep)      = (length(BR.irvec),) # number of irreps samplable by BandRep
+size(BR::BandRep) = size(BR.irvec) # number of irreps sampled by BandRep
 @propagate_inbounds getindex(BR::BandRep, i::Int) = BR.irvec[i]
-IndexStyle(::Type{<:BandRep})  = IndexLinear()
+IndexStyle(::Type{<:BandRep}) = IndexLinear()
+iterate(BR::BandRep, i=1) = iterate(BR.irvec, i) # work-around performance issue noted in https://discourse.julialang.org/t/iteration-getindex-performance-of-abstractarray-wrapper-types/53729
 
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -681,7 +682,7 @@ function matrix(BRS::BandRepSet, includedim::Bool=false)
     Nⁱʳʳ, Nᵉᵇʳ = length(BRS[1]), length(BRS)
     M = Matrix{Int}(undef, Nⁱʳʳ+includedim, Nᵉᵇʳ)
     @inbounds for (j, BR) in enumerate(BRS)
-        for (i, v) in enumerate(BR.irvec)
+        for (i, v) in enumerate(BR)
             M[i,j] = v
         end
         if includedim
