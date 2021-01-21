@@ -473,7 +473,7 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
       rotation); if a complex irrep, assigned label ¹E or ²E.
     - **2D irreps**: assign label E
     - **3D irreps**: assign label T
-2. **_u_ and _g subscripts**: if the group contains inversion, indicate whether irrep is
+2. **_u_ and _g_ subscripts**: if the group contains inversion, indicate whether irrep is
    symmetric (g ~ gerade) or antisymmetric (ᵤ ~ ungerade) under inversion.
 3. **Prime superscripts**: if the group contains a mirror *m* aligned with a principal 
    rotation axis, but does *not* contain inversion, indicate whether irrep is symmetric (′) 
