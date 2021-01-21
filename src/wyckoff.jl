@@ -60,7 +60,7 @@ Return the Wyckoff positions of space group `sgnum` in dimension `D` as a
 `Vector{WyckPos{D}`.
 
 The positions are given in the conventional basis setting, following the conventions of the
-Bilbao Crystallographic Server (from which the underlying data is sourced [1]).
+Bilbao Crystallographic Server (from which the underlying data is sourced [^1]).
 
 ## Example
 ```jldoctest
@@ -73,7 +73,7 @@ julia> wps = get_wycks(16, 2)
 ```
 
 ## References
-[1] Aroyo, et. al. Zeitschrift fuer Kristallographie (2006), 221, 1, 15-27.
+[^1] Aroyo, et. al. Zeitschrift fuer Kristallographie (2006), 221, 1, 15-27.
 """
 function get_wycks(sgnum::Integer, ::Val{D}) where D
     strarr = open((@__DIR__)*"/../data/wyckpos/$(D)d/"*string(sgnum)*".csv") do io
