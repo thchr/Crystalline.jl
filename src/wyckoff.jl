@@ -27,7 +27,7 @@ struct SiteGroup{D} <: AbstractGroup{D}
     cosets::Vector{SymOperation{D}}
 end
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the cosets of a `SiteGroup` `g`.
 
@@ -38,7 +38,7 @@ underlying space group, jointly with the operations in `g` itself.
 cosets(g::SiteGroup) = g.cosets
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the Wyckoff position associated with a `SiteGroup`.
 """
@@ -54,7 +54,7 @@ end
 # CONSTRUCTORS/GETTERS FOR WYCKPOS
 
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the Wyckoff positions of space group `sgnum` in dimension `D` as a 
 `Vector{WyckPos{D}`.
@@ -113,7 +113,7 @@ end
 
 
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in space group
 `sg` (or with space group number `sgnum`; in this case, the dimensionality is inferred from

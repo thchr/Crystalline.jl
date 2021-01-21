@@ -73,7 +73,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
 end
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 """
 function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
     !isspecial(kv) && throw(DomainError(kv, "input kv must be a special k-point"))
@@ -93,7 +93,7 @@ function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
 end
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. If so,
 return an `αβγ′` value such that `kv = kv′(αβγ′)`.
@@ -122,7 +122,7 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
 end
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 TODO: Seems entirely broken? Not sure what this is supposed to do.
 """

@@ -196,7 +196,7 @@ end
 
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow` input.
 

@@ -864,7 +864,7 @@ end
 isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H))
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
 

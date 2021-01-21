@@ -457,7 +457,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
 )
 
 """
-    $(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the Mulliken label of a point group irrep `pgir`.
 
@@ -703,7 +703,7 @@ end
 =#
 
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return the the indices of the "maximal" rotations among a set of operations `ops`, i.e. 
 those of maximal order (the "principal rotations").

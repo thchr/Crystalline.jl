@@ -157,14 +157,14 @@ parts(v::AbstractVec)     = (constant(v), free(v))
 dim(::AbstractVec{D}) where D = D
 isspecial(v::AbstractVec) = iszero(free(v))
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return a vector whose entries are `true` (`false`) if the free parameters α,β,γ, 
 respectively, occur with nonzero (zero) coefficients in `v`.
 """
 freeparams(v::AbstractVec)  = map(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 """
-$(SIGNATURES)
+$(TYPEDSIGNATURES)
 
 Return total number of free parameters occuring in `v`.
 """
