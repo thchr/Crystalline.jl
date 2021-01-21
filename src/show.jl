@@ -319,7 +319,7 @@ end
 
 
 # --- BandRep ---
-function prettyprint_symmetryvector(io::IO, irvec::Vector{<:Real}, irlabs::Vector{String})
+function prettyprint_symmetryvector(io::IO, irvec::AbstractVector{<:Real}, irlabs::Vector{String})
     Nⁱʳʳ  = length(irlabs)
     Nⁱʳʳ′ = length(irvec) 
     if !(Nⁱʳʳ′ == Nⁱʳʳ || Nⁱʳʳ′ == Nⁱʳʳ+1)
@@ -367,7 +367,7 @@ summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), 
 function show(io::IO, ::MIME"text/plain", BR::BandRep)
     summary(io, BR)
     print(io, ":\n ")
-    prettyprint_symmetryvector(io, vec(BR), irreplabels(BR))
+    prettyprint_symmetryvector(io, BR, irreplabels(BR))
 end
 
 
@@ -493,7 +493,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         ν = dim(BR)
         print(io, "   ", label(BR),                      # bandrep label
                   " "^(cols_brlab-length(label(BR))), '║')
-        for (iridx,x) in enumerate(vec(BR)) # vector representation of band rep
+        for (iridx,x) in enumerate(BR) # iterate over vector representation of band rep
             if abbreviate && iridx ∈ iridx_skiprange
                 if iridx == first(iridx_skiprange)
                     print(io, mod(bridx,4) == 0 ? "\b  …  " : "\b     ")

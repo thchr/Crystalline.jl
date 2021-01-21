@@ -22,12 +22,9 @@ end
 
 vecs(Vs::Basis) = Vs.vecs
 # define the AbstractArray interface for DirectBasis{D}
-getindex(Vs::Basis, i::Int) = vecs(Vs)[i] 
-firstindex(::Basis) = 1
-lastindex(::Basis{D}) where D = D
-setindex!(Vs::Basis, vec::Vector{Float64}, i::Int) = (Vs[i] .= vec)
+@propagate_inbounds getindex(Vs::Basis, i::Int) = vecs(Vs)[i]
 size(::Basis{D}) where D = (D,)
-IndexStyle(::Basis) = IndexLinear()
+IndexStyle(::Type{<:Basis}) = IndexLinear()
 
 norms(Rs::Basis) = norm.(Rs)
 _angle(rA,rB) = acos(dot(rA,rB)/(norm(rA)*norm(rB)))
@@ -96,11 +93,8 @@ SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)
 SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m))
 
 # define the AbstractArray interface for SymOperation
-getindex(op::SymOperation, keys...) = matrix(op)[keys...]
-firstindex(::SymOperation) = 1
-lastindex(::SymOperation{D}) where D = D*(D+1)
-lastindex(::SymOperation{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D+1 : 1)
-IndexStyle(::SymOperation) = IndexLinear()
+@propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
+IndexStyle(::Type{<:SymOperation}) = IndexLinear()
 size(::SymOperation{D}) where D = (D, D+1)
 eltype(::SymOperation) = Float64
 
@@ -141,10 +135,9 @@ struct MultTable{D} <: AbstractMatrix{Int64}
     table::Matrix{Int64} # Cayley table: indexes into `operations`
     isgroup::Bool
 end
-getindex(mt::MultTable, keys...) = mt.table[keys...]
-firstindex(mt::MultTable, d) = 1
-lastindex(mt::MultTable, d::Int64) = size(mt.table, d)
+@propagate_inbounds getindex(mt::MultTable, i::Int) = mt.table[i]
 size(mt::MultTable) = size(mt.table)
+IndexStyle(::Type{<:MultTable}) = IndexLinear()
 
 # --- 𝐤-vectors ---
 # 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -338,15 +331,14 @@ abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
 dim(::AbstractGroup{D}) where D = D
-# define the AbstractArray interface for AbstractGroup
-getindex(g::AbstractGroup, keys...) = operations(g)[keys...]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
-firstindex(::AbstractGroup) = 1
-lastindex(g::AbstractGroup, d::Int64) = size(operations(g), d)  # allows using `end` in indices
-setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
-size(g::AbstractGroup) = (length(operations(g)),)
-IndexStyle(::AbstractGroup) = IndexLinear()
-eltype(::AbstractGroup{D}) where D = SymOperation{D}
 order(g::AbstractGroup) = length(g)
+
+# define the AbstractArray interface for AbstractGroup
+@propagate_inbounds getindex(g::AbstractGroup, i::Int) = operations(g)[i]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
+@propagate_inbounds setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
+size(g::AbstractGroup) = size(operations(g))
+IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
+eltype(::AbstractGroup{D}) where D = SymOperation{D}
 
 # --- Generic group ---
 """
@@ -623,25 +615,24 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct BandRep <: AbstractVector{Int64}
+struct BandRep <: AbstractVector{Int}
     wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
     dim::Int         # Dimension (i.e. # of bands) in band rep
     decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
-    irvec::Vector{Int64}   # Vector that references irlabs of a parent BandRepSet; nonzero
+    irvec::Vector{Int}  # Vector that references irlabs of a parent BandRepSet; nonzero
                            # entries correspond to an element in the band representation
     irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
 wyck(BR::BandRep)    = BR.wyckpos
 sitesym(BR::BandRep) = BR.sitesym
 label(BR::BandRep)   = BR.label
-vec(BR::BandRep)     = BR.irvec
 irreplabels(BR::BandRep) = BR.irlabs
 
 """
-    dim(BR::BandRep) --> Int64
+    dim(BR::BandRep) --> Int
 
 Get the number of bands included in a single BandRep `BR`; i.e. the "band filling"
 ν discussed in Po's papers.
@@ -649,12 +640,10 @@ Get the number of bands included in a single BandRep `BR`; i.e. the "band fillin
 dim(BR::BandRep)     = BR.dim
 
 # define the AbstractArray interface for BandRep
-size(BR::BandRep)    = (length(vec(BR)),) # number of irreps samplable by BandRep
-getindex(BR::BandRep, keys...) = vec(BR)[keys...]
-firstindex(::BandRep) = 1
-lastindex(BR::BandRep) = length(vec(BR))
-IndexStyle(::BandRep) = IndexLinear()
-eltype(::BandRep) = Int64
+size(BR::BandRep)      = (length(BR.irvec),) # number of irreps samplable by BandRep
+@propagate_inbounds getindex(BR::BandRep, i::Int) = BR.irvec[i]
+IndexStyle(::Type{<:BandRep})  = IndexLinear()
+eltype(::BandRep)      = Int
 
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -680,10 +669,8 @@ reps(BRS::BandRepSet)        = BRS.bandreps
 
 # define the AbstractArray interface for BandRepSet
 size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
-getindex(BRS::BandRepSet, keys...) = reps(BRS)[keys...]
-firstindex(::BandRepSet) = 1
-lastindex(BRS::BandRepSet) = length(reps(BRS))
-IndexStyle(::BandRepSet) = IndexLinear()
+@propagate_inbounds getindex(BRS::BandRepSet, i::Int) = reps(BRS)[i]
+IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
 eltype(::BandRepSet) = BandRep
 
 """
@@ -696,10 +683,10 @@ For `includedim=true` the band filling (i.e. `dim.(BRS)`) is included as the las
 """
 function matrix(BRS::BandRepSet, includedim::Bool=false)
     Nⁱʳʳ, Nᵉᵇʳ = length(BRS[1]), length(BRS)
-    M = Matrix{Int64}(undef, Nⁱʳʳ+includedim, Nᵉᵇʳ)
+    M = Matrix{Int}(undef, Nⁱʳʳ+includedim, Nᵉᵇʳ)
     @inbounds for (j, BR) in enumerate(BRS)
-        for (i, v) in enumerate(vec(BR)) # bit over-explicit, but faster this way than with 
-            M[i,j] = v                   # broadcasting/iterator interface (why!?)
+        for (i, v) in enumerate(BR.irvec)
+            M[i,j] = v
         end
         if includedim
             M[Nⁱʳʳ+1,j] = dim(BR)

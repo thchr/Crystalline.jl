@@ -16,7 +16,8 @@ using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
 import StaticArrays: SMatrix, MMatrix
-import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol, one, zero
+import Base: convert, eltype, size, getindex, firstindex, lastindex, eachcol, one, zero,
+             IndexStyle
 
 export SqSMatrix
 
@@ -37,10 +38,16 @@ firstindex(::SqSMatrix) = 1
 lastindex(::SqSMatrix{D}) where D = D
 lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
 eachcol(A::SqSMatrix) = A.cols
-function getindex(A::SqSMatrix{D}, i::Integer, j::Integer) where D
+@propagate_inbounds function getindex(A::SqSMatrix{D}, i::Int) where D
+    @boundscheck 1 ≤ i ≤ D*D || throw(BoundsError(A, (i,)))
+    i, j = (idx+D-1)÷D, mod1(idx, D)
+    return @inbounds A.cols[j][i]
+end
+@propagate_inbounds function getindex(A::SqSMatrix{D}, i::Integer, j::Integer) where D
     @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
     return @inbounds A.cols[j][i]
 end
+IndexStyle(::Type{<:SqSMatrix}) = IndexCartesian()
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 

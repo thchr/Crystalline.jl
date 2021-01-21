@@ -17,7 +17,7 @@ using Compat
 using Statistics: quantile
 using DocStringExtensions
 
-using Base: OneTo
+using Base: OneTo, @propagate_inbounds 
 
 import Base: getindex, lastindex, firstindex, setindex!, # → indexing interface
              IndexStyle, size, eltype, length,           # ⤶
