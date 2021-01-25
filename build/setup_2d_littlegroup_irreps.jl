@@ -10,16 +10,27 @@ PLANE2KVEC = Dict(
     3  => (["X", "Y", "S", 
             "Σ", "ΣA", "C",
             "CA"],           KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "0,u",   "0,-u",  "1/2,u",    "1/2,-u"])),
+    4  => (["X", "Y", "S",   #= non-symmorphic =#
+            "Σ", "ΣA", "C",
+            "CA"],           KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "0,u",   "0,-u",  "1/2,u",    "1/2,-u"])),
     5  => (["Y", "Σ", "ΣA",
             "C", "CA"],      KVec{2}.(["0,1",     "0,2u",    "0,-2u",   "1,2u",  "1,-2u"])),
     6  => (["X", "S", "Y",
             "Σ", "C", "Δ",
             "D"],            KVec{2}.(["1/2,0",   "1/2,1/2", "0,1/2",   "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+    7  => (["Y", "X", "S",   #= non-symmorphic =#
+            "Σ", "C", "Δ",
+            "D"],            KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+    8  => (["Y", "X", "S",   #= non-symmorphic =#
+            "Σ", "C", "Δ",
+            "D"],            KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
     9  => (["Y", "S", "Σ",
             "Δ", "F", "C"],  KVec{2}.(["1,0",     "1/2,1/2", "2u,0",    "0,2u",  "1,2u",  "2u,1"])),
     10 => (["X", "M"],       KVec{2}.(["0,1/2",   "1/2,1/2"])),
     11 => (["X", "M", "Σ",
             "Δ", "Y"],       KVec{2}.(["0,1/2",   "1/2,1/2", "u,u",     "0,u",   "u,1/2"])),
+    12 => (["M", "X", "Δ",   #= non-symmorphic =#
+            "Y", "Σ"],       KVec{2}.(["1/2,1/2", "0,1/2",   "0,u",     "u,1/2", "u,u"])),
     13 => (["K", "KA"],      KVec{2}.(["1/3,1/3", "2/3,-1/3"])),
     14 => (["K", "M", "Σ",
             "ΣA"],           KVec{2}.(["1/3,1/3", "1/2,0",   "u,0",   "0,u"])),
@@ -53,6 +64,8 @@ end
 # build little group irreps of tabulated k-points by matching up to the assoc. point group
 LGIRSD_2D = Dict{Int, Dict{String, Vector{LGIrrep{2}}}}()
 for (sgnum, (klabs, kvs)) in PLANE2KVEC
+    issymmorph(sgnum, 2) || continue  # treat only symmorphic groups
+    
     sg   = spacegroup(sgnum, Val(2))
     lgs  = littlegroup.(Ref(sg), kvs) # little groups at each tabulated k-point
     ops′ = reduce_ops.(lgs)           # reduce to operations without centering "copies"

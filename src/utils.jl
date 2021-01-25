@@ -153,17 +153,17 @@ function unicode_frac(x::Number)
     return signbit(x) ? "-"*xstr : xstr
 end
 
-const roman2greek_dict = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω")
-                              #"LE"=>"Λ′", "DU"=>"Δ′", "SN"=>"Σ′",  # These are the awkwardly annoted analogues of the pairs (Z,ZA), (W,WA) etc. 
-                              #"ZA"=>"Z′", "WA"=>"W′")              # They "match" a simpler k-vector, by reducing their second character by one,
-                                                                    # alphabetically (e.g. LE => LD = Λ). The primed notation is our own (actually,
-                                                                    # it is also used in B&C, e.g. p. 412).
+const ROMAN2GREEK_DICT = Dict("LD"=>"Λ", "DT"=>"Δ", "SM"=>"Σ", "GM"=>"Γ", "GP"=>"Ω")
+                             #"LE"=>"ΛA", "DU"=>"ΔA", "SN"=>"ΣA",  # These are the awkwardly annoted greek analogues of the pairs (Z,ZA), (W,WA) etc.
+                                                                   # They "match" a simpler k-vector, by reducing their second character by one,
+                                                                   # alphabetically (e.g. LE => LD = Λ). The primed post-scripting notation is our own
+                                                                   # (B&C seems to use prime instead, e.g. on p. 412)
 function roman2greek(label::String)
     idx = findfirst(!isletter, label)
     if idx !== nothing
         front=label[firstindex(label):prevind(label,idx)]
-        if front ∈ keys(roman2greek_dict)
-            return roman2greek_dict[front]*label[idx:lastindex(label)]
+        if front ∈ keys(ROMAN2GREEK_DICT)
+            return ROMAN2GREEK_DICT[front]*label[idx:lastindex(label)]
         end
     end
     return label
