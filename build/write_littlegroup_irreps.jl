@@ -113,6 +113,12 @@ include("setup_2d_littlegroup_irreps.jl") # defines the variable LGIRS_2D′
 # ---------------------------------------------------------------------------------------- #
 # ---------------------------------------------------------------------------------------- #
 # actually write .jld files for 1D and 3D
+# (to do this, we must close `LGIRREPS_JLDFILES` and `LGS_JLDFILES` - which are opened upon
+# initialization of Crystalline - before writing new content to them; to that end, we simply
+# simply close the files below (make sure you don't have Crystalline loaded in another
+# session though..!))
+foreach(jldfile -> close(jldfile), values(Crystalline.LGIRREPS_JLDFILES))
+foreach(jldfile -> close(jldfile), values(Crystalline.LGS_JLDFILES))
 
 # 3D (from ISOTROPY)
 __write_littlegroupirreps(parselittlegroupirreps())
