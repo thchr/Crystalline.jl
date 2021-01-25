@@ -1,20 +1,34 @@
 using Crystalline
 
-# NOTE/TODO: Currently only deals with symmorphic groups
+# The listings below include all unique, labelled k-points in the representation domain
+# whose little group is not trivial. In addition, Γ=(0,0) and Ω=(u,v) are included for 
+# every group. The notation follows of layer groups as given by LKVEC on the Bilbao server
+# (https://www.cryst.ehu.es/subperiodic/get_layer_kvec.html).
 PLANE2KVEC = Dict(
     1  => ([],               KVec{2}.([])),
-    2  => (["Y", "B", "A"],  KVec{2}.(["0,1/2",    "1/2,0",   "1/2,1/2"])),
-    3  => (["Y", "X", "S"],  KVec{2}.(["0,1/2",    "1/2,0",   "1/2,1/2" ])),
-    5  => (["Y", "S"],       KVec{2}.(["1,0",      "1/2,1/2"  ])),
-    6  => (["X", "S", "Y"],  KVec{2}.(["1/2,0",    "1/2,1/2", "0,1/2"])),
-    9  => (["Y", "S"],       KVec{2}.(["1,0",      "1/2,1/2"])),
-    10 => (["X", "M"],       KVec{2}.(["0,1/2",    "1/2,1/2"])),
-    11 => (["X", "M" ],      KVec{2}.(["0,1/2",    "1/2,1/2"])),
-    13 => (["KA", "K"],      KVec{2}.(["2/3,-1/3", "1/3,1/3"])),
-    14 => (["K", "M"],       KVec{2}.(["1/3,1/3",  "1/2,0"  ])),
-    15 => (["KA", "K", "M"], KVec{2}.(["2/3,-1/3", "1/3,1/3", "1/2,0"])),
-    16 => (["K", "M"],       KVec{2}.(["1/3,1/3",  "1/2,0"  ])),
-    17 => (["K", "M"],       KVec{2}.(["1/3,1/3",  "1/2,0"  ]))
+    2  => (["Y", "B", "A"],  KVec{2}.(["0,1/2",   "1/2,0",   "1/2,-1/2"])),
+    3  => (["X", "Y", "S", 
+            "Σ", "ΣA", "C",
+            "CA"],           KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "0,u",   "0,-u",  "1/2,u",    "1/2,-u"])),
+    5  => (["Y", "Σ", "ΣA",
+            "C", "CA"],      KVec{2}.(["0,1",     "0,2u",    "0,-2u",   "1,2u",  "1,-2u"])),
+    6  => (["X", "S", "Y",
+            "Σ", "C", "Δ",
+            "D"],            KVec{2}.(["1/2,0",   "1/2,1/2", "0,1/2",   "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+    9  => (["Y", "S", "Σ",
+            "Δ", "F", "C"],  KVec{2}.(["1,0",     "1/2,1/2", "2u,0",    "0,2u",  "1,2u",  "2u,1"])),
+    10 => (["X", "M"],       KVec{2}.(["0,1/2",   "1/2,1/2"])),
+    11 => (["X", "M", "Σ",
+            "Δ", "Y"],       KVec{2}.(["0,1/2",   "1/2,1/2", "u,u",     "0,u",   "u,1/2"])),
+    13 => (["K", "KA"],      KVec{2}.(["1/3,1/3", "2/3,-1/3"])),
+    14 => (["K", "M", "Σ",
+            "ΣA"],           KVec{2}.(["1/3,1/3", "1/2,0",   "u,0",   "0,u"])),
+    15 => (["K", "KA", "M",
+            "Λ", "ΛA", "T",
+            "TA"],           KVec{2}.(["1/3,1/3", "2/3,-1/3", "1/2,0",  "u,u",   "2u,-u", "1/2-u,2u", "1/2+u,-2u"])),
+    16 => (["K", "M"],       KVec{2}.(["1/3,1/3", "1/2,0"])),
+    17 => (["K", "M", "Σ",
+            "Λ", "T"],       KVec{2}.(["1/3,1/3", "1/2,0",   "u,0",   "u,u", "1/2-u,2u"]))
 )
 # push Γ and Ω k-points, which are in all plane groups, to front & end of the above vectors
 foreach(values(PLANE2KVEC)) do d
