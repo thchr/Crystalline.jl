@@ -101,7 +101,7 @@ for (sgnum, LGIRSD_2D) in LGIRSD_2D
     for (klab, lgirs) in LGIRSD_2D
         lgirs′ = LGIrrep{2}[]
         for lgir in lgirs
-            reality_type  = calc_reality(lgir, sg) # -1 => pseudoreal, 0 => complex, 1 => real
+            reality_type  = calc_reality(lgir, sg)
             lgir′ = LGIrrep{2}(label(lgir), group(lgir), lgir.matrices, lgir.translations,
                                reality_type , false)
             push!(lgirs′, lgir′)        
@@ -109,4 +109,19 @@ for (sgnum, LGIRSD_2D) in LGIRSD_2D
         LGIRSD_2D′[sgnum][klab]= lgirs′
     end
 end
-LGIRS_2D′ = [LGIRSD_2D for (key, LGIRSD_2D) in LGIRSD_2D′]
+
+# -----------------------------------------------------------------------------------------
+# ADD LGIRREPS OR THE NON-SYMMORPHIC PLANE GROUPS (FROM HAND-TABULATION)
+let
+    # "load" the `LGIrrep`s of plane groups 4, 7, 8, and 12 into `LGIRSD_2D` (using `let`
+    # statement to avoid namespace clash w/ existing `LGIRSD_2D`)
+    include("setup_2d_littlegroup_irreps_nonsymmorph.jl") 
+    merge!(LGIRSD_2D′, LGIRSD_2D)
+end
+
+# -----------------------------------------------------------------------------------------
+# CREATE A SORTED VECTOR OF `Vector{LGIrrep}` WHOSE INDICES MATCH THE SGNUM
+LGIRS_2D′ = Vector{valtype(LGIRSD_2D′)}(undef, 17)
+foreach(LGIRSD_2D′) do (sgnum, lgirsd)
+    LGIRS_2D′[sgnum] = lgirsd
+end
