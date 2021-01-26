@@ -1,11 +1,12 @@
 using Crystalline, Test, LinearAlgebra
 
-if !isdefined(Main, :LGIRS)
-    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
+if !isdefined(Main, :LGIRSDIM)
+    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
 end
 
 @testset "CharacterTable and orthogonality theorems" begin
     @testset "Little group irreps" begin
+    for LGIRS in LGIRSDIM # ... D in 1:3
         for lgirsd in LGIRS
             for lgirs in values(lgirsd)
                 ct = CharacterTable(lgirs)
@@ -19,7 +20,8 @@ end
                 @test χs'*χs ≈ Nₒₚ*I
             end
         end
-    end
+    end # for LGIRS in LGIRSDIM
+    end # @testset "Little group irreps"
 
     @testset "Point group irreps" begin
         for D in 1:3

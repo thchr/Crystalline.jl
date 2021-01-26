@@ -1,40 +1,43 @@
 using Crystalline, Test, LinearAlgebra
 
-if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
+if !isdefined(Main, :LGIRSDIM)
+    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
 end
-#Crystalline.add_ΦnotΩ_lgirs!.(LGIRS)
+#foreach(LGIRS->Crystalline.add_ΦnotΩ_lgirs!.(LGIRS), LGIRSDIM)
+αβγs = Crystalline.TEST_αβγs # to evaluate line/plane irreps at non-special points
 
 @testset "Irrep orthogonality (complex little groups)" begin
-αβγ = Crystalline.TEST_αβγ # for evaluating characters/irreps at non-special points
 
 ## 1ˢᵗ orthogonality theorem (characters): 
 #       ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
 # for each irrep Dᵢ⁽ᵃ⁾ with i running over the Nₒₚ elements of the little group 
 @testset "1ˢᵗ orthogonality theorem" begin
+for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS             # loop over space groups: lgirsd contains _all_ little groups and their irreps
         for lgirs in values(lgirsd) # loop over little group: lgirs contains all the associated irreps
             Nₒₚ = order(first(lgirs)) # number of elements in little group
             for lgir in lgirs # specific irrep {Dᵢ⁽ᵃ⁾} of the little group
-                χ = characters(lgir, αβγ) # characters χᵢ⁽ᵃ⁾ of every operation
+                χ = characters(lgir, αβγs[D]) # characters χᵢ⁽ᵃ⁾ of every operation
                 @test sum(abs2, χ) ≈ Nₒₚ # check ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾ 
             end
         end
     end
 end
+end # testset
 
 ## 2ⁿᵈ orthogonality theorem (characters): 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾  
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with i running over the 
 # Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
 @testset "2ⁿᵈ orthogonality theorem" begin
+for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
         for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))    
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
-                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγ)
+                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγs[D])
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
-                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγ)
+                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγs[D])
                     orthog2nd = dot(χ⁽ᵃ⁾, χ⁽ᵝ⁾) # dot conjugates the first vector automatically, 
                                                 # i.e. this is just ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾
                     @test (orthog2nd ≈ (a==β)*Nₒₚ)  atol=1e-12
@@ -43,6 +46,7 @@ end
         end
     end
 end
+end # testset
 
 
 ## Great orthogonality theorem of irreps: 
@@ -50,17 +54,18 @@ end
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
 # i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
 @testset "Great orthogonality theorem (little group irreps)" begin
-    debug = false# true
-    count = total = 0 # counters
+debug = false# true
+count = total = 0 # counters
+for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
         for lgirs in values(lgirsd) # lgirs: vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
-                D⁽ᵃ⁾ = irreps(lgir⁽ᵃ⁾,αβγ)      # vector of irreps in (a)
+                D⁽ᵃ⁾ = irreps(lgir⁽ᵃ⁾,αβγs[D])      # vector of irreps in (a)
                 dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
 
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
-                    D⁽ᵝ⁾ = irreps(lgir⁽ᵝ⁾,αβγ)  # vector of irreps in (β)
+                    D⁽ᵝ⁾ = irreps(lgir⁽ᵝ⁾,αβγs[D])  # vector of irreps in (β)
                     dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
                     δₐᵦ = (a==β)
                     if a == β && debug
@@ -96,13 +101,15 @@ end
                 end
             end
         end
-	end
-	if debug
-        println("\n\n", count, "/", total, " errored",
-                " (", round(100*count/total, digits=1), "%)\n")
-	end
+    end # LGIRS
+end # LGIRSDIM
+if debug
+    println("\n\n", count, "/", total, " errored",
+            " (", round(100*count/total, digits=1), "%)\n")
 end
-end
+end # testset
+
+end # "outer" testset
 
 if false
 	println() 
