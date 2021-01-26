@@ -106,6 +106,7 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
     # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
     #       if we match k-points across a G-vector, we also need to transform the irrep
     #       with a suitable phase factor.
+    # TODO: could be made more robust, e.g., inspired by `_can_intersect` in src/wyckoff.jl
     isspecial(kv) || throw(DomainError(kv, "must be special"))
     isspecial(kv′) && return false, nothing
 
@@ -113,7 +114,7 @@ function is_compatible_kvec(kv::KVec, kv′::KVec)
     k₀′, kabc′ = parts(kv′)
 
     # least squares solve via QR factorization; equivalent to pinv(kabc)*(k₀-k₀′) but faster
-    αβγ′ = qr(kabc′, Val(true))\(k₀-k₀′)
+    αβγ′ = qr(Matrix(kabc′), Val(true))\(k₀-k₀′) # NB: have to dispatch `qr` on "plain" `Matrix` due to https://github.com/JuliaArrays/StaticArrays.jl/issues/478
     k′ = k₀′ + kabc′*αβγ′
     # check if least squares solution actually is a solution
     compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL)
