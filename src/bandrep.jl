@@ -1,6 +1,8 @@
+using JLD2
 # conversion between delimited text files and array representations
 dlm2array(io::IO) = DelimitedFiles.readdlm(io, '|', String, '\n')
 dlm2array(str::String) = dlm2array(IOBuffer(str))
+
 
 # utilities for creation of BandRep and BandRepSet
 function dlm2struct(str::Union{String,IO}, sgnum::Integer, allpaths::Bool=false, spinful::Bool=false, 
@@ -104,15 +106,22 @@ Keyword arguments:
 function bandreps(sgnum::Integer, D::Integer=3;
                   allpaths::Bool=false, spinful::Bool=false,
                   timereversal::Bool=true)
-    (D ∉ (1,3) && sgnum ∉ (1,2,16,17)) && _throw_2d_not_yet_implemented(D)
-    paths_str = allpaths ? "allpaths" : "maxpaths"
-    brtype_str = timereversal ? "elementaryTR" : "elementary"
-    filename = (@__DIR__)*"/../data/bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
-    open(filename) do io
-        BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
-    end 
-end
+    (D ∉ (1,3) && sgnum ∉ (1,2,3,6, 9,10, 11, 13, 14,  15, 16, 17)) && _throw_2d_not_yet_implemented(D)
 
+    if D==2 
+        filename=(@__DIR__)*"/../data/bandreps/2d/elementary/maxpaths/$(string(sgnum)).jld2"
+        @load string(filename) bandrepset_sgnum
+        return bandrepset_sgnum 
+
+    else
+        paths_str = allpaths ? "allpaths" : "maxpaths"
+        brtype_str = timereversal ? "elementaryTR" : "elementary"
+        filename = (@__DIR__)*"/../data/bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
+        open(filename) do io
+            BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
+        end 
+    end
+end
 """
     classification(BRS::BandRepSet) --> String
 

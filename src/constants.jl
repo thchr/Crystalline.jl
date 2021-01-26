@@ -5,8 +5,7 @@ const MAX_SGNUM    = (2, 17, 230) # number of space groups in dimensions 1, 2, a
 
 # --- VECTORS ---
 # arbitrary test vector for e.g. evaluating KVecs lines/planes/volumes; 3D by default
-const TEST_αβγ =  [0.123123123, 0.456456456, 0.789789789]
-const TEST_αβγs = (TEST_αβγ[1:1], TEST_αβγ[1:2], TEST_αβγ)
+const TEST_αβγ = [0.123123123, 0.456456456, 0.789789789]
 
 # --- LISTS ---
 # The following space group numbers are symmorphic; in 3D they each embody one of 

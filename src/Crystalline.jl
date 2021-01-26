@@ -36,6 +36,8 @@ using .SquareStaticMatrices # exports SSqMatrix{D,T}
 
 # included files and exports
 include("constants.jl")
+include("newfile.jl")
+#include("Band_Representations.jl")
 export MAX_SGNUM
 
 include("utils.jl") # useful utility methods (seldom needs exporting)

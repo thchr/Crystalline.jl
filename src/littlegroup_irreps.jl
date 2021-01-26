@@ -27,7 +27,8 @@ The underlying data is sourced from the ISOTROPY dataset: see also [`get_lgirrep
 """
 function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JLD2.JLDFile=LGS_JLDFILES[D]) where D
-    D ∉ (1,2,3) && _throw_invaliddim(D)
+     D ∉ (1,2,3) && _throw_invaliddim(D)
+     (D==2 && sgnum ∈ (4,7,8,12)) && error("Nonsymmorphic groups not yet supported in 2D")
 
     sgops_str, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, jldfile)
 
@@ -75,6 +76,7 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
                       lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D],
                       irs_jldfile::JLD2.JLDFile=LGIRREPS_JLDFILES[D]) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
+    (D==2 && sgnum ∈ (4,7,8,12)) && error("Nonsymmorphic groups not yet supported in 2D")
   
     lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
 

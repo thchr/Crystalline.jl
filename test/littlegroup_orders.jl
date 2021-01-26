@@ -1,18 +1,17 @@
 using Crystalline, Test
 
-if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+if !isdefined(Main, :LGIRS)
+    LGIRS = parselittlegroupirreps()
 end
 
 @testset "Little group order" begin
     # see e.g. Bradley & Cracknell p. 151(bottom)-152(top)
     @testset "Decomposition, order[star{k}]*order[G₀ᵏ] = order[G₀]" begin
-    for (D, LGIRS) in enumerate(LGIRSDIM)
         for (sgnum, lgirsd) in enumerate(LGIRS)
-            cntr = centering(sgnum, D)  
+            cntr = centering(sgnum, 3)  
             # the "macroscopic" order is defined simply as the length of the 
             # point group associated with the space group
-            sgops = operations(spacegroup(sgnum, D)) # from crawling Bilbao
+            sgops = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
             order_macroscopic = length(pointgroup(sgops))
             
             for lgirs in values(lgirsd)
@@ -34,13 +33,11 @@ end
                 end
             end
         end
-    end # for (D, LGIRS) in enumerate(LGIRSDIM)
-    end # @testset "Decomposition, ..."
+    end
 
     @testset "Macroscopic order, Bilbao vs. ISOTROPY" begin
-    for (D, LGIRS) in enumerate(LGIRSDIM)
         for (sgnum, lgirsd) in enumerate(LGIRS)
-            sgops_bilbao = operations(spacegroup(sgnum, D)) # from crawling Bilbao
+            sgops_bilbao = operations(spacegroup(sgnum, 3)) # from crawling Bilbao
             sgops_isotropy = operations(first(lgirsd["Γ"])) # from ISOTROPY's Γ-point LittleGroup
 
             # note that we don't have to worry about whether the operations 
@@ -52,8 +49,7 @@ end
 
             @test order_macroscopic_bilbao == order_macroscopic_isotropy
         end
-    end # for (D, LGIRS) in enumerate(LGIRSDIM)
-    end # @testset "Macroscopic order, ..."
+    end
 end
 
 @testset "Little group data-consistency" begin

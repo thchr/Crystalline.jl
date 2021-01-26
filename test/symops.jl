@@ -102,7 +102,7 @@ using Crystalline, Test
     @testset "Checking symmorphic space groups" begin
         # we do a memoized look-up for `issymmorph(::Integer, ::Integer)`: ensure that it 
         # agrees with explicit calculations
-        for D in 1:3
+        for D in (1,2,3)
             for sgnum in 1:MAX_SGNUM[D]
                 @test issymmorph(sgnum, D) == issymmorph(spacegroup(sgnum, D))
             end

@@ -81,26 +81,29 @@ end
 
 LGIRS_1D = [Dict{String, Vector{LGIrrep{1}}}() for _ in 1:2]
 function make_1d_lgirrep(sgnum::Integer, klab::String, cdml_suffix::String,
-                         kx, ops::Vector{SymOperation{1}}, scalars::Vector{<:Number}=[1.0,],
-                         reality_type::Reality=REAL)
+                         kx, ops::Vector{SymOperation{1}}, scalars::Vector{<:Number}=[1.0,])
     cdml = klab*cdml_suffix
+    @show cdml
     lg   = LittleGroup{1}(sgnum, KVec{1}(string(kx)), klab, ops)
+    @show lg
     matrices = [fill(ComplexF64(v), 1,1) for v in scalars]
+    @show matrices
     translations = [zeros(1) for _ in scalars]
-    return LGIrrep{1}(cdml, lg, matrices, translations, reality_type, false)
+    @show translations
+    return LGIrrep{1}(cdml, lg, matrices, translations, REAL, false)
 end
 
 # Line group 1
-LGIRS_1D[1]["Γ"] = [make_1d_lgirrep(1, "Γ", "₁", 0,    [S"x"],        [1.0])]
-LGIRS_1D[1]["X"] = [make_1d_lgirrep(1, "X", "₁", 0.5,  [S"x"],        [1.0])]
-LGIRS_1D[1]["Ω"] = [make_1d_lgirrep(1, "Ω", "₁", "u",  [S"x"],        [1.0], COMPLEX)]
+LGIRS_1D[1]["Γ"] = [make_1d_lgirrep(1, "Γ", "₁", 0,   [SymOperation{1}("x")], [1.0]) ]
+LGIRS_1D[1]["X"] = [make_1d_lgirrep(1, "X", "₁", 0.5, [SymOperation{1}("x")], [1.0]) ]
+LGIRS_1D[1]["Ω"] = [make_1d_lgirrep(1, "Ω", "₁", "u", [SymOperation{1}("x")], [1.0]) ]
 
 # Line group 2
-LGIRS_1D[2]["Γ"] = [make_1d_lgirrep(2, "Γ", "₁⁺", 0,   [S"x", S"-x"], [1.0, 1.0]),   # even
-                    make_1d_lgirrep(2, "Γ", "₁⁻", 0,   [S"x", S"-x"], [1.0, -1.0])]  # odd
-LGIRS_1D[2]["X"] = [make_1d_lgirrep(2, "X", "₁⁺", 0.5, [S"x", S"-x"], [1.0, 1.0]),   # even
-                    make_1d_lgirrep(2, "X", "₁⁻", 0.5, [S"x", S"-x"], [1.0, -1.0])]  # odd
-LGIRS_1D[2]["Ω"] = [make_1d_lgirrep(2, "Ω", "₁", "u",  [S"x"],        [1.0])]
+LGIRS_1D[2]["Γ"] = [make_1d_lgirrep(2, "Γ", "₁⁺", 0,   SymOperation{1}.(["x", "-x"]), [1.0, 1.0]),   # even
+                    make_1d_lgirrep(2, "Γ", "₁⁻", 0,   SymOperation{1}.(["x", "-x"]), [1.0, -1.0])] # odd
+LGIRS_1D[2]["X"] = [make_1d_lgirrep(2, "X", "₁⁺", 0.5, SymOperation{1}.(["x", "-x"]), [1.0, 1.0]),   # even
+                    make_1d_lgirrep(2, "X", "₁⁻", 0.5, SymOperation{1}.(["x", "-x"]), [1.0, -1.0])]  # odd
+LGIRS_1D[2]["Ω"] = [make_1d_lgirrep(2, "Ω", "₁", "u", [SymOperation{1}("x")], [1.0]) ]
 
 # ---------------------------------------------------------------------------------------- #
 # 2D plane groups: little groups irreps extracted for symmorphic groups via point groups

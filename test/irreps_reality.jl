@@ -1,17 +1,15 @@
 using Crystalline, Test, LinearAlgebra
 using Crystalline: iscorep
 
-if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+if !isdefined(Main, :LGIRS)
+    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
 end
-αβγs = Crystalline.TEST_αβγs # to evaluate line/plane irreps at non-special points
 
 @testset "Coreps/physically real irreps" begin
 
 # Compare evaluation of the Herring criterion with the tabulated realities in ISOTROPY
 @testset "Herring criterion" begin
-#= error_count = 0 =#       # for debugging
-for LGIRS in LGIRSDIM
+    #= error_count = 0 =#       # for debugging
     for (sgnum, lgirsd) in enumerate(LGIRS)
         sgops = operations(first(lgirsd["Γ"])) # this is important: we may _not_ use trivial repeated sets, i.e. spacegroup(..) would not work generally
         for lgirs in values(lgirsd)
@@ -32,20 +30,21 @@ for LGIRS in LGIRSDIM
             end
         end
     end
-end
 
-#=                          # for debugging
-if error_count>0
-    println(Crayon(foreground=:red, bold=true), "Outright errors: ", error_count)
-else
-    println(Crayon(foreground=:green, bold=true), "No errors")
-end
-=#
+    #=                          # for debugging
+    if error_count>0
+        println(Crayon(foreground=:red, bold=true), "Outright errors: ", error_count)
+    else
+        println(Crayon(foreground=:green, bold=true), "No errors")
+    end
+    =#
 end # @testset "Herring criterion" 
 
 @testset "Corep orthogonality" begin
+αβγ = Crystalline.TEST_αβγ # for evaluating characters/irreps at non-special points
 # compute all coreps (aka "physically real" irreps, i.e. incorporate time-reversal sym) via
 # the ordinary irreps and `realify`
+LGIRS′ = [Dict(klab=>realify(lgirs) for (klab,lgirs) in lgirsd) for lgirsd in LGIRS]
 
 function corep_orthogonality_factor(lgir)
     if iscorep(lgir)
@@ -69,25 +68,22 @@ end
 #       real => 1; pseudoreal => 4; complex => 2
 # see `corep_orthogonality_factor(lgir)` above.
 @testset "1ˢᵗ & 2ⁿᵈ orthogonality theorem" begin
-for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
         for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))
             # compute coreps (aka "physically real" irreps, i.e. incorporate time-reversal)
             lgcoreps = realify(lgirs)
             for (a, lgir⁽ᵃ⁾) in enumerate(lgcoreps)
-                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγs[D])
-
+                χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγ)
                 f = corep_orthogonality_factor(lgir⁽ᵃ⁾)
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgcoreps)
-                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγs[D])
+                    χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγ)
                     orthog2nd = dot(χ⁽ᵃ⁾, χ⁽ᵝ⁾) # ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾
                     @test (orthog2nd ≈ (a==β)*f*Nₒₚ)  atol=1e-12
                 end
             end
         end
     end
-end
 end # @testset "2ⁿᵈ orthogonality theorem"
 
 # TODO: Great orthogonality theorem of coreps:

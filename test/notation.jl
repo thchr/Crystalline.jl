@@ -3,7 +3,7 @@ using Crystalline, Test
 @testset "Notation" begin
     SqSMatrix = Crystalline.SquareStaticMatrices.SqSMatrix
     @testset "Mulliken notation" begin
-        for D in 1:3
+        for D in (1,2,3)
             for pglab in PGS_IUCs[D]
                 pgirs = get_pgirreps(pglab, Val(D))
                 g     = group(first(pgirs))

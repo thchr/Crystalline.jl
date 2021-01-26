@@ -1,12 +1,11 @@
 using Crystalline, Test, LinearAlgebra
 
-if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+if !isdefined(Main, :LGIRS)
+    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
 end
 
 @testset "CharacterTable and orthogonality theorems" begin
     @testset "Little group irreps" begin
-    for LGIRS in LGIRSDIM # ... D in 1:3
         for lgirsd in LGIRS
             for lgirs in values(lgirsd)
                 ct = CharacterTable(lgirs)
@@ -20,8 +19,7 @@ end
                 @test χs'*χs ≈ Nₒₚ*I
             end
         end
-    end # for LGIRS in LGIRSDIM
-    end # @testset "Little group irreps"
+    end
 
     @testset "Point group irreps" begin
         for D in 1:3
@@ -32,7 +30,7 @@ end
                 Nₒₚ = length(operations(ct))
 
                 # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
-                @test all(n->isapprox.(n, Nₒₚ, atol=2e-14), sum(abs2, χs, dims=1))
+                @test all(n->isapprox.(n, Nₒₚ, atol=1e-14), sum(abs2, χs, dims=1))
 
                 # 2ⁿᵈ orthogonality theorem:    ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
                 @test χs'*χs ≈ Nₒₚ*I
