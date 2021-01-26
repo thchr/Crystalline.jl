@@ -245,5 +245,120 @@ function MultTable(g::SiteGroup; verbose::Bool=false)
 end
 
 function orbit(g::SiteGroup{D}, wp::WyckPos{D}) where D
-    qv′s = cosets(g) .∘ Ref(wp)
+    qv′s = cosets(g) .∘ Ref(wp)  # TODO: Remove this method; superfluous input `wp`
+end
+function orbit(g::SiteGroup{D}) where D
+    qv′s = cosets(g) .∘ Ref(wyck(g))
+end
+
+
+
+"""
+    findmaximal(sitegs::AbstractVector{<:SiteGroup})
+
+Given a vector of `SiteGroup`s associated with the Wyckoff positions of a space group,
+return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
+
+Results are returned as a `view` into the input vector (i.e. as an 
+`AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can subsequently be
+retrieved via [`wyck`](@ref).
+
+## Definition
+A Wyckoff position is maximal if its site symmetry group has higher order than the site
+symmetry groups of any "nearby" Wyckoff positions (i.e. Wyckoff positions that can be 
+connected, i.e. made equivalent, through parameter variation to the considered Wyckoff
+position).
+
+## Example
+```jldoctest
+julia> sgnum = 5; D = 2;
+julia> wps = get_wycks(sgnum, Val(D));
+julia> sg  = spacegroup(sgnum, Val(D));
+
+julia> sitegs = SiteGroup.(Ref(sg), wps)
+SiteGroup{2} #5 at 4b = [α, β] with 1 operations:
+ 1 ────────────────────────────────── (x,y)
+SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
+ 1 ────────────────────────────────── (x,y)
+ m₁₀ ─────────────────────────────── (-x,y)
+
+julia> findmaximal(sitegs)
+SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
+ 1 ────────────────────────────────── (x,y)
+ m₁₀ ─────────────────────────────── (-x,y)
+```
+"""
+function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
+    maximal = Int[]
+    for (idx, g) in enumerate(sitegs)
+        wp = wyck(g)
+        v  = vec(wp)
+        N  = order(g)
+
+        # if `wp` is "special" (i.e. has no "free" parameters), then it must
+        # be a maximal wyckoff position, since if there are other lines
+        # passing through it, they must have lower symmetry (otherwise, only
+        # the line would have been included in the listings of wyckoff positions)
+        isspecial(v) && (push!(maximal, idx); continue)
+
+        # if `wp` has "free" parameters, it can still be a maximal wyckoff 
+        # position, provided that it doesn't go through any other special 
+        # points or intersect any other wyckoff lines/planes of higher symmetry
+        has_higher_sym_nearby = false
+        for (idx′, g′) in enumerate(sitegs)
+            idx′ == idx && continue # don't check against self
+            order(g′) < order(g) && continue # `g′` must have higher symmetry to "supersede" `g`
+            
+            wp′_orbit = orbit(g′) # must check for all orbits of wp′ in general
+            for wp′′ in wp′_orbit
+                v′ = vec(wp′′)
+                if _can_intersect(v, v′) # `wp′` can "intersects" `wp` and is higher order
+                    has_higher_sym_nearby = true
+                    break
+                end
+            end
+            has_higher_sym_nearby && break
+        end
+
+        # check if there were "nearby" points that had higher symmetry, if not, `wp` is a
+        # maximal wyckoff position
+        has_higher_sym_nearby || push!(maximal, idx)
+    end
+    return @view sitegs[maximal]
+end
+
+
+function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D}; 
+                        atol::Real=DEFAULT_ATOL) where D
+    # check if solution exists to [A] v′ = v(αβγ) or [B] v′(αβγ′) = v(αβγ) by solving
+    # a least squares problem and then checking if it is a strict solution. Details:
+    #   Let v(αβγ) = v₀ + V*αβγ and v′(αβγ′) = v₀′ + V′*αβγ′
+    #   [A] v₀′ = v₀ + V*αβγ             ⇔  V*αβγ = v₀′-v₀
+    #   [B] v₀′ + V′*αβγ′ = v₀ + V*αβγ   ⇔  V*αβγ - V′*αβγ′ = v₀′-v₀  
+    #                                    ⇔  hcat(V,-V′)*vcat(αβγ,αβγ′) = v₀′-v₀
+    # these equations can always be solved in the least squares sense using the
+    # pseudoinverse; we can then subsequently check if the residual of that solution is in
+    # fact zero, in which can the least squares solution is a "proper" solution, signaling
+    # that `v` and `v′` can intersect (at the found values of `αβγ` and `αβγ′`)
+    Δcnst = constant(v′) - constant(v)
+    Δfree = if isspecial(v′) # `v′` is special; `v` is not
+        free(v)
+    else                     # neither `v′` nor `v` are special
+        hcat(free(v), -free(v′))
+    end
+    Δfree⁻¹ = pinv(Δfree)
+
+    # tedious detail:
+    # to be safe, we have to check for equivalence between `v` and `v′` while accounting
+    # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
+    # listings that we have have in 3D, this seems to only make a difference in a single 
+    # case (SG 130, wyckoff position 8f) - but there the distinction is actually needed
+    for R in Iterators.product(ntuple(_->(0.0,-1.0,1.0), Val(D))...) # loop over nearest lattice vecs
+        Δcnst_plus_R = Δcnst + SVector{D,Float64}(R)
+        αβγ = Δfree⁻¹*Δcnst_plus_R   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
+        Δ = Δcnst_plus_R - Δfree*αβγ # residual of least squares solve
+        norm(Δ) < atol && return true
+    end
+
+    return false
 end

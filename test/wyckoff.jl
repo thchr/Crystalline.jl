@@ -38,3 +38,20 @@ using Crystalline: constant, free
         end
     end
 end
+
+@testset "Maximal Wyckoff positions" begin
+    for sgnum in 1:MAX_SGNUM[3]
+        sg  = spacegroup(sgnum, Val(3))
+        wps = get_wycks(sgnum, Val(3))
+        sitegs = SiteGroup.(Ref(sg), wps)
+
+        max_sitegs = findmaximal(sitegs)
+        max_wps    = wyck.(max_sitegs)
+
+        # the band representations should include all maximal wyckoff positions; 
+        # check consistency against that
+        max_wps_brs_str = getfield.(bandreps(sgnum, 3).bandreps, Ref(:wyckpos))
+        @test sort(unique(max_wps_brs_str)) == sort(label.(max_wps))
+    end
+
+end
