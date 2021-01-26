@@ -30,7 +30,7 @@ end
                 Nₒₚ = length(operations(ct))
 
                 # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
-                @test all(n->isapprox.(n, Nₒₚ, atol=1e-14), sum(abs2, χs, dims=1))
+                @test all(n->isapprox.(n, Nₒₚ, atol=2e-14), sum(abs2, χs, dims=1))
 
                 # 2ⁿᵈ orthogonality theorem:    ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦNₒₚ⁽ᵃ⁾ 
                 @test χs'*χs ≈ Nₒₚ*I
