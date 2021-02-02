@@ -50,11 +50,12 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
 end
 
 # Load ::BandRepSet for all 2D plane groups
-include("Band_Representations.jl") # should define BRS_vec
+include("band_representations.jl") # should define BRS_vec
 
 # for allpaths in (false, true)
 # for elementary in ...
 for (bandrepset2Dindex, BRS) in zip(BRS_NUMS, BRS_VEC)
-    filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
+    #filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
+    filename = "../data/bandreps/2d/elementary/maxpaths/$bandrepset2Dindex.csv"
     bandrep2csv(filename, BRS)
 end
