@@ -244,8 +244,6 @@ BRS_VEC=BandRepSet[];
 
 BRS_NUMS=Int[];
 
-make_bandrep_set(17, D=2)
-
 for br_num in 1:17
     if br_num ∉[4, 7, 8, 12]
         push!(BRS_VEC, make_bandrep_set(br_num, D=2))
