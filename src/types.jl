@@ -434,6 +434,17 @@ function klabel(cdml::String)
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
 end
+"""
+    $TYPEDSIGNATURES --> Bool
+
+Return whether the provided irrep has been made "physically real" (i.e. is a corep) so that
+it differs from the underlying irrep (i.e. whether the irrep and "derived" corep differ).
+
+For an irrep that has not been passed to [`realify`](@ref), this is always `false`.
+For an irrep produced by `realify`, this can be either `false` or `true`: if the reality
+type is `REAL` it is `false`; if the reality type is `PSEUDOREAL` or `COMPLEX` it is `true`.
+"""
+iscorep(ir::AbstractIrrep) = ir.iscorep
 
 # --- Point group irreps ---
 """
@@ -444,7 +455,11 @@ struct PGIrrep{D} <: AbstractIrrep{D}
     pg::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
     reality::Reality
-    #iscorep::Bool # TODO: implement realify for PGIrrep
+    iscorep::Bool
+end
+function PGIrrep{D}(cdml::String, pg::PointGroup{D}, matrices::Vector{Matrix{ComplexF64}},
+                    reality::Reality) where D 
+    PGIrrep{D}(cdml, pg, matrices, reality, false)
 end
 irreps(pgir::PGIrrep, αβγ::Nothing=nothing) = pgir.matrices
 group(pgir::PGIrrep) = pgir.pg
@@ -465,7 +480,7 @@ struct LGIrrep{D} <: AbstractIrrep{D}
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     reality::Reality
-    iscorep::Bool # Whether this irrep really represents a corep (the distinction is only meaningful for PSEUDOREAL & COMPLEX realities)
+    iscorep::Bool
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
@@ -481,7 +496,6 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     return LGIrrep{D}(cdml, lg, matrices, translations, reality)
 end
 group(lgir::LGIrrep) = lgir.lg
-iscorep(lgir::LGIrrep) = lgir.iscorep
 kvec(lgir::LGIrrep)  = kvec(group(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))

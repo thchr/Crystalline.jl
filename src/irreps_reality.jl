@@ -81,7 +81,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         skiplist = Vector{Int64}()
         for (i, lgir) in enumerate(lgirs)
             i ∈ skiplist && continue # already matched to this irrep previously; i.e. already included now
-            iscorep(lgir) && throw(DomainError(iscorep(lgir), "should not be called with LGIrreps that have iscorep=true"))
+            _check_not_corep(lgir)
             verbose && i ≠ 1 && print("  │ ")
 
             if reality(lgir) == REAL
@@ -212,6 +212,85 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     end
     
     return lgirs′
+end
+
+"""
+    realify(pgirs::AbstractVector{<:PGIrrep}) --> Vector{PGIrrep}
+
+Return physically real `PGIrrep`s (coreps) from a set of conventional `PGIrrep`s (as 
+produced by [`get_pgirreps`](@ref)).
+
+## Example
+```jl-doctest
+julia> pgirs = get_pgirreps("4", Val(3));
+julia> CharacterTable(pgirs)
+CharacterTable{3}: #9 (4)
+───────┬────────────────────
+       │ Γ₁  Γ₂    Γ₃    Γ₄ 
+───────┼────────────────────
+     1 │  1   1     1     1
+  2₀₀₁ │  1   1    -1    -1
+ 4₀₀₁⁺ │  1  -1   1im  -1im
+ 4₀₀₁⁻ │  1  -1  -1im   1im
+───────┴────────────────────
+
+julia> CharacterTable(realify(pgirs))
+CharacterTable{3}: #9 (4)
+───────┬──────────────
+       │ Γ₁  Γ₂  Γ₃Γ₄ 
+───────┼──────────────
+     1 │  1   1     2
+  2₀₀₁ │  1   1    -2
+ 4₀₀₁⁺ │  1  -1     0
+ 4₀₀₁⁻ │  1  -1     0
+───────┴──────────────
+```
+"""
+function realify(pgirs::AbstractVector{<:PGIrrep})
+    T      = eltype(pgirs)
+    pgirs′ = Vector{T}()
+    sizehint!(pgirs′, length(pgirs))
+
+    skiplist = Int[]
+    for (idx, pgir) in enumerate(pgirs)
+        _check_not_corep(pgir)
+        r = reality(pgir)
+
+        # usually REAL; inline-check
+        r == REAL && (push!(pgirs′, pgir); continue)
+            
+        # pgir is either COMPLEX or PSEUDOREAL if we reached this point
+        if r == COMPLEX
+            idx ∈ skiplist && continue # already included
+            χs = characters(pgir)
+            # identify complex partner by checking for irreps whose characters are 
+            # equal to the complex conjugate of `pgir`'s
+            idx_partner = findfirst(pgirs) do pgir′
+                χ′s = characters(pgir′)
+                all(i-> conj(χs[i]) ≈ χ′s[i], eachindex(χ′s))
+            end
+            idx_partner === nothing && error("fatal: could not find complex partner")
+            push!(skiplist, idx_partner)
+
+            pgir_partner = pgirs[idx_partner]
+            blockmatrices = _blockdiag2x2.(pgir.matrices, pgir_partner.matrices)               
+            newlab = label(pgir)*label(pgir_partner)
+                    
+        elseif r == PSEUDOREAL
+            # NB: this case doesn't actually ever arise for crystallographic point groups...
+            blockmatrices = _blockdiag2x2.(pgir.matrices)
+            newlab = label(pgir)^2
+        end
+
+        push!(pgirs′, T(newlab, group(pgir), blockmatrices, r, true))
+    end
+    return pgirs′
+end
+
+@noinline function _check_not_corep(ir::AbstractIrrep)
+    if iscorep(ir)
+        throw(DomainError(true, "method cannot be applied to irreps that have already been converted to coreps"))
+    end
 end
 
 # returns the block diagonal matrix `diag(A1, A2)` (and assumes identically sized and
@@ -348,3 +427,33 @@ end
 
 @noinline _throw_reality_not_integer(x) = error("Criterion must yield an integer; obtained non-integer value = $(x)")
 @noinline _throw_reality_not_real(x)    = error("Criterion must yield a real value; obtained complex value = $(x)")
+
+"""
+    $TYPEDSIGNATURES --> Int
+
+Return a multiplicative factor for use in checking the orthogonality relations of
+"physically real" irreps (coreps).
+
+For such "physically real" irreps, the conventional orthogonality relations (by conventional
+we mean orthogonality relations that sum only over unitary operations, i.e. no "gray"
+operations/products with time-inversion) still hold if we include a multiplicative factor
+`f` that depends on the underlying reality type `r` of the corep, such that `f(REAL) = 1`,
+`f(COMPLEX) = 2`, and `f(PSEUDOREAL) = 4`.
+If the provided irrep is not a corep (i.e. has `iscorep(ir) = false`), the multiplicative
+factor is 1.
+
+## References
+See e.g. Bradley & Cracknell Eq. (7.4.10).
+"""
+function corep_orthogonality_factor(ir::AbstractIrrep)
+    if iscorep(ir)
+        r = reality(ir)
+        r == PSEUDOREAL && return 4
+        r == COMPLEX    && return 2
+        # error call is needed for type stability
+        error("unreachable; invalid combination of iscorep=true and reality type")
+
+    else # not a corep or REAL
+        return 1
+    end
+end

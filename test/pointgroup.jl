@@ -1,4 +1,6 @@
 using Crystalline, Test
+using Crystalline: corep_orthogonality_factor
+using LinearAlgebra: dot
 
 @testset "Find a point group for every space group" begin
     for D in 1:3
@@ -27,18 +29,48 @@ end
     end
 end
 
+@testset "Point group irrep orthogonality" begin
+## 2ⁿᵈ orthogonality theorem (characters) [automatically includes 1ˢᵗ orthog. theorem also]: 
+#       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦfNₒₚ⁽ᵃ⁾  
+# for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same point group (with i running over the 
+# Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements). `f` incorporates a multiplicative factor due to the
+# conversionn to "physically real" irreps; see `corep_orthogonality_factor(..)`.
+@testset "2ⁿᵈ orthogonality theorem" begin
+for D in 1:3
+    for pgiuc in PGS_IUCs[D]
+        pgirs′ = get_pgirreps(pgiuc, Val(D))
+        Nₒₚ = order(first(pgirs′))
+        # check both "ordinary" irreps and "physically real" irreps (coreps)
+        for irtype in (identity, realify)
+            pgirs = irtype(pgirs′)
+            for (a, pgir⁽ᵃ⁾) in enumerate(pgirs)
+                χ⁽ᵃ⁾ = characters(pgir⁽ᵃ⁾)
+
+                f = corep_orthogonality_factor(pgir⁽ᵃ⁾)
+                for (β, pgir⁽ᵝ⁾) in enumerate(pgirs)
+                    χ⁽ᵝ⁾ = characters(pgir⁽ᵝ⁾)
+                    # ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ == δₐᵦf|g|
+                    @test (dot(χ⁽ᵃ⁾, χ⁽ᵝ⁾) ≈ (a==β)*f*Nₒₚ)  atol=1e-12
+                end
+            end
+        end
+    end
+end
+end # @testset "2ⁿᵈ orthogonality theorem"
+
 ## Great orthogonality theorem of irreps:
 #       ∑ᵢ[Dᵢ⁽ᵃ⁾]ₙₘ*[Dᵢ⁽ᵝ⁾]ⱼₖ = δₐᵦδₙⱼδₘₖNₒₚ⁽ᵃ⁾/dim(D⁽ᵃ⁾)
-# for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with 
-# i running over the Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
-@testset "Great orthogonality theorem (point group irreps)" begin
+# for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same point group (with i running over the
+# Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements)
+# NB: cannot test this for coreps (see notes in `test/irreps_reality.jl`)
+@testset "Great orthogonality theorem" begin
     αβγ = nothing
     for D in 1:3
         for pgiuc in PGS_IUCs[D]
             pgirs = get_pgirreps(pgiuc, Val(D))
-            Nₒₚ = length(operations(group(first(pgirs))))
+            Nₒₚ = order(first(pgirs))
             for (a, pgir⁽ᵃ⁾) in enumerate(pgirs) 
-                D⁽ᵃ⁾ = irreps(pgir⁽ᵃ⁾,αβγ)        # vector of irreps in (a)
+                D⁽ᵃ⁾   = irreps(pgir⁽ᵃ⁾,αβγ)      # vector of irreps in (a)
                 dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
 
                 for (β, pgir⁽ᵝ⁾) in enumerate(pgirs)
@@ -61,4 +93,5 @@ end
             end
         end
     end
-end
+end # @testset "Great orthogonality theorem"
+end # @testset "Point group irrep orthogonality"

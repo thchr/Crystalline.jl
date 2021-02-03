@@ -1,5 +1,6 @@
 using Crystalline, Test, LinearAlgebra
-using Crystalline: iscorep
+using Crystalline: iscorep, corep_orthogonality_factor
+using LinearAlgebra: dot
 
 if !isdefined(Main, :LGIRSDIM)
     LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
@@ -47,28 +48,12 @@ end # @testset "Herring criterion"
 # compute all coreps (aka "physically real" irreps, i.e. incorporate time-reversal sym) via
 # the ordinary irreps and `realify`
 
-function corep_orthogonality_factor(lgir)
-    if iscorep(lgir)
-        r = reality(lgir)
-        r == PSEUDOREAL && return 4
-        r == COMPLEX    && return 2
-        error(DomainError(r, "unreachable; invalid combination of iscorep=true and reality type"))
-    else
-        return 1
-    end
-end
-
 ## 2ⁿᵈ orthogonality theorem (characters) [automatically includes 1ˢᵗ orthog. theorem also]: 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦfNₒₚ⁽ᵃ⁾  
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same little group (with i running over the 
-# Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements).
-# Because we are dealing with coreps here, the orthogonality relations are modified
-# somewhat. Assuming that we still only sum over the unitary operations (i.e. no gray 
-# operations, i.e. products with time-inversion), we should include a multiplicative factor
-# `f` in the orthogonality relations, as in Bradley & Cracknell Eq. 7.4.10. `f` equals:
-#       real => 1; pseudoreal => 4; complex => 2
-# see `corep_orthogonality_factor(lgir)` above.
-@testset "1ˢᵗ & 2ⁿᵈ orthogonality theorem" begin
+# Nₒₚ = Nₒₚ⁽ᵃ⁾ = Nₒₚ⁽ᵝ⁾ elements). `f` incorporates a multiplicative factor due to the
+# conversionn to "physically real" irreps; see `corep_orthogonality_factor(..)`.
+@testset "2ⁿᵈ orthogonality theorem" begin
 for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS             # lgirsd: dict of little group irrep collections
         for lgirs in values(lgirsd) # lgirs:  vector of distinct little group irreps
@@ -77,7 +62,6 @@ for (D, LGIRS) in enumerate(LGIRSDIM)
             lgcoreps = realify(lgirs)
             for (a, lgir⁽ᵃ⁾) in enumerate(lgcoreps)
                 χ⁽ᵃ⁾ = characters(lgir⁽ᵃ⁾, αβγs[D])
-
                 f = corep_orthogonality_factor(lgir⁽ᵃ⁾)
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgcoreps)
                     χ⁽ᵝ⁾ = characters(lgir⁽ᵝ⁾, αβγs[D])
