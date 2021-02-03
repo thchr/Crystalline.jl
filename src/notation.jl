@@ -456,6 +456,24 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     "m-3m"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
 )
 
+const PGIRLABS_CDML2MULLIKEN_3D_COREP = ImmutableDict(
+    # Same as `PGIRLABS_CDML2MULLIKEN_3D` but with labels for physically real irreps 
+    # (coreps); the label for real irreps are unchanged, but the labels for complex irreps
+    # differ (e.g. ¹E and ²E becomes E). Point groups 1, -1, 2, m, 2/m, 222, mm2, mmm, 422,
+    # 4mm, -42m, -4m2, 4/mmm, 312, 321, 3m1, 31m, -31m, -3m1, 622, 6mm, -62m, -6m2, 6/mmm, 
+    # 432, -43m, and m-3m have only real irreps, so we don't include them here.
+    "4"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃Γ₄"=>"E"),
+    "-4"    => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃Γ₄"=>"E"),
+    "4/m"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺Γ₄⁺"=>"Eg", "Γ₃⁻Γ₄⁻"=>"Eᵤ"),
+    "3"     => ImmutableDict("Γ₁"=>"A", "Γ₂Γ₃"=>"E"),
+    "-3"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺Γ₃⁺"=>"Eg", "Γ₂⁻Γ₃⁻"=>"Eᵤ"),
+    "6"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B", "Γ₃Γ₅"=>"E₁", "Γ₄Γ₆"=>"E₂"),
+    "-6"    => ImmutableDict("Γ₁"=>"A′", "Γ₂"=>"A′′", "Γ₃Γ₅"=>"E′", "Γ₄Γ₆"=>"E′′"),
+    "6/m"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"Bg", "Γ₂⁻"=>"Bᵤ", "Γ₃⁺Γ₅⁺"=>"E₁g", "Γ₃⁻Γ₅⁻"=>"E₁ᵤ", "Γ₄⁺Γ₆⁺"=>"E₂g", "Γ₄⁻Γ₆⁻"=>"E₂ᵤ"),
+    "23"    => ImmutableDict("Γ₁"=>"A", "Γ₂Γ₃"=>"E", "Γ₄"=>"T"),
+    "m-3"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺Γ₃⁺"=>"Eg", "Γ₂⁻Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"Tg", "Γ₄⁻"=>"Tᵤ"),
+)
+
 """
 $(TYPEDSIGNATURES)
 
@@ -486,8 +504,13 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 [^1] Bilbao Crystallographic Database: [REPRESENTATIONS PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
 function mulliken(pgir::PGIrrep{D}) where D
-    pglab = label(group(pgir))
-    return PGIRLABS_CDML2MULLIKEN_3D[pglab][label(pgir)]
+    pglab   = label(group(pgir))
+    pgirlab = label(pgir)
+    if iscorep(pgir)
+        return PGIRLABS_CDML2MULLIKEN_3D_COREP[pglab][pgirlab]
+    else
+        return PGIRLABS_CDML2MULLIKEN_3D[pglab][pgirlab]
+    end
 end
 
 #=
