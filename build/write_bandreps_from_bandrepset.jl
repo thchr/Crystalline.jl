@@ -54,8 +54,12 @@ include("band_representations.jl") # should define BRS_vec
 
 # for allpaths in (false, true)
 # for elementary in ...
-for (bandrepset2Dindex, BRS) in zip(BRS_NUMS, BRS_VEC)
-    #filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
+for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ALL)
+    filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
+    bandrep2csv(filename, BRS_ALL)
+end
+
+for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_MAXIMAL)
     filename = "../data/bandreps/2d/elementary/maxpaths/$bandrepset2Dindex.csv"
-    bandrep2csv(filename, BRS)
+    bandrep2csv(filename, BRS_MAX)
 end

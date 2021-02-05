@@ -4,3 +4,4 @@ Decomposable|false|false|false|false|false|false|false|false|false|false
 X:(0.0,0.5)|X₁⊕X₂|X₁⊕X₂|X₂|X₂|X₁|X₁|X₁|X₁|X₂|X₂
 M:(0.5,0.5)|M₃⊕M₄|M₁⊕M₂|M₂|M₁|M₄|M₃|M₁|M₂|M₃|M₄
 Γ:(0.0,0.0)|Γ₁⊕Γ₂|Γ₃⊕Γ₄|Γ₁|Γ₂|Γ₃|Γ₄|Γ₁|Γ₂|Γ₃|Γ₄
+Ω:(α,β)|2Ω₁|2Ω₁|Ω₁|Ω₁|Ω₁|Ω₁|Ω₁|Ω₁|Ω₁|Ω₁
