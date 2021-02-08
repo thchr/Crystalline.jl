@@ -1,6 +1,19 @@
 using LinearAlgebra
 using Crystalline
 using StaticArrays
+import Crystalline:(get_lgirreps)
+
+function get_lgirreps(sgnum::Int64, D::Int64, timereversal::Bool)
+    if timereversal==false
+        get_lgirreps(sgnum, D) 
+    else 
+        tr_lgirreps=Dict{String, Array{LGIrrep{D}, 1}}()
+        for (klab, lg) in get_lgirreps(sgnum, D)
+            push!(tr_lgirreps, klab => realify(lg))
+        end
+        return tr_lgirreps
+    end
+end
 
 function group_representative(symop::SymOperation, sg::SpaceGroup)
     symop_xyzt=xyzt(symop)
@@ -41,15 +54,15 @@ function get_label(i::Int64, j::Int64)
 end
 
 "This function gives the site_symmetry irreps for the Site Symmetry Group"
-function site_symmetry_irreps(sitegroup::SiteGroup{D}) where D
+function site_symmetry_irreps(sitegroup::SiteGroup{D}, timereversal::Bool) where D
     site_parent_pointgroup=_find_isomorphic_parent_pointgroup(sitegroup)
 
-    get_pgirreps(site_parent_pointgroup.label, Val(D))
+    timereversal==false ? get_pgirreps(site_parent_pointgroup.label, Val(D)) : realify(get_pgirreps(site_parent_pointgroup.label, Val(D)))
 end
 
 "The function below gives the character table for the site symmetry group provided"
-function site_symmetry_irreps_characters(sitegroup::SiteGroup{D}) where D
-    irreps=site_symmetry_irreps(sitegroup)
+function site_symmetry_irreps_characters(sitegroup::SiteGroup{D}, timereversal::Bool) where D
+    irreps=site_symmetry_irreps(sitegroup, timereversal)
     character_table=Matrix{Complex{Float64}}(undef, size(irreps[1].matrices)[1], size(irreps)[1] )
     size(character_table)
     for j in 1:size(irreps)[1]
@@ -62,7 +75,7 @@ end
 
 
 "This function provides the induced band representation"
-function induced_band_representation(sitegroup::SiteGroup{D}, h::SymOperation{D}, ρ::Int64, k::KVec) where D
+function induced_band_representation(sitegroup::SiteGroup{D}, h::SymOperation{D}, ρ::Int64, k::KVec, timereversal::Bool) where D
     orbit_of_sitegroup=orbit(sitegroup, sitegroup.wp);
     length_of_orbit=length(orbit_of_sitegroup)
     #Now we sum over all the wyckoff positions in the orbit  
@@ -84,31 +97,31 @@ function induced_band_representation(sitegroup::SiteGroup{D}, h::SymOperation{D}
         site_symmetry_index=in_site_symmetry(sitegroup, compose(gα_inverse, compose(symop_t, compose(h,  gα[α′], false), false ), false)   )
       
         if site_symmetry_index >0
-            χ_G_k_G=χ_G_k_G+exp(2im*π*dot(transformed_k, tα′α′))*tr(site_symmetry_irreps(sitegroup)[ρ].matrices[site_symmetry_index])
+            χ_G_k_G=χ_G_k_G+exp(2im*π*dot(transformed_k, tα′α′))*tr(site_symmetry_irreps(sitegroup, timereversal)[ρ].matrices[site_symmetry_index])
         end
     end
     return χ_G_k_G
 end
 
-function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::SiteGroup{D}) where D
+function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::SiteGroup{D}, timereversal::Bool) where D
     sgnum=sitegroup.num
-    num_lgirreps= size(get_lgirreps(sgnum, D)[k])[1]
+    num_lgirreps= size(get_lgirreps(sgnum, D, timereversal)[k])[1]
     
-    size_lgirreps=size(get_lgirreps(sgnum, D)[k][1].matrices)[1]
+    size_lgirreps=size(get_lgirreps(sgnum, D, timereversal)[k][1].matrices)[1]
 
     character_table=Matrix{Complex{Float64}}(undef, size_lgirreps, num_lgirreps )
 
     for j in 1:num_lgirreps
         for i in 1:size_lgirreps
-            character_table[i, j]=tr(get_lgirreps(sgnum, D)[k][j].matrices[i])
+            character_table[i, j]=tr(get_lgirreps(sgnum, D, timereversal)[k][j].matrices[i])
         end
     end
 
     XVector=Matrix{Complex{Float64}}(undef, (size_lgirreps, 1))
 
     for i in 1:size_lgirreps
-        rep_index=group_representative(group(get_lgirreps(sgnum, D)[k][1])[i], spacegroup(sgnum, D)) 
-        iter=induced_band_representation(sitegroup, spacegroup(sgnum, D)[rep_index], ρ, kvec)
+        rep_index=group_representative(group(get_lgirreps(sgnum, D, timereversal)[k][1])[i], spacegroup(sgnum, D)) 
+        iter=induced_band_representation(sitegroup, spacegroup(sgnum, D)[rep_index], ρ, kvec, timereversal)
         XVector[i, 1]= iter
     end
 
@@ -116,17 +129,17 @@ function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::
 
 end
 
-function return_irvec(sgnum::Int64, ρ::Int64, sitegroup::SiteGroup{D}, maximal::Bool) where D
+function return_irvec(sgnum::Int64, ρ::Int64, sitegroup::SiteGroup{D}, maximal::Bool, timereversal::Bool) where D
     maximal ? klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_maximal_lgs(sgnum, D)) : klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_littlegroups(sgnum, D))
     irvec = Int[]
     for (klab, kv) in klab2kv
-        kv_array   = subduce_onto_littlegroups(klab, kv, ρ, sitegroup)
+        kv_array   = subduce_onto_littlegroups(klab, kv, ρ, sitegroup, timereversal)
         append!(irvec, Int.(kv_array))
     end
     return irvec
 end
 
-function return_irvec2d(sgnum::Integer, D::Integer=2, maximal::Bool=true)
+function return_irvec2d(sgnum::Integer, D::Integer, maximal::Bool, timereversal::Bool)
     sg=spacegroup(sgnum, D)
     wps=get_wycks(sgnum, D)
     A=Vector{Vector{Int}}(undef, 0)
@@ -142,18 +155,18 @@ function return_irvec2d(sgnum::Integer, D::Integer=2, maximal::Bool=true)
     for wp in maximal_wyckoffs
 
         sitegroup=SiteGroup(sg, wp)
-        ρ_max=size(site_symmetry_irreps(sitegroup))[1]
+        ρ_max=size(site_symmetry_irreps(sitegroup, timereversal))[1]
         for ρ in 1:ρ_max
-            push!(A, return_irvec(sgnum, ρ, sitegroup, maximal))
+            push!(A, return_irvec(sgnum, ρ, sitegroup, maximal, timereversal))
         end
     end
     return hcat(A...)
 end
 
 
-function get_maximal_lgirreps(sgnum::Integer, D::Integer)
+function get_maximal_lgirreps(sgnum::Integer, D::Integer, timereversal::Bool)
     maximal_lgirreps=Dict{String, Array{LGIrrep{D}, 1}}()
-    for (klab, lgirrep) in get_lgirreps(sgnum, D)
+    for (klab, lgirrep) in get_lgirreps(sgnum, D, timereversal)
         isspecial(kvec(lgirrep[1].lg)) || continue
             push!(maximal_lgirreps, klab => lgirrep)
     end
@@ -169,11 +182,11 @@ function get_maximal_lgs(sgnum::Integer, D::Integer)
     return maximal_lgs
 end
 
-function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal=true)
+function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal::Bool, timereversal::Bool)
 
     maximal ? klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_maximal_lgs(sgnum, D)) : klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_littlegroups(sgnum, D))
 
-    irvec2d=return_irvec2d(sgnum, 2, maximal)
+    irvec2d=return_irvec2d(sgnum, 2, maximal, timereversal)
     klabs=Array{String, 1}(undef, 0)
     kvs=Array{KVec{D}, 1}(undef, 0)
     for (klab, kv) in klab2kv
@@ -183,7 +196,7 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal=true)
 
     spinful, allpaths, timeinvar=false, false, true
     
-    maximal ? lgirreps=get_maximal_lgirreps(sgnum, D) : lgirreps=get_lgirreps(sgnum, D)
+    maximal ? lgirreps=get_maximal_lgirreps(sgnum, D, timereversal) : lgirreps=get_lgirreps(sgnum, D, timereversal)
 
     irlabs=[([[lgg.cdml for lgg in lg] for (klab, lg) in lgirreps]...)...]
     irdims=[([[size(lgg.matrices[1])[1] for lgg in lg] for (klab, lg) in lgirreps]...)...]
@@ -216,7 +229,7 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal=true)
 
         sitesym=_find_isomorphic_parent_pointgroup(sitegroup).label
 
-            sitegroup_symmetry_irreps=site_symmetry_irreps(sitegroup)
+            sitegroup_symmetry_irreps=site_symmetry_irreps(sitegroup, timereversal)
             ρ_max=size(sitegroup_symmetry_irreps)[1]
             for ρ in 1:ρ_max
                 mulliken_label=mulliken(sitegroup_symmetry_irreps[ρ])
@@ -231,17 +244,30 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal=true)
     return BandRepSet(sgnum, bandreps_array, kvs, klabs, irlabs, allpaths, spinful, timeinvar)
 end
 
-BRS_VEC_MAXIMAL=BandRepSet[];
-BRS_VEC_ALL=BandRepSet[];
+BRS_VEC_ELEMENTARY_MAXIMAL=BandRepSet[];
+BRS_VEC_ELEMENTARY_ALL=BandRepSet[];
+
+BRS_VEC_ELEMENTARYTR_MAXIMAL=BandRepSet[];
+BRS_VEC_ELEMENTARYTR_ALL=BandRepSet[];
 
 #Below, we make an array of bandrepsets in 2 dimensions for maximal k points
 for br_num in 1:17
-    push!(BRS_VEC_MAXIMAL, make_bandrep_set(br_num, D=2))
+    push!(BRS_VEC_ELEMENTARY_MAXIMAL, make_bandrep_set(br_num, D=2, maximal=true, timereversal=false))
 end
 
 #Below, we make an array of bandrepsets in 2 dimensions for all k points
 for br_num in 1:17
-    push!(BRS_VEC_ALL, make_bandrep_set(br_num, D=2, maximal=false))
+    push!(BRS_VEC_ELEMENTARY_ALL, make_bandrep_set(br_num, D=2, maximal=false, timereversal=false))
+end
+
+#Below, we make an array of bandrepsets in 2 dimensions for maximal k points
+for br_num in 1:17
+    push!(BRS_VEC_ELEMENTARYTR_MAXIMAL, make_bandrep_set(br_num, D=2, maximal=true, timereversal=true))
+end
+
+#Below, we make an array of bandrepsets in 2 dimensions for all k points
+for br_num in 1:17
+    push!(BRS_VEC_ELEMENTARYTR_ALL, make_bandrep_set(br_num, D=2, maximal=false, timereversal=true))
 end
 
 

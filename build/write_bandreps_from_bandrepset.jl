@@ -1,4 +1,6 @@
 # Utility to write a ::BandRepSet to a .csv file
+using Crystalline
+
 function bandrep2csv(filename::String, BRS::BandRepSet)
     open(filename, "w") do io
         bandrep2csv(io, BRS)
@@ -54,12 +56,22 @@ include("band_representations.jl") # should define BRS_vec
 
 # for allpaths in (false, true)
 # for elementary in ...
-for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ALL)
+for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ELEMENTARY_ALL)
     filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
     bandrep2csv(filename, BRS_ALL)
 end
 
-for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_MAXIMAL)
+for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_ELEMENTARY_MAXIMAL)
     filename = "../data/bandreps/2d/elementary/maxpaths/$bandrepset2Dindex.csv"
+    bandrep2csv(filename, BRS_MAX)
+end
+
+for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ELEMENTARYTR_ALL)
+    filename = "../data/bandreps/2d/elementaryTR/allpaths/$bandrepset2Dindex.csv"
+    bandrep2csv(filename, BRS_ALL)
+end
+
+for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_ELEMENTARYTR_MAXIMAL)
+    filename = "../data/bandreps/2d/elementaryTR/maxpaths/$bandrepset2Dindex.csv"
     bandrep2csv(filename, BRS_MAX)
 end
