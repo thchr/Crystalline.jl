@@ -36,7 +36,10 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       # add the BoffinStuff registry (in addition to default registry General), which is needed for SmithNormalForm
-      - run: julia --color=yes --check-bounds=yes --project -e 'using Pkg; Pkg.Registry.add([RegistrySpec("General"), RegistrySpec(url="https://github.com/wildart/BoffinStuff.git")])'
+      - run: |
+          julia --color=yes --check-bounds=yes --project -e '
+            using Pkg
+            Pkg.Registry.add([RegistrySpec("General"), RegistrySpec(url="https://github.com/wildart/BoffinStuff.git")])'
         shell: bash # avoid escaping issues w/ pwsh on Windows (cf. https://github.com/julia-actions/setup-julia#matrix-testing)
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
