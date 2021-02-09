@@ -379,8 +379,22 @@ In-place equivalent of `normscale`: changes `flat`.
 """
 function normscale!(flat::ModulatedFourierLattice, expon::Real)
     if !iszero(expon)
-        @inbounds for i in 2:length(getorbits(flat))
-            rescale_factor = norm(first(getorbits(flat)[i]))^expon
+        orbits = getorbits(flat)
+        @inbounds for i in eachindex(orbits)
+            # FIXME/TODO: This is not a great way to do this, because it is not guaranteed
+            #             to actually "normalize" groupings of G-vectors by the same amount
+            #             even if they have the same cartesian length. This is because the
+            #             coordinate system is not Cartesian here, so to do this properly,
+            #             we would need to give the reciprocal lattice vectors instead. An
+            #             example of where this is not good is for hexagonal systems, where
+            #             e.g. [-1, 0, 0] and [-1, 1, 0] can represent reciprocal vectors of
+            #             equal length - but our approach below would say they differ by √2.
+            #             It's not a game-breaker, because we always use `normscale!` in
+            #             combination with `modulate`, and the net product of this
+            #             inconsistency is just that `normscale!` also applies a modulation
+            #             (but one that preserves the symmetry of `flat`).
+            rescale_factor = norm(first(orbits[i]))^expon
+            rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
             flat.orbitcoefs[i] ./= rescale_factor
         end
     end

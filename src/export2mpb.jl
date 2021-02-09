@@ -52,6 +52,8 @@ function mpb_calcname(dim, sgnum, id, res, runtype="all")
     mpb_calcname!(io, dim, sgnum, id, res, runtype)
     return String(take!(io))
 end
+mpb_calcname!(io, dim, sgnum, id::Nothing, res, runtype="all") = nothing
+mpb_calcname(io, dim, sgnum, id::Nothing, res, runtype="all") = nothing
 
 
 function _vec2list(io::IO, f, vs::AbstractVector)
@@ -144,11 +146,10 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
     # prepare and write all runtype, structural, and identifying inputs
     print(io, # run-type ("all", "te", or "tm")
               "run-type", "=",  "\"", runtype,  "\"",  "\n",
-              # dimension, space group, resolution, and prefix name
+              # dimension, space group, and resolution
               "dim",      "=",        D,               "\n",
               "sgnum",    "=",        sgnum,           "\n",
               "res",      "=",        res,             "\n",
-              "prefix",   "=",  "\"", calcname, "\"",  "\n",
               # crystal (basis vectors)
               "rvecs",    "=",        rvecs,           "\n",
               # unitcell/lattice shape
@@ -159,8 +160,12 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
               "epsin",    "=",        εin,             "\n",
               "epsout",   "=",        εout,            "\n")
     
-    if !isnothing(nbands) # number of bands to solve for (otherwise default to .ctl choice)
-        print(io, "nbands", "=",      nbands,          "\n")
+    if calcname !== nothing && !isempty(calcname)
+        println(io, "prefix", "=", "\"", calcname, "\"")
+    end
+    
+    if nbands !== nothing # number of bands to solve for (otherwise default to .ctl choice)
+        println(io, "nbands", "=", nbands)
     end
 
     # prepare and write k-vecs and possibly also little group operations
@@ -329,8 +334,7 @@ lattice_from_mpbparams(filepath::String) = open(filepath) do io; lattice_from_mp
 function kvecs_from_mpbparams(io::IO, D::Int)
     rewinding_readuntil(io, "kvecs=")
     mark(io)
-    # if kvecs is a string, we don't try to do anything with it at this point, and just
-    # return nothing instead
+    # if kvecs is a not string marked by "(vector3 ...)", interpret as a list points
     if read(io, Char) !== '"'
         reset(io)
         kvecs = SVector{D, Float64}[]
