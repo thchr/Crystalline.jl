@@ -7,22 +7,12 @@ function get_lgirreps(sgnum::Int64, D::Int64, timereversal::Bool)
     if timereversal==false
         get_lgirreps(sgnum, D) 
     else 
-        tr_lgirreps=Dict{String, Array{LGIrrep{D}, 1}}()
-        for (klab, lg) in get_lgirreps(sgnum, D)
-            push!(tr_lgirreps, klab => realify(lg))
-        end
-        return tr_lgirreps
+        return Dict(klab => realify(lgirs) for (klab, lgirs) in get_lgirreps(sgnum, D))
     end
 end
 
 function group_representative(symop::SymOperation, sg::SpaceGroup)
-    symop_xyzt=xyzt(symop)
-    for i in 1:size(sg)[1]
-        xyztiter=xyzt(sg[i])
-        if xyztiter==symop_xyzt
-            return i
-        end
-    end
+    findfirst(≈(symop), sg)
 end
 
 function _find_isomorphic_parent_pointgroup(G)
@@ -42,7 +32,8 @@ end
 function site_symmetry_irreps(sitegroup::SiteGroup{D}, timereversal::Bool) where D
     site_parent_pointgroup=_find_isomorphic_parent_pointgroup(sitegroup)
 
-    timereversal==false ? get_pgirreps(site_parent_pointgroup.label, Val(D)) : realify(get_pgirreps(site_parent_pointgroup.label, Val(D)))
+    pgirs = get_pgirreps(site_parent_pointgroup.label, Val(D))
+    timereversal==false ? pgirs : realify(pgirs)
 end
 
 "The function below gives the character table for the site symmetry group provided"
@@ -93,24 +84,9 @@ function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::
     sgnum=num(sitegroup)
     sg=spacegroup(sgnum, D)
     lgirs=get_lgirreps(sgnum, D, timereversal)
-    num_lgirreps= size(lgirs[k])[1]
-    
-    size_lgirreps=size(lgirs[k][1].matrices)[1]
+    character_table=CharacterTable(lgirs[k]).chartable
 
-    character_table=Matrix{Complex{Float64}}(undef, size_lgirreps, num_lgirreps )
-
-    for j in 1:num_lgirreps
-        for i in 1:size_lgirreps
-            character_table[i, j]=tr(get_lgirreps(sgnum, D, timereversal)[k][j].matrices[i])
-        end
-    end
-
-    XVector= Vector{ComplexF64}(undef, size_lgirreps) 
-    
-    for i in 1:size_lgirreps
-        rep_index=group_representative(group(lgirs[k][1])[i], sg) 
-        XVector[i]=induced_band_representation(sitegroup, sg[rep_index], ρ, kvec, timereversal)
-    end
+    XVector=induced_band_representation.(Ref(sitegroup), group(first(lgirs[k])) , ρ, Ref(kvec), timereversal)
 
     return round.(character_table\XVector)
 
@@ -216,45 +192,32 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal::Bool, timerever
 
         sitesym=_find_isomorphic_parent_pointgroup(sitegroup).label
 
-            sitegroup_symmetry_irreps=site_symmetry_irreps(sitegroup, timereversal)
-            ρ_max=size(sitegroup_symmetry_irreps)[1]
-            for ρ in 1:ρ_max
-                mulliken_label=mulliken(sitegroup_symmetry_irreps[ρ])
-                dim=dot(irvec2d[:, vec_index], dim_array)
-                 band_rep=BandRep(string( wp.mult, wp.letter), sitesym, string( wp.mult, wp.letter) , dim, false, false, irvec2d[:, vec_index], irlabs)
-                 push!(wps_special, string( wp.mult))
-                 push!(sitesyms, sitesym)
-                 push!(bandreps_array, band_rep )
-                 vec_index+=1
+        sitegroup_symmetry_irreps=site_symmetry_irreps(sitegroup, timereversal)
+        ρ_max=size(sitegroup_symmetry_irreps)[1]
+        for ρ in 1:ρ_max
+            mulliken_label=mulliken(sitegroup_symmetry_irreps[ρ])
+            dim=dot(irvec2d[:, vec_index], dim_array)
+            band_rep=BandRep(string( wp.mult, wp.letter), sitesym, string( wp.mult, wp.letter) , dim, false, false, irvec2d[:, vec_index], irlabs)
+            push!(wps_special, string( wp.mult))
+            push!(sitesyms, sitesym)
+            push!(bandreps_array, band_rep )
+            vec_index+=1
         end
     end
     return BandRepSet(sgnum, bandreps_array, kvs, klabs, irlabs, allpaths, spinful, timeinvar)
 end
 
-BRS_VEC_ELEMENTARY_MAXIMAL=BandRepSet[];
-BRS_VEC_ELEMENTARY_ALL=BandRepSet[];
-
-BRS_VEC_ELEMENTARYTR_MAXIMAL=BandRepSet[];
-BRS_VEC_ELEMENTARYTR_ALL=BandRepSet[];
-
 #Below, we make an array of bandrepsets in 2 dimensions for maximal k points
-for br_num in 1:17
-    push!(BRS_VEC_ELEMENTARY_MAXIMAL, make_bandrep_set(br_num, D=2, maximal=true, timereversal=false))
-end
+BRS_VEC_ELEMENTARY_MAXIMAL = make_bandrep_set.(1:17, D=2, maximal=true, timereversal=false);
 
 #Below, we make an array of bandrepsets in 2 dimensions for all k points
-for br_num in 1:17
-    push!(BRS_VEC_ELEMENTARY_ALL, make_bandrep_set(br_num, D=2, maximal=false, timereversal=false))
-end
+BRS_VEC_ELEMENTARY_ALL = make_bandrep_set.(1:17, D=2, maximal=false, timereversal=false);
 
 #Below, we make an array of bandrepsets in 2 dimensions for maximal k points
-for br_num in 1:17
-    push!(BRS_VEC_ELEMENTARYTR_MAXIMAL, make_bandrep_set(br_num, D=2, maximal=true, timereversal=true))
-end
+BRS_VEC_ELEMENTARYTR_MAXIMAL= make_bandrep_set.(1:17, D=2, maximal=true, timereversal=true);
 
 #Below, we make an array of bandrepsets in 2 dimensions for all k points
-for br_num in 1:17
-    push!(BRS_VEC_ELEMENTARYTR_ALL, make_bandrep_set(br_num, D=2, maximal=false, timereversal=true))
-end
+BRS_VEC_ELEMENTARYTR_ALL=make_bandrep_set.(1:17, D=2, maximal=false, timereversal=true);
+
 
 
