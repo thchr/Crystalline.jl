@@ -52,7 +52,7 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
 end
 
 # Load ::BandRepSet for all 2D plane groups
-include("band_representations.jl") # should define BRS_vec
+include("setup_2d_band_representations.jl") # should define BRS_vec
 
 # for allpaths in (false, true)
 # for elementary in ...
