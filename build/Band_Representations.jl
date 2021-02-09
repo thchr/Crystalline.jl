@@ -86,7 +86,7 @@ function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::
     lgirs=get_lgirreps(sgnum, D, timereversal)
     character_table=CharacterTable(lgirs[k]).chartable
 
-    XVector=induced_band_representation.(Ref(sitegroup), group(first(lgirs[k])) , ρ, Ref(kvec), timereversal)
+    XVector=induced_band_representation.(Ref(sitegroup), group(first(lgirs[k])), ρ, Ref(kvec), timereversal)
 
     return round.(character_table\XVector)
 
