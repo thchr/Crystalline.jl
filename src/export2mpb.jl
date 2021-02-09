@@ -210,7 +210,7 @@ end
 # TODO: Maybe remove this method? 
 #       Only parts worth keeping are the matching_littlegroups+primitivize parts...
 function gen_symeig_mpbcalc(sgnum, D, εin::Real=10.0, εout::Real=1.0; res::Integer=32, id=1)
-    D ∉ (1,3) && _throw_2d_not_yet_implemented(D)
+    D ∉ (1,2,3) && _throw_invaliddim(D)
 
     brs  = bandreps(sgnum, allpaths=false, spinful=false, timereversal=true)
     lgs  = matching_littlegroups(brs)

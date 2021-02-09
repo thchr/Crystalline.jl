@@ -281,7 +281,7 @@ end
 for op in (:(-), :(+))
     @eval function $op(v1::T, v2::T) where T<:AbstractVec
         cnst1, free1 = parts(v1); cnst2, free2 = parts(v2) 
-        return T($op(cnst1, cnst2), $op(free1,free2))
+        return T($op(cnst1, cnst2), $op(free1, free2))
     end
 end
 zero(v::T) where T<:AbstractVec{D} where D = T(zero(SVector{D,Float64}), zero(SqSMatrix{D,Float64}))
