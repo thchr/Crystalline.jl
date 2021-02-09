@@ -1,5 +1,5 @@
 Wyckoff pos.|3c(mm2)|3c(mm2)|3c(mm2)|3c(mm2)|2b(3m1)|2b(3m1)|2b(3m1)|1a(6mm)|1a(6mm)|1a(6mm)|1a(6mm)|1a(6mm)|1a(6mm)
-Band-Rep.|3c(3)|3c(3)|3c(3)|3c(3)|2b(2)|2b(2)|2b(4)|1a(1)|1a(1)|1a(1)|1a(1)|1a(2)|1a(2)
+Band-Rep.|A₁↑G(3)|A₂↑G(3)|B₂↑G(3)|B₁↑G(3)|A₁↑G(2)|A₂↑G(2)|E↑G(4)|A₁↑G(1)|A₂↑G(1)|B₂↑G(1)|B₁↑G(1)|E₂↑G(2)|E₁↑G(2)
 Decomposable|false|false|false|false|false|false|false|false|false|false|false|false|false
 M:(0.5,0.0)|M₁⊕M₃⊕M₄|M₂⊕M₃⊕M₄|M₁⊕M₂⊕M₃|M₁⊕M₂⊕M₄|M₁⊕M₄|M₂⊕M₃|M₁⊕M₂⊕M₃⊕M₄|M₁|M₂|M₃|M₄|M₁⊕M₂|M₃⊕M₄
 Γ:(0.0,0.0)|Γ₁⊕Γ₅|Γ₂⊕Γ₅|Γ₃⊕Γ₆|Γ₄⊕Γ₆|Γ₁⊕Γ₄|Γ₂⊕Γ₃|Γ₅⊕Γ₆|Γ₁|Γ₂|Γ₃|Γ₄|Γ₅|Γ₆

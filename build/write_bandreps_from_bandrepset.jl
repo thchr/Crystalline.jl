@@ -7,6 +7,14 @@ function bandrep2csv(filename::String, BRS::BandRepSet)
     end
 end
 
+function extract_klabel(s::String)
+    # cheat a bit here and exploit that we know that the only greek letters
+    # occuring in the k-label are Γ, Λ, Δ, Σ, and Ω
+    stopidx = findfirst(c->c∉(('A':'Z'..., 'Γ', 'Λ', 'Δ', 'Σ', 'Ω')), s)::Int
+    
+    return s[1:prevind(s, stopidx)] # `prevind` needed since labels are not just ascii
+end
+
 function bandrep2csv(io::IO, BRS::BandRepSet)
     print(io, "Wyckoff pos.")
     for br in BRS
@@ -27,11 +35,11 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
     println(io)
 
     irlabs = BRS.irlabs
-    for (klab,kv) in zip(BRS.klabs, BRS.kvs)
+    for (idx, (klab,kv)) in enumerate(zip(BRS.klabs, BRS.kvs))
         print(io, klab, ":")
         print(io, '('*strip(replace(string(kv), " "=>""), ('[', ']'))*')')
 
-        iridxs = findall(irlab->occursin(klab, irlab), irlabs)
+        iridxs = findall(irlab -> extract_klabel(irlab) == klab, irlabs)
         for br in BRS
             print(io, "|", )
             has_multiple = false
@@ -42,12 +50,12 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
                     isone(v) || print(io, v)
                     print(io, irlabs[iridx])
                     # TODO: write irrep dimension; possible, but tedious & requires
-                    #       loading irreps separate
+                    #       loading irreps separately
                     has_multiple = true
                 end
             end
         end
-        println(io)
+        idx ≠ length(BRS.klabs) && println(io)
     end
 end
 
