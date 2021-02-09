@@ -51,27 +51,20 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
     end
 end
 
-# Load ::BandRepSet for all 2D plane groups
-include("setup_2d_band_representations.jl") # should define BRS_vec
+# ---------------------------------------------------------------------------------------- #
+# define `make_bandrep_set` that creates `::BandRepSet`
+include("setup_2d_band_representations.jl")
 
-# for allpaths in (false, true)
-# for elementary in ...
-for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ELEMENTARY_ALL)
-    filename = "../data/bandreps/2d/elementary/allpaths/$bandrepset2Dindex.csv"
-    bandrep2csv(filename, BRS_ALL)
-end
-
-for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_ELEMENTARY_MAXIMAL)
-    filename = "../data/bandreps/2d/elementary/maxpaths/$bandrepset2Dindex.csv"
-    bandrep2csv(filename, BRS_MAX)
-end
-
-for (bandrepset2Dindex, BRS_ALL) in enumerate(BRS_VEC_ELEMENTARYTR_ALL)
-    filename = "../data/bandreps/2d/elementaryTR/allpaths/$bandrepset2Dindex.csv"
-    bandrep2csv(filename, BRS_ALL)
-end
-
-for (bandrepset2Dindex, BRS_MAX) in enumerate(BRS_VEC_ELEMENTARYTR_MAXIMAL)
-    filename = "../data/bandreps/2d/elementaryTR/maxpaths/$bandrepset2Dindex.csv"
-    bandrep2csv(filename, BRS_MAX)
+basepath = joinpath((@__DIR__), "..", "data/bandreps/2d")
+for allpaths in (false, true)
+    path_tag = allpaths ? "allpaths" : "maxpaths"
+    for timereversal in (false, true)
+        tr_tag = timereversal ? "elementaryTR" : "elementary"
+        for sgnum in 1:MAX_SGNUM[2]
+            BRS = make_bandrep_set(sgnum, Val(2); allpaths=allpaths,
+                                                  timereversal=timereversal)
+            filename = joinpath(basepath, tr_tag, path_tag, string(sgnum)*".csv")
+            bandrep2csv(filename, BRS)
+        end
+    end
 end
