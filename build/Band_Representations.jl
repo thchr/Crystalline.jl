@@ -38,21 +38,6 @@ function _find_isomorphic_parent_pointgroup(G)
     return nothing # in case we didn't find any isomorphic parent
 end
 
-function in_site_symmetry(sitegroup::SiteGroup, symop::SymOperation)
-    #index= findfirst(x -> x==rotation(symop), rotation.(sitegroup)) 
-    index= findfirst(x -> x==xyzt(symop), xyzt.(sitegroup)) 
-    if index == nothing
-        return 0 
-    else 
-        return index
-    end
-end
-
-"This function gives the label for spacegroup(i, j)"
-function get_label(i::Int64, j::Int64)
-    return (label∘spacegroup)(i, j) 
-end
-
 "This function gives the site_symmetry irreps for the Site Symmetry Group"
 function site_symmetry_irreps(sitegroup::SiteGroup{D}, timereversal::Bool) where D
     site_parent_pointgroup=_find_isomorphic_parent_pointgroup(sitegroup)
@@ -67,7 +52,7 @@ function site_symmetry_irreps_characters(sitegroup::SiteGroup{D}, timereversal::
     size(character_table)
     for j in 1:size(irreps)[1]
         for i in 1:size(irreps[1].matrices)[1]
-            character_table[i, j]=tr(irreps[j].matrices[i]) +0.00im +0.00
+            character_table[i, j]=tr(irreps[j].matrices[i]) 
         end
     end
 character_table
@@ -86,28 +71,31 @@ function induced_band_representation(sitegroup::SiteGroup{D}, h::SymOperation{D}
     gα_inverse=gα[1]
 
     transformed_k=transform(k, rotation(h)).cnst
+    irrep_matrices=site_symmetry_irreps(sitegroup, timereversal)[ρ].matrices
     for α′ in 1:length_of_orbit 
 
         gα′=gα[α′]
         tα′α′=rotation(h)*orbit_of_sitegroup[α′].qv.cnst+translation(h)-orbit_of_sitegroup[α′].qv.cnst
-        symop_t=SymOperation(one(Crystalline.SquareStaticMatrices.SqSMatrix{D,Float64}), -tα′α′ )
-
+        symop_t = SymOperation(-tα′α′)
         gα_inverse=inv(gα′)    
 
-        site_symmetry_index=in_site_symmetry(sitegroup, compose(gα_inverse, compose(symop_t, compose(h,  gα[α′], false), false ), false)   )
-      
-        if site_symmetry_index >0
-            χ_G_k_G=χ_G_k_G+exp(2im*π*dot(transformed_k, tα′α′))*tr(site_symmetry_irreps(sitegroup, timereversal)[ρ].matrices[site_symmetry_index])
+        gα′⁻¹ggα′ = compose(gα_inverse, compose(symop_t, compose(h,  gα[α′], false), false ), false)
+        site_symmetry_index = findfirst(≈(gα′⁻¹ggα′), sitegroup)
+
+        if site_symmetry_index !== nothing
+            χ_G_k_G += cis(2π*dot(transformed_k, tα′α′))*tr(irrep_matrices[site_symmetry_index])
         end
     end
     return χ_G_k_G
 end
 
 function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::SiteGroup{D}, timereversal::Bool) where D
-    sgnum=sitegroup.num
-    num_lgirreps= size(get_lgirreps(sgnum, D, timereversal)[k])[1]
+    sgnum=num(sitegroup)
+    sg=spacegroup(sgnum, D)
+    lgirs=get_lgirreps(sgnum, D, timereversal)
+    num_lgirreps= size(lgirs[k])[1]
     
-    size_lgirreps=size(get_lgirreps(sgnum, D, timereversal)[k][1].matrices)[1]
+    size_lgirreps=size(lgirs[k][1].matrices)[1]
 
     character_table=Matrix{Complex{Float64}}(undef, size_lgirreps, num_lgirreps )
 
@@ -117,12 +105,11 @@ function subduce_onto_littlegroups(k::String, kvec::KVec, ρ::Int64, sitegroup::
         end
     end
 
-    XVector=Matrix{Complex{Float64}}(undef, (size_lgirreps, 1))
-
+    XVector= Vector{ComplexF64}(undef, size_lgirreps) 
+    
     for i in 1:size_lgirreps
-        rep_index=group_representative(group(get_lgirreps(sgnum, D, timereversal)[k][1])[i], spacegroup(sgnum, D)) 
-        iter=induced_band_representation(sitegroup, spacegroup(sgnum, D)[rep_index], ρ, kvec, timereversal)
-        XVector[i, 1]= iter
+        rep_index=group_representative(group(lgirs[k][1])[i], sg) 
+        XVector[i]=induced_band_representation(sitegroup, sg[rep_index], ρ, kvec, timereversal)
     end
 
     return round.(character_table\XVector)
@@ -186,7 +173,7 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal::Bool, timerever
 
     maximal ? klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_maximal_lgs(sgnum, D)) : klab2kv = Dict(klab => kvec(lg) for (klab, lg) in get_littlegroups(sgnum, D))
 
-    irvec2d=return_irvec2d(sgnum, 2, maximal, timereversal)
+    irvec2d=return_irvec2d(sgnum, D, maximal, timereversal)
     klabs=Array{String, 1}(undef, 0)
     kvs=Array{KVec{D}, 1}(undef, 0)
     for (klab, kv) in klab2kv
@@ -196,7 +183,7 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal::Bool, timerever
 
     spinful, allpaths, timeinvar=false, false, true
     
-    maximal ? lgirreps=get_maximal_lgirreps(sgnum, D, timereversal) : lgirreps=get_lgirreps(sgnum, D, timereversal)
+    lgirreps= maximal ? get_maximal_lgirreps(sgnum, D, timereversal) : get_lgirreps(sgnum, D, timereversal)
 
     irlabs=[([[lgg.cdml for lgg in lg] for (klab, lg) in lgirreps]...)...]
     irdims=[([[size(lgg.matrices[1])[1] for lgg in lg] for (klab, lg) in lgirreps]...)...]
@@ -204,8 +191,8 @@ function make_bandrep_set(sgnum::Integer; D::Integer=2, maximal::Bool, timerever
     wps=get_wycks(sgnum, D)
     sg=spacegroup(sgnum, D)
 
-    wps_special=[]
-    sitesyms=[]
+    wps_special=String[]
+    sitesyms=String[]
     bandreps_array=Array{BandRep, 1}(undef, 0)
 
     vec_index=1
