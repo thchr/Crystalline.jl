@@ -506,7 +506,10 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 function mulliken(pgir::PGIrrep{D}) where D
     pglab   = label(group(pgir))
     pgirlab = label(pgir)
-    if iscorep(pgir)
+    return _mulliken(pglab, pgirlab, iscorep(pgir))
+end
+function _mulliken(pglab, pgirlab, iscorep) # split up to let `SiteIrrep` overload `mulliken`
+    if iscorep
         return PGIRLABS_CDML2MULLIKEN_3D_COREP[pglab][pgirlab]
     else
         return PGIRLABS_CDML2MULLIKEN_3D[pglab][pgirlab]

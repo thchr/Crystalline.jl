@@ -215,10 +215,10 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
 end
 
 """
-    realify(pgirs::AbstractVector{<:PGIrrep}) --> Vector{PGIrrep}
+    realify(pgirs::AbstractVector{T}) where T<:AbstractIrrep --> Vector{T}
 
-Return physically real `PGIrrep`s (coreps) from a set of conventional `PGIrrep`s (as 
-produced by [`get_pgirreps`](@ref)).
+Return physically real irreps (coreps) from a set of conventional irreps (as produced by
+e.g. [`get_pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
 
 ## Example
 ```jl-doctest
@@ -246,45 +246,54 @@ CharacterTable{3}: #9 (4)
 ───────┴──────────────
 ```
 """
-function realify(pgirs::AbstractVector{<:PGIrrep})
-    T      = eltype(pgirs)
-    pgirs′ = Vector{T}()
-    sizehint!(pgirs′, length(pgirs))
+function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
+    irs′ = Vector{T}()
+    sizehint!(irs′, length(irs))
+
+    # a small dance to accomodate `AbstractIrrep`s that may have more fields than `PGIrrep`:
+    # find out if that is the case and identify "where" those fields are (assumed defined at
+    # the "end" of the `AbstractIrrep` type definition)
+    T_nfields     = nfields(first(irs))
+    T_extrafields = T_nfields - 5
 
     skiplist = Int[]
-    for (idx, pgir) in enumerate(pgirs)
-        _check_not_corep(pgir)
-        r = reality(pgir)
+    for (idx, ir) in enumerate(irs)
+        _check_not_corep(ir)
+        r = reality(ir)
 
         # usually REAL; inline-check
-        r == REAL && (push!(pgirs′, pgir); continue)
+        r == REAL && (push!(irs′, ir); continue)
             
-        # pgir is either COMPLEX or PSEUDOREAL if we reached this point
+        # ir is either COMPLEX or PSEUDOREAL if we reached this point
         if r == COMPLEX
             idx ∈ skiplist && continue # already included
-            χs = characters(pgir)
+            χs = characters(ir)
             # identify complex partner by checking for irreps whose characters are 
-            # equal to the complex conjugate of `pgir`'s
-            idx_partner = findfirst(pgirs) do pgir′
-                χ′s = characters(pgir′)
+            # equal to the complex conjugate of `ir`'s
+            idx_partner = findfirst(irs) do ir′
+                χ′s = characters(ir′)
                 all(i-> conj(χs[i]) ≈ χ′s[i], eachindex(χ′s))
             end
             idx_partner === nothing && error("fatal: could not find complex partner")
             push!(skiplist, idx_partner)
 
-            pgir_partner = pgirs[idx_partner]
-            blockmatrices = _blockdiag2x2.(pgir.matrices, pgir_partner.matrices)               
-            newlab = label(pgir)*label(pgir_partner)
+            ir_partner = irs[idx_partner]
+            blockmatrices = _blockdiag2x2.(ir.matrices, ir_partner.matrices)               
+            newlab = label(ir)*label(ir_partner)
                     
         elseif r == PSEUDOREAL
             # NB: this case doesn't actually ever arise for crystallographic point groups...
-            blockmatrices = _blockdiag2x2.(pgir.matrices)
-            newlab = label(pgir)^2
+            blockmatrices = _blockdiag2x2.(ir.matrices)
+            newlab = label(ir)^2
         end
 
-        push!(pgirs′, T(newlab, group(pgir), blockmatrices, r, true))
+        push!(irs′, T(newlab, group(ir), blockmatrices, r, true, 
+                      # if there are more than 5 fields in `ir`, assume they are unchanged
+                      # and splat them in now (NB: this depends a fixed field ordering in
+                      # `AbstractIrrep`, which is probably not a great idea, but meh)
+                      ntuple(i->getfield(ir, 5+i), Val(T_extrafields))...))
     end
-    return pgirs′
+    return irs′
 end
 
 @noinline function _check_not_corep(ir::AbstractIrrep)
@@ -412,7 +421,7 @@ function calc_reality(pgir::PGIrrep)
     for op in pg
         op² = op∘op
         idx = findfirst(≈(op²), pg)
-        idx == nothing && error("unexpectedly did not find point group element matching op²")
+        idx === nothing && error("unexpectedly did not find point group element matching op²")
 
         s += χs[idx]
     end
