@@ -26,6 +26,8 @@ struct SiteGroup{D} <: AbstractGroup{D}
     operations::Vector{SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
+label(g::SiteGroup) = iuc(num(g), dim(g))*" at "*string(wyck(g))
+
 """
 $(TYPEDSIGNATURES)
 
@@ -42,7 +44,7 @@ $(TYPEDSIGNATURES)
 
 Return the Wyckoff position associated with a `SiteGroup`.
 """
-wyck(g::SiteGroup)   = g.wp
+wyck(g::SiteGroup) = g.wp
 
 function summary(io::IO, g::SiteGroup)
     print(io, typeof(g), " #", num(g), " at ", label(wyck(g)), " = ")
