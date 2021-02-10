@@ -69,8 +69,7 @@ for allpaths in (false, true)
     for timereversal in (false, true)
         tr_tag = timereversal ? "elementaryTR" : "elementary"
         for sgnum in 1:MAX_SGNUM[2]
-            BRS = make_bandrep_set(sgnum, Val(2); allpaths=allpaths,
-                                                  timereversal=timereversal)
+            BRS = calc_bandreps(sgnum, Val(2); allpaths=allpaths, timereversal=timereversal)
             filename = joinpath(basepath, tr_tag, path_tag, string(sgnum)*".csv")
             bandrep2csv(filename, BRS)
         end
