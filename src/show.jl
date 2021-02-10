@@ -212,7 +212,7 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
 end
 function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
     # unpack
-    k₀, kabc = parts(lgir.lg.kv)
+    k₀, kabc = parts(kvec(group(lgir)))
     P = lgir.matrices[i]
     τ = lgir.translations[i]
 

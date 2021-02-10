@@ -414,10 +414,12 @@ end
     AbstractIrrep{D}
 
 Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `matrices`,
-and `reality` (and possibly `translations`). Must implement a function `irreps` that returns
-the associated irrep matrices.
+`g` (underlying group), `reality` (and possibly `translations`). May overload a function
+`irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
+irreps(ir::AbstractIrrep, αβγ=nothing) = ir.matrices
+group(ir::AbstractIrrep, αβγ=nothing) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
 reality(ir::AbstractIrrep) = ir.reality
@@ -452,7 +454,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct PGIrrep{D} <: AbstractIrrep{D}
     cdml::String
-    pg::PointGroup{D}
+    g::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
     reality::Reality
     iscorep::Bool
@@ -461,8 +463,6 @@ function PGIrrep{D}(cdml::String, pg::PointGroup{D}, matrices::Vector{Matrix{Com
                     reality::Reality) where D 
     PGIrrep{D}(cdml, pg, matrices, reality, false)
 end
-irreps(pgir::PGIrrep, αβγ::Nothing=nothing) = pgir.matrices
-group(pgir::PGIrrep) = pgir.pg
 
 # printing
 function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
@@ -476,7 +476,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
-    lg::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group
+    g::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     reality::Reality
@@ -495,7 +495,6 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     translations = [zeros(Float64,D) for _=OneTo(order(lg))]
     return LGIrrep{D}(cdml, lg, matrices, translations, reality)
 end
-group(lgir::LGIrrep) = lgir.lg
 kvec(lgir::LGIrrep)  = kvec(group(lgir))
 isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
