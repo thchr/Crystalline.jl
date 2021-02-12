@@ -105,6 +105,9 @@ include("../build/parse_isotropy_ir.jl")
 export parseisoir, parselittlegroupirreps, 
        littlegroupirrep
 
+include("calc_bandreps.jl")
+export calc_bandreps
+
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the
 # file hasn't been achieved and the other methods are non-essential. So, we skip it.
