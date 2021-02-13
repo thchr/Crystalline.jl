@@ -13,6 +13,7 @@ constant(wp::WyckPos) = constant(vec(wp))
 
 multiplicity(wp::WyckPos) = wp.mult
 label(wp::WyckPos) = string(multiplicity(wp), wp.letter)
+transform(wp::WyckPos, P::AbstractMatrix{<:Real}) = typeof(wp)(wp.mult, wp.letter, transform(vec(wp), P))
 
 function show(io::IO, ::MIME"text/plain", wp::WyckPos)
     print(io, wp.mult, wp.letter, ": ")
@@ -187,7 +188,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
     siteops[1]  = cosets[1] = one(SymOperation{D})
     orbitqvs[1] = qv
 
-    isite, icoset = 1,1
+    isite = icoset = 1
     for op in sg
         icoset == Ncoset && isite == Nsite && break # stop if all necessary representatives found
         isone(op) && continue # already added identity outside loop; avoid adding twice

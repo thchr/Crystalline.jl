@@ -531,47 +531,59 @@ end
 #  ⇔ (k₁′ k₂′ k₃′)ᵀ = 𝐏ᵀ(k₁ k₂ k₃)ᵀ
 
 @doc raw"""
-    transform(kv::KVec, P::AbstractMatrix{<:Real}) --> kv′::KVec
+    transform(v::T, P::AbstractMatrix) where T<:AbstractVec --> v′::T
 
-Returns a transformed reciprocal coordinate vector `kv′` from an original reciprocal
-coordinate vector `kv` and a basis change matrix `P`.
+Return a transformed coordinate vector `v′` from an original coordinate vector `v` using a
+basis change matrix `P`.
 
-Note that a basis change matrix `P` transforms reciprocal coordinates vectors as
-``k' = P^{\text{T}}k`` but transforms direct coordinate vectors as ``r'=P^{-1}r`` (see e.g.
-ITA7 Secs. 1.5.1.2 and 1.5.2.1).
+Note that a basis change matrix `P` transforms direct coordinate vectors ([`RVec`](@ref)) as
+``r′=P⁻¹r`` but transforms reciprocal coordinates ([`KVec`](@ref)) as ``k′ = Pᵀk`` (see e.g.
+ITA7 Sec. 1.5.1.2 and 1.5.2.1).
 """
 function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     k₀, kabc = parts(kv)
     return KVec{D}(P'*k₀, P'*kabc)
 end
 
+function transform(rv::RVec{D}, P::AbstractMatrix{<:Real}) where D
+    rcnst, rfree = parts(rv)
+    return RVec{D}(P\rcnst, P\rfree)
+end
+
 """
-    primitivize(kv::KVec, cntr::Char) --> kv′::KVec
+    primitivize(v::T, cntr::Char) where T<:AbstractVec{D} --> v′::T
 
-Transforms a conventional reciprocal coordinate vector `kv` to a standard primitive
-basis (specified by the centering type `cntr`), returning the associated reciprocal
-coordinate vector `kv′`.
+Transforms a conventional coordinate vector `v` to a standard primitive basis (specified by
+the centering type `cntr`), returning the primitive coordinate vector `v′`.
 
-Note that a basis change matrix ``P`` (as returned by 
-[`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors as
-``r′=P⁻¹r`` but transforms reciprocal coordinates as ``k′ = Pᵀk`` (see e.g. ITA7
-Sec. 1.5.1.2 and 1.5.2.1).
+Note that a basis change matrix ``P`` (as returned e.g. by 
+[`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
+([`RVec`](@ref)) as ``r′=P⁻¹r`` but transforms reciprocal coordinates ([`KVec`](@ref)) as
+``k′ = Pᵀk`` (see e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
 Recall also the distinction between transforming a basis and the coordinates of a vector.
 """
-function primitivize(kv::KVec{D}, cntr::Char) where D
+function primitivize(v::AbstractVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
-        return kv
+        return v
     else
         P = primitivebasismatrix(cntr, Val(D))
-        return transform(kv, P)
+        return transform(v, P)
     end
 end
 
-function conventionalize(kv′::KVec{D}, cntr::Char) where D
+"""
+    conventionalize(v′::T, cntr::Char) where T<:AbstractVec{D} --> v::T
+
+Transforms a primitive coordinate vector `v′` back to a standard conventional basis
+(specified by the centering type `cntr`), returning the conventional coordinate vector `v`.
+
+See also [`primitivize(::AbstractVec, ::Char`](@ref) and `transform`.
+"""
+function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
-        return kv′
+        return v′
     else
         P = primitivebasismatrix(cntr, Val(D))
-        return transform(kv′, inv(P))
+        return transform(v′, inv(P))
     end
 end
