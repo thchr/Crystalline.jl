@@ -358,18 +358,17 @@ const PRIMITIVE_BASIS_MATRICES = (
     )
 
 """
-    primitivebasismatrix(cntr::Char, D::Integer) -> ::Matrix{Float64}
+    primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) -> SMatrix{D,D,Float64}
 
-Given a centering type `cntr` and a dimensionality `D`, calculates a 
-transformation matrix `P` from a conventional to a primitive unit cell,
-using dictionary lookup.
+Return the transformation matrix `P` that transforms a conventional unit cell with centering
+`cntr` to the corresponding primitive unit cell (in dimension `D`).
 """
-@inline function primitivebasismatrix(cntr::Char, D::Integer=3)
+@inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
     D∉1:3 && _throw_invaliddim(D)
     return PRIMITIVE_BASIS_MATRICES[D][cntr]
 end
 
-@inline function centeringtranslation(cntr::Char, D::Integer=3)
+@inline function centeringtranslation(cntr::Char, ::Val{D}=Val(3)) where D
     if D == 3
         if cntr == 'P';     return zeros(SVector{3})
         elseif cntr == 'I'; return SVector((1,1,1)./2)
@@ -454,7 +453,7 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Rs
     else         
-        P = primitivebasismatrix(cntr, D)
+        P = primitivebasismatrix(cntr, Val(D))
         # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional direct basis vecs Rᵢ)
         return transform(Rs, P)
     end  
@@ -471,7 +470,7 @@ function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Rs′
     else         
-        P = primitivebasismatrix(cntr, D)
+        P = primitivebasismatrix(cntr, Val(D))
         # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive direct basis vecs Rᵢ′)
         return transform(Rs′, inv(P)) 
     end  
@@ -500,7 +499,7 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs
     else         
-        P = primitivebasismatrix(cntr, D)        
+        P = primitivebasismatrix(cntr, Val(D))        
         return transform(Gs, P)
     end
 end
@@ -508,7 +507,7 @@ function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs
     else         
-        P = primitivebasismatrix(cntr, D)        
+        P = primitivebasismatrix(cntr, Val(D))        
         return transform(Gs′, inv(P))
     end
 end
@@ -559,20 +558,20 @@ Note that a basis change matrix ``P`` (as returned by
 Sec. 1.5.1.2 and 1.5.2.1).
 Recall also the distinction between transforming a basis and the coordinates of a vector.
 """
-function primitivize(kv::KVec, cntr::Char)
+function primitivize(kv::KVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
         return kv
     else
-        P = primitivebasismatrix(cntr, dim(kv))
+        P = primitivebasismatrix(cntr, Val(D))
         return transform(kv, P)
     end
 end
 
-function conventionalize(kv′::KVec, cntr::Char)
+function conventionalize(kv′::KVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
         return kv′
     else
-        P = primitivebasismatrix(cntr, dim(kv))
+        P = primitivebasismatrix(cntr, Val(D))
         return transform(kv′, inv(P))
     end
 end

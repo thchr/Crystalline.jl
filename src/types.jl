@@ -315,7 +315,7 @@ function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
     k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
 
     # check if k₀ ≈ k₀′ differ by a _primitive_ 𝐆 vector
-    diff = primitivebasismatrix(cntr, D)' * (k₀1 .- k₀2)
+    diff = primitivebasismatrix(cntr, Val(D))' * (k₀1 .- k₀2)
     kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
     # check if kabc1 ≈ kabc2; no need to check for difference by a 
     # 𝐆 vector, since kabc is in interior of BZ

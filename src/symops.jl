@@ -177,8 +177,8 @@ The operation is assumed provided in conventional basis with centering type `cnt
 checking symmorphism is then equivalent to checking whether the operation's translation
 part is zero or a lattice vector in the associated primitive basis.
 """
-@inline function issymmorph(op::SymOperation, cntr::Char)
-    P = primitivebasismatrix(cntr, dim(op))
+@inline function issymmorph(op::SymOperation{D}, cntr::Char) where D
+    P = primitivebasismatrix(cntr, Val(D))
     w_primitive = transform_translation(op, P, nothing) # translation in a primitive basis
     return iszero(w_primitive)
 end
@@ -470,14 +470,15 @@ end
 # [      v(C) = P(𝐗)v(𝐗)
 # [    while an operator O(𝐗) corresponds to a Cartesian operator O(C)≡O via
 # [      O(C) = P(𝐗)O(𝐗)P(𝐗)⁻¹
-function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char='P') where D
+function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
+                cntr::Char='P') where D
     k₀, kabc = parts(kv)
     checkabc = !iszero(kabc)
     idxlist = [1]
     for (idx, op) in enumerate(@view ops[2:end]) # note: `idx` is offset by 1 relative to position of op in ops
         k₀′, kabc′ = parts(compose(op, kv, checkabc)) # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)  
         diff = k₀′ .- k₀
-        diff = primitivebasismatrix(cntr, D)'*diff 
+        diff = primitivebasismatrix(cntr, Val(D))'*diff 
         kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff) # check if k₀ and k₀′ differ by a _primitive_ reciprocal vector
         abcbool = checkabc ? isapprox(kabc′, kabc, atol=DEFAULT_ATOL) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
@@ -492,7 +493,7 @@ function littlegroup(sg::SpaceGroup, kv::KVec)
     return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
 
-function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where D
+function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(free(kv))
@@ -503,7 +504,7 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec, cntr::Char) where
         for kv′′ in kstar
             k₀′′, kabc′′ = parts(kv′′)
             diff = k₀′ .- k₀′′
-            diff = primitivebasismatrix(cntr, D)'*diff
+            diff = primitivebasismatrix(cntr, Val(D))'*diff
             kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff)    # check if k₀ and k₀′ differ by a _primitive_ G-vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=DEFAULT_ATOL) : true # check if kabc == kabc′ (no need to check for difference by G-vectors, since kabc ∈ interior of BZ)
 
@@ -569,7 +570,7 @@ function primitivize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
         # primitive basis: identity-transform, short circuit
         return op
     else
-        P = primitivebasismatrix(cntr, D)
+        P = primitivebasismatrix(cntr, Val(D))
         return transform(op, P, nothing, modw)
     end
 end
@@ -579,7 +580,7 @@ function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where
         # primitive basis: identity-transform, short circuit
         return op
     else
-        P = primitivebasismatrix(cntr, D)
+        P = primitivebasismatrix(cntr, Val(D))
         return transform(op, inv(P), nothing, modw)
     end
 end
@@ -667,7 +668,7 @@ end
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
                     conv_or_prim::Bool=true, modw::Bool=true) where D
-    P = primitivebasismatrix(cntr, D)
+    P = primitivebasismatrix(cntr, Val(D))
     ops′ = transform.(ops, Ref(P), nothing, modw) # equiv. to `primitivize.(ops, cntr, modw)` [but avoids loading P anew for each SymOperation]
     # remove equivalent operations
     ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
@@ -732,12 +733,13 @@ returns `(nothing, nothing)`.
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
 """
-function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}}, cntr::Char) where D
+function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
+            cntr::Char) where D
     W = rotation(op)
     w = translation(op)
 
-    P = primitivebasismatrix(cntr, D)
-    w′ = P\w    # `w` in its primitive basis
+    P = primitivebasismatrix(cntr, Val(D))
+    w′ = P\w # `w` in its primitive basis
 
     for (j, opⱼ) in enumerate(ops)
         Wⱼ = rotation(opⱼ)

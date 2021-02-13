@@ -55,7 +55,7 @@ let count = 0, failures = Int[]
             count += 1
             push!(failures, sgnum)
             dτ = τ_BCD .- τ_ISO
-            P = Crystalline.primitivebasismatrix(cntr,3)
+            P = Crystalline.primitivebasismatrix(cntr, Val(3))
             dτ_primitive = [P\dτ_i for dτ_i in dτ]
             if debug
                 println("\nsgnum=$(sgnum) ($(bravaistype(sgnum, 3))):")

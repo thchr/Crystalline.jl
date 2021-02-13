@@ -289,7 +289,7 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
-    P = primitivebasismatrix(cntr, D)
+    P = primitivebasismatrix(cntr, Val(D))
     return transform(flat, P)
 end
 
@@ -309,7 +309,7 @@ function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
-    P = primitivebasismatrix(cntr, D)
+    P = primitivebasismatrix(cntr, Val(D))
     return transform(flat′, inv(P))
 end
 
