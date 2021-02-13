@@ -1,6 +1,7 @@
 using LinearAlgebra
 using Crystalline
-using Crystalline: irdim, constant, AbstractIrrep, AbstractGroup, iscorep, _mulliken
+using Crystalline: irdim, constant, free, AbstractIrrep, AbstractGroup, iscorep,
+                   _mulliken, DEFAULT_ATOL
 import Crystalline: label, mulliken, realify, group
 using StaticArrays
 
@@ -85,6 +86,61 @@ function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:Vector}) where F
 end
 reduce_dict_of_vectors(d::Dict{<:Any, <:Vector}) = reduce_dict_of_vectors(identity, d)
 
+"""
+    reduce_orbits!(orbits::Vector{WyckPos}, cntr::Char, conv_or_prim::Bool=true])
+
+Update `orbits` in-place to contain only those Wyckoff positions that are not equivalent
+in a primitive basis (as determined by the centering type `cntr`). Returns the updated
+`orbits`. 
+
+If `conv_or_prim = true` (default), the Wyckoff positions are returned in the original,
+conventional basis; if `conv_or_prim = false`, they are returned in a primitive basis.
+"""
+function reduce_orbits!(orbits::Vector{WyckPos{D}}, cntr::Char,
+            conv_or_prim::Bool=true) where D
+
+    orbits′ = primitivize.(orbits, cntr)
+    i = 2 # start from second element
+    while i ≤ length(orbits)
+        wp′ = vec(orbits′[i])
+        was_removed = false
+        for j in 1:i-1
+            δᵢⱼ = wp′ - vec(orbits′[j])
+            if (iszero(free(δᵢⱼ)) && 
+                all(x->abs(rem(x, 1.0, RoundNearest)) < DEFAULT_ATOL, constant(δᵢⱼ)))
+                # -> means it's equivalent to a previously "greenlit" orbit
+                deleteat!(orbits, i)
+                deleteat!(orbits′, i)
+                was_removed = true
+                break
+            end
+        end
+        was_removed || (i += 1)
+    end
+
+    return conv_or_prim ? orbits : orbits′
+end
+
+# TODO: This is probably pretty fragile and depends on an implicit shared iteration order of
+#       cosets and orbits; it also assumes that wp is the first position in the `orbits`
+#       vector. Seems to be sufficient for now though...
+function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckPos{D}, 
+            orbits::Vector{WyckPos{D}}) where D
+    wp ≈ first(orbits) || error("implementation depends on a shared iteration order; sorry...")
+    i = 1
+    while i ≤ length(ops) && i ≤ length(orbits)
+        wpᵢ = orbits[i]
+        opᵢ = ops[i]
+        if ops[i]∘vec(wp) ≈ wpᵢ
+            i += 1 # then ops[i] is indeed a "generator" of wpᵢ
+        else
+            deleteat!(ops, i)
+        end
+    end
+    i ≤ length(ops) && deleteat!(ops, i:length(ops))
+    return ops
+end
+
 # ---------------------------------------------------------------------------------------- #
 # Bandrep related functions: induction/subduction
 
@@ -98,12 +154,17 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
 
     siteg  = group(siteir)
     wp     = wyck(siteg)   
-    orbits = orbit(siteg, wp)
-    gαs    = cosets(siteg)
     kv′    = constant(h∘kv) # <-- TODO: Why only constant part?
     χs     = characters(siteir)
-    
-    # sum over all the wyckoff positions/cosets in the orbit 
+
+    # only loop over the cosets/orbits that are not mere centering "copies"
+    orbits = orbit(siteg)
+    gαs    = cosets(siteg)
+    cntr   = centering(num(siteg), D)
+    reduce_orbits!(orbits, cntr, true) # remove centering "copies" from orbits
+    reduce_cosets!(gαs, wp, orbits)    # remove the associated cosets
+
+    # sum over all the (non-centering-equivalent) wyckoff positions/cosets in the orbit 
     χᴳₖ = zero(ComplexF64)
     for (wpα′, gα′) in zip(orbits, gαs)
         tα′α′ = constant(vec(h∘wpα′) - vec(wpα′)) # TODO: <-- explain why we only need constant part here?
@@ -132,7 +193,7 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
     # little group irrep multiplicities, after subduction
     m  = lgirs_χm\site_χs
     m′ = round.(Int, real.(m)) # truncate to integers
-    isapprox(m, m′, atol=1e-12) || error("failure to convert to integers")
+    isapprox(m, m′, atol=DEFAULT_ATOL) || error(DomainError(m, "failed to convert to integers"))
     return m′
 end
 
