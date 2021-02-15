@@ -239,9 +239,8 @@ function pointgroup(ops::AbstractVector{SymOperation{D}}) where D
     pgops = unique(rotation, ops) 
     # return rotations only from the above unique set (set translations to zero)
     map!(pgops, pgops) do op
-        SymOperation{D}(op.rotation, zero(SVector{D, Float64}))
+        SymOperation{D}(op.rotation))
     end
-    # TODO: Return a PointGroup?
 end
 pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 

@@ -30,20 +30,37 @@ const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(x->lab∈x, PGS_NUM2IUC
 # When there is a choice of either hexagonal vs. rhombohedral or unique axes b vs unique
 # axes a/c we choose hexagonal and unique axes b, respectively.
 const IUC2SCHOENFLIES_PGS = ImmutableDict(
-    "1"     => "C1",   "-1"    => "Ci",
-    "2"     => "C2",   "m"     => "Cs",   "2/m"   => "C2h",  # unique axes b setting
-    "222"   => "D2",   "mm2"   => "C2v",  "mmm"   => "D2h",  "4"    => "C4",
-    "-4"    => "S4",   "4/m"   => "C4h",  "422"   => "D4",   "4mm"  => "C4v", 
-    "-42m"  => "D2d",  "-4m2"  => "D2d",  # D2d setting variations
-    "4/mmm" => "D4h",  "3"     => "C3",   "-3"    => "C3i",  
-    "312"   => "D3",   "321"   => "D3",   # D3 setting variations  (hexagonal axes)
-    "3m1"   => "C3v",  "31m"   => "C3v",  # C3v setting variations (hexagonal axes)
-    "-31m"  => "D3d",  "-3m1"  => "D3d",  # D3d setting variations (hexagonal axes)
-    "6"     => "C6",   "-6"    => "C3h",  "6/m"   => "C6h",  "622"  => "D6", 
-    "6mm"   => "C6v",  
-    "-62m"  => "D3h", "-6m2"   => "D3h",  # D3h setting variations
-    "6/mmm" => "D6h",  "23"    => "T",
-    "m-3"   => "Th",   "432"   => "O",    "-43m"  => "Td",   "m-3m" => "Oh"
+    "1"     => "C1",   "-1"   => "Ci",
+    "2"     => "C2",   "m"    => "Cs",   "2/m"  => "C2h",  # unique axes b setting
+    "222"   => "D2",   "mm2"  => "C2v",  "mmm"  => "D2h",  "4"    => "C4",
+    "-4"    => "S4",   "4/m"  => "C4h",  "422"  => "D4",   "4mm"  => "C4v",
+    "-42m"  => "D2d",  "-4m2" => "D2d",  # D2d setting variations
+    "4/mmm" => "D4h",  "3"    => "C3",   "-3"   => "C3i",
+    "312"   => "D3",   "321"  => "D3",   # D3 setting variations  (hexagonal axes)
+    "3m1"   => "C3v",  "31m"  => "C3v",  # C3v setting variations (hexagonal axes)
+    "-31m"  => "D3d",  "-3m1" => "D3d",  # D3d setting variations (hexagonal axes)
+    "6"     => "C6",   "-6"   => "C3h",  "6/m"  => "C6h",  "622"  => "D6",
+    "6mm"   => "C6v",
+    "-62m"  => "D3h",  "-6m2" => "D3h",  # D3h setting variations
+    "6/mmm" => "D6h",  "23"   => "T",
+    "m-3"   => "Th",   "432"  => "O",    "-43m" => "Td",   "m-3m" => "Oh"
+)
+
+const PGS_ORDERs = ImmutableDict(
+    "1"     =>  1,  "-1"   =>  2,
+    "2"     =>  2,  "m"    =>  2,  "2/m"  => 4,  # unique axes b setting
+    "222"   =>  4,  "mm2"  =>  4,  "mmm"  => 8,  "4"    => 4,
+    "-4"    =>  4,  "4/m"  =>  8,  "422"  => 8,  "4mm"  => 8,
+    "-42m"  =>  8,  "-4m2" =>  8,  # D2d setting variations
+    "4/mmm" => 16,  "3"    =>  3,  "-3"   => 6,
+    "312"   =>  6,  "321"  =>  6,  # D3 setting variations  (hexagonal axes)
+    "3m1"   =>  6,  "31m"  =>  6,  # C3v setting variations (hexagonal axes)
+    "-31m"  => 12,  "-3m1" => 12,  # D3d setting variations (hexagonal axes)
+    "6"     =>  6,  "-6"   =>  6,  "6/m"  => 12,  "622"  => 12,
+    "6mm"   => 12,
+    "-62m"  => 12,  "-6m2" => 12,  # D3h setting variations
+    "6/mmm" => 24,  "23"   => 12,
+    "m-3"   => 24,  "432"  => 24,  "-43m" => 24,  "m-3m" => 48
 )
 
 
@@ -97,9 +114,9 @@ end
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup)
     # Note: this method will only find parent point groups with the same setting (i.e. 
-    #       basis) as `g`. From a more general perspective, one might be interested in
-    #       finding any isomorphic parent point group (but that is not achieved here; and is
-    #       not a question with a unique answer either (e.g. PGs 2 and -1 are isomorphic)).
+    #       basis) as `g` *and* with the same operator sorting. From a more general
+    #       perspective, one might be interested in finding any isomorphic parent point
+    #       group (that is achieved by `find_isomorphic_parent_pointgroup`).
     D = dim(g)
     xyzt_pgops = sort!(xyzt.(pointgroup(g)))
 
@@ -153,7 +170,7 @@ function get_pgirreps(iuclab::String, ::Val{3}=Val(3))
     pg = pointgroup(iuclab, Val(3)) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
-    
+
     return PGIrrep{3}.(cdmls, Ref(pg), matrices, Reality.(realities))
 end
 # 2D
@@ -194,3 +211,233 @@ function get_pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) w
     return get_pgirreps(iuc, Dᵛ)
 end
 get_pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = get_pgirreps(pgnum, Val(D), setting)
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+    $TYPEDSIGNATURES --> PointGroup{D}, Vector{Int}, Bool
+
+Given a group `g` (or a collection of operators, defining a group), identifies a "parent"
+point group that is isomorphic to `g`.
+
+Three variables are returned:
+- `pg`: the identified "parent" point group, with operators sorted to match the sorting
+  of `g`'s operators.
+- `Iᵖ²ᵍ`: a permutation vector which transforms the standard sorting of point group
+  operations (as returned by [`pointgroup(::String)`](@ref)) to the operator sorting of `g`.
+- `equal`: a boolean, identifying whether the point group parts of `g` operations are
+  identical (`true`) or merely isomorphic to the point group operations in `g`.
+  In practice, this indicates whether `pg` and `g` are in the same setting or not.
+
+## Implementation
+The identification is made partly on the basis of comparison of operators (this is is
+sufficient for the `equal = true` case) and partly on the basis of comparison of 
+multiplication tables (`equal = false` case); the latter can be combinatorially slow if
+the sorting of operators is unlucky (i.e., if permutation between sortings in `g` and `pg`
+differ by many pairwise permutations).
+
+Beyond mere isomorphisms of multiplication tables, the search also guarantees that all
+rotation orders are shared between `pg` and `g`. This disambiguates point groups that are
+intrinsically isomorphic to eachother, e.g. "m" and "-1", but which still differ in their
+spatial interpretation.
+
+## Properties
+The following properties hold for `g`, `pg`, and `Iᵖ²ᵍ`:
+```jl
+pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(g)
+@assert MultTable(pg) == MultTable(pointgroup(g))
+pg′ = pointgroup(label(pg), dim(pg)) # "standard" sorting
+@assert pg′[Iᵖ²ᵍ] == pg
+```
+If `equal = true`, the following additionally holds:
+```jl
+pointgroup(g) == operations(pg) == operations(pg′)[Iᵖ²ᵍ]
+
+## Example
+```jl
+sgnum = 141
+wp    = get_wycks(sgnum, Val(3))[end] # 4a Wyckoff position
+sg    = spacegroup(sgnum, Val(3))
+siteg = SiteGroup(sg, wp)
+pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(siteg)
+```
+```
+"""
+function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) where D
+    Nᵍ = length(g)
+    Nᵍ == 1 && isone(first(g)) && return pointgroup("1", Val(D)), [1], true
+
+    # a site group is always similar to a point group (i.e. a group w/o translations); it
+    # can be transformed to that setting by transforming each element g∈`siteg` as t⁻¹∘g∘t
+    # where t denotes translation by the site group's wyckoff position. In practice, we can
+    # just "drop the translation" parts to get the same result though; this is faster
+    g′ = pointgroup(g) # get rid of any repeated point group operations, if they exist
+    ordersᵍ = rotation_order.(g′)
+
+    # first sorting step: by rotation order
+    Iᵍ = sortperm(ordersᵍ)
+    permute!(ordersᵍ, Iᵍ) 
+    permute!(g′, Iᵍ)
+
+    # identify rotation orders as indexing groups
+    I_groups = _find_equal_groups_in_sorted(ordersᵍ)
+
+    # --------------------------------------------------------------------------------------
+    # first, we check if we literally have the exact same group operations; in that case
+    # we can check for group equality rather than isomorphism, and get combinatorial speedup
+    # since we don't have to attempt a search over permutations of multiplication tables
+    Iᵖ      = Vector{Int}(undef, Nᵍ)
+    ordersᵖ = Vector{Int}(undef, Nᵍ)
+    for iuclab in PGS_IUCs[D]
+        PGS_ORDERs[iuclab] == Nᵍ || continue
+        pg = pointgroup(iuclab, Val(D))
+
+        # sorting by rotation order & check if rotation orders agree
+        ordersᵖ .= rotation_order.(pg)
+        sortperm!(Iᵖ, ordersᵖ)
+        permute!(ordersᵖ, Iᵖ)
+        ordersᵍ == ordersᵖ || continue
+
+        # check if the group operations literally are equal, but (maybe) just shuffled
+        permute!(pg.operations, Iᵖ)
+        P = Vector{Int}(undef, sum(length, I_groups))
+        equal = true
+        for I_group in I_groups
+            for i in I_group
+                idx = findfirst(opᵖ -> opᵖ == g′[i], (@view pg[I_group]))
+                idx === nothing && (equal = false; break) # ... not equal
+                P[i] = idx + I_group[1] - 1
+            end
+            equal || break
+        end
+        if equal
+            # "unwind" compound permutation, s.t. g ~ pg[Iᵖ²ᵍ]
+            Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, P), Iᵍ) # = Iᵖ[P][invperm(Iᵍ)], but faster
+            invpermute!(permute!(pg.operations, P), Iᵍ) # sort pg to match g
+            return pg, Iᵖ²ᵍ, true
+        end
+    end
+
+    # --------------------------------------------------------------------------------------
+    # if we arrived here, the group is not equal to any group in our "storage", so we must
+    # make do with finding an isomorphic group; this is potentially much more demanding
+    # because we have to check all (meaningful) permutations of the multiplication tables;
+    # for some groups, this is practically impossible (even with the tricks we play to
+    # reduce the combinatorial explosion into a product of smaller combinatorial problems).
+    # fortunately, for the space groups we are interested in, the earlier equality check
+    # takes care of bad situations like that.
+    # we deliberately split this into a separate loop (even though it incurs a bit of
+    # repetive work) because we'd prefer to return an identical group rather than an
+    # isomorphic group, if that is at all possible
+    mtᵍ = MultTable(g′).table
+    for iuclab in PGS_IUCs[D]
+        # NB: in principle, this could probably be sped up a lot by using subgroup relations
+        #     to "group up" meaningful portions (in addition to grouping by rotation order)
+        Crystalline.PGS_ORDERs[iuclab] == Nᵍ || continue
+        pg = pointgroup(iuclab, Val(D))
+
+        # sorting by rotation order & check if rotation orders agree
+        ordersᵖ .= rotation_order.(pg)
+        sortperm!(Iᵖ, ordersᵖ)
+        permute!(ordersᵖ, Iᵖ)
+        ordersᵍ == ordersᵖ || continue
+
+        # create pg's multiplication table, "order-sorted"
+        permute!(pg.operations, Iᵖ)
+        mtᵖ = MultTable(pg).table
+        
+        # rigorous, slow, combinatorial search
+        P = rigorous_isomorphism_search(I_groups, mtᵍ, mtᵖ)
+
+        if P !== nothing # found isomorphic point group!
+            # compute "combined/unwound indexing" Iᵖ²ᵍ of Iᵍ, Iᵖ, and P, where Iᵖ²ᵍ has
+            # produces g ~ pg[Iᵖ²ᵍ] in the sense that they have the same character table
+            # and same rotation orders. We can get that by noting that we already have
+            # g[Iᵍ] ~ pg[Iᵖ[P]], and then `invperm` gets us the rest of the way.
+            Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, P), Iᵍ) # = Iᵖ[P][invperm(Iᵍ)], but faster
+            invpermute!(permute!(pg.operations, P), Iᵍ) # sort pg to match g
+            return pg, Iᵖ²ᵍ, false
+        end
+    end
+    error("could not find an isomorphic parent point group")
+end
+
+"""
+    $TYPEDSIGNATURES --> Vector{UnitRange}
+
+Returns indices into groups of equal values in `v`. Input `v` *must be* sorted so that
+identical values are adjacent.
+
+## Example
+```jl
+_find_equal_groups_in_sorted([-4,1,1,3,3,3]) # returns [1:1, 2:3, 4:6]
+```
+"""
+function _find_equal_groups_in_sorted(v::AbstractVector)
+    vᵘ = unique(v)
+    Nᵘ, N = length(vᵘ), length(v)
+    idx_groups = Vector{UnitRange{Int}}(undef, Nᵘ)
+    start = stop = 1
+    for (i,o) in enumerate(vᵘ)
+        while stop < N && v[stop+1] == o
+            stop += 1
+        end
+        idx_groups[i] = start:stop
+        stop += 1
+        start = stop
+    end
+    return idx_groups
+end
+
+"""
+    $TYPEDSIGNATURES --> Matrix{Int}
+
+Returns a multiplication table derived from `mt` but under a reordering permutation `P` of
+the operator indices in `mt`. In practice, this corresponds to a permutation of the rows
+and columns of `mt` as well as a subsequent relabelling of elements via `P`.
+
+## Example
+```jl
+pg  = pointgroup("-4m2", Val(3))
+mt  = MultTable(pg)
+P   = [2,3,1,4,5,8,6,7] # permutation of operator indices
+mt′ = permute_multtable(mt.table, P)
+mt′ == MultTable(pg[P]).table
+```
+"""
+function permute_multtable(mt::Matrix{Int}, P::AbstractVector{Int})
+    replace!(mt[P, P], (P .=> Base.OneTo(length(P)))...)
+end
+
+# this is a rigorous search; it checks every possible permutation of each "order group".
+# it is much faster (sometimes by ~14 orders of magnitude) than a naive permutation search
+# which doesn't divide into "order groups" first, but can still be intractably slow (e.g.
+# for site groups of space group 216).
+function rigorous_isomorphism_search(I_orders::AbstractVector{Int}, 
+            mtᵍ::Matrix{Int}, mtᵖ::Matrix{Int}, Jᵛ::Val{J}=Val(length(I_orders))) where J
+    # we're using `j` as the rotation-order-group index below
+    J == length(I_orders) || throw(DimensionMismatch("static parameter and length must match"))
+    Ns = ntuple(j->factorial(length(I_orders[j])), Jᵛ)
+    P  = Vector{Int}(undef, sum(length, I_orders))
+    # loop over all possible products of permutations of the elements of I_orders (each a 
+    # vector); effectively, this is a kroenecker product of permutations. In total, there
+    # are `prod(Iⱼ -> factorial(length(Iⱼ), I_orders)` such permutations; this is much less
+    # than a brute-force search over permutations that doesn't exploit groupings (with
+    # `factorial(sum(length, I_orders))`) - but it can still be overwhelming occassionally
+    ns_prev = zeros(Int, J)
+    for ns in CartesianIndices(Ns)
+        for j in Base.OneTo(J)
+            nⱼ = ns[j]
+            if nⱼ != ns_prev[j]
+                Iⱼ = I_orders[j]
+                P[Iⱼ] .= nthperm(Iⱼ, nⱼ)
+                ns_prev[j] = nⱼ
+            end
+        end
+        mtᵖ′ = permute_multtable(mtᵖ, P)
+        if mtᵍ == mtᵖ′
+            return P # found a valid isomorphism (the permutation) between mtᵍ and mtᵖ
+        end
+    end
+    return nothing # failed to find an isomorphism (because there wasn't any!)
+end

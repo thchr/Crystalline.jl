@@ -12,6 +12,7 @@ using JLD2
 using SmithNormalForm
 using PrettyTables
 using LightGraphs, MetaGraphs # → compatibility.jl
+using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
 using Requires
 using Compat
 using Statistics: quantile
@@ -27,7 +28,7 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              +, -, ∘, ==, ImmutableDict,
              isone, one
 import LinearAlgebra: inv
-import Random                 # → _Uniform in src/utils.jl
+import Random                 # → `_Uniform` in src/utils.jl
 import Random: rand           # ⤶
 
 # include submodules
@@ -90,7 +91,7 @@ export find_representation
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export pointgroup, get_pgirreps,
-       PGS_IUCs
+       PGS_IUCs, find_isomorphic_parent_pointgroup
 
 include("bravais.jl")
 export crystal, crystalsystem,
