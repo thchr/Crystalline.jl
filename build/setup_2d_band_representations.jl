@@ -1,6 +1,6 @@
 using LinearAlgebra
 using Crystalline
-using Crystalline: irdim, constant, free, AbstractIrrep, AbstractGroup, iscorep,
+using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
                    _mulliken, DEFAULT_ATOL
 import Crystalline: label, mulliken, realify, group
 using StaticArrays
@@ -20,19 +20,6 @@ struct SiteIrrep{D} <: AbstractIrrep{D}
     pglab    :: String
 end
 
-
-function _find_isomorphic_parent_pointgroup(g::AbstractGroup{D}) where D
-    ctᴳ = MultTable(g).table
-    @inbounds for iuclab in PGS_IUCs[D]
-        pg  = pointgroup(iuclab, Val(D))
-        ctᴾ = MultTable(pg).table
-        if ctᴳ == ctᴾ # bit sloppy; would miss ismorphisms that are "concealed" by row/column swaps
-            return pg
-        end
-    end
-    return nothing # in case we didn't find any isomorphic parent
-end
-
 """
     get_siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
 
@@ -40,12 +27,16 @@ Return the site symmetry irreps associated with the provided `SiteGroup`, derive
 search over isomorphic point groups.
 """
 function get_siteirreps(siteg::SiteGroup{D}) where D
-    parent_pg = _find_isomorphic_parent_pointgroup(siteg)
-    pglab     = label(parent_pg)
-    pgirs     = get_pgirreps(pglab, Val(D))
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
+    pglab = label(parent_pg)
+    pgirs = get_pgirreps(pglab, Val(D))
     
+    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
+    # .jld files apparently cache accessed content; so if we modify it, we mess with the
+    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
     siteirs = map(pgirs) do pgir
-        SiteIrrep{D}(label(pgir), siteg, pgir.matrices, reality(pgir), pgir.iscorep, pglab)
+        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
+                     pglab)
     end
     return siteirs
 end
@@ -189,7 +180,6 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
     # characters of induced site representation and little group irreps
     site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
     lgirs_χm = CharacterTable(lgirs).chartable
-
     # little group irrep multiplicities, after subduction
     m  = lgirs_χm\site_χs
     m′ = round.(Int, real.(m)) # truncate to integers
