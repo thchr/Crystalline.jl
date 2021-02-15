@@ -414,7 +414,7 @@ end
 # it is much faster (sometimes by ~14 orders of magnitude) than a naive permutation search
 # which doesn't divide into "order groups" first, but can still be intractably slow (e.g.
 # for site groups of space group 216).
-function rigorous_isomorphism_search(I_orders::AbstractVector{Int}, 
+function rigorous_isomorphism_search(I_orders::AbstractVector{<:AbstractVector{Int}}, 
             mtᵍ::Matrix{Int}, mtᵖ::Matrix{Int}, Jᵛ::Val{J}=Val(length(I_orders))) where J
     # we're using `j` as the rotation-order-group index below
     J == length(I_orders) || throw(DimensionMismatch("static parameter and length must match"))
