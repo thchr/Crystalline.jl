@@ -215,7 +215,8 @@ get_pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = get_pgirreps(pgnu
 # ---------------------------------------------------------------------------------------- #
 
 """
-    $TYPEDSIGNATURES --> PointGroup{D}, Vector{Int}, Bool
+    find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) 
+                                                    --> PointGroup{D}, Vector{Int}, Bool
 
 Given a group `g` (or a collection of operators, defining a group), identifies a "parent"
 point group that is isomorphic to `g`.
@@ -249,9 +250,10 @@ pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(g)
 pg′ = pointgroup(label(pg), dim(pg)) # "standard" sorting
 @assert pg′[Iᵖ²ᵍ] == pg
 ```
-If `equal = true`, the following additionally holds:
+If `equal = true`, the following also holds:
 ```jl
 pointgroup(g) == operations(pg) == operations(pg′)[Iᵖ²ᵍ]
+```
 
 ## Example
 ```jl
@@ -260,7 +262,6 @@ wp    = get_wycks(sgnum, Val(3))[end] # 4a Wyckoff position
 sg    = spacegroup(sgnum, Val(3))
 siteg = SiteGroup(sg, wp)
 pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(siteg)
-```
 ```
 """
 function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) where D
