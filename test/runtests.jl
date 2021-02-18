@@ -34,7 +34,6 @@ using Crystalline, Test
     # band representations
     include("classification.jl")  # does topo classification agree w/ Adrian?
     include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
-
-    include("bandrepsets.jl") # various tests for calc_bandreps
+    include("calc_bandreps.jl")   # tests of /src/calc_bandreps.jl
     
 end
