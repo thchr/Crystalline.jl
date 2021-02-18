@@ -152,8 +152,7 @@ function __init__()
     # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
     @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
         include("compat/pyplot.jl") # loads PyPlot and Meshing
-        export plot, 
-               plot_lattice_from_mpbparams, 
+        export plot_lattice_from_mpbparams, 
                mesh_3d_levelsetlattice
     end
 end
