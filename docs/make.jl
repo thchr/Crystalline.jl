@@ -7,9 +7,14 @@ DocMeta.setdocmeta!(Crystalline, :DocTestSetup, :(using Crystalline); recursive=
 
 makedocs(
     modules = [Crystalline],
-    sitename = "Crystalline",
-    format = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
-    authors = "Thomas Christensen and contributors",
+    sitename = "Crystalline.jl",
+    authors="Thomas Christensen <tchr@mit.edu> and contributors",
+    repo="https://github.com/thchr/Brillouin.jl/blob/{commit}{path}#L{line}",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", nothing) == "true",
+        canonical="https://thchr.github.io/Brillouin.jl",
+        assets = ["assets/custom.css"], # increase logo size
+    ),
     pages   = [
         "Home"                            => "index.md",
         "Symmetry operations"             => "operations.md",

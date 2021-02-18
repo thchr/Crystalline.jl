@@ -1,0 +1,5 @@
+/* increase logo size, cf. https://github.com/JuliaDocs/Documenter.jl/issues/1065#issuecomment-510595992 
+ * but with updated syntax (see https://github.com/JuliaLang/Pkg.jl/blob/master/docs/src/assets/custom.css) */
+#documenter .docs-sidebar .docs-logo > img {
+    min-height: 15em;
+}
