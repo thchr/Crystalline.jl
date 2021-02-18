@@ -11,13 +11,14 @@ for T in (:DirectBasis, :ReciprocalBasis)
         - `vecs::NTuple{D, SVector{D, Float64}}`
         """
         struct $T{D} <: Basis{D}
-              vecs::NTuple{D,SVector{D,Float64}}
+              vecs::SVector{D,SVector{D,Float64}}
         end
     end
     @eval $T(Rs::NTuple{D,AbstractVector{<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
     @eval $T(Rs::NTuple{D,NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
     @eval $T(Rs::AbstractVector{<:Real}...) = $T(Rs)
     @eval $T(Rs::NTuple{D,<:Real}...) where D = $T{D}(SVector{D,Float64}.(Rs))
+    @eval $T(Rs::AbstractVector{<:Real}) = (D=length(Rs); $T{D}(SVector{D,Float64}.(Rs)))
 end
 
 vecs(Vs::Basis) = Vs.vecs
