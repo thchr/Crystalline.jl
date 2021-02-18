@@ -9,21 +9,21 @@ makedocs(
     modules = [Crystalline],
     sitename = "Crystalline.jl",
     authors="Thomas Christensen <tchr@mit.edu> and contributors",
-    repo="https://github.com/thchr/Brillouin.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/thchr/Crystalline.jl/blob/{commit}{path}#L{line}",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
-        canonical="https://thchr.github.io/Brillouin.jl",
+        canonical="https://thchr.github.io/Crystalline.jl",
         assets = ["assets/custom.css"], # increase logo size
     ),
     pages   = [
-        "Home"                            => "index.md",
-        "Symmetry operations"             => "operations.md",
-        "Groups"                          => "groups.md",
-        "Irreps"                          => "irreps.md",
-        "Bravais types and bases"         => "bravais.md",
-        "Elementary band representations" => "bandreps.md",
-        "Lattices"                        => "lattices.md",
-        "API"                             => "api.md"
+        "Home"                  => "index.md",
+        "Symmetry operations"   => "operations.md",
+        "Groups"                => "groups.md",
+        "Irreps"                => "irreps.md",
+        "Bravais types & bases" => "bravais.md",
+        "Band representations"  => "bandreps.md",
+        "Lattices"              => "lattices.md",
+        "API"                   => "api.md"
     ]
 )
 
