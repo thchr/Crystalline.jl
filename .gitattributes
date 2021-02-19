@@ -10,3 +10,4 @@
 *.md text
 *.pdf binary
 *.jld2 binary
+*.ai binary
