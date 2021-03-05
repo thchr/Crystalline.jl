@@ -208,7 +208,6 @@ end
 """ 
     directbasis(sgnum, D=3;    abclims, αβγlims)
     directbasis(sgnum, Val(D); abclims, αβγlims) --> DirectBasis{D}
-    
 
 Generates a (conventional) DirectBasis for a crystal compatible with 
 the space group number `sgnum` and dimensionality `D`. Free parameters

@@ -343,8 +343,8 @@ conventional basis.
 An error is thrown if a referenced little group cannot be found (currently, this can happen
 for certain k-points in ``Φ-Ω``, see src/special_representation_domain_kpoints.jl)
 """
-function matching_littlegroups(BRS::BandRepSet)
-    lgs = get_littlegroups(num(BRS), Val(3)) # TODO: generalize to D≠3
+function matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3)) where D
+    lgs = get_littlegroups(num(BRS), Val(D)) # TODO: generalize to D≠3
 
     klabs_in_brs = klabels(BRS) # find all k-point labels in BandRepSet
     if !issubset(klabs_in_brs, keys(lgs))
