@@ -152,57 +152,6 @@ function basisdim(BRS::BandRepSet)
     return nnz
 end
 
-#=
-"""
-    smith′(X::AbstractMatrix; inverse=true, debug=false, verify=false)
-
-Equivalent of `smith(A; inverse, debug, verify)` from the `SmithNormalForm` package, but 
-with guaranteed positivity of the diagonal SNF factors. The remaining signs are absorbed 
-into `F.T` and `F.Tinv`. 
-Returns a `SmithNormalForm.Smith` factorization `F`, such that 
-
-```
-    F.S*diagm(F)*F.T == X
-    diag(F.Sinv*X*F.Tinv) == F.SNF
-```
-
-with `diagm(F)` producing the diagonal matrix associated with `F.SNF` (with `F.SNF[i]` ≥ 0).
-
-Correctness of the sign-transformation can optionally be checked with kwarg `verify=true`.
-
-This is a small ad-hoc patch for https://github.com/wildart/SmithNormalForm.jl/issues/1.
-This extra bit of work should no longer be necessary with versions≥v0.3.2.
-"""
-function smith′(X::AbstractMatrix; inverse=true, verify=false)
-    F = smith(X, inverse=inverse)
-    # smith and snf may currently return negative diagonal SNF values (here, denoted Λ): we
-    # prefer to have Λⱼ positive so we correct for that by absorbing the sign of Λ into T
-    # and T⁻¹, such that 
-    #    Λ′ = Λ*sign(Λ),   T′ = sign(Λ)*T,    and    T⁻¹′ = T⁻¹*sign(Λ),
-    # with the convention that sign(0) = 1. Then we still have that X = SΛT = SΛ′T′
-    # and also that Λ = S⁻¹XT⁻¹ ⇒ Λ′ = S⁻¹XT⁻¹′.
-    for j in eachindex(F.SNF)
-        Λⱼ = F.SNF[j]
-        if Λⱼ < 0
-            @views F.T[j,:]    .*= -1 # T′   = sign(Λ)*T    [rows]
-            @views F.Tinv[:,j] .*= -1 # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
-            F.SNF[j] = abs(Λⱼ)        # Λ′ = Λ*sign(Λ)
-        end
-    end
-
-    # verify correctness of results
-    if verify
-        X′ = F.S*diagm(F)*F.T
-        Λ′ = diag(F.Sinv*X*F.Tinv)
-        if norm(X .- X′) > 0 || norm(F.SNF .- Λ′) > 0
-            throw("Unexpected failure of SNF positivity-enforcement")
-        end
-    end
-
-    return F
-end
-=#
-
 """
     wyckbasis(BRS::BandRepSet) --> Vector{Vector{Int64}}
 

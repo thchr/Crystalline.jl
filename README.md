@@ -8,13 +8,10 @@ This package provides access e.g. to the symmetry operations of crystalline poin
 
 ## Installation
 
-The package is not currently registred in the General registry, and additionally relies on a package not listed in General. 
-As a result, installation is a tad more complicated than ordinarily.
-
-To install, enter the `pkg>` prompt by typing `]` at the Julia REPL. Then execute the following commands:
+The package is not currently registered in the General registry, but can be installed directly from this repository's URL.
+To do so, enter the `pkg>` prompt by typing `]` at the Julia REPL and type:
 ```julia
-(@v1.5) pkg> registry add https://github.com/wildart/BoffinStuff.git # needed for the unregistred package SmithNormalForm (which Crystalline depends on)
-(@v1.5) pkg> add https://github.com/thchr/Crystalline.jl
+pkg> add https://github.com/thchr/Crystalline.jl
 ```
 which will make Crystalline.jl available via 
 ```julia

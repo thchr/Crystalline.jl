@@ -9,7 +9,6 @@ using StaticArrays
 using JSON2
 using DelimitedFiles
 using JLD2
-using SmithNormalForm
 using PrettyTables
 using LightGraphs, MetaGraphs # → compatibility.jl
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
@@ -18,7 +17,7 @@ using Compat
 using Statistics: quantile
 using DocStringExtensions
 
-using Base: OneTo, @propagate_inbounds 
+using Base: OneTo, @propagate_inbounds
 
 import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              IndexStyle, size, length, # ⤶
@@ -33,7 +32,11 @@ import Random: rand           # ⤶
 
 # include submodules
 include("SquareStaticMatrices.jl")
-using .SquareStaticMatrices # exports SSqMatrix{D,T}
+using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
+
+# include vendored SmithNormalForm.jl package from ../.vendor/
+include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")
+using .SmithNormalForm # exports `smith`
 
 # included files and exports
 include("constants.jl")
