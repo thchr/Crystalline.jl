@@ -36,7 +36,10 @@ using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
 
 # include vendored SmithNormalForm.jl package from ../.vendor/
 include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")
-using .SmithNormalForm # exports `smith`
+using .SmithNormalForm
+export smith # export, so that loading Crystalline effectively also provides SmithNormalForm
+import .SmithNormalForm: Smith # TODO: remove explicit import when we update SmithNormalForm
+export Smith
 
 # included files and exports
 include("constants.jl")

@@ -127,7 +127,7 @@ See e.g. Po, Watanabe, & Vishwanath, Nature Commun. **8**, 50 (2017) for more in
 """
 function classification(BRS::BandRepSet)
     # get the diagonal components of the Smith normal decomposition (≥ 0)
-    Λ = smith(matrix(BRS)).SNF
+    Λ = smith(matrix(BRS), inverse=false).SNF
     @assert all(≥(0), Λ)
     nontriv_idx = findall(x-> !(isone(x) || iszero(x)), Λ)
     if isempty(nontriv_idx)
