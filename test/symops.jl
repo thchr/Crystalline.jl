@@ -88,6 +88,11 @@ using Crystalline, Test
         gens = ops[[2,6]]
         @test Set(generate(gens, modτ=false)) == Set(ops)
 
+        # generate space group with nonsymmorphic operations
+        sg = spacegroup(180) # P6₂22
+        gens = sg[[6,8]]     # {6₀₀₁⁺|0,0,⅓}, 2₁₀₀
+        @test sort(generate(gens), by=xyzt) ≈ sort(sg, by=xyzt)
+
         # generators do not specify a finite group under "non-modulo" composition
         @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
     end

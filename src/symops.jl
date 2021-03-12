@@ -896,7 +896,7 @@ function generate(gens::AbstractVector{SymOperation{D}};
                 # fixme: there are some _really_ strange allocations going on here, related
                 #        to the interplay between the `∉` and `push!`ing operations here; no 
                 #        clue why this happens... some sort of stack/heap conflict?
-                if opᵢⱼ ∉ ops
+                if !isapproxin(opᵢⱼ, ops; atol=DEFAULT_ATOL)
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
                     length(ops) > Nmax && return _throw_overflowed_generation()
