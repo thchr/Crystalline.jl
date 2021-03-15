@@ -191,8 +191,10 @@ function prepare_mpbcalc!(io::IO, sgnum::Integer, flat::AbstractFourierLattice{D
     if kvecs !== nothing 
         if kvecs isa AbstractString
             write(io, "\"", kvecs, "\"")
-        elseif kvecs isa AbstractVector{<:Vector{<:Number}}
+        elseif kvecs isa AbstractVector{<:AbstractVector{<:Real}}
             _vec2list(io, _vec2vector3, kvecs)
+        else
+            error("incompatible type for kvecs ($(typeof(kvecs)))")
         end
     else
         # easier just to write an empty string than nothing; otherwise we have to bother
