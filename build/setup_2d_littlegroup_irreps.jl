@@ -2,35 +2,50 @@ using Crystalline
 
 # The listings below include all unique, labelled k-points in the representation domain
 # whose little group is not trivial. In addition, Γ=(0,0) and Ω=(u,v) are included for 
-# every group. The notation follows of layer groups as given by LKVEC on the Bilbao server
-# (https://www.cryst.ehu.es/subperiodic/get_layer_kvec.html).
+# every group. The notation follows Bilbao's LKVEC tool [^1] entirely. Note that this
+# implies some occasionally odd-looking choices, e.g. (see (*) marks below):
+#   - *Plane groups 3 & 4*: the X and Y labels are defined counter-intuitively, such that
+#           X = (0,1/2) and Y = (1/2,0). This also differs from the definitions in other
+#           the other primitive rectangular (op) Bravais lattices (i.e. 6, 7, & 8), which
+#           instead have X = (1/2,0) etc. The difference also exists for k-line labels.
+#   - *Plane group 5 vs. 9*: although both are centred rectangular (oc) Bravais lattices,
+#           their k-vector labels do not agree, but differ by coordinate permutations.
+# The origin for these differences lies in different settings for the plane group
+# operations. Because we use Bilbao's conventions for plane group operations, we also stick
+# with their conventions for k-vector labels here, even though they are somewhat unsightly
+# occasionally.
+# Litvin & Wike's 'Character tables and compatibility relations of the eighty layer groups
+# and seventeen plane groups' (1991), give labels that do not have these deficiencies (and
+# otherwise agree with LKVEC) in table 24 and figure 7. However, this implies a different
+# setting for the symmetry operations, so we cannot really adopt it.
+# [1] [Bilbao's LKVEC](https://www.cryst.ehu.es/subperiodic/get_layer_kvec.html)
 PLANE2KVEC = Dict(
     1  => ([],               KVec{2}.([])),
     2  => (["Y", "B", "A"],  KVec{2}.(["0,1/2",   "1/2,0",   "1/2,-1/2"])),
-    3  => (["X", "Y", "S", 
+    3  => (["X", "Y", "S",                         #= (*) =#
             "Σ", "ΣA", "C",
             "CA"],           KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "0,u",   "0,-u",  "1/2,u",    "1/2,-u"])),
-    4  => (["X", "Y", "S",   #= non-symmorphic =#
+    4  => (["X", "Y", "S",   #= non-symmorphic =#  #= (*) =#
             "Σ", "ΣA", "C",
             "CA"],           KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "0,u",   "0,-u",  "1/2,u",    "1/2,-u"])),
-    5  => (["Y", "Σ", "ΣA",
+    5  => (["Y", "Σ", "ΣA",                        #= (*) =#
             "C", "CA"],      KVec{2}.(["0,1",     "0,2u",    "0,-2u",   "1,2u",  "1,-2u"])),
-    6  => (["X", "S", "Y",
+    6  => (["X", "Y", "S",
             "Σ", "C", "Δ",
-            "D"],            KVec{2}.(["1/2,0",   "1/2,1/2", "0,1/2",   "u,0",   "u,1/2", "0,u",      "1/2,u"])),
-    7  => (["Y", "X", "S",   #= non-symmorphic =#
+            "D"],            KVec{2}.(["1/2,0",   "0,1/2",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+    7  => (["X", "Y", "S",   #= non-symmorphic =#
             "Σ", "C", "Δ",
-            "D"],            KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
-    8  => (["Y", "X", "S",   #= non-symmorphic =#
+            "D"],            KVec{2}.(["1/2,0",   "0,1/2",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+    8  => (["X", "Y", "S",   #= non-symmorphic =#
             "Σ", "C", "Δ",
-            "D"],            KVec{2}.(["0,1/2",   "1/2,0",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
+            "D"],            KVec{2}.(["1/2,0",   "0,1/2",   "1/2,1/2", "u,0",   "u,1/2", "0,u",      "1/2,u"])),
     9  => (["Y", "S", "Σ",
             "Δ", "F", "C"],  KVec{2}.(["1,0",     "1/2,1/2", "2u,0",    "0,2u",  "1,2u",  "2u,1"])),
     10 => (["X", "M"],       KVec{2}.(["0,1/2",   "1/2,1/2"])),
     11 => (["X", "M", "Σ",
             "Δ", "Y"],       KVec{2}.(["0,1/2",   "1/2,1/2", "u,u",     "0,u",   "u,1/2"])),
-    12 => (["M", "X", "Δ",   #= non-symmorphic =#
-            "Y", "Σ"],       KVec{2}.(["1/2,1/2", "0,1/2",   "0,u",     "u,1/2", "u,u"])),
+    12 => (["X", "M", "Σ",   #= non-symmorphic =#
+            "Δ", "Y"],       KVec{2}.(["0,1/2",   "1/2,1/2", "u,u",     "0,u",   "u,1/2"])),
     13 => (["K", "KA"],      KVec{2}.(["1/3,1/3", "2/3,-1/3"])),
     14 => (["K", "M", "Σ",
             "ΣA"],           KVec{2}.(["1/3,1/3", "1/2,0",   "u,0",   "0,u"])),
