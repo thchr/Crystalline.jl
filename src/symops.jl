@@ -583,24 +583,29 @@ function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where
     end
 end
 
-""" 
+@doc raw""" 
     transform(op::SymOperation, P::Matrix{<:Real}, 
               p::Union{Vector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                          --> SymOperation
 
-Transforms a `op` ``= \\{W|w\\}`` by a rotation matrix `P` and a translation
+Transforms a `op` ``= \{\mathbf{W}|\mathbf{w}\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= \\{W'|w'\\}`` (see ITA6 Sec. 1.5.2.3):
+`op′` ``= \{\mathbf{W}'|\mathbf{w}'\}`` (see ITA6 Sec. 1.5.2.3):
 
-``\\{W'|w'\\} = \\{P|p\\}^{-1}\\{W|w\\}\\{P|p\\}``
+``
+\{\mathbf{W}'|\mathbf{w}'\} = \{\mathbf{P}|\mathbf{p}\}^{-1}\{\mathbf{W}|\mathbf{w}\}
+\{\mathbf{P}|\mathbf{p}\}
+``
 
 with
 
-``W' = P^{-1}WP`` and ``w' = P^{-1}(w+Wp-p)``
+``\mathbf{W}' = \mathbf{P}^{-1}\mathbf{W}\mathbf{P}``
+and
+``\mathbf{w}' = \mathbf{P}^{-1}(\mathbf{w}+\mathbf{W}\mathbf{p}-\mathbf{p})``
 
-By default, the translation part of `op′`, i.e. ``w'``, is reduced to the range ``[0,1)``, 
-i.e. computed modulo 1. This can be disabled by setting `modw = false` (default, `modw =
-true`).
+By default, the translation part of `op′`, i.e. ``\mathbf{w}'``, is reduced to the range
+``[0,1)``, i.e. computed modulo 1. This can be disabled by setting `modw = false` (default,
+`modw = true`).
 
 See also [`primitivize`](@ref) and [`conventionalize`](@ref).
 """

@@ -182,8 +182,8 @@ end
 """
     orbit(Ws, x)
 
-Computes the orbit of `x` under a set of point-group operations `Ws`,
-i.e. computes the set `{gx | g∈G}` where `g` denotes elements of the group
+Computes the orbit of a direct-space point `x` under a set of point-group operations `Ws`,
+i.e. computes the set ``{gx | g∈G}`` where `g` denotes elements of the group
 `G` composed of all operations in `Ws` (possibly iterated, to ensure
 full coverage).
 
@@ -249,28 +249,30 @@ function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) w
     return typeof(flat)(orbits′, deepcopy(getcoefs(flat))) # return in the same type as `flat`
 end
 
-"""
+@doc raw"""
     primitivize(flat::AbstractFourierLattice, cntr::Char) --> ::typeof(flat)
 
 Given `flat` referred to a conventional basis with centering `cntr`, compute the derived
 (but physically equivalent) lattice `flat′` referred to the associated primitive basis. 
 
-Specifically, if `flat` refers to a direct conventional basis `Rs` ``≡ (𝐚 𝐛 𝐜)`` [with 
-coordinate vectors ``𝐫 ≡ (r₁, r₂, r₃)^T``] then `flat′` refers to a direct primitive basis
-`Rs′` ``≡ (𝐚′ 𝐛′ 𝐜′) ≡ (𝐚 𝐛 𝐜)P`` [with coordinate vectors ``𝐫′ ≡ (r₁′, r₂′, r₃′)^T = P⁻¹𝐫``],
-where ``P`` denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
+Specifically, if `flat` refers to a direct conventional basis `Rs`
+``≡ (\mathbf{a} \mathbf{b} \mathbf{c})`` [with coordinate vectors
+``\mathbf{r} ≡ (r_1, r_2, r_3)^{\mathrm{T}}``] then `flat′` refers to a direct primitive
+basis `Rs′`
+``≡ (\mathbf{a}' \mathbf{b}' \mathbf{c}') ≡ (\mathbf{a} \mathbf{b} \mathbf{c})\mathbf{P}``
+[with coordinate vectors 
+``\mathbf{r}' ≡ (r_1', r_2', r_3')^{\mathrm{T}} = \mathbf{P}^{-1}\mathbf{r}``], where
+``\mathbf{P}`` denotes the basis-change matrix obtained from `primitivebasismatrix(...)`.
 
 To compute the associated primitive basis vectors, see
 [`primitivize(::DirectBasis, ::Char)`](@ref) [specifically, `Rs′ = primitivize(Rs, cntr)`].
 
-
-# Examples
+## Examples
 
 A centered ('c') lattice from plane group 5 in 2D, plotted in its 
 conventional and primitive basis (requires `using PyPlot`):
 
 ```julia-repl
-julia> using PyPlot
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
 
 julia> Rs   = directbasis(sgnum, D)     # conventional basis (rectangular)
@@ -280,6 +282,8 @@ julia> plot(flat, Rs)
 
 julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
 julia> flat′ = primitivize(flat, cntr)  # Fourier lattice in basis of Rs′
+
+julia> using PyPlot
 julia> plot(flat′, Rs′)
 ```
 """

@@ -85,20 +85,20 @@ Tables 2.1.2.1, 9.1.7.1, & 9.1.7.2 of the International Tables of
 Crystallography, Volume 1 (ITA). 
 There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 
-| `D`  | System       | Conditions             | Free parameters      |
-|------|--------------|------------------------|----------------------|
-| *1D* | linear       | none                   | a                    |
-| *2D* | square       | a=b & γ=90°            | a                    |
-|      | rectangular  | γ=90°                  | a,b                  |
-|      | hexagonal    | a=b & γ=120°           | a                    |
-|      | oblique      | none                   | a,b,γ                |
-| *3D* | cubic        | a=b=c & α=β=γ=90°      | a                    |
-|      | hexagonal    | a=b & α=β=90° & γ=120° | a,c                  |
-|      | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR)     |
-|      | tetragonal   | a=b & α=β=γ=90°        | a,c                  |
-|      | orthorhombic | α=β=γ=90°              | a,b,c                |
-|      | monoclinic   | α=γ=90°                | a,b,c,β≥90°          |
-|      | triclinic    | none                   | a,b,c,α,β,γ          |
+| `D`    | System       | Conditions             | Free parameters      |
+|:-------|--------------|------------------------|----------------------|
+| **1D** | linear       | none                   | a                    |
+| **2D** | square       | a=b & γ=90°            | a                    |
+|        | rectangular  | γ=90°                  | a,b                  |
+|        | hexagonal    | a=b & γ=120°           | a                    |
+|        | oblique      | none                   | a,b,γ                |
+| **3D** | cubic        | a=b=c & α=β=γ=90°      | a                    |
+|        | hexagonal    | a=b & α=β=90° & γ=120° | a,c                  |
+|        | trigonal     | a=b & α=β=90° & γ=120° | a,c (a,α for hR)     |
+|        | tetragonal   | a=b & α=β=γ=90°        | a,c                  |
+|        | orthorhombic | α=β=γ=90°              | a,b,c                |
+|        | monoclinic   | α=γ=90°                | a,b,c,β≥90°          |
+|        | triclinic    | none                   | a,b,c,α,β,γ          |
 
 The DirectBasis input is assumed to use *conventional* basis vectors; 
 i.e. not necessarily primitive. For primitive basis vectors, the 
@@ -536,8 +536,9 @@ Return a transformed coordinate vector `v′` from an original coordinate vector
 basis change matrix `P`.
 
 Note that a basis change matrix `P` transforms direct coordinate vectors ([`RVec`](@ref)) as
-``r′=P⁻¹r`` but transforms reciprocal coordinates ([`KVec`](@ref)) as ``k′ = Pᵀk`` (see e.g.
-ITA7 Sec. 1.5.1.2 and 1.5.2.1).
+``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordinates
+([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see e.g. ITA7 
+Secs. 1.5.1.2 and 1.5.2.1).
 """
 function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     k₀, kabc = parts(kv)
@@ -549,16 +550,17 @@ function transform(rv::RVec{D}, P::AbstractMatrix{<:Real}) where D
     return RVec{D}(P\rcnst, P\rfree)
 end
 
-"""
+@doc raw"""
     primitivize(v::T, cntr::Char) where T<:AbstractVec{D} --> v′::T
 
 Transforms a conventional coordinate vector `v` to a standard primitive basis (specified by
 the centering type `cntr`), returning the primitive coordinate vector `v′`.
 
-Note that a basis change matrix ``P`` (as returned e.g. by 
+Note that a basis change matrix ``P`` (as returned e.g. by
 [`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
-([`RVec`](@ref)) as ``r′=P⁻¹r`` but transforms reciprocal coordinates ([`KVec`](@ref)) as
-``k′ = Pᵀk`` (see e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
+([`RVec`](@ref)) as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal
+coordinates ([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see
+e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
 Recall also the distinction between transforming a basis and the coordinates of a vector.
 """
 function primitivize(v::AbstractVec{D}, cntr::Char) where D

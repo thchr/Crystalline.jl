@@ -1,10 +1,9 @@
 """
     schoenflies(sgnum::Integer) --> String
 
-Returns the Schoenflies notation for a given space group number
-`sgnum`. Schoenflies notation only applies to point groups and 
-space groups, not plane groups, so this notation is only relevant
-in three dimensions.
+Returns the [Schoenflies notation](https://en.wikipedia.org/wiki/Schoenflies_notation) for
+a given space group number `sgnum` in three dimensions.
+Note that Schoenflies notation is well-defined only for 3D point groups and space groups.
 """
 schoenflies(sgnum::Integer) = SCHOENFLIES_TABLE[sgnum]
 schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
@@ -14,11 +13,10 @@ schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
 
 Returns the IUC (International Union of Crystallography) notation for space group number
 `sgnum` and dimensionality `D`, as used in the International Tables of Crystallography. 
-The notation is sometimes also known as the Hermann-Mauguin notation; the functionality
-is consequently aliased by `hermannmauguin(sgnum, D)`. 
+The notation is sometimes also known as the
+[Hermann-Mauguin notation](https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation)
+and is also accessible by the alias `hermannmauguin(sgnum, D)`. 
 IUC/Hermann-Mauguin notation applies in one, two, and three-dimensions.
-
-For more information, see https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation.
 """
 @inline iuc(sgnum::Integer, D::Integer=3) = SGS_IUC_NOTATION[D][sgnum]
 @inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
@@ -179,28 +177,27 @@ const SGS_IUC_NOTATION = (
 
 
 
-""" 
+@doc raw"""
     seitz(op::SymOperation) --> String
 
 Computes the correponding Seitz notation for a symmetry operation in triplet/xyzt form.
 
 Implementation based on ITA5 Table 11.2.1.1, with 3D point group parts inferred from
-the trace and determinant of the matrix ``W`` in the triplet ``{W|w}``.
+the trace and determinant of the matrix ``\mathb{W]`` in the triplet
+``\{\mathbf{W}|\mathbf{w}\}``.
 
+| detW/trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |
+|:---------|----|----|----|----|---|---|---|
+| **1**    |    |    |  2 | 3  | 4 | 6 | 1 |
+| **-1**   | -1 | -6 | -4 | -3 | m |   |   |
 
-| detW\\trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |
-|-----------|----|----|----|----|---|---|---|
-|  1        |    |    |  2 | 3  | 4 | 6 | 1 |
-|  -1       | -1 | -6 | -4 | -3 | m |   |   |
+with the elements of the table giving the type of symmetry operation in in Hermann-Mauguin
+notation. The rotation axis and the rotation sense are computed following the rules in ITA6
+Sec. 1.2.2.4(1)(b-c). See also .
 
-with the elements of the table giving the type of symmetry operation in
-in Hermann-Mauguin notation. The rotation axis and the rotation sense are 
-computed following the rules in ITA6 Sec. 1.2.2.4(1)(b-c).
-The implementation has been checked against the Tables 1.4.2.1-5 of ITA6.
-
-Note that the orientation of axis (i.e. its sign) is not necessarily equal
-to the orientation picked in those tables; it is a matter of convention,
-and the conventions have not been explicated in ITA6.
+Note that the orientation of the axis (i.e. its sign) does not necessarily match the
+orientation picked in Tables 1.4.2.1-5 of ITA6; it is a matter of (arbitrary) convention,
+and the conventions have not been explicated in ITA.
 
 2D operations are treated by the same procedure, by elevation in a third dimension; 1D
 operations by a simple inspection of sign.

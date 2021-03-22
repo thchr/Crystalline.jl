@@ -134,7 +134,9 @@ jointly with the elements in `g`.
 
 ## Example
 ```jldoctest sitegroup
-julia> sgnum = 16; D = 2;
+julia> sgnum = 16;
+
+julia> D = 2;
 
 julia> wp = get_wycks(sgnum, D)[3] # pick a Wyckoff position
 2b: [0.3333333333333333, 0.6666666666666666]
@@ -274,9 +276,14 @@ position).
 
 ## Example
 ```jldoctest
-julia> sgnum = 5; D = 2;
+julia> sgnum = 5;
+
+julia> D = 2;
+
 julia> wps = get_wycks(sgnum, Val(D));
+
 julia> sg  = spacegroup(sgnum, Val(D));
+
 
 julia> sitegs = SiteGroup.(Ref(sg), wps)
 SiteGroup{2} #5 at 4b = [α, β] with 1 operations:
