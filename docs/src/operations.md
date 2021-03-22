@@ -4,10 +4,10 @@ Author = "Thomas Christensen"
 
 # Symmetry operations
 
-A [`SymOperation{D}`](@ref) is a representation of a spatial symmetry operation $g=\{W|w\}$, composed of a rotational $W$ and a translation part $w$.
+A [`SymOperation{D}`](@ref) is a representation of a spatial symmetry operation $g=\{\mathbf{W}|\mathbf{w}\}$, composed of a rotational $\mathbf{W}$ and a translation part $\mathbf{w}$.
 The rotational and translation parts are assumed to share the same basis system; by default, operations returned by tools in Crystalline.jl will return operations in the conventional setting of International Tables of Crystallography, Volume A (ITA).
 
-`SymOperation`s can be constructed in two ways, either by explicitly specifying the $W$ and $w$:
+`SymOperation`s can be constructed in two ways, either by explicitly specifying the $\mathbf{W}$ and $\mathbf{w}$:
 
 ```@example operations
 using Crystalline, StaticArrays
@@ -23,13 +23,13 @@ There is also a string macro accessor `@S_str` that allows triplet input via `S"
 In the above output, three equivalent notations for the symmetry operation are given: first, the Seitz notation {m₀₋₁₁|0,½,0}, then the triplet notation (x,z+1/2,y), and finally the explicit matrix notation.
 
 ## Components
-The rotation and translation parts $W$ and $w$ of a `SymOperation{D}` $\{W|w\}$ can be accessed via [`rotation`](@ref) and [`translation`](@ref),  returning an `SMatrix{D, D, Float64}` and an `SVector{D, Float64}`, respectively.
-The "augmented" matrix $[W|w]$ can similarly be obtained via [`matrix`](@ref).
+The rotation and translation parts $\mathbf{W}$ and $\mathbf{w}$ of a `SymOperation{D}` $\{\mathbf{W}|\mathbf{w}\}$ can be accessed via [`rotation`](@ref) and [`translation`](@ref),  returning an `SMatrix{D, D, Float64}` and an `SVector{D, Float64}`, respectively.
+The "augmented" matrix $[\mathbf{W}|\mathbf{w}]$ can similarly be obtained via [`matrix`](@ref).
 
 ## Operator composition
 Composition of two operators $g_1$ and $g_2$ is defined by 
 ```math
-g_1 \circ g_2 = \{W_1|w_1\} \circ \{W_2|w_2\} = \{W_1W_2|w_1 + W_1w_2\}
+g_1 \circ g_2 = \{\mathbf{W}_1|\mathbf{w}_1\} \circ \{\mathbf{W}_2|\mathbf{w}_2\} = \{\mathbf{W}_1\mathbf{W}_2|\mathbf{w}_1 + \mathbf{W}_1\mathbf{w}_2\}
 ```
 We can compose two `SymOperation`s in Crystalline via:
 ```@example operations
@@ -49,7 +49,7 @@ compose(op1, op2′, false)
 ```
 
 ## Operator inverses
-The operator inverse is defined as $\{W|w\} = \{W^{-1}|-W^{-1}w\}$ and can be computed via
+The operator inverse is defined as $\{\mathbf{W}|\mathbf{w}\} = \{\mathbf{W}^{-1}|-\mathbf{W}^{-1}\mathbf{w}\}$ and can be computed via
 ```@example operations
 inv(op1) # inv(3₁₁₁⁺)
 ```
