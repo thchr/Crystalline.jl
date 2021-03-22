@@ -4,7 +4,7 @@ using Crystalline, JLD2
     __write_littlegroupirreps(LGIRS::Vector{Dict{Vector{LGIrrep}}})
                                                     --> ::String, ::String
 
-Write all little group/small irreps, i.e. `LGIrrep`s, in the input to disk, as JSON files,
+Write all little group/small irreps, i.e. `LGIrrep`s, in the input to disk, as JLD2 files,
 in order to ease subsequent loading of `LGIrrep`s. Input is of the type
 
     `LGIRS::Vector{Dict{Vector{LGIrrep}}}`

@@ -19,17 +19,14 @@ end
 """ 
     read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 
-Obtains the symmetry operations in xyzt format for a given space group
-number `sgnum` by reading from json files; see `spacegroup` for additional
-details. Much faster than crawling; generally preferred.
+Obtains the symmetry operations in xyzt format for a given space group number `sgnum` by
+reading from .csv files in `data/sgops/`; see `spacegroup` for additional details.
 """
-function read_sgops_xyzt(sgnum::Integer, D::Integer=3)
+function read_sgops_xyzt(sgnum::Integer, D::Integer)
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
-    filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".json"
-    sgops_str::Vector{String} = open(filepath) do io
-        JSON2.read(io)
-    end
+    filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".csv"
+    sgops_str = readlines(filepath)
 
     return sgops_str
 end

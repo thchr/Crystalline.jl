@@ -1,14 +1,14 @@
-using JSON2, Crystalline, HTTP, Gumbo
+using Crystalline, HTTP, Gumbo
 
 #= Small convenience script to crawl and subsequently write all the xyzt
    forms of the symmetry operations of the 230 three-dimensional space-
    groups. Enables us to just read the symmetry data from the hard-disk
    rather than constantly querying the Bilbao server =#
-for i = 1:230
-    sgops_str = Crystalline.crawl_sgops_xyzt(i)
-    filename = (@__DIR__)*"/../data/sgops/3d/"*string(i)*".json"
+for sgnum in 1:230
+    sgops_str = Crystalline.crawl_sgops_xyzt(sgnum)
+    filename = (@__DIR__)*"/../data/sgops/3d/"*string(sgnum)*".csv"
     open(filename; write=true, create=true, truncate=true) do io
-        JSON2.write(io, sgops_str)
+        foreach(str -> write(io, str, '\n'), sgops_str)
     end 
 end
 
@@ -34,16 +34,12 @@ function crawl_sgops_xyzt(sgnum::Integer, D::Integer=3)
 end
 
 function crawl_sgops_html(sgnum::Integer, D::Integer=3)
-    if D != 3; error("We do not crawl plane group data; see json files instead; manually crawled.") end
-    if sgnum < 1 || sgnum > 230; error(DomainError(sgnum)); end
+    D != 3 && error("only 3D space group operations are crawlable")
+    (sgnum < 1 || sgnum > 230) && error(DomainError(sgnum))
 
-    if D == 3
-        baseurl = "http://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
-        contents = HTTP.request("GET", baseurl * string(sgnum))
-        return parsehtml(String(contents.body))
-    else
-        error("We did not yet implement 2D plane groups")
-    end
+    baseurl = "http://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
+    contents = HTTP.request("GET", baseurl * string(sgnum))
+    return parsehtml(String(contents.body))
 end
 
 function _stripnum(s)

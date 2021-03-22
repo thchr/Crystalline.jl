@@ -79,10 +79,8 @@ function read_pgops_xyzt(iuclab::String, ::Val{D}=Val(3)) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
     iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
-    filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".json"
-    ops_str = open(filepath) do io
-        JSON2.read(io)
-    end
+    filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
+    ops_str = readlines(filepath)
     return ops_str
 end
 read_pgops_xyzt(iuclab::String, D::Integer) = read_pgops_xyzt(iuclab, Val(D))

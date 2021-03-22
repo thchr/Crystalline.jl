@@ -6,7 +6,6 @@ module Crystalline
 # dependencies
 using LinearAlgebra
 using StaticArrays
-using JSON2
 using DelimitedFiles
 using JLD2
 using PrettyTables
