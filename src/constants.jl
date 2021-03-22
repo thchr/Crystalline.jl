@@ -1,6 +1,13 @@
 # --- SCALARS ---
 const DEFAULT_ATOL = 1e-12        # absolute tolerance for approximate equality
 const NULL_ATOL    = 1e-11        # absolute tolerance for nullspace
+
+@doc raw"""
+    MAX_SGNUM :: Tuple{Int,Int,Int}
+
+Return the number of distinct space group types across dimensions 1, 2, and 3 (indexable by
+dimensionality).
+"""
 const MAX_SGNUM    = (2, 17, 230) # number of space groups in dimensions 1, 2, and 3
 
 # --- VECTORS ---
@@ -24,3 +31,36 @@ const SYMMORPH_SGNUMS = (# 1D (1st index; all elements are symmorph)
                           164,166,168,174,175,177,183,187,189,191,195,196,197,
                           200,202,204,207,209,211,215,216,217,221,225,229)
                         )
+
+
+@doc raw"""
+    ENANTIOMORPHIC_PAIRS :: NTuple{11, Pair{Int,Int}}
+
+Return the space group numbers of the 11 enantiomorphic space group pairs in 3D.
+
+The space group types associated with each such pair `(sgnum, sgnum')` are related by a
+mirror transformation: i.e. there exists a transformation 
+``\mathbb{P} = \{\mathbf{P}|\mathbf{p}\}`` between the two groups ``G = \{g\}`` and
+``G' = \{g'\}`` such that ``G' = \mathbb{P}^{-1}G\mathbb{P}`` where ``\mathbf{P}`` is
+improper (i.e. ``\mathrm{det}\mathbf{P} < 0``).
+
+We define distinct space group *types* as those that cannot be related by a proper
+transformation (i.e. with ``\mathrm{det}\mathbf{P} > 0``). With that view, there are 230
+space group types. If the condition is relaxed to allow improper rotations, there are 
+``230-11 = 219`` distinct *affine* space group types. See e.g. ITA5 Section 8.2.2.
+
+The enantiomorphic space group types are also chiral space group types in 3D. There are no
+enantiomorphic pairs in lower dimensions; in 3D all enantiomorphic pairs involve screw
+symmetries, whose direction is inverted between pairs (i.e. have opposite handedness).
+"""
+const ENANTIOMORPHIC_PAIRS = (76 => 78,   91 => 95,   92 => 96,   144 => 145, 152 => 154,
+                              151 => 153, 169 => 170, 171 => 172, 178 => 179, 180 => 181,
+                              213 => 212)
+# this is just the cached result of
+#   pairs_label = [ # cf. ITA5 p. 727
+#       "P4₁" => "P4₃", "P4₁22" => "P4₃22", "P4₁2₁2" => "P4₃2₁2", "P3₁" => "P3₂", 
+#       "P3₁21" => "P3₂21", "P3₁12" => "P3₂12", "P6₁" => "P6₅", "P6₂" => "P6₄", 
+#       "P6₁22" => "P6₅22", "P6₂22" => "P6₄22", "P4₁32" => "P4₃32"
+#       ]
+#   iucs = iuc.(1:230)
+#   pairs = map(((x,y),) -> findfirst(==(x), iucs) => findfirst(==(y), iucs), ps)

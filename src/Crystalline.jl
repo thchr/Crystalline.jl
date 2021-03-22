@@ -43,7 +43,7 @@ export Smith
 
 # included files and exports
 include("constants.jl")
-export MAX_SGNUM
+export MAX_SGNUM, ENANTIOMORPHIC_PAIRS
 
 include("utils.jl") # useful utility methods (seldom needs exporting)
 export splice_kvpath, interpolate_kvpath
