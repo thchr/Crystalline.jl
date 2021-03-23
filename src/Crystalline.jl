@@ -9,7 +9,6 @@ using StaticArrays
 using DelimitedFiles
 using JLD2
 using PrettyTables
-using LightGraphs, MetaGraphs # → compatibility.jl
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
 using Requires
 using Compat

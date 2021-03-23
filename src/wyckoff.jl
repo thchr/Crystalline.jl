@@ -322,7 +322,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
             wp′_orbit = orbit(g′) # must check for all orbits of wp′ in general
             for wp′′ in wp′_orbit
                 v′ = vec(wp′′)
-                if _can_intersect(v, v′) # `wp′` can "intersects" `wp` and is higher order
+                if _can_intersect(v, v′) # `wp′` can "intersect" `wp` and is higher order
                     has_higher_sym_nearby = true
                     break
                 end
@@ -338,7 +338,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
 end
 
 
-function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D}; 
+function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
                         atol::Real=DEFAULT_ATOL) where D
     # check if solution exists to [A] v′ = v(αβγ) or [B] v′(αβγ′) = v(αβγ) by solving
     # a least squares problem and then checking if it is a strict solution. Details:
@@ -363,10 +363,10 @@ function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
     # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
     # listings that we have have in 3D, this seems to only make a difference in a single 
     # case (SG 130, wyckoff position 8f) - but there the distinction is actually needed
-    for R in Iterators.product(ntuple(_->(0.0,-1.0,1.0), Val(D))...) # loop over nearest lattice vecs
-        Δcnst_plus_R = Δcnst + SVector{D,Float64}(R)
-        αβγ = Δfree⁻¹*Δcnst_plus_R   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
-        Δ = Δcnst_plus_R - Δfree*αβγ # residual of least squares solve
+    for V in Iterators.product(ntuple(_->(0.0,-1.0,1.0), Val(D))...) # loop over nearest lattice vecs
+        Δcnst_plus_V = Δcnst + SVector{D,Float64}(V)
+        αβγ = Δfree⁻¹*Δcnst_plus_V   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
+        Δ = Δcnst_plus_V - Δfree*αβγ # residual of least squares solve
         norm(Δ) < atol && return true
     end
 

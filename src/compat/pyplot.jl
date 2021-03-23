@@ -170,7 +170,6 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
 end
 
 # Meshing utilities (for ::AbstractFourierLattice) ----------------------------------------
-using .Meshing
 
 function mesh_3d_levelsetlattice(vals, isoval::Real, Rs::DirectBasis{3})
     # marching cubes algorithm to find isosurfaces (using Meshing.jl)

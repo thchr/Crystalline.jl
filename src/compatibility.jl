@@ -76,167 +76,55 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function find_compatible_kvec(kv::KVec, kvs′::Vector{KVec})
-    !isspecial(kv) && throw(DomainError(kv, "input kv must be a special k-point"))
+function find_compatible_kvec(kv::KVec{D}, kvs′::Vector{KVec{D}}) where D
+    isspecial(kv) || throw(DomainError(kv, "input kv must be a special k-point"))
 
     compat_idxs = Vector{Int64}()
-    compat_αβγs = Vector{Vector{Float64}}()
     @inbounds for (idx′, kv′) in enumerate(kvs′)
         isspecial(kv′) && continue # must be a line/plane/general point to match a special point kv
-        compat_bool, αβγ′ = is_compatible_kvec(kv, kv′)
-        if compat_bool
-            push!(compat_idxs, idx′)
-            push!(compat_αβγs, αβγ′)
-        end
+        is_compatible_kvec(kv, kv′) && push!(compat_idxs, idx′) 
     end
 
-    return compat_idxs, compat_αβγs
+    return compat_idxs
 end
 
 """
 $(TYPEDSIGNATURES)
 
-Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. If so,
-return an `αβγ′` value such that `kv = kv′(αβγ′)`.
+Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. Note
+that, in general, this is only meaningful if the basis of `kv` and `kv′` is primitive.
 
 TODO: This method should eventually be merged with the equivalently named method in
       PhotonicBandConnectivity/src/connectivity.jl, which handles everything more correctly,
       but currently has a slightly incompatible API.
 """
 function is_compatible_kvec(kv::KVec, kv′::KVec)
-    # TODO: I think we need to do this in the primitive basis! But it is nontrivial, since
-    #       if we match k-points across a G-vector, we also need to transform the irrep
-    #       with a suitable phase factor.
-    # TODO: could be made more robust, e.g., inspired by `_can_intersect` in src/wyckoff.jl
     isspecial(kv) || throw(DomainError(kv, "must be special"))
-    isspecial(kv′) && return false, nothing
+    isspecial(kv′) && return false
 
-    k₀, _  = parts(kv) 
-    k₀′, kabc′ = parts(kv′)
-
-    # least squares solve via QR factorization; equivalent to pinv(kabc)*(k₀-k₀′) but faster
-    αβγ′ = qr(Matrix(kabc′), Val(true))\(k₀-k₀′) # NB: have to dispatch `qr` on "plain" `Matrix` due to https://github.com/JuliaArrays/StaticArrays.jl/issues/478
-    k′ = k₀′ + kabc′*αβγ′
-    # check if least squares solution actually is a solution
-    compat_bool = isapprox(k₀, k′, atol=DEFAULT_ATOL)
-
-    return compat_bool, compat_bool ? αβγ′ : nothing
+    return _can_intersect(kv′, kv)
+    # TODO: We need some way to also get the intersection αβγ and reciprocal lattice vector
+    #       difference, if any.
 end
 
-"""
-$(TYPEDSIGNATURES)
-
-TODO: Seems entirely broken? Not sure what this is supposed to do.
-"""
-function compatibility(lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(values(lgirsd)))
-    klabs = collect(keys(lgirsd))
-    Nk    = length(kvs)
-    
-    # prepare a graph for the connections between k-vectors
-    kgraph = MetaDiGraph(Nk)
-    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
-        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
-    end
-
-    for (kidxᴳ, lgirs) in enumerate(values(lgirsd))                 # parent group 
-        kvᴳ = kvs[kidxᴳ]
-        !isspecial(kvᴳ) && continue # starting point is always a special k-point
-        compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
-        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)  # subgroup
-            klabᴴ = kvs[kidxᴴ]
-            add_edge!(kgraph, kidxᴳ, kidxᴴ)
-            for (iᴳ, Dᴳᵢ) in enumerate(lgirs)
-                for (jᴴ, Dᴴⱼ) in enumerate(lgirsd[klabᴴ])
-                    nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγᴴ)
-                    if !iszero(nᴳᴴᵢⱼ) # add an edge between irreps Dᴳᵢ and Dᴴⱼ
-                        add_edge!() # FIXME: Uh??
-                    end
-                end
-            end
-        end
-    end
-    return kgraph
-end
-
-
-"""
-    connectivity(lgirsd)
-"""
-function connectivity(lgirsd::Dict{String,<:AbstractVector{LGIrrep{D}}}) where D
-    kvs   = kvec.(first.(values(lgirsd)))
-    klabs = collect(keys(lgirsd))
-    Nk    = length(kvs)
-    
-    # prepare a graph for the connections between k-vectors
-    kgraph = MetaDiGraph(Nk)
-    foreach(zip(eachindex(kvs), kvs, klabs)) do (i,kv,kl)
-        set_props!(kgraph, i, Dict(:kvec=>kv, :klab=>kl))
-    end
-
-    Nspecial = 0
-    @inbounds for (kidxᴳ, lgirs) in enumerate(values(lgirsd)) # parent group 
-        kvᴳ = kvs[kidxᴳ]
-        if isspecial(kvᴳ)
-            Nspecial += 1
-        else
-            continue # starting point is always a special k-point
-        end
-        compat_idxs, compat_αβγs = find_compatible_kvec(kvᴳ, kvs)
-        for (kidxᴴ, αβγᴴ) in zip(compat_idxs, compat_αβγs)    # subgroup
-            add_edge!(kgraph, kidxᴳ, kidxᴴ)
-        end
-    end
-
-    cgraph = MetaGraph(Nspecial) # connectivity graph for special k-vecs
-    local_kidx¹ = 0
-    @inbounds for (kidx¹, klab¹) in enumerate(klabs)
-        isspecial(kvs[kidx¹]) || continue      # only compare special vectors
-        local_kidx¹ += 1
-        set_props!(cgraph, local_kidx¹, Dict(:kvec=>kvs[kidx¹], 
-                                             :klab=>klab¹, 
-                                             :kidx=>kidx¹)) 
-        local_kidx² = 0
-        for (kidx²,_) in enumerate(klabs)
-            isspecial(kvs[kidx²]) || continue  # only compare special vectors
-            local_kidx² += 1
-            kidx¹≥kidx² && continue            # avoid double & self-comparisons
-
-            nbs = common_neighbors(kgraph, kidx¹, kidx²)
-            for (nbidx, nb) in enumerate(nbs)
-                # if the neighbor is just the general point Ω≡[α,β,γ], 
-                # we don't consider the two vectors connected
-                if kvs[nb] == KVec{D}(zero(SVector{D,Float64}), SMatrix{D,D,Float64,D*D}(I))
-                    deleteat!(nbs, nbidx)
-                    break
-                end      
-            end
-            isempty(nbs) && continue # Ω is only connecting edge (trivial case)
-            add_edge!(cgraph, local_kidx¹, local_kidx²) 
-            set_props!(cgraph, Edge(local_kidx¹, local_kidx²), 
-                               Dict(:klabs=>klabs[nbs],
-                                    :kvecs=>kvs[nbs],
-                                    :kidxs=>nbs)
-                      )
-        end
-    end          
-    return cgraph, kgraph
-end
-
-
+#=
 function compatibility_matrix(BRS::BandRepSet)
     lgirs_in, lgirs_out = matching_lgirreps(BRS::BandRepSet)
     for (iᴳ, Dᴳᵢ) in enumerate(lgirs_in)         # super groups
         for (jᴴ, Dᴴⱼ) in enumerate(lgirs_out)    # sub groups
             # we ought to only check this on a per-kvec basis instead of 
             # on a per-lgir basis to avoid redunant checks, but can't be asked...
-            compat_bool, αβγ′ = is_compatible_kvec(kvec(Dᴳᵢ), kvec(Dᴴⱼ))
+            compat_bool  = is_compatible_kvec(kvec(Dᴳᵢ), kvec(Dᴴⱼ))
+            # TODO: Get associated (αβγ, G) "matching" values that makes kvⱼ and kvᵢ and 
+            #       compatible; use to get correct lgirs at their "intersection".
             if compat_bool
-                nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγ′)
+                nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγ)
                 if !iszero(nᴳᴴᵢⱼ)
-                    # TODO (more complicated than I thought: have to match across different special lgirreps)
+                    # TODO: more complicated than I thought: have to match across different
+                            special lgirreps.
                 end 
             end
         end
     end
 end
+=#
