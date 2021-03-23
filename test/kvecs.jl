@@ -21,6 +21,8 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test KVec{2}("α,.5")() == KVec{2}("α,.5")(nothing) == [0,0.5]
         @test KVec{3}("u,v,0.5")([.7,.2,.3]) == [.7,.2,.5]
         @test KVec{3}("v,u,0.5")([.7,.2,.3]) == [.2,.7,.5]
+
+        @test zero(KVec{3}) == KVec{3}("0,0,0") == zero(KVec{3}("1,2,3"))
     end
 
     αβγ = Crystalline.TEST_αβγ

@@ -295,7 +295,10 @@ for op in (:(-), :(+))
         return T($op(cnst1, cnst2), $op(free2))
     end
 end
-zero(v::T) where T<:AbstractVec{D} where D = T(zero(SVector{D,Float64}), zero(SqSMatrix{D,Float64}))
+function zero(::Type{T}) where T<:AbstractVec{D} where D
+    T(zero(SVector{D,Float64}), zero(SqSMatrix{D,Float64}))
+end
+zero(v::AbstractVec) = zero(typeof(v))
 
 # `isapprox` without considerations of lattice-vectors
 function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
