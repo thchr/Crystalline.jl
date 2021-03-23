@@ -19,15 +19,16 @@ using Crystalline, Test
         @test xyzt(op) == "-x+y+1/3,-x+2/3,z+2/3"
 
         # Plane group #7
-        plg = spacegroup(7, 2) # keep as 2 (rather than Val(2)) intentionally, to test...
-        @test order(plg) == 4
-        @test dim(plg) == 2
-        op = plg[2]
+        sg = spacegroup(7, 2) # keep as 2 (rather than Val(2)) intentionally, to test...
+        @test order(sg) == 4
+        @test dim(sg) == 2
+        op = sg[2]
         @test matrix(op) ≈ [-1.0 0.0 0.0; 0.0 -1.0 0.0]
         @test xyzt(op) == "-x,-y"
 
         # Round-trippability of constructors
         op = SymOperation{3}("-y,x,z+1/2")
+        @test op == SymOperation("-y,x,z+1/2")
         @test op == S"-y,x,z+1/2"
         @test op == SymOperation(rotation(op), translation(op)) 
         @test op == SymOperation(matrix(op)) # SMatrix
@@ -35,13 +36,14 @@ using Crystalline, Test
     end
 
     @testset "Conversion between xyzt and matrix forms" begin
-        for dim = 1:3
-            for sgnum in 1:MAX_SGNUM[dim]
-                    @testset "SG$sgnum ($(dim)D)" begin
-                    sg = spacegroup(sgnum, dim)
+        for D = 1:3
+            Dᵛ = Val(D)
+            for sgnum in 1:MAX_SGNUM[D]
+                    @testset "SG$sgnum ($(D)D)" begin
+                    sg = spacegroup(sgnum, Dᵛ)
                     for op in sg
-                        @test all(Crystalline.xyzt2matrix(xyzt(op)) == matrix(op)) # xyzt->matrix
-                        @test all(Crystalline.matrix2xyzt(matrix(op)) == xyzt(op)) # matrix->xyzt
+                        @test all(Crystalline.xyzt2matrix(xyzt(op), Dᵛ) == matrix(op)) # xyzt->matrix
+                        @test all(Crystalline.matrix2xyzt(matrix(op))   == xyzt(op))   # matrix->xyzt
                     end
                 end
             end
@@ -49,10 +51,10 @@ using Crystalline, Test
     end
 
     @testset "Composition" begin
-        ops = spacegroup(230, 3) # random space group
+        sg = spacegroup(230, Val(3)) # random space group
 
         # test associativity (with and without modular arithmetic)
-        g₁, g₂, g₃ = ops[5:7] 
+        g₁, g₂, g₃ = sg[5:7] 
         @test g₁∘(g₂∘g₃) == (g₁∘g₂)∘g₃
         @test compose(compose(g₁, g₂, false), g₃, false) == compose(g₁, compose(g₂, g₃, false), false)
     end

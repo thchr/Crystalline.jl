@@ -75,59 +75,49 @@ See also [`directbasis`](@ref).
 end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
-# TODO: make the various transformations between xyzt and matrix form return and take 
-#       SMatrix{D,D+1,...} exclusively.
-function xyzt2matrix(s::AbstractString)
-    ssub = split(s, ',')
-    D = length(ssub)
-    xyzt2matrix!(zeros(Float64, D, D+1), ssub)
+function xyzt2matrix(s::AbstractString, ::Val{D}) where D
+    itr = split(s, ',')
+
+    A = zero(MMatrix{D, D+1, Float64})
+    return SMatrix(xyzt2matrix!(A, itr))
 end
 
-function xyzt2matrix!(O::Matrix{Float64}, s::Union{T, AbstractVector{T}} where T<:AbstractString)
-    if s isa AbstractString
-        itr = split(s, ',')
-    elseif s isa Array
-        itr = s
+@inline function xyzt2matrix!(A::StaticArray{Tuple{D,Dp1},T},
+                              xyzts::AbstractVector{<:AbstractString}) where {D,Dp1,T<:Real}
+    D+1 == Dp1 || throw(DimensionMismatch("incompatible matrix size"))
+    length(xyzts) == D || throw(DimensionMismatch("incompatible matrix size and string format"))
+    
+    @inbounds for (i,s) in enumerate(xyzts)
+        # rotation/inversion/reflection part
+        firstidx = nextidx = firstindex(s)
+        while (idx = findnext(c -> c=='x' || c=='y' || c=='z', s, nextidx)) !== nothing
+            c = s[idx]
+            j = c=='x' ? 1 : (c=='y' ? 2 : 3)
+            
+            previdx = prevind(s, idx)
+            if idx == firstidx || s[previdx] == '+'
+                A[i,j] = one(T)
+            elseif s[previdx] == '-'
+                A[i,j] = -one(T)
+            end
+            nextidx = nextind(s, idx)
+        end
+
+        # nonsymmorphic part/fractional translation part
+        lastidx = lastindex(s)
+        if nextidx ≤ lastidx # ⇒ stuff "remaining" in `s`; a nonsymmorphic part
+            slashidx = findnext(==('/'), s, nextidx)
+            if slashidx !== nothing # interpret as integer fraction
+                num = SubString(s, nextidx, prevind(s, slashidx))
+                den = SubString(s, nextind(s, slashidx), lastidx)
+                A[i,Dp1] = convert(T, parse(Int, num)/parse(Int, den))
+            else                    # interpret at number of type `T`
+                A[i,Dp1] = parse(T, SubString(s, nextidx, lastidx))
+            end
+        end
     end
 
-    @inbounds for (i, op) in enumerate(itr)
-        # rotation/inversion/reflection part
-        firstidx = nextidx = firstindex(op)
-        while true
-            idx = findnext(c -> c==='x' || c==='y' || c==='z', op, nextidx)
-            if idx !== nothing
-                opchar = op[idx]
-                if      opchar === 'x';   j = 1; 
-                elseif  opchar === 'y';   j = 2;
-                else #= opchar === 'z' =# j = 3; end # opchar can only be 'z' at this point; no need to check
-                
-                previdx = prevind(op, idx)
-                if idx == firstidx || op[previdx] === '+'
-                    O[i,j] = 1.0
-                elseif op[previdx] === '-'
-                    O[i,j] = -1.0
-                end
-                nextidx = nextind(op, idx)
-            else
-                break
-            end
-        end
-        
-        # nonsymmorphic part/fractional translation part
-        lastidx = lastindex(op)
-        if nextidx ≤ lastidx # ... then there's stuff "remaining" in op; a nonsymmorphic part
-            slashidx = findnext(==('/'), op, nextidx)
-            if slashidx !== nothing # interpret as integer fraction
-                num = SubString(op, nextidx, prevind(op, slashidx))
-                den = SubString(op, nextind(op, slashidx), lastidx)
-                O[i,end] = parse(Int64, num)/parse(Int64, den)
-            else                    # interpret at floating point number
-                O[i,end] = parse(Float64, SubString(op, nextidx, lastidx))
-            end
-        end
-    end
-        
-    return O
+    return A
 end
 
 signaschar(x::Number) = signbit(x) ? '-' : '+'

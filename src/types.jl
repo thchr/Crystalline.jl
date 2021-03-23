@@ -87,11 +87,11 @@ matrix(op::SymOperation{D}) where D =
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
-SymOperation{D}(s::AbstractString) where D = (m=xyzt2matrix(s); SymOperation{D}(m))
+SymOperation{D}(s::AbstractString) where D = SymOperation{D}(xyzt2matrix(s, Val(D)))
 # type-unstable convenience constructors; avoid for anything non-REPL related, if possible
 SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)
-SymOperation(s::AbstractString) = (m=xyzt2matrix(s); SymOperation(m))
+SymOperation(s::AbstractString) = SymOperation{count(==(','), s)+1}(s)
 
 # define the AbstractArray interface for SymOperation
 @propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
