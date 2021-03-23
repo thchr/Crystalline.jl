@@ -11,7 +11,6 @@ using JLD2
 using PrettyTables
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
 using Requires
-using Compat
 using Statistics: quantile
 using DocStringExtensions
 

@@ -5,7 +5,6 @@ version = "0.3.0"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
-Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
@@ -20,7 +19,6 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 Combinatorics = "1.0"
-Compat = "3.25"
 DocStringExtensions = "0.8"
 JLD2 = "0.2.4"
 Meshing = "0.5" # for compat/pyplot.jl w/ Requires-load
