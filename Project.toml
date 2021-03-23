@@ -4,7 +4,6 @@ authors = ["Thomas Christensen <tchr@mit.edu>"]
 version = "0.3.0"
 
 [deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
@@ -22,7 +21,6 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-CSV = "0.8"
 Combinatorics = "1.0"
 Compat = "3.25"
 DocStringExtensions = "0.8"
