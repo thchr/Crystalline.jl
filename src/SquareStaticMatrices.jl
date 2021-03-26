@@ -15,6 +15,7 @@ module SquareStaticMatrices
 using LinearAlgebra: checksquare
 using Base: @propagate_inbounds
 
+using StaticArrays: StaticMatrix
 import StaticArrays: SMatrix, MMatrix
 import Base: convert, size, getindex, firstindex, lastindex, eachcol, one, zero,
              IndexStyle
@@ -26,7 +27,7 @@ export SqSMatrix
 
 # an equivalent of `SMatrix{D,D,T}`, but requiring only a single dimension type
 # parameter, rather than two
-struct SqSMatrix{D, T} <: AbstractMatrix{T}
+struct SqSMatrix{D, T} <: StaticMatrix{D, D, T}
     cols::NTuple{D, NTuple{D, T}} # tuple of columns (themselves stored as tuples)
 end
 
@@ -42,7 +43,7 @@ eachcol(A::SqSMatrix) = A.cols
     i, j = (idx+D-1)÷D, mod1(idx, D)
     return @inbounds A.cols[j][i]
 end
-@propagate_inbounds function getindex(A::SqSMatrix{D}, i::Integer, j::Integer) where D
+@propagate_inbounds function getindex(A::SqSMatrix{D}, i::Int, j::Int) where D
     @boundscheck (1 ≤ i ≤ D && 1 ≤ j ≤ D) || throw(BoundsError(A, (i,j)))
     return @inbounds A.cols[j][i]
 end
@@ -109,6 +110,8 @@ end
 SqSMatrix(A::SMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 SqSMatrix{D,T}(A::SMatrix{D,D,T′}) where {D,T,T′} = convert(SqSMatrix{D,T}, convert(SMatrix{D,D,T}, A))
 
+# resolve ambiguity in convert due to interaction w/ StaticArray's `StaticMatrix` subtyping:
+convert(::Type{SqSMatrix{D, T}}, A::SqSMatrix{D, T}) where {D, T} = A
 
 # ---------------------------------------------------------------------------------------- #
 # linear algebra and other methods
