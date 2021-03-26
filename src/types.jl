@@ -72,8 +72,9 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
     SymOperation{D}(rotation, translation)
 end
-function SymOperation(r::SMatrix{D,D,<:Real}, 
-                      t::SVector{D,<:Real}=zero(SVector{D, Float64})) where D
+function SymOperation(r::Union{SMatrix{D,D,<:Real}, MMatrix{D,D,<:Real}}, 
+                      t::Union{SVector{D,<:Real}, MVector{D,<:Real}}=zero(SVector{D,Float64})
+                      ) where D
     SymOperation{D}(SqSMatrix{D,Float64}(r), t)
 end
 SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
@@ -87,7 +88,7 @@ matrix(op::SymOperation{D}) where D =
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
-SymOperation{D}(s::AbstractString) where D = SymOperation{D}(xyzt2matrix(s, Val(D)))
+SymOperation{D}(s::AbstractString) where D = SymOperation{D}(xyzt2components(s, Val(D))...)
 # type-unstable convenience constructors; avoid for anything non-REPL related, if possible
 SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)

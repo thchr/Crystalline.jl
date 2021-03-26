@@ -75,17 +75,25 @@ See also [`directbasis`](@ref).
 end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
-function xyzt2matrix(s::AbstractString, ::Val{D}) where D
-    itr = split(s, ',')
-
-    A = zero(MMatrix{D, D+1, Float64})
-    return SMatrix(xyzt2matrix!(A, itr))
+function xyzt2matrix(s::AbstractString, Dᵛ::Val{D}) where D
+    W, w = xyzt2components(s, Dᵛ)
+    return hcat(SMatrix(W), SVector(w))
 end
 
-@inline function xyzt2matrix!(A::StaticArray{Tuple{D,Dp1},T},
-                              xyzts::AbstractVector{<:AbstractString}) where {D,Dp1,T<:Real}
-    D+1 == Dp1 || throw(DimensionMismatch("incompatible matrix size"))
+function xyzt2components(s::AbstractString, ::Val{D}) where D
+    xyzts = split(s, ',')
     length(xyzts) == D || throw(DimensionMismatch("incompatible matrix size and string format"))
+
+    W = zero(MMatrix{D, D, Float64})
+    w = zero(MVector{D, Float64})
+    xyzt2components!(W, w, xyzts)
+
+    # we elide allocation of the MMatrix & MVector, by returning SMatrix & SVector here:
+    return SMatrix(W), SVector(w)
+end
+
+@inline function xyzt2components!(W::MMatrix{D,D,T}, w::MVector{D,T},
+                                  xyzts::AbstractVector{<:AbstractString}) where {D,T<:Real}
     
     @inbounds for (i,s) in enumerate(xyzts)
         # rotation/inversion/reflection part
@@ -96,9 +104,9 @@ end
             
             previdx = prevind(s, idx)
             if idx == firstidx || s[previdx] == '+'
-                A[i,j] = one(T)
+                W[i,j] = one(T)
             elseif s[previdx] == '-'
-                A[i,j] = -one(T)
+                W[i,j] = -one(T)
             end
             nextidx = nextind(s, idx)
         end
@@ -110,14 +118,14 @@ end
             if slashidx !== nothing # interpret as integer fraction
                 num = SubString(s, nextidx, prevind(s, slashidx))
                 den = SubString(s, nextind(s, slashidx), lastidx)
-                A[i,Dp1] = convert(T, parse(Int, num)/parse(Int, den))
+                w[i] = convert(T, parse(Int, num)/parse(Int, den))
             else                    # interpret at number of type `T`
-                A[i,Dp1] = parse(T, SubString(s, nextidx, lastidx))
+                w[i] = parse(T, SubString(s, nextidx, lastidx))
             end
         end
     end
 
-    return A
+    return W, w
 end
 
 signaschar(x::Number) = signbit(x) ? '-' : '+'
