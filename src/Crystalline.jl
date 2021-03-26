@@ -1,6 +1,3 @@
-#__precompile__() # TODO: enable if we ever want to officially ship this - not worthwhile
-                  #       while we're actively developing (increases time of "fresh" compiles)
-
 module Crystalline
 
 # dependencies
