@@ -84,11 +84,14 @@ function xyzt2components(s::AbstractString, ::Val{D}) where D
     xyzts = split(s, ',')
     length(xyzts) == D || throw(DimensionMismatch("incompatible matrix size and string format"))
 
-    W = zero(MMatrix{D, D, Float64})
-    w = zero(MVector{D, Float64})
+    # initialize zero'd MArrays for rotation/translation parts (allocation will be elided)
+    W = zero(MMatrix{D, D, Float64}) # rotation
+    w = zero(MVector{D, Float64})    # translation
+    
+    # "fill in" `W` and `w` according to content of `xyzts`
     xyzt2components!(W, w, xyzts)
 
-    # we elide allocation of the MMatrix & MVector, by returning SMatrix & SVector here:
+    # convert to SArrays (elides allocation since `xyzt2components!` is inlined)
     return SMatrix(W), SVector(w)
 end
 
