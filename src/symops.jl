@@ -182,11 +182,11 @@ part is zero or a lattice vector in the associated primitive basis.
 end
 
 """
-    issymmorph(sg::AbstractGroup) --> Bool
+    issymmorph(sg::Union{SpaceGroup, LittleGroup}) --> Bool
 
 Return whether a given space group `sg` is symmorphic (`true`) or nonsymmorphic (`false`).
 """
-function issymmorph(g::Union{SpaceGroup,LittleGroup})
+function issymmorph(g::Union{SpaceGroup, LittleGroup})
     all(op->issymmorph(op, centering(g)), operations(g))
 end
 issymmorph(::PointGroup) = true

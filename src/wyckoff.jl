@@ -68,7 +68,7 @@ Bilbao Crystallographic Server (from which the underlying data is sourced [^1]).
 ## Example
 ```jldoctest
 julia> wps = get_wycks(16, 2)
-4-element Array{WyckPos{2},1}:
+4-element Vector{WyckPos{2}}:
  6d: [α, β]
  3c: [0.5, 0.0]
  2b: [0.3333333333333333, 0.6666666666666666]
@@ -76,7 +76,8 @@ julia> wps = get_wycks(16, 2)
 ```
 
 ## References
-[^1] Aroyo, et. al. Zeitschrift fuer Kristallographie (2006), 221, 1, 15-27.
+[^1]: Aroyo, *et. al.*,
+      [Z. Kristallogr. **221**, 15-27 (2006)](https://doi.org/0.1524/zkri.2006.221.1.15)
 """
 function get_wycks(sgnum::Integer, ::Val{D}) where D
     strarr = open((@__DIR__)*"/../data/wyckpos/$(D)d/"*string(sgnum)*".csv") do io

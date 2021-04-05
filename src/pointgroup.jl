@@ -156,13 +156,13 @@ The data is sourced from the Bilbao Crystallographic Server [^2]. If you are usi
 functionality in an explicit fashion, please cite the original reference [^3].
 
 ## References
-[^1] Cracknell, Davies, Miller, & Love, Kronecher Product Tables 1 (1979).
+[^1]: Cracknell, Davies, Miller, & Love, Kronecher Product Tables 1 (1979).
 
-[^2] Bilbao Crystallographic Server: 
-     https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl
+[^2]: Bilbao Crystallographic Server: 
+      https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl
 
-[^3] Elcoro et al., 
-     [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
+[^3]: Elcoro et al., 
+      [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
 """
 function get_pgirreps(iuclab::String, ::Val{3}=Val(3))
     pg = pointgroup(iuclab, Val(3)) # operations

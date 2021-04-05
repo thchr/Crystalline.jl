@@ -2,7 +2,7 @@
 
 [![Documentation][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 
-Tools for crystalline symmetry implemented in the Julia language, with a focus on photonic crystals.
+Tools for crystalline symmetry implemented in the Julia language.
 
 This package provides access e.g. to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
 
@@ -68,7 +68,8 @@ CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┴────────────────
 ```
 
-Additional and related acessor functionality is included; e.g.  `pointgroup`, `get_pgirreps`, `bandreps`, `get_wycks`; see the [documentation][docs-dev-url] for a full description of the public API.
+Additional and related acessor functionality is included; e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), physically real irreps (`realify`), transformation between conventional and primitive settings (`primitivize` and `conventionalize`), and Bravais lattice utilities and conventions.
+For a full description of the public API, see the [documentation][docs-dev-url].
 
 [ci-status-img]: https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
 [ci-status-url]: https://github.com/thchr/Crystalline.jl/actions
@@ -76,3 +77,6 @@ Additional and related acessor functionality is included; e.g.  `pointgroup`, `g
 [docs-dev-url]:  https://thchr.github.io/Crystalline.jl/dev
 [coverage-img]:  https://codecov.io/gh/thchr/Crystalline.jl/branch/master/graph/badge.svg
 [coverage-url]:  https://codecov.io/gh/thchr/Crystalline.jl
+
+#### Limitations
+At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).

@@ -55,4 +55,5 @@ inv(op1) # inv(3₁₁₁⁺)
 ```
 
 ## Action of symmetry operators
-TODO.
+A `SymOperation` can act on vectors in direct ([`RVec`](@ref)) or reciprocal ([`KVec`](@ref)) space.
+When acting in reciprocal space, translation parts of a `SymOperation` have no effect.

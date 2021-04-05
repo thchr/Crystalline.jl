@@ -21,4 +21,5 @@ MultTable(sg)
 ```
 
 ### Symmorphic vs. nonsymorphic space groups
-A given space group can be tested for whether or not it is symmorphic via [`issymmorph`](@ref).
+To determine whether a space group is symmorphic or not, use [`issymmorph`](@ref) taking either a `SpaceGroup`, a `LittleGroup`, or a space group identified by its number and dimensionality (in the latter case, using tabulated look-up).
+To test whether a given `SymOperation` is symmorphic in a given centering setting, use [`issymmorh(::SymOperation, ::Char)`](@ref)

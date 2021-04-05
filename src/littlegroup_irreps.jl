@@ -63,8 +63,10 @@ as values.
 The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite original
 reference material associated with ISO-IR:
 
-[^1] Stokes, Hatch, & Campbell, [ISO-IR, ISOTROPY Software Suite](https://stokes.byu.edu/iso/irtables.php)
-[^2] Stokes, Campbell, & Cordes, [Acta Cryst. A. **69**, 388-395 (2013)](https://doi.org/10.1107/S0108767313007538).
+1. Stokes, Hatch, & Campbell, 
+   [ISO-IR, ISOTROPY Software Suite](https://stokes.byu.edu/iso/irtables.php).
+2. Stokes, Campbell, & Cordes,
+   [Acta Cryst. A. **69**, 388-395 (2013)](https://doi.org/10.1107/S0108767313007538).
 
 The ISO-IR dataset is occasionally missing some **k**-points that lie outside the basic
 domain but still resides in the representation domain (i.e. **k**-points with postscripted

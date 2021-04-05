@@ -18,7 +18,7 @@ using Crystalline
 # and seventeen plane groups' (1991), give labels that do not have these deficiencies (and
 # otherwise agree with LKVEC) in table 24 and figure 7. However, this implies a different
 # setting for the symmetry operations, so we cannot really adopt it.
-# [1] [Bilbao's LKVEC](https://www.cryst.ehu.es/subperiodic/get_layer_kvec.html)
+# [^1]: [Bilbao's LKVEC](https://www.cryst.ehu.es/subperiodic/get_layer_kvec.html)
 PLANE2KVEC = Dict(
     1  => ([],               KVec{2}.([])),
     2  => (["Y", "B", "A"],  KVec{2}.(["0,1/2",   "1/2,0",   "1/2,-1/2"])),

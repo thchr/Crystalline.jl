@@ -498,7 +498,8 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
    describe here.
 
 ## References
-[^1] Bilbao Crystallographic Database: [REPRESENTATIONS PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+[^1]: Bilbao Crystallographic Database's
+      [REPRESENTATIONS PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
 function mulliken(pgir::PGIrrep{D}) where D
     pglab   = label(group(pgir))
