@@ -1,10 +1,20 @@
 # Bravais types and basis systems
 
-## API
-```@autodocs
-Modules = [Crystalline]
-Pages   = ["bravais.jl"]
-Order   = [:function]
-Public  = true
-Private = false
+```@meta
+CurrentModule = Crystalline
+```
+
+```@docs
+crystal
+crystalsystem
+directbasis
+bravaistype
+reciprocalbasis
+primitivize(::Crystalline.Basis, ::Integer)
+primitivize(::DirectBasis, ::Char)
+primitivize(::ReciprocalBasis, ::Char)
+conventionalize(::DirectBasis, ::Char)
+transform
+primitivize(::Crystalline.AbstractVec, ::Char)
+conventionalize(::Crystalline.AbstractVec, ::Char)
 ```

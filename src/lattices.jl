@@ -12,13 +12,12 @@ function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; 
              isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
 end
 """
-    UnityFourierLatticeFourierLattice{D} <: AbstractFourierLattice{D}
+    UnityFourierLattice{D} <: AbstractFourierLattice{D}
 
-A general `D`-dimensional Fourier/plane wave lattice (specified 
-by G-orbits and coefficient interrelations); specifies the allowable 
-interrelations between coefficients within each orbit. The norm of 
-all orbit coefficients is unity. The G-orbits `orbits` (and associated
-coefficients) are sorted in order of increasing |G| (low to high).
+A general `D`-dimensional Fourier (plane wave) lattice specified by orbits of
+reciprocal lattice vectors (`orbits`) and coefficient interrelations (`orbitcoefs`)).
+The norm of all elements in `orbitcoefs` is unity. `orbits` (and associated
+coefficients) are sorted in order of increasing norm (low to high).
 """
 struct UnityFourierLattice{D} <: AbstractFourierLattice{D}
     orbits::Vector{Vector{SVector{D, Int}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
@@ -33,8 +32,8 @@ end
 """
     ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
 
-A `D`-dimensional concrete Fourier/plane wave lattice, derived from 
-a [`UnityFourierLattice`](@ref) by scaling/modulating its orbit coefficients 
+A `D`-dimensional concrete Fourier (plane wave) lattice, derived from 
+a [`UnityFourierLattice{D}`](@ref) by scaling and modulating its orbit coefficients 
 by complex numbers; in general, the coefficients do not have unit norm.
 """
 struct ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
@@ -54,30 +53,32 @@ end
     levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,D))
         --> UnityFourierLattice{D}
 
-Compute a "neutral"/uninitialized Fourier lattice basis, a UnityFourierLattice, consistent
-with the symmetries of the space group `sgnum` in dimension `D`. The resulting lattice
-`flat` is expanded in a Fourier basis split into symmetry-derived orbits, with intra-orbit 
-coefficients constrained by the symmetries of the space-group. The inter-orbit coefficients
-are, however, free and unconstrained.
+Compute a "neutral"/uninitialized Fourier lattice basis, a [`UnityFourierLattice`](@ref),
+consistent with the symmetries of the space group `sgnum` in dimension `D`. 
+The resulting lattice `flat` is expanded in a Fourier basis split into symmetry-derived
+orbits, with intra-orbit coefficients constrained by the symmetries of the space-group.
+The inter-orbit coefficients are, however, free and unconstrained.
 
 The Fourier resolution along each reciprocal lattice vector is controlled by `idxmax`:
 e.g., if `D = 2` and `idxmax = (2, 3)`, the resulting Fourier lattice may contain 
 reciprocal lattice vectors (k₁, k₂) with k₁∈[0,±1,±2] and k₂∈[0,±1,±2,±3], referred 
 to a 𝐆-basis.
 
-This "neutral" lattice can, and usually should, be subsequently modulated by `modulate`
-(modulates the inter-orbit coefficients, which will often eliminate symmetries that may
-remain in the "neutral" configuration, where all inter-orbit coefficients are unity).
+This "neutral" lattice can, and usually should, be subsequently modulated by
+[`modulate`](@ref) (which modulates the inter-orbit coefficients, which may eliminate
+"synthetic symmetries" that can exist in the "neutral" configuration, due to all 
+inter-orbit coefficients being set to unity).
 
-# Examples
+## Examples
 
-Compute a UnityFourierLattice, modulate it with random inter-orbit coefficients via `modulate`,
-and finally plot it (requires `using PyPlot`):
+Compute a `UnityFourierLattice`, modulate it with random inter-orbit coefficients 
+via `modulate`, and finally plot it (via PyPlot.jl):
 
 ```julia-repl
 julia> uflat = levelsetlattice(16, 2)
 julia> flat  = modulate(uflat)
 julia> Rs    = directbasis(16, 2) 
+julia> using PyPlot
 julia> plot(flat, Rs)
 ```
 """
@@ -411,14 +412,18 @@ end
 # principle (e.g., exporting associated Meshes).
 
 
-""" 
+@doc raw"""
     calcfourier(xyz, flat::AbstractFourierLattice) --> Float64
 
-Compute the real part of the function evaluation of `flat` at a
-point `xyz` (a tuple, SVector, or a vector), i.e. return
-    Re[∑ᵢ cᵢexp(2πi𝐆ᵢ⋅𝐫)]
-with 𝐆ᵢ denoting a 𝐆-vector in an allowed orbit in `flat`, and 
-cᵢ an associated coefficient (and with 𝐫 ≡ `xyz`).
+Compute the real part of the function evaluation of `flat` at a point `xyz` (a tuple,
+`SVector`, or abstract vector of a dimension matching `flat`). That is, return 
+    
+```math
+    \mathop{\mathrm{Re}}\sum_i c_i \exp(2\pi i\mathbf{G}_i\cdot\mathbf{r})
+````
+
+with $\mathrm{G}_i$ denoting reciprocal lattice vectors in the allowed orbits of `flat`,
+with `c_i` denoting the associated coefficients (and $\mathbf{r} \equiv$ `xyz`).
 """
 calcfourier(xyz, flat::AbstractFourierLattice) = calcfourier(xyz, getorbits(flat), getcoefs(flat))
 function calcfourier(xyz, orbits, orbitcoefs)

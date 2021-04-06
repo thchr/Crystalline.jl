@@ -4,7 +4,7 @@ Crystalline.jl provides easy access to crystallographic point group irreps, "sma
 Currently, we only provide access to spinless (or "single-valued") irreps.
 
 ## Data sources
-Point group irreps are obtained from the [Bilbao Crystallographic Server's Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and small irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
+Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and small irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
 
 If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).
 

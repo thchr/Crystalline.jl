@@ -5,8 +5,7 @@
 Documentation for [Crystalline.jl](https://github.com/thchr/Crystalline.jl)
 
 ```@contents
-Pages = ["api.md",
-         "operations.md",
+Pages = ["operations.md",
          "groups.md",
          "irreps.md",
          "bravais.md",

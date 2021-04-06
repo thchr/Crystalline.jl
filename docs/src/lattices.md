@@ -1,10 +1,16 @@
-# Symmetry-respecting isosurface lattices
+# Isosurfaces with space group symmetry
 
-## API
-```@autodocs
-Modules = [Crystalline]
-Pages   = ["lattices.jl"]
-Order   = [:function]
-Public  = true
-Private = false
+
+```@meta
+CurrentModule = Crystalline
+```
+
+```@docs
+UnityFourierLattice
+ModulatedFourierLattice
+levelsetlattice
+modulate
+primitivize(::AbstractFourierLattice, ::Char)
+conventionalize(::AbstractFourierLattice, ::Char)
+calcfourier
 ```

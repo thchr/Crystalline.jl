@@ -209,12 +209,12 @@ end
     directbasis(sgnum, D=3;    abclims, αβγlims)
     directbasis(sgnum, Val(D); abclims, αβγlims) --> DirectBasis{D}
 
-Generates a (conventional) DirectBasis for a crystal compatible with 
+Return a (conventional) `DirectBasis` for a crystal compatible with 
 the space group number `sgnum` and dimensionality `D`. Free parameters
 in the lattice vectors are chosen randomly, with limits optionally
 supplied in `abclims` (lengths) and `αβγlims` (angles).
-By convention, the length of the first lattice vector (= `a`) is set
-to unity, such that the second and third (= `b` and `c`) lattice 
+By convention, the length of the first lattice vector (`a`) is set
+to unity, such that the second and third (`b` and `c`) lattice 
 vectors' lengths are relative to the first.
 
 Limits on the relative uniform distribution of lengths `b` and `c`
@@ -309,6 +309,20 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
                                    "cubic"=>'c')
                              )
 
+"""
+    $(TYPEDSIGNATURES)
+
+Return the Bravais type of `sgnum` in dimension `dim` as a string (as the concatenation
+of the single-character crystal abbreviation and the centering type).
+
+## Note
+
+If the centering type associated with `sgnum` is `'A'`, we chose to "normalize" the
+centering to `'C'`, since the difference between `A` and `C` centering only amounts to a 
+basis change. This ensures that `unique(bravaistype.(1:230, 3))` creates only 14 Bravais
+types, rather than 15. 
+This impacts space groups 38-41, whose Bravais types are normalized from `oA` to `oC`.
+"""
 @inline function bravaistype(sgnum::Integer, D::Integer=3)
     cntr = centering(sgnum, D)
     system = crystalsystem(sgnum, D)
@@ -319,6 +333,9 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
     # the same Bravais lattice; there is no significance in trying to 
     # differentiate them - if we do, we end up with 15 Bravais lattices in 
     # 3D rather than 14: so we manually fix that here:
+    if cntr == 'A'
+        println(sgnum)
+    end
     cntr = cntr == 'A' ? 'C' : cntr
 
     # pick the correct crystal system abbreviation from CRYSTALSYSTEM_ABBREV 
