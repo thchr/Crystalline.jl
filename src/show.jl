@@ -66,7 +66,7 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     return nothing
 end
 
-# --- KVec ---
+# --- AbstractVec ---
 function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     cnst, free = parts(v)
     print(io, '[')
@@ -272,7 +272,7 @@ function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep},
         #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
         prettyprint_irrep_matrix(io, plgir, i, indent*" │     ")
-        if i < Nₒₚ; println(io, '\n', indent, " │     "); end
+        if i < Nₒₚ; println(io, '\n', indent, " │"); end
     end
     print(io, "\n", indent, " └", boxdelims)
 end

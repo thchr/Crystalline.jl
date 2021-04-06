@@ -9,6 +9,8 @@ using Crystalline, Test
     include("kvecs.jl")
     include("wyckoff.jl")
 
+    # show and notation
+    include("show.jl")
     include("notation.jl")
 
     # group checks
