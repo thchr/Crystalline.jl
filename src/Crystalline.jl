@@ -59,7 +59,7 @@ export SymOperation,                        # types
        norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, reality, group,
-       israyrep, kvec, irreps,              # ::LGIrrep
+       israyrep, kvec,                      # ::LGIrrep
        isspecial, translations,
        dim, parts,                          # ::KVec & RVec
        vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 

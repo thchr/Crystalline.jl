@@ -25,7 +25,7 @@ end
                 @test all(operations(lgir) .== operations(lgir′))
                 # test that irreps agree
                 for αβγ in (nothing, Crystalline.TEST_αβγ)
-                    @test irreps(lgir, αβγ) == irreps(lgir′, αβγ)
+                    @test lgir(αβγ) == lgir′(αβγ)
                 end
             end
         end

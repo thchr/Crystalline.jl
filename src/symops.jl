@@ -371,7 +371,7 @@ function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=f
 end
 function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
     havewarned = false
-    Ds = irreps(ir, αβγ)
+    Ds = ir(αβγ)
     ops = operations(ir)
     if ir isa LGIrrep
         k = kvec(ir)(αβγ)
@@ -398,7 +398,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             # conventions (e.g. Bradley & Cracknell, 1972, Eq. 3.7.7 & 3.7.8), 
             # but consistent with that used in Stokes' paper (see irreps(::LGIrrep)).
             # It is still a puzzle to me why I cannot successfully flip the sign 
-            # of `ϕ` here and in `irreps(::LGIrrep)`.
+            # of `ϕ` here and in `(lgir::LGIrrep)(αβγ)`.
             if ir isa LGIrrep
                 t₀ = translation(ops[i]) .+ rotation(ops[i])*translation(ops[j]) .- 
                      translation(ops[mtidx])

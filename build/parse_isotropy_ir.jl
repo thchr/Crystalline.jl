@@ -14,13 +14,13 @@ struct SGIrrep3D{T} <: AbstractIrrep{3} where T
     knum::Int64     # number of 𝐤-vecs in star
     pmknum::Int64   # number of ±𝐤-vecs in star
     special::Bool   # whether star{𝐤} describes high-symmetry points
-    pmkstar::Vector{KVec}        # star{𝐤} for Complex, star{±𝐤} for Real
+    pmkstar::Vector{KVec{3}}     # star{𝐤} for Complex, star{±𝐤} for Real
     ops::Vector{SymOperation{3}} # every symmetry operation in space group
     translations::Vector{Vector{Float64}} # translations assoc with matrix repres of ops in irrep
     matrices::Vector{Matrix{T}}  # non-translation assoc with matrix repres of ops in irrep
 end
 num(sgir::SGIrrep3D) = sgir.sgnum
-irreps(sgir::SGIrrep3D) = sgir.matrices
+(sgir::SGIrrep3D)(αβγ=nothing) = sgir.matrices # TODO: add missing αβγ dependence
 order(sgir::SGIrrep3D) = sgir.order
 iuc(sgir::SGIrrep3D) = sgir.sglabel
 operations(sgir::SGIrrep3D) = sgir.ops
@@ -244,7 +244,7 @@ function littlegroupirrep(ir::SGIrrep3D{<:Complex})
     kv = kstar(ir)[1] # representative element of the k-star; the k-vector of assoc. w/ this little group   
     if !is_erroneous_lgir(num(ir), label(ir), 3)
         # broadcasting to get all the [1:lgirdim, 1:lgirdim] blocks of every irrep assoc. w/ the lgidx list
-        lgirmatrices = getindex.((@view irreps(ir)[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 
+        lgirmatrices = getindex.((@view ir()[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 
         lgirtrans = ir.translations[lgidx]
     else
         #println("Manually swapped out corrected (CDML) LGIrrep for sgnum ", num(ir), ", irrep ", label(ir))

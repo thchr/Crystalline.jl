@@ -61,11 +61,11 @@ for (D, LGIRS) in enumerate(LGIRSDIM)
         for lgirs in values(lgirsd) # lgirs: vector of distinct little group irreps
             Nₒₚ = order(first(lgirs))
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
-                D⁽ᵃ⁾ = irreps(lgir⁽ᵃ⁾,αβγs[D])      # vector of irreps in (a)
+                D⁽ᵃ⁾ = lgir⁽ᵃ⁾(αβγs[D])      # vector of irreps in (a)
                 dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
 
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
-                    D⁽ᵝ⁾ = irreps(lgir⁽ᵝ⁾,αβγs[D])  # vector of irreps in (β)
+                    D⁽ᵝ⁾ = lgir⁽ᵝ⁾(αβγs[D])  # vector of irreps in (β)
                     dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
                     δₐᵦ = (a==β)
                     if a == β && debug

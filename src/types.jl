@@ -433,13 +433,13 @@ Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `m
 `irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
-irreps(ir::AbstractIrrep, αβγ=nothing) = ir.matrices
+(ir::AbstractIrrep)(αβγ=nothing) = ir.matrices
 group(ir::AbstractIrrep, αβγ=nothing) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
 reality(ir::AbstractIrrep) = ir.reality
 translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
-characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(irreps(ir, αβγ))
+characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
 order(ir::AbstractIrrep)  = order(group(ir))
@@ -515,7 +515,7 @@ isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), 
                              kvec(lgir), centering(num(lgir), dim(lgir)))
-function irreps(lgir::LGIrrep, αβγ::Union{Vector{<:Real},Nothing}=nothing)
+function (lgir::LGIrrep)(αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = lgir.matrices
     τ = lgir.translations
     if !iszero(τ)

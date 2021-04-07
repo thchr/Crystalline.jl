@@ -70,11 +70,11 @@ end # @testset "2ⁿᵈ orthogonality theorem"
             pgirs = get_pgirreps(pgiuc, Val(D))
             Nₒₚ = order(first(pgirs))
             for (a, pgir⁽ᵃ⁾) in enumerate(pgirs) 
-                D⁽ᵃ⁾   = irreps(pgir⁽ᵃ⁾,αβγ)      # vector of irreps in (a)
+                D⁽ᵃ⁾   = pgir⁽ᵃ⁾(αβγ)      # vector of irreps in (a)
                 dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
 
                 for (β, pgir⁽ᵝ⁾) in enumerate(pgirs)
-                    D⁽ᵝ⁾ = irreps(pgir⁽ᵝ⁾,αβγ)    # vector of irreps in (β)
+                    D⁽ᵝ⁾ = pgir⁽ᵝ⁾(αβγ)    # vector of irreps in (β)
                     dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
                     δₐᵦ = (a==β)
                     for n in Base.OneTo(dim⁽ᵃ⁾), j in Base.OneTo(dim⁽ᵝ⁾)     # rows of each irrep

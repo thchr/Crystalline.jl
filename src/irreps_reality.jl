@@ -178,7 +178,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
 
     # Build a vector of "new" small irreps (small co-reps), following B&C p. 616 & Inui p.
     # 298-299. For pseudo-real and complex co-reps, we set a flag `iscorep = true`, to
-    # indicate to "evaluation" methods, such as `irreps(::LGIrrep)`, that a diagonal
+    # indicate to "evaluation" methods, `(lgir::LGIrrep)(αβγ)`, that a diagonal
     # "doubling" is required (see below).
     lgirs′ = Vector{LGIrrep{D}}(undef, Ncoreps)
     for i′ in OneTo(Ncoreps)

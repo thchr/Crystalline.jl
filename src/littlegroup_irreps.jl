@@ -54,10 +54,14 @@ Returns a `Dict` with little group **k**-point labels as keys and vectors of `LG
 as values.
 
 ## Notes
-- Currently, only `D = 3` is supported.
 - The returned irreps are complex in general. Real irreps (as needed in time-reversal
   invariant settings) can subsequently be obtained with the [`realify`](@ref) method.
 - Returned irreps are spinless.
+- The irrep labelling follows CDML conventions.
+- Irreps along lines or planes may depend on free parameters `αβγ` that parametrize the
+  **k** point. To evaluate the irreps at a particular value of `αβγ` and return the
+  associated matrices, use `(lgir::LGIrrep)(αβγ)`. If `αβγ` is an empty tuple in this call,
+  the matrices associated with `lgir` will be evaluated assuming `αβγ = [0,0,...]`.
 
 ## References
 The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite original
