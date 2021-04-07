@@ -243,14 +243,6 @@ function mesh_3d_levelsetisocaps(vals, isoval::Real, Rs::DirectBasis{3})
 end
 =#
 
-# Plot from MPB-data (::AbstractFourierLattice) -------------------------------------------
-
-function plot_lattice_from_mpbparams(filepath::String; kwargs...)
-    Rs, flat, isoval, _ = lattice_from_mpbparams(filepath)
-    plot(flat, Rs; isoval=isoval, kwargs...)
-    return nothing
-end
-
 # ::KVec ----------------------------------------------------------------------------------
 
 # Plotting a single `KVec`

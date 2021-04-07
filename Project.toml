@@ -1,7 +1,7 @@
 name = "Crystalline"
 uuid = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 authors = ["Thomas Christensen <tchr@mit.edu>"]
-version = "0.3.2"
+version = "0.3.3"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
@@ -15,13 +15,12 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 Combinatorics = "1.0"
 DocStringExtensions = "0.8"
 JLD2 = "0.2.4"
-Meshing = "0.5" # for compat/pyplot.jl w/ Requires-load
+Meshing = "0.5" # for `src/compat/pyplot.jl` w/ Requires-load
 PrettyTables = "0.10, 0.11"
 Requires = "1.0, 1.1"
 StaticArrays = "1.0"

@@ -8,7 +8,6 @@ using JLD2
 using PrettyTables
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
 using Requires
-using Statistics: quantile
 using DocStringExtensions
 
 using Base: OneTo, @propagate_inbounds
@@ -130,9 +129,6 @@ export subduction_count
 include("bandrep.jl")
 export bandreps, matrix, classification, basisdim
 
-include("export2mpb.jl")
-export prepare_mpbcalc, prepare_mpbcalc!
-
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
 # - optional code-loading, using Requires.
@@ -152,8 +148,7 @@ function __init__()
     # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
     @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
         include("compat/pyplot.jl") # loads PyPlot and Meshing
-        export plot_lattice_from_mpbparams, 
-               mesh_3d_levelsetlattice
+        export mesh_3d_levelsetlattice
     end
 end
 

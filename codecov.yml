@@ -22,7 +22,5 @@ comment:
 # everything above is default (see https://docs.codecov.io/docs/codecov-yaml)
 # below, we customize the codecoverage to ignore certain files we don't 
 # actually use (and which otherwise just artificially reduces coverage)
-# or which ported out of Crystalline.jl
 ignore:
   - "src/special_representation_domain_kpoints.jl"
-  - "src/export2mpb.jl"
