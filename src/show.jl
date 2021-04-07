@@ -386,20 +386,20 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     # print band representations as table
     k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters
     h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
-    h_ν   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+    h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
         matrix(BRS, true),
         # header
         permutedims([wyck.(BRS) chop.(label.(BRS), tail=2)], (2,1)); # get rid of the repeating "↑G" part
         # row names
-        row_names = vcat(irreplabels(BRS), "ν"),
+        row_names = vcat(irreplabels(BRS), "μ"),
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
         row_name_alignment = :l,
         alignment = :c, 
-        highlighters = (h_odd, h_ν), 
+        highlighters = (h_odd, h_μ), 
         header_crayon = crayon"bold"
         )
 
@@ -414,7 +414,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     # prep-work to figure out how many bandreps we can write to the io
     cols_avail = displaysize(io)[2]   # available cols in io (cannot write to all of it; subtract 2)
     indent     = 3
-    ν_maxdigs  = maximum(ndigits∘dim, BRS) # implicitly assuming this to be ≤2...
+    μ_maxdigs  = maximum(ndigits∘dim, BRS) # implicitly assuming this to be ≤2...
     maxcols_irr   = maximum(length, irreplabels(BRS))
     cols_brlabs = length.(label.(BRS))
     cumcols_brlabs = cumsum(cols_brlabs .+ 1)
@@ -448,11 +448,11 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     end
 
     # print band filling
-    print(io, ' '^indent, 'ν', ' '^maxcols_irr, '║')
+    print(io, ' '^indent, 'μ', ' '^maxcols_irr, '║')
     for idxᵇʳ in 1:room_for
-        ν = dim(BRS[idxᵇʳ])
+        μ = dim(BRS[idxᵇʳ])
         addspace = div(cols_brlabs[idxᵇʳ], 2)+1
-        print(io, ' '^(addspace-ndigits(ν)), ν)
+        print(io, ' '^(addspace-ndigits(μ)), μ)
         print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace))
         print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
     end
@@ -460,11 +460,11 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
 
     #=
     # === EBRs-by-rows layout ===
-    ν_maxdigs = maximum(ndigits∘dim, BRS)
+    μ_maxdigs = maximum(ndigits∘dim, BRS)
     cols_brlab = maximum(x->length(label(x)), BRS)+1
     cols_irstart = cols_brlab+4
     cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
-    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+ν_maxdigs+3 # required cols for irrep labels & band reps
+    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+μ_maxdigs+3 # required cols for irrep labels & band reps
     if cols_requi > cols_avail
         cols_toomany    = ceil(Int64, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
         cols_midpoint   = div(cols_requi-cols_irstart,2)+cols_irstart
@@ -487,10 +487,10 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
             print(io, ' ', lab, " │")
         end
     end
-    println(io, ' '^ν_maxdigs, "ν", " ║") # band-filling column header
+    println(io, ' '^μ_maxdigs, "μ", " ║") # band-filling column header
     # print each bandrep
     for (bridx,BR) in enumerate(BRS)
-        ν = dim(BR)
+        μ = dim(BR)
         print(io, "   ", label(BR),                      # bandrep label
                   " "^(cols_brlab-length(label(BR))), '║')
         for (iridx,x) in enumerate(BR) # iterate over vector representation of band rep
@@ -505,7 +505,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
             end
         end
         
-        print(io, ' '^(1+ν_maxdigs-ndigits(ν)), ν, " ║") # band-filling
+        print(io, ' '^(1+μ_maxdigs-ndigits(μ)), μ, " ║") # band-filling
         if bridx != length(BRS); println(io); end
     end
     =#

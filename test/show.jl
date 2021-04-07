@@ -406,7 +406,7 @@ BandRepSet (#42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
  Z₄ │ ·   ·   1   ·   ·   1
  L₁ │ 1   1   1   1   2   2
 ────┼────────────────────────
- ν  │ 1   1   1   1   2   2
+ μ  │ 1   1   1   1   2   2
 ────┴────────────────────────
   KVecs (maximal only): Γ, T, Y, Z, L"""
 test_tp_show(brs, str)

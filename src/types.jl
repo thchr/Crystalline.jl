@@ -660,8 +660,10 @@ irreplabels(BR::BandRep) = BR.irlabs
 """
     dim(BR::BandRep) --> Int
 
-Get the number of bands included in a single BandRep `BR`; i.e. the "band filling"
-ν discussed in Po's papers.
+Return the number of bands included in the provided `BandRep`.
+
+If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
+band connectivity μ.
 """
 dim(BR::BandRep)     = BR.dim
 
