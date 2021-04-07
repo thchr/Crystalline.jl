@@ -188,7 +188,7 @@ function mesh_3d_levelsetlattice(flat::AbstractFourierLattice, isoval::Real,
 
     # marching cubes algorithm to find isosurfaces (using Meshing.jl)
     algo = MarchingCubes(iso=isoval, eps=1e-3)
-    verts, faces = isosurface(xyz->calcfourier(xyz, flat), algo; 
+    verts, faces = isosurface(flat, algo; 
                               origin = SVector(-0.5,-0.5,-0.5), 
                               widths = SVector(1.0,1.0,1.0))    
     

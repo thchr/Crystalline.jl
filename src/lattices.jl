@@ -413,10 +413,10 @@ end
 
 
 @doc raw"""
-    calcfourier(xyz, flat::AbstractFourierLattice) --> Float64
+    (flat::AbstractFourierLattice)(xyz) --> Float64
+    (flat::AbstractFourierLattice)(xyzs...) --> Float64
 
-Compute the real part of the function evaluation of `flat` at a point `xyz` (a tuple,
-`SVector`, or abstract vector of a dimension matching `flat`). That is, return 
+Evaluate an `AbstractFourierLattice` at the point `xyz` and return its real part, i.e. 
     
 ```math
     \mathop{\mathrm{Re}}\sum_i c_i \exp(2\pi i\mathbf{G}_i\cdot\mathbf{r})
@@ -424,12 +424,18 @@ Compute the real part of the function evaluation of `flat` at a point `xyz` (a t
 
 with $\mathrm{G}_i$ denoting reciprocal lattice vectors in the allowed orbits of `flat`,
 with `c_i` denoting the associated coefficients (and $\mathbf{r} \equiv$ `xyz`).
+
+`xyz` may be any iterable object with dimension matching `flat` consisting of real numbers
+(e.g., a `Tuple`, `Vector`, or `SVector`). Alternatively, the coordinates can be supplied
+individually (i.e., as `flat(x, y, z)`).
 """
-calcfourier(xyz, flat::AbstractFourierLattice) = calcfourier(xyz, getorbits(flat), getcoefs(flat))
-function calcfourier(xyz, orbits, orbitcoefs)
+function (flat::AbstractFourierLattice)(xyz)
+    dim(flat) == length(xyz) || throw(DimensionMismatch("dimensions of flat and xyz are mismatched"))
+    orbits = getorbits(flat)
+    coefs  = getcoefs(flat)
     f = zero(Float64)
-    for (orb, coefs) in zip(orbits, orbitcoefs)
-        for (G, c) in zip(orb, coefs)
+    for (orb, cs) in zip(orbits, coefs)
+        for (G, c) in zip(orb, cs)
             # though one might naively think the phase would need a conversion between 
             # 𝐑- and 𝐆-bases, this is not necessary since P(𝐆)ᵀP(𝐑) = 2π𝐈 by definition
             exp_im, exp_re = sincos(2π*dot(G, xyz))
@@ -438,6 +444,7 @@ function calcfourier(xyz, orbits, orbitcoefs)
     end
     return f
 end
+(flat::AbstractFourierLattice{D})(xyzs::Vararg{<:Real, D}) where D = flat(SVector{D, Float64}(xyzs))
 
 # note: 
 # the "(x,y,z) ordering" depends on dimension D:
@@ -451,15 +458,15 @@ end
 # with Matlab.
 function calcfouriergridded!(vals, xyz, flat::AbstractFourierLattice{D}, 
                              N::Integer=length(xyz)) where D
-    f = (coords...)-> calcfourier(coords, flat)
-    # evaluate f over all gridpoints via broadcasting
+
+    # evaluate `flat` over all gridpoints via broadcasting
     if D == 2
         # x along columns, y along rows: "y-then-x"
-        broadcast!(f, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
+        broadcast!(flat, vals, reshape(xyz, (1,N)), reshape(xyz, (N,1)))
     elseif D == 3
         # x along dim 1, y along dim 2, z along dim 3: "x-then-y-then-z", equivalent to a
         # triple loop, ala `for x∈xyz, y∈xyz, z∈xyz; vals[ix,iy,iz] = f(x,y,z); end`
-        broadcast!(f, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
+        broadcast!(flat, vals, reshape(xyz, (N,1,1)), reshape(xyz, (1,N,1)), reshape(xyz, (1,1,N)))
     end
     return vals
 end

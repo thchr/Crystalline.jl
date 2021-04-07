@@ -122,7 +122,7 @@ export get_lgirreps, get_littlegroups
 include("lattices.jl")
 export ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
-       modulate, normscale, normscale!, calcfourier
+       modulate, normscale, normscale!
 
 include("compatibility.jl")
 export subduction_count

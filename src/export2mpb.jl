@@ -15,25 +15,25 @@ function lattice2mpb(flat::AbstractFourierLattice)
     return orbits_mpb, coefs_mpb
 end
 
-# returns a lazy "vector" of the (real) value of `flat` over the entire BZ, using `nsamples`
-# per dimension; avoids double counting at BZ edges.
-function _lazy_fourier_eval_over_bz_as_vector(flat::AbstractFourierLattice{D}, nsamples::Int64) where D
+# returns a lazy "vector" of the (real) value of `flat` over the entire unit cell, using
+# `nsamples` per dimension; avoids double counting at unit cell edges
+function _lazy_fourier_eval_over_uc_as_vector(flat::AbstractFourierLattice{D}, nsamples::Int64) where D
     step = 1.0/nsamples
     samples = range(-0.5, 0.5-step, length=nsamples) # `-step` to avoid double counting ±0.5 (cf. periodicity)
     if D == 2
-        itr = (real(calcfourier((x,y), flat)) for x in samples for y in samples)
+        itr = (real(flat(x,y)) for x in samples for y in samples)
     elseif D == 3
-        itr = (real(calcfourier((x,y,z), flat)) for x in samples for y in samples for z in samples)
+        itr = (real(flat(x,y,z)) for x in samples for y in samples for z in samples)
     end
 end
 
 function filling2isoval(flat::AbstractFourierLattice{D}, filling::Real=0.5, nsamples::Int64=51) where D
-    itr = _lazy_fourier_eval_over_bz_as_vector(flat, nsamples)
+    itr = _lazy_fourier_eval_over_uc_as_vector(flat, nsamples)
     return quantile(itr, filling)
 end
 
 function isoval2filling(flat::AbstractFourierLattice{D}, isoval::Real, nsamples::Int64=51) where D
-    itr = _lazy_fourier_eval_over_bz_as_vector(flat, nsamples)
+    itr = _lazy_fourier_eval_over_uc_as_vector(flat, nsamples)
     return count(<(isoval), itr)/nsamples^D
 end
 
