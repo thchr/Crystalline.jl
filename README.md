@@ -1,6 +1,6 @@
 # Crystalline.jl
 
-[![Documentation][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
+[![Documentation (stable)][docs-stable-img]][docs-stable-url] [![Documentation (dev)][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 
 Tools for crystalline symmetry implemented in the Julia language.
 
@@ -70,12 +70,14 @@ CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 Additional and related acessor functionality is included; e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), physically real irreps (`realify`), transformation between conventional and primitive settings (`primitivize` and `conventionalize`), and Bravais lattice utilities and conventions.
 For a full description of the public API, see the [documentation][docs-dev-url].
 
-[ci-status-img]: https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
-[ci-status-url]: https://github.com/thchr/Crystalline.jl/actions
-[docs-dev-img]:  https://img.shields.io/badge/docs-dev-blue.svg
-[docs-dev-url]:  https://thchr.github.io/Crystalline.jl/dev
-[coverage-img]:  https://codecov.io/gh/thchr/Crystalline.jl/branch/master/graph/badge.svg
-[coverage-url]:  https://codecov.io/gh/thchr/Crystalline.jl
+[ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
+[ci-status-url]:   https://github.com/thchr/Crystalline.jl/actions
+[docs-dev-img]:    https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]:    https://thchr.github.io/Crystalline.jl/dev
+[docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
+[docs-stable-url]: https://thchr.github.io/Crystalline.jl/stable
+[coverage-img]:    https://codecov.io/gh/thchr/Crystalline.jl/branch/master/graph/badge.svg
+[coverage-url]:    https://codecov.io/gh/thchr/Crystalline.jl
 
 #### Limitations
 At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
