@@ -8,12 +8,11 @@ This package provides access e.g. to the symmetry operations of crystalline poin
 
 ## Installation
 
-The package is not currently registered in the General registry, but can be installed directly from this repository's URL.
-To do so, enter the `pkg>` prompt by typing `]` at the Julia REPL and type:
+The package is registered in the General registry and can be installed from the `pkg>` prompt (accessed by typing `]` at the Julia REPL) by executing:
 ```julia
 pkg> add https://github.com/thchr/Crystalline.jl
 ```
-which will make Crystalline.jl available via 
+whereafter Crystalline.jl can be loaded via
 ```julia
 julia> using Crystalline
 ```
@@ -80,3 +79,6 @@ For a full description of the public API, see the [documentation][docs-dev-url].
 
 #### Limitations
 At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
+
+#### Note
+Crystalline.jl is a research package in active development: breaking changes are likely (but we will strive to follow semantic versioning).
