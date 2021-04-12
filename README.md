@@ -23,22 +23,24 @@ Crystalline.jl currently provides several functionalities for line groups, plane
 
 Some example usage below:
 ```julia
-julia> S"x,-y,-z" # construct a 3D `SymOperation` from its triplet form
+# construct a 3D `SymOperation` from its triplet form
+julia> S"x,-y,-z"
 2₁₀₀ ─────────────────────────── (x,-y,-z)
  ┌ 1  0  0 ╷ 0 ┐
  │ 0 -1  0 ┆ 0 │
  └ 0  0 -1 ╵ 0 ┘
 
-julia> sg = spacegroup(16, Val(3)) # load the `SymOperation`s of the 3D space group #16 in a conventional setting
+# load the `SymOperation`s of the 3D space group #16 in a conventional setting
+julia> sg = spacegroup(16, Val(3))
 SpaceGroup{3} #16 (P222) with 4 operations:
  1 ──────────────────────────────── (x,y,z)
  2₀₀₁ ─────────────────────────── (-x,-y,z)
  2₀₁₀ ─────────────────────────── (-x,y,-z)
  2₁₀₀ ─────────────────────────── (x,-y,-z)
 
-julia> lgirs = get_lgirreps(16, Val(3)); # load a dictionary of small irreps and their little groups for space group #16, indexed by their k-point labels
-
-julia> lgirs["A"] # inspect the small irreps at the A point
+# load a dictionary of small irreps and their little groups for space group #16, indexed by their k-point labels; then inspect the small irreps at the A point
+julia> lgirs = get_lgirreps(16, Val(3));
+julia> lgirs["A"]
 LGIrrep{3}: #16 (P222) at A = [α, 0.0, 0.5]
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
@@ -55,7 +57,8 @@ A₂ ─┬───────────────────────
     │     -1.0
     └─────────────────────────────────────────────
 
-julia> CharacterTable(lgirs["Γ"]) # compute the character table for the small irreps at the Γ point
+# compute the character table for the small irreps at the Γ point
+julia> CharacterTable(lgirs["Γ"])
 CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
@@ -67,8 +70,15 @@ CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┴────────────────
 ```
 
-Additional and related acessor functionality is included; e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), physically real irreps (`realify`), transformation between conventional and primitive settings (`primitivize` and `conventionalize`), and Bravais lattice utilities and conventions.
+Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), physically real irreps (`realify`), transformation between conventional and primitive settings (`primitivize` and `conventionalize`), and Bravais lattice utilities and conventions.
 For a full description of the public API, see the [documentation][docs-dev-url].
+
+## Limitations
+At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
+
+## API stability
+Crystalline.jl is a research package in active development: breaking changes are likely (but we will strive to follow semantic versioning).
+
 
 [ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
 [ci-status-url]:   https://github.com/thchr/Crystalline.jl/actions
@@ -78,9 +88,3 @@ For a full description of the public API, see the [documentation][docs-dev-url].
 [docs-stable-url]: https://thchr.github.io/Crystalline.jl/stable
 [coverage-img]:    https://codecov.io/gh/thchr/Crystalline.jl/branch/master/graph/badge.svg
 [coverage-url]:    https://codecov.io/gh/thchr/Crystalline.jl
-
-#### Limitations
-At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
-
-#### Note
-Crystalline.jl is a research package in active development: breaking changes are likely (but we will strive to follow semantic versioning).
