@@ -12,4 +12,5 @@ levelsetlattice
 modulate
 primitivize(::AbstractFourierLattice, ::Char)
 conventionalize(::AbstractFourierLattice, ::Char)
+AbstractFourierLattice(::Any)
 ```
