@@ -10,18 +10,18 @@ This package provides access e.g. to the symmetry operations of crystalline poin
 
 The package is registered in the General registry and can be installed from the `pkg>` prompt (accessed by typing `]` at the Julia REPL) by executing:
 ```julia
-pkg> add https://github.com/thchr/Crystalline.jl
+pkg> add Crystalline
 ```
 whereafter Crystalline.jl can be loaded via
 ```julia
 julia> using Crystalline
 ```
 
-## Quick-start
+## Functionality
 
 Crystalline.jl currently provides several functionalities for line groups, plane groups, and space groups, as well as crystallographic point groups.
 
-Some example usage below:
+Example usage includes:
 ```julia
 # construct a 3D `SymOperation` from its triplet form
 julia> S"x,-y,-z"
