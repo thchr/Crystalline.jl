@@ -89,7 +89,7 @@ LGIRSD_2D[4]["CA"] = [
 # The xz-plane of space group 28
 LGIRSD_2D[7] = Dict{String, Vector{LGIrrep{2}}}()
 # Γ
-kv = KVec(0,1/2)
+kv = KVec(0,0)
 lg = LittleGroup(7, kv, "Γ", [S"x,y", S"-x,-y", S"-x+1/2,y", S"x+1/2,-y"])
 LGIRSD_2D[7]["Γ"] = [
     make_lgirrep("₁", lg, [1, +1, +1, +1], REAL)
