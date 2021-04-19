@@ -19,8 +19,8 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 [compat]
 Combinatorics = "1.0"
 DocStringExtensions = "0.8"
-JLD2 = "0.2.4"
-Meshing = "0.5" # for `src/compat/pyplot.jl` w/ Requires-load
+JLD2 = "0.2.4, 0.4"
+Meshing = "0.5"
 PrettyTables = "0.10, 0.11"
 Requires = "1.0, 1.1"
 StaticArrays = "1.0"
