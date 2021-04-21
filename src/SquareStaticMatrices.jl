@@ -72,6 +72,7 @@ end
     D = checksquare(A)
     @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
 end
+SqSMatrix{D,T}(A::SqSMatrix{D,T}) where {D,T} = A # resolve an ambiguity (StaticMatrix vs. AbstractMatrix)
 
 function flatten_nested(cols::NTuple{D, NTuple{D, T}}) where {D,T}
     ntuple(Val{D*D}()) do idx

@@ -22,6 +22,8 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test KVec{3}("u,v,0.5")([.7,.2,.3]) == [.7,.2,.5]
         @test KVec{3}("v,u,0.5")([.7,.2,.3]) == [.2,.7,.5]
 
+        @test KVec([0.0,1//1,2]) == KVec{3}("0,1,2")
+
         @test zero(KVec{3}) == KVec{3}("0,0,0") == zero(KVec{3}("1,2,3"))
     end
 
