@@ -131,7 +131,6 @@ end
     return W, w
 end
 
-signaschar(x::Number) = signbit(x) ? '-' : '+'
 const IDX2XYZ = ('x', 'y', 'z')
 
 function matrix2xyzt(O::AbstractMatrix{<:Real})

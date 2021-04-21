@@ -53,6 +53,8 @@ function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-6)
     return String(take!(buf))
 end
 
+signaschar(x::Real) = signbit(x) ? '-' : '+'
+
 # --- UNICODE FUNCTIONALITY ---
 const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>'₅',  # digits
                            '6'=>'₆', '7'=>'₇', '8'=>'₈', '9'=>'₉', '0'=>'₀',
