@@ -416,14 +416,14 @@ end
     (flat::AbstractFourierLattice)(xyz) --> Float64
     (flat::AbstractFourierLattice)(xyzs...) --> Float64
 
-Evaluate an `AbstractFourierLattice` at the point `xyz` and return its real part, i.e. 
+Evaluate an `AbstractFourierLattice` at the point `xyz` and return its real part, i.e.
     
 ```math
     \mathop{\mathrm{Re}}\sum_i c_i \exp(2\pi i\mathbf{G}_i\cdot\mathbf{r})
-````
+```
 
 with $\mathrm{G}_i$ denoting reciprocal lattice vectors in the allowed orbits of `flat`,
-with `c_i` denoting the associated coefficients (and $\mathbf{r} \equiv$ `xyz`).
+with $c_i$ denoting the associated coefficients (and $\mathbf{r} \equiv$ `xyz`).
 
 `xyz` may be any iterable object with dimension matching `flat` consisting of real numbers
 (e.g., a `Tuple`, `Vector`, or `SVector`). Alternatively, the coordinates can be supplied

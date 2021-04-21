@@ -125,11 +125,11 @@ Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in spa
 
 `g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
 that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
-invariant, such that `all(op -> wp == op∘wp, g)` is true.
+invariant, such that `all(op -> wp == op∘wp, g) == true`.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
-which \\eg generate the orbit of the Wyckoff position (see
+which e.g. generate the orbit of the Wyckoff position (see
 [`orbit(::SiteGroup, ::WyckPos)`](@ref)) and define a left-coset decomposition of `sg`
 jointly with the elements in `g`.
 
