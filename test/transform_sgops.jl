@@ -59,10 +59,10 @@ let count = 0, failures = Int[]
             dτ_primitive = [P\dτ_i for dτ_i in dτ]
             if debug
                 println("\nsgnum=$(sgnum) ($(bravaistype(sgnum, 3))):")
-                pretty_table([seitz_BCD seitz_ISO BCD_vs_ISO dτ dτ_primitive], 
-                            ["BCD", "ISOTROPY", "==?", "dτ (conventional basis)", "dτ (primitive basis)"],
-                            highlighters=Highlighter((d,i,j)->!d[i,3],
-                                                    Crayon(background =:red)))
+                pretty_table(stdout, 
+                    [seitz_BCD seitz_ISO BCD_vs_ISO dτ dτ_primitive];
+                    header = ["BCD", "ISOTROPY", "==?", "dτ (conventional basis)", "dτ (primitive basis)"],
+                    highlighters = Highlighter((d,i,j)->!d[i,3], Crayon(background=:red)))
             end
         end
     end

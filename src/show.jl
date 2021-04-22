@@ -58,9 +58,8 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     mt.isgroup || (println(io, "  invalid multiplication table"); return nothing)
     seitz_ops = seitz.(mt.operations)
     pretty_table(io,
-        [seitz_ops getindex.(Ref(seitz_ops), mt.table)], # 1st column and table itself
-        vcat("", seitz_ops);                             # 1st row (header)
-        highlighters = Highlighter((data,i,j) -> j==1; bold=true),
+        getindex.(Ref(seitz_ops), mt.table);
+        row_names = seitz_ops, header = seitz_ops,
         vlines = [1,], hlines = [:begin, 1, :end]
         )
     return nothing
@@ -284,18 +283,19 @@ end
 # --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
     chars = characters(ct)
-    chars_formatted = _stringify_characters.(chars, digits=8)
+    chars_formatted = _stringify_characters.(chars, digits=6)
 
     println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
     pretty_table(io,
-        [seitz.(operations(ct)) chars_formatted], # 1st column: seitz operations; then formatted character table
-        ["" formatirreplabel.(labels(ct))...];    # 1st row (header): irrep labels
+        chars_formatted;
+        # row/column names
+        row_names = seitz.(operations(ct)),     # seitz labels
+        header = formatirreplabel.(labels(ct)), # irrep labels
         tf = tf_unicode,
-        highlighters = Highlighter((data,i,j) -> j==1; bold=true),
         vlines = [1,], hlines = [:begin, 1, :end]
         )
 end
-function _stringify_characters(c::Number; digits=8)
+function _stringify_characters(c::Number; digits=6)
     c′ = round(c, digits=digits)
     cr, ci = reim(c′)
     if iszero(ci)     # real
@@ -389,11 +389,10 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
-        matrix(BRS, true),
-        # header
-        permutedims([wyck.(BRS) chop.(label.(BRS), tail=2)], (2,1)); # get rid of the repeating "↑G" part
-        # row names
+        matrix(BRS, true);
+        # row/column names
         row_names = vcat(irreplabels(BRS), "μ"),
+        header = (wyck.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
@@ -401,6 +400,8 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         alignment = :c, 
         highlighters = (h_odd, h_μ), 
         header_crayon = crayon"bold"
+        # TODO: Would be nice to highlight the `row_names` in a style matching the contents,
+        #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 
     # print k-vec labels
