@@ -125,11 +125,11 @@ end
 Calculate the symmetry indicator classification of a band representation set, meaning the 
 index-classification inferrable on the basis of symmetry alone.
 
-Technically, the calculation answers a question like "what direct product of 
+Technically, the calculation answers the question "what direct product of 
 ``\\mathbb{Z}_n`` groups is the the quotient group
-``X^{\\text{bs}} = \\{\\text{BS}\\}/\\{\\text{AI}\\}`` isomorphic to?".
-
-See e.g. Po, Watanabe, & Vishwanath, Nature Commun. **8**, 50 (2017) for more information.
+``X^{\\text{bs}} = \\{\\text{BS}\\}/\\{\\text{AI}\\}`` isomorphic to?" (see
+[Po, Watanabe, & Vishwanath, Nature Commun. **8**, 50 (2017)](https://doi.org/10.1038/s41467-017-00133-2)
+for more information).
 """
 function classification(BRS::BandRepSet)
     # get the diagonal components of the Smith normal decomposition (≥ 0)
@@ -146,11 +146,12 @@ end
 """
     basisdim(BRS::BandRepSet) --> Int64
 
-Computes the dimension of the (linearly independent parts) of a band representation set.
-This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of Po, Watanabe, & Vishwanath,
-Nature Commun. **8**, 50 (2017). In other words, this is the number of linearly independent
-basis vectors that span the expansions of a band structure or atomic insulator viewed as
-symmetry-data.
+Return the dimension of the (linearly independent parts) of a band representation set.
+This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of [Po, Watanabe, & Vishwanath,
+Nature Commun. **8**, 50 (2017)](https://doi.org/10.1038/s41467-017-00133-2), or 
+equivalently, the rank of `matrix(BRS)` over the ring of integers.
+This is the number of linearly independent basis vectors that span the expansions of
+a band structure viewed as symmetry data.
 """ 
 function basisdim(BRS::BandRepSet)
     Λ = smith(matrix(BRS)).SNF
@@ -217,7 +218,7 @@ end
 # element from the null space to add into 𝐜′ such that the result is positive, 
 # we have found solution (= an atomic insulator).
 # ==============================================================================
-# In searching on this topic, I came across the following KEY WORDS:
+# In searching on this topic, I came across the following keywords:
 #   - Linear system of Diophantine equations: any system Ax=b with integer A and b.
 #       See e.g. https://en.wikipedia.org/wiki/Diophantine_equation#Linear_Diophantine
 #   - Integer linear programming: concerned with solving integer-coefficient equations
