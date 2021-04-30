@@ -2,7 +2,10 @@
     find_representation(symvals::AbstractVector{Number}, 
                         lgirs::AbstractVector{<:AbstractIrrep},
                         αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                        assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int))
+                        assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int),
+                        atol::Real=DEFAULT_ATOL,
+                        maxresnorm::Real=1e-3,
+                        verbose::Bool=false)
 
                         --> Vector{assert_return_T}
 
@@ -14,6 +17,10 @@ Optionally, the multiciplities' element type can be specified via the `assert_re
 argument (performing checked conversion; returns `nothing` if representation in 
 `assert_return_T` is impossible). This can be useful if one suspects a particular band to 
 transform like a fraction of an irrep (i.e., the specified symmetry data is incomplete).
+
+If no valid set of multiplicities exist (i.e., is solvable, and has real-valued and
+`assert_return_T` representible type), the sentinel value `nothing` is returned. Optional
+debugging information can in this case be shown by setting `verbose=true`.
 
 # Extended help
 Effectively, this applies the projection operator P⁽ʲ⁾ of each irrep's character set
@@ -28,7 +35,9 @@ function find_representation(symvals::AbstractVector{<:Number},
                              lgirs::AbstractVector{<:AbstractIrrep},
                              αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
                              assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
-                             atol::Real=DEFAULT_ATOL)
+                             atol::Real=DEFAULT_ATOL,
+                             maxresnorm::Real=1e-3,
+                             verbose::Bool=false)
     ct = CharacterTable(lgirs, αβγ)
     χs = characters(ct) # character table as matrix (irreps-as-columns & operations-as-rows)
 
@@ -70,25 +79,37 @@ function find_representation(symvals::AbstractVector{<:Number},
     #ms = inv_g_order .* (χs' * symvals) # irrep multiplicities obtained from (2b)
     ms = χs\symvals # Adrian's approach
     residual = χs*ms - symvals
-    if !isapprox(norm(residual), 0, atol=1e-3)
-        @warn "computed multiplicities have a large residual and may not solve χm = s" residual_norm=norm(residual) residual=residual
+    if norm(residual) > maxresnorm
+        if verbose
+            @info """computed multiplicities have a residual exceeding `maxresnorm`, 
+                     suggesting that there is no solution to ``χm = s``; typically, this
+                     means that `symdata` is "incomplete" (in the sense that it e.g., 
+                     only contains "half" a degeneracy); `nothing` returned as sentinel"""
+        end
+        return nothing
     end
 
     # check that imaginary part is numerically zero and that all entries are representible
     # in type assert_return_T
     msℝ = real.(ms)
     if !isapprox(msℝ, ms,  atol=atol)
-        error("Non-negligible imaginary components found in irrep multicity ms (maximum "*
-              "imaginary component is $(maximum(imag, ms)))")
+        if verbose 
+            @info """non-negligible imaginary components found in irrep multicity; returning
+                     `nothing` as sentinel""" maximum(imag, ms)
+        end
+        return nothing
     end
     if assert_return_T <: Integer
         msT = round.(assert_return_T, msℝ)
         if isapprox(msT, msℝ, atol=atol)
             return msT
         else
-            # if ms cannot be represented by the the requested integer type, we return a
-            # sentinel value of `nothing` to indicate this (could e.g. mean that the input
-            # symmetry data is "incomplete" and needs to be "expanded" (i.e. add # bands))
+            if verbose
+                @info """multiplicities cannot be represented by the requested integer type,
+                         within the specified absolute tolerance (typically, this means that
+                         `symdata` is "incomplete" and needs to be "expanded" (i.e. add
+                         bands)"""
+            end
             return nothing
         end
 
