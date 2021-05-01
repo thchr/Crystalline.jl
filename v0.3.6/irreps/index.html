@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Irreps · Crystalline.jl</title><link rel="canonical" href="https://thchr.github.io/Crystalline.jl/irreps/"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="Crystalline.jl logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="Crystalline.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit">Crystalline.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../operations/">Symmetry operations</a></li><li><a class="tocitem" href="../groups/">Groups</a></li><li class="is-active"><a class="tocitem" href>Irreps</a><ul class="internal"><li><a class="tocitem" href="#Data-sources"><span>Data sources</span></a></li><li><a class="tocitem" href="#Point-group-irreps"><span>Point group irreps</span></a></li><li><a class="tocitem" href="#Small-little-group-irreps"><span>Small little group irreps</span></a></li><li><a class="tocitem" href="#Space-group-irreps"><span>Space group irreps</span></a></li><li><a class="tocitem" href="#Site-symmetry-irreps"><span>Site symmetry irreps</span></a></li><li><a class="tocitem" href="#Time-reversal-symmetry-and-&quot;physically-real&quot;-irreps"><span>Time-reversal symmetry and &quot;physically real&quot; irreps</span></a></li><li><a class="tocitem" href="#References"><span>References</span></a></li></ul></li><li><a class="tocitem" href="../bravais/">Bravais types &amp; bases</a></li><li><a class="tocitem" href="../bandreps/">Band representations</a></li><li><a class="tocitem" href="../lattices/">Lattices</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Irreps</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Irreps</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/thchr/Crystalline.jl/blob/master/docs/src/irreps.md#L" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Irreducible-representations"><a class="docs-heading-anchor" href="#Irreducible-representations">Irreducible representations</a><a id="Irreducible-representations-1"></a><a class="docs-heading-anchor-permalink" href="#Irreducible-representations" title="Permalink"></a></h1><p>Crystalline.jl provides easy access to crystallographic point group irreps, &quot;small&quot; irreps of space groups, and site symmetry group irreps. Currently, we only provide access to spinless (or &quot;single-valued&quot;) irreps.</p><h2 id="Data-sources"><a class="docs-heading-anchor" href="#Data-sources">Data sources</a><a id="Data-sources-1"></a><a class="docs-heading-anchor-permalink" href="#Data-sources" title="Permalink"></a></h2><p>Point group irreps are obtained from the Bilbao Crystallographic Server&#39;s <a href="https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg">Representations PG program</a> and small irreps of space groups are obtained from <a href="https://stokes.byu.edu/iso/irtables.php">ISOTROPY&#39;s 2011 ISO-IR dataset</a>.</p><p>If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).</p><h2 id="Point-group-irreps"><a class="docs-heading-anchor" href="#Point-group-irreps">Point group irreps</a><a id="Point-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Point-group-irreps" title="Permalink"></a></h2><p>Irreps for the crystallographic point groups are accessible via <a href="../api/#Crystalline.get_pgirreps"><code>get_pgirreps</code></a>, with the point group specified either by IUC label and dimensionality. As an example, we may load the irreps of the 6mm (C₆ᵥ in Schoenflies notation; see also <a href="../api/#Crystalline.schoenflies-Tuple{Integer}"><code>schoenflies(::PointGroup)</code></a>) point group in 3D.</p><pre><code class="language-julia">using Crystalline
+
+pgirs = get_pgirreps(&quot;6mm&quot;, Val(3))</code></pre><pre class="documenter-example-output">PGIrrep{3}: #25 (6mm)
+Γ₁ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     1.0
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     1.0
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     1.0
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     1.0
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     1.0
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     1.0
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     1.0
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     1.0
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     1.0
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     1.0
+    └─────────────────────────────────────────────
+Γ₂ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     1.0
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     1.0
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     1.0
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     1.0
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     -1.0
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     -1.0
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     -1.0
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     -1.0
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     -1.0
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     -1.0
+    └─────────────────────────────────────────────
+Γ₃ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     1.0
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     -1.0
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     -1.0
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     -1.0
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     -1.0
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     -1.0
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     -1.0
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     1.0
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     1.0
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     1.0
+    └─────────────────────────────────────────────
+Γ₄ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     1.0
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     1.0
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     -1.0
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     -1.0
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     -1.0
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     1.0
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     1.0
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     1.0
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     -1.0
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     -1.0
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     -1.0
+    └─────────────────────────────────────────────
+Γ₅ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     ⎡ 1.0+0.0im  0.0+0.0im ⎤
+    │     ⎣ 0.0+0.0im  1.0+0.0im ⎦
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     ⎡ -0.5+0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5-0.866im ⎦
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     ⎡ -0.5-0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5+0.866im ⎦
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     ⎡ 1.0+0.0im  0.0+0.0im ⎤
+    │     ⎣ 0.0+0.0im  1.0+0.0im ⎦
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     ⎡ -0.5+0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5-0.866im ⎦
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     ⎡ -0.5-0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5+0.866im ⎦
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     ⎡ 0.0+0.0im  1.0+0.0im ⎤
+    │     ⎣ 1.0+0.0im  0.0+0.0im ⎦
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     ⎡  0.0+0.0im    -0.5-0.866im ⎤
+    │     ⎣ -0.5+0.866im   0.0+0.0im ⎦
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     ⎡  0.0+0.0im    -0.5+0.866im ⎤
+    │     ⎣ -0.5-0.866im   0.0+0.0im ⎦
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     ⎡ 0.0+0.0im  1.0+0.0im ⎤
+    │     ⎣ 1.0+0.0im  0.0+0.0im ⎦
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     ⎡  0.0+0.0im    -0.5-0.866im ⎤
+    │     ⎣ -0.5+0.866im   0.0+0.0im ⎦
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     ⎡  0.0+0.0im    -0.5+0.866im ⎤
+    │     ⎣ -0.5-0.866im   0.0+0.0im ⎦
+    └─────────────────────────────────────────────
+Γ₆ ─┬─────────────────────────────────────────────
+    ├─ 1: ──────────────────────────────── (x,y,z)
+    │     ⎡ 1.0+0.0im  0.0+0.0im ⎤
+    │     ⎣ 0.0+0.0im  1.0+0.0im ⎦
+    │
+    ├─ 3₀₀₁⁺: ───────────────────────── (-y,x-y,z)
+    │     ⎡ -0.5+0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5-0.866im ⎦
+    │
+    ├─ 3₀₀₁⁻: ──────────────────────── (-x+y,-x,z)
+    │     ⎡ -0.5-0.866im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im    -0.5+0.866im ⎦
+    │
+    ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
+    │     ⎡ -1.0+0.0im   0.0+0.0im ⎤
+    │     ⎣  0.0+0.0im  -1.0+0.0im ⎦
+    │
+    ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
+    │     ⎡ 0.5-0.866im  0.0+0.0im ⎤
+    │     ⎣ 0.0+0.0im    0.5+0.866im ⎦
+    │
+    ├─ 6₀₀₁⁺: ────────────────────────── (x-y,x,z)
+    │     ⎡ 0.5+0.866im  0.0+0.0im ⎤
+    │     ⎣ 0.0+0.0im    0.5-0.866im ⎦
+    │
+    ├─ m₁₁₀: ─────────────────────────── (-y,-x,z)
+    │     ⎡ 0.0+0.0im  1.0+0.0im ⎤
+    │     ⎣ 1.0+0.0im  0.0+0.0im ⎦
+    │
+    ├─ m₁₀₀: ────────────────────────── (-x+y,y,z)
+    │     ⎡  0.0+0.0im    -0.5-0.866im ⎤
+    │     ⎣ -0.5+0.866im   0.0+0.0im ⎦
+    │
+    ├─ m₀₁₀: ─────────────────────────── (x,x-y,z)
+    │     ⎡  0.0+0.0im    -0.5+0.866im ⎤
+    │     ⎣ -0.5-0.866im   0.0+0.0im ⎦
+    │
+    ├─ m₋₁₁₀: ──────────────────────────── (y,x,z)
+    │     ⎡  0.0+0.0im  -1.0+0.0im ⎤
+    │     ⎣ -1.0+0.0im   0.0+0.0im ⎦
+    │
+    ├─ m₁₂₀: ────────────────────────── (x-y,-y,z)
+    │     ⎡ 0.0+0.0im    0.5+0.866im ⎤
+    │     ⎣ 0.5-0.866im  0.0+0.0im ⎦
+    │
+    ├─ m₂₁₀: ───────────────────────── (-x,-x+y,z)
+    │     ⎡ 0.0+0.0im    0.5-0.866im ⎤
+    │     ⎣ 0.5+0.866im  0.0+0.0im ⎦
+    └─────────────────────────────────────────────</pre><p>Frequently, the character table of the associated irreps is more informative than the irrep matrices themselves. We can construct this table using <a href="../api/#Crystalline.CharacterTable"><code>CharacterTable</code></a>:</p><pre><code class="language-julia">CharacterTable(pgirs)</code></pre><pre class="documenter-example-output">CharacterTable{3}: #25 (6mm)
+───────┬────────────────────────
+       │ Γ₁  Γ₂  Γ₃  Γ₄  Γ₅  Γ₆
+───────┼────────────────────────
+     1 │  1   1   1   1   2   2
+ 3₀₀₁⁺ │  1   1   1   1  -1  -1
+ 3₀₀₁⁻ │  1   1   1   1  -1  -1
+  2₀₀₁ │  1   1  -1  -1   2  -2
+ 6₀₀₁⁻ │  1   1  -1  -1  -1   1
+ 6₀₀₁⁺ │  1   1  -1  -1  -1   1
+  m₁₁₀ │  1  -1  -1   1   0   0
+  m₁₀₀ │  1  -1  -1   1   0   0
+  m₀₁₀ │  1  -1  -1   1   0   0
+ m₋₁₁₀ │  1  -1   1  -1   0   0
+  m₁₂₀ │  1  -1   1  -1   0   0
+  m₂₁₀ │  1  -1   1  -1   0   0
+───────┴────────────────────────
+</pre><h3 id="Notation"><a class="docs-heading-anchor" href="#Notation">Notation</a><a id="Notation-1"></a><a class="docs-heading-anchor-permalink" href="#Notation" title="Permalink"></a></h3><p>The default point group irrep labeling follows the Bilbao Crystallographic Server&#39;s labeling, which in turn follows the 1963 labelling of Koster, Dimmock, Wheeler, &amp; Statz <sup class="footnote-reference"><a id="citeref-2" href="#footnote-2">[2]</a></sup> (which is also followed e.g. by CDML <sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> labeling as well as Bradley and Cracknell&#39;s book). Associated Muliken (or &quot;spectroscopist&#39;s&quot;) notation can be obtained via <code>mulliken</code>.</p><h2 id="Small-little-group-irreps"><a class="docs-heading-anchor" href="#Small-little-group-irreps">Small little group irreps</a><a id="Small-little-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Small-little-group-irreps" title="Permalink"></a></h2><p>Little group irreps are accessible via <a href="../api/#Crystalline.get_lgirreps-Union{Tuple{Integer}, Tuple{D}, Tuple{Integer, Val{D}}, Tuple{Integer, Val{D}, JLD2.JLDFile}, Tuple{Integer, Val{D}, JLD2.JLDFile, JLD2.JLDFile}} where D"><code>get_lgirreps</code></a> and provided with CDML <sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> labels (courtesy of ISOTROPY). As an example, we can obtain the irreps of space group 183 (P6mm; the trivial 3D extension of plane group 17, which in turn is the space group extension of point group 6mm from above) by:</p><pre><code class="language-julia">using Crystalline
+
+lgirsd = get_lgirreps(183, Val(3))</code></pre><pre class="documenter-example-output">Dict{String, Vector{LGIrrep{3}}} with 18 entries:
+  &quot;Q&quot; =&gt; [LGIrrep{3}(&quot;Q1&quot;, SymOperation{3}[1, m₋₁₁₀], Matrix{ComplexF64}[[1.0+0…
+  &quot;Λ&quot; =&gt; [LGIrrep{3}(&quot;Λ1&quot;, SymOperation{3}[1, m₋₁₁₀], Matrix{ComplexF64}[[1.0+0…
+  &quot;P&quot; =&gt; [LGIrrep{3}(&quot;P1&quot;, SymOperation{3}[1, 3₀₀₁⁺, 3₀₀₁⁻, m₂₁₀, m₁₂₀, m₋₁₁₀],…
+  &quot;C&quot; =&gt; [LGIrrep{3}(&quot;C1&quot;, SymOperation{3}[1, m₋₁₁₀], Matrix{ComplexF64}[[1.0+0…
+  &quot;L&quot; =&gt; [LGIrrep{3}(&quot;L1&quot;, SymOperation{3}[1, 2₀₀₁, m₀₁₀, m₂₁₀], Matrix{Complex…
+  &quot;Δ&quot; =&gt; [LGIrrep{3}(&quot;Δ1&quot;, SymOperation{3}[1, 2₀₀₁, 3₀₀₁⁺, 3₀₀₁⁻, 6₀₀₁⁺, 6₀₀₁⁻,…
+  &quot;B&quot; =&gt; [LGIrrep{3}(&quot;B1&quot;, SymOperation{3}[1], Matrix{ComplexF64}[[1.0+0.0im]],…
+  &quot;M&quot; =&gt; [LGIrrep{3}(&quot;M1&quot;, SymOperation{3}[1, 2₀₀₁, m₀₁₀, m₂₁₀], Matrix{Complex…
+  &quot;H&quot; =&gt; [LGIrrep{3}(&quot;H1&quot;, SymOperation{3}[1, 3₀₀₁⁺, 3₀₀₁⁻, m₂₁₀, m₁₂₀, m₋₁₁₀],…
+  &quot;A&quot; =&gt; [LGIrrep{3}(&quot;A1&quot;, SymOperation{3}[1, 2₀₀₁, 3₀₀₁⁺, 3₀₀₁⁻, 6₀₀₁⁺, 6₀₀₁⁻,…
+  &quot;D&quot; =&gt; [LGIrrep{3}(&quot;D1&quot;, SymOperation{3}[1, m₀₁₀], Matrix{ComplexF64}[[1.0+0.…
+  &quot;E&quot; =&gt; [LGIrrep{3}(&quot;E1&quot;, SymOperation{3}[1], Matrix{ComplexF64}[[1.0+0.0im]],…
+  &quot;U&quot; =&gt; [LGIrrep{3}(&quot;U1&quot;, SymOperation{3}[1, 2₀₀₁, m₀₁₀, m₂₁₀], Matrix{Complex…
+  &quot;Σ&quot; =&gt; [LGIrrep{3}(&quot;Σ1&quot;, SymOperation{3}[1, m₀₁₀], Matrix{ComplexF64}[[1.0+0.…
+  &quot;Γ&quot; =&gt; [LGIrrep{3}(&quot;Γ1&quot;, SymOperation{3}[1, 2₀₀₁, 3₀₀₁⁺, 3₀₀₁⁻, 6₀₀₁⁺, 6₀₀₁⁻,…
+  &quot;K&quot; =&gt; [LGIrrep{3}(&quot;K1&quot;, SymOperation{3}[1, 3₀₀₁⁺, 3₀₀₁⁻, m₂₁₀, m₁₂₀, m₋₁₁₀],…
+  &quot;R&quot; =&gt; [LGIrrep{3}(&quot;R1&quot;, SymOperation{3}[1, m₀₁₀], Matrix{ComplexF64}[[1.0+0.…
+  &quot;Ω&quot; =&gt; [LGIrrep{3}(&quot;Ω1&quot;, SymOperation{3}[1], Matrix{ComplexF64}[[1.0+0.0im]],…</pre><p>which returns a dictionary of <code>LGIrrep</code>s, indexed by k-labels given as <code>String</code>s, corresponding to different little groups. In general, we include all the little groups included in ISOTROPY; unfortunately, there is no strict guarantee that this includes a full listing of all inequivalent irreps (although it is typically true). The listing typically contains both special points, lines, and planes (and also always the general point).</p><p>We can inspect the irreps of any particular point point accessing it via its label. As before, we can construct associated character tables:</p><pre><code class="language-julia">lgirs = lgirsd[&quot;Γ&quot;] # small irreps at the Γ point
+CharacterTable(lgirs)</code></pre><pre class="documenter-example-output">CharacterTable{3}: #183 (P6mm at Γ = [0.0, 0.0, 0.0])
+───────┬────────────────────────
+       │ Γ₁  Γ₂  Γ₃  Γ₄  Γ₅  Γ₆
+───────┼────────────────────────
+     1 │  1   1   1   1   2   2
+  2₀₀₁ │  1   1  -1  -1   2  -2
+ 3₀₀₁⁺ │  1   1   1   1  -1  -1
+ 3₀₀₁⁻ │  1   1   1   1  -1  -1
+ 6₀₀₁⁺ │  1   1  -1  -1  -1   1
+ 6₀₀₁⁻ │  1   1  -1  -1  -1   1
+  m₁₀₀ │  1  -1  -1   1   0   0
+  m₁₁₀ │  1  -1  -1   1   0   0
+  m₀₁₀ │  1  -1  -1   1   0   0
+  m₂₁₀ │  1  -1   1  -1   0   0
+  m₁₂₀ │  1  -1   1  -1   0   0
+ m₋₁₁₀ │  1  -1   1  -1   0   0
+───────┴────────────────────────
+</pre><h2 id="Space-group-irreps"><a class="docs-heading-anchor" href="#Space-group-irreps">Space group irreps</a><a id="Space-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Space-group-irreps" title="Permalink"></a></h2><p>We currently do not provide access to &quot;full&quot; space group irreps, although they can in principle be built readily from small irreps.</p><h2 id="Site-symmetry-irreps"><a class="docs-heading-anchor" href="#Site-symmetry-irreps">Site symmetry irreps</a><a id="Site-symmetry-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Site-symmetry-irreps" title="Permalink"></a></h2><p>To obtain irreps associated with a given site symmetry group (see <a href="../api/#Crystalline.SiteGroup-Union{Tuple{D}, Tuple{SpaceGroup{D}, WyckPos{D}}} where D"><code>SiteGroup</code></a>, use the <a href="../api/#Crystalline.find_isomorphic_parent_pointgroup-Union{Tuple{AbstractArray{SymOperation{D}, 1}}, Tuple{D}} where D"><code>find_isomorphic_parent_pointgroup</code></a> to obtain the &quot;parent&quot; point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [<code>get_pgirreps</code>)[@ref].</p><h2 id="Time-reversal-symmetry-and-&quot;physically-real&quot;-irreps"><a class="docs-heading-anchor" href="#Time-reversal-symmetry-and-&quot;physically-real&quot;-irreps">Time-reversal symmetry and &quot;physically real&quot; irreps</a><a id="Time-reversal-symmetry-and-&quot;physically-real&quot;-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Time-reversal-symmetry-and-&quot;physically-real&quot;-irreps" title="Permalink"></a></h2><p>Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default.  To incorporate time-reversal symmetry (or, equivalently, to obtain associated &quot;physically real&quot; irreps), which may cause irreps to &quot;stick together&quot;, see <a href="../api/#Crystalline.realify-Union{Tuple{AbstractArray{LGIrrep{D}, 1}}, Tuple{D}, Tuple{AbstractArray{LGIrrep{D}, 1}, Bool}} where D"><code>realify</code></a> (which takes a vector of <code>PGIrrep</code>s or <code>LGIrrep</code>s).</p><p>As an example, the Γ₃, Γ₄, Γ₅, and Γ₆ irreps of point group 6 (C₆) are intrinsically complex in the absence of time-reversal symmetry:</p><pre><code class="language-julia">using Crystalline
+
+pgirs = get_pgirreps(&quot;6&quot;, Val(3))
+CharacterTable(pgirs)</code></pre><pre class="documenter-example-output">CharacterTable{3}: #21 (6)
+───────┬────────────────────────────────────────────────────────────────────────
+       │ Γ₁  Γ₂               Γ₃               Γ₄               Γ₅             ⋯
+───────┼────────────────────────────────────────────────────────────────────────
+     1 │  1   1                1                1                1             ⋯
+ 3₀₀₁⁺ │  1   1  -0.5+0.866025im  -0.5+0.866025im  -0.5-0.866025im  -0.5-0.866 ⋯
+ 3₀₀₁⁻ │  1   1  -0.5-0.866025im  -0.5-0.866025im  -0.5+0.866025im  -0.5+0.866 ⋯
+  2₀₀₁ │  1  -1                1               -1                1             ⋯
+ 6₀₀₁⁻ │  1  -1  -0.5+0.866025im   0.5-0.866025im  -0.5-0.866025im   0.5+0.866 ⋯
+ 6₀₀₁⁺ │  1  -1  -0.5-0.866025im   0.5+0.866025im  -0.5+0.866025im   0.5-0.866 ⋯
+───────┴────────────────────────────────────────────────────────────────────────
+                                                                1 column omitted
+</pre><p>When time-reversal symmetry is incorporated, the irreps stick together pairwise and have real characters:</p><pre><code class="language-julia">pgirs′ = realify(pgirs)
+CharacterTable(pgirs′)</code></pre><pre class="documenter-example-output">CharacterTable{3}: #21 (6)
+───────┬────────────────────
+       │ Γ₁  Γ₂  Γ₃Γ₅  Γ₄Γ₆
+───────┼────────────────────
+     1 │  1   1     2     2
+ 3₀₀₁⁺ │  1   1    -1    -1
+ 3₀₀₁⁻ │  1   1    -1    -1
+  2₀₀₁ │  1  -1     2    -2
+ 6₀₀₁⁻ │  1  -1    -1     1
+ 6₀₀₁⁺ │  1  -1    -1     1
+───────┴────────────────────
+</pre><p>To inspect the reality type of a given irrep, see <a href="@ref"><code>reality</code></a>. Possible types are <code>REAL</code>, <code>COMPLEX</code>, and <code>PSEUDOREAL</code> (the latter does not arise for point groups):</p><pre><code class="language-julia">label.(pgirs) .=&gt; reality.(pgirs)</code></pre><pre class="documenter-example-output">6-element Vector{Pair{String, Reality}}:
+ &quot;Γ₁&quot; =&gt; REAL
+ &quot;Γ₂&quot; =&gt; REAL
+ &quot;Γ₃&quot; =&gt; COMPLEX
+ &quot;Γ₄&quot; =&gt; COMPLEX
+ &quot;Γ₅&quot; =&gt; COMPLEX
+ &quot;Γ₆&quot; =&gt; COMPLEX</pre><p>The reality type can be computed ab initio via <code>calc_reality</code>, using the Frobenius criterion for <code>PGIrrep</code>s and the Herring criterion for <code>LGIrrep</code>s.</p><h2 id="References"><a class="docs-heading-anchor" href="#References">References</a><a id="References-1"></a><a class="docs-heading-anchor-permalink" href="#References" title="Permalink"></a></h2><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a>Cracknell, A.P., Davies, B.L., Miller, S.C., &amp; Love, W.F., <em>Kronecker Product Tables, Vol. 1. General Introduction and Tables of Irreducible Representations of Space Groups</em>, New York: IFI/Plenum (1979).</li><li class="footnote" id="footnote-2"><a class="tag is-link" href="#citeref-2">2</a>Koster, G.F., Dimmock, J.O., Wheeler, R.G., &amp; Statz, H., <em>Properties of the Thirty-two Point Groups</em>, Cambridge: MIT Press (1963).</li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../groups/">« Groups</a><a class="docs-footer-nextpage" href="../bravais/">Bravais types &amp; bases »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 1 May 2021 14:06">Saturday 1 May 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
