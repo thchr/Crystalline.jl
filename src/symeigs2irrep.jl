@@ -92,7 +92,7 @@ function find_representation(symvals::AbstractVector{<:Number},
     # check that imaginary part is numerically zero and that all entries are representible
     # in type assert_return_T
     msℝ = real.(ms)
-    if !isapprox(msℝ, ms,  atol=atol)
+    if !isapprox(msℝ, ms, atol=atol)
         if verbose 
             @info """non-negligible imaginary components found in irrep multicity; returning
                      `nothing` as sentinel""" maximum(imag, ms)
@@ -114,6 +114,9 @@ function find_representation(symvals::AbstractVector{<:Number},
         end
 
     elseif assert_return_T <: AbstractFloat
+        # TODO: not sure why we wouldn't want to check for `atol` distance from nearest
+        #       integer here (returning `nothing` in the negative case) - should check if
+        #       we ever actually rely on this
         return convert.(assert_return_T, msℝ)
     end
 

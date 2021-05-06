@@ -319,14 +319,19 @@ end
 
 
 # --- BandRep ---
-function prettyprint_symmetryvector(io::IO, irvec::AbstractVector{<:Real}, irlabs::Vector{String})
+function prettyprint_symmetryvector(
+            io::IO, 
+            irvec::AbstractVector{<:Real},
+            irlabs::Vector{String};
+            braces::Bool=true)
+
     Nⁱʳʳ  = length(irlabs)
     Nⁱʳʳ′ = length(irvec) 
     if !(Nⁱʳʳ′ == Nⁱʳʳ || Nⁱʳʳ′ == Nⁱʳʳ+1)
         # we allow irvec to exceed the dimension of irlabs by 1, in case it includes dim(BR)
         throw(DimensionMismatch("irvec and irlabs must have matching dimensions"))
     end
-    print(io, '[')
+    braces && print(io, '[')
 
     first_nz   = true
     group_klab = klabel(first(irlabs))
@@ -358,9 +363,15 @@ function prettyprint_symmetryvector(io::IO, irvec::AbstractVector{<:Real}, irlab
                 print(io, absc)
             end
         end
-        print(io, irlab)      
+        print(io, irlab)
     end
-    print(io, ']')
+    braces && print(io, ']')
+end
+function symvec2string(irvec::AbstractVector{<:Real}, irlabs::Vector{String}; 
+            braces::Bool=true)
+    io = IOBuffer()
+    prettyprint_symmetryvector(io, irvec, irlabs; braces=braces)
+    return String(take!(io))
 end
 
 summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), " at ", wyck(BR), ")")
