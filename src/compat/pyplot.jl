@@ -1,6 +1,7 @@
 using .PyPlot
 import .PyPlot: plot, plot3D, plt
 using Meshing
+using Statistics: quantile
 
 # Defaults --------------------------------------------------------------------------------
 
@@ -76,23 +77,24 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
     if isnothing(isoval)
+        isnothing(filling) && error(ArgumentError("`filling` and `isoval` cannot both be `nothing`"))
         # we don't want to "double count" the BZ edges - so to avoid that, exclude the last 
-        # index of each dimension (same approach as in `filling2isoval`)
+        # index of each dimension (same approach as in `MPBUtils.filling2isoval`)
         isoidxs = OneTo(N-1)
         vals′ = if D == 2;     (@view vals[isoidxs, isoidxs])
                 elseif D == 3; (@view vals[isoidxs, isoidxs, isoidxs])
                 end
-        isoval = !isnothing(filling) ? quantile(Iterators.flatten(vals′), filling) : zero(Float64)
+        isoval = quantile(Iterators.flatten(vals′), filling)
     end
-    plotiso(xyz,vals,isoval,Rs,repeat,fig)
+    plotiso(xyz, vals, isoval, Rs, repeat, fig)
 
-    return xyz,vals,isoval
+    return xyz, vals, isoval
 end
 
 # plot isocontour of data
 function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
-                repeat::Union{Integer, Nothing}=nothing, 
-                fig=nothing) where D
+                 repeat::Union{Integer, Nothing}=nothing, 
+                 fig=nothing) where D
 
     if isnothing(fig)
         fig = plt.figure()
