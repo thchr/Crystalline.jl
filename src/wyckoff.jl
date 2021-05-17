@@ -172,6 +172,11 @@ julia> ops = [opʰ∘opᵍ for opʰ in cosets(g) for opᵍ in g];
 julia> Set(sg) == Set(ops)
 true
 ```
+
+## Terminology
+
+Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
+in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
 """
 function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
     Nsg  = order(sg)

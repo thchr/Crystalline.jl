@@ -190,7 +190,7 @@ way as to ensure that the sampling is uniform over the joint
 interval [-1/`lims[1]`, -1] ∪ [1, `lims[2]`].
 
 This is useful for ensuring an even sampling of numbers that are
-either smaller or larger than unity. Eg. for `x = relrand((0.2,5.0))`,
+either smaller or larger than unity. E.g. for `x = relrand((0.2,5.0))`,
 `x` is equally probable to fall in inv(`x`)∈[1,5] or `x`∈[1,5].
 """
 function relrand(lims::NTuple{2,<:Real})
@@ -312,18 +312,22 @@ const CRYSTALSYSTEM_ABBREV = (ImmutableDict("linear"=>'l'),                     
 """
     $(TYPEDSIGNATURES)
 
-Return the Bravais type of `sgnum` in dimension `dim` as a string (as the concatenation
+Return the Bravais type of `sgnum` in dimension `D` as a string (as the concatenation
 of the single-character crystal abbreviation and the centering type).
 
-## Note
+## Keyword arguments
 
-If the centering type associated with `sgnum` is `'A'`, we chose to "normalize" the
-centering to `'C'`, since the difference between `A` and `C` centering only amounts to a 
-basis change. This ensures that `unique(bravaistype.(1:230, 3))` creates only 14 Bravais
-types, rather than 15. 
-This impacts space groups 38-41, whose Bravais types are normalized from `oA` to `oC`.
+If the centering type associated with `sgnum` is `'A'`, we can choose (depending on the
+keyword argument `normalize`, defaulting to `false`) to "normalize" to the centering type
+`'C'`, since the difference between `A` and `C` centering only amounts to a basis change.
+With `normalize=true` we then have only the canonical 14 Bravais type, i.e. 
+`unique(bravaistype.(1:230, 3), normalize=true)` returns only 14 distinct types, rather
+than 15.
+
+This only affects space groups 38-41 (normalizing their conventional Bravais types from
+`oA` to `oC`).
 """
-@inline function bravaistype(sgnum::Integer, D::Integer=3)
+@inline function bravaistype(sgnum::Integer, D::Integer=3; normalize::Bool=false)
     cntr = centering(sgnum, D)
     system = crystalsystem(sgnum, D)
 
@@ -333,10 +337,9 @@ This impacts space groups 38-41, whose Bravais types are normalized from `oA` to
     # the same Bravais lattice; there is no significance in trying to 
     # differentiate them - if we do, we end up with 15 Bravais lattices in 
     # 3D rather than 14: so we manually fix that here:
-    if cntr == 'A'
-        println(sgnum)
+    if normalize
+        cntr = cntr == 'A' ? 'C' : cntr
     end
-    cntr = cntr == 'A' ? 'C' : cntr
 
     # pick the correct crystal system abbreviation from CRYSTALSYSTEM_ABBREV 
     # and return its concatenation with the (now-"normalized") centering type

@@ -181,7 +181,7 @@ See `is_holosymmetric` for description of holosymmetric space groups and of
 their connection to the representation and basic domains Φ and Ω.
 """
 function _find_holosymmetric_sgnums(D::Integer)
-    bravaistypes = bravaistype.(OneTo(MAX_SGNUM[D]), D)
+    bravaistypes = bravaistype.(OneTo(MAX_SGNUM[D]), D, normalize=true)
     uniquebravaistypes = unique(bravaistypes) # Bravais types (1, 5, & 14 in 1D, 2D, & 3D)
 
     # find maximum point groups for each bravais type
@@ -246,7 +246,7 @@ function find_holosymmetric_superpointgroup(G::SpaceGroup)
         # between hP and hR need to be accounted for explicitly, so there we
         # have to explicitly ensure that we only compare with pointgroups 
         # that indeed match the lattice type (hR and hP have different holohedries)
-        bt = bravaistype(num(G), D)
+        bt = bravaistype(num(G), D, normalize=true)
         for pglab in HOLOSYMMETRIC_PG_FOR_BRAVAISTYPE[bt]
             # this check is actually redunant for everything except the hR groups; we do it anyway
             P = pointgroup(pglab, D) # holosymmetric point group (::PointGroup)
