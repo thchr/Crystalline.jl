@@ -2,7 +2,7 @@
 """
 $(TYPEDEF)
 """
-abstract type Basis{D} <: AbstractVector{SVector{D,Float64}} end
+abstract type Basis{D} <: StaticVector{D, SVector{D,Float64}} end
 for T in (:DirectBasis, :ReciprocalBasis)
     @eval begin
         @doc """
