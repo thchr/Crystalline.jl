@@ -8,18 +8,30 @@ for T in (:DirectBasis, :ReciprocalBasis)
         @doc """
             $($T){D} <: Basis{D}
 
-        - `vecs::NTuple{D, SVector{D, Float64}}`
+        - `vecs::SVector{D, SVector{D,Float64}}`
         """
         struct $T{D} <: Basis{D}
-              vecs::SVector{D,SVector{D,Float64}}
+            vecs::SVector{D, SVector{D,Float64}}
+            $T{D}(vecs::SVector{D, SVector{D,Float64}}) where D = new{D}(vecs)
+            $T(vecs::SVector{D, SVector{D,Float64}}) where D    = new{D}(vecs)
         end
     end
-    @eval $T(Rs::NTuple{D,AbstractVector{<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
-    @eval $T(Rs::NTuple{D,NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Rs))
-    @eval $T(Rs::AbstractVector{<:Real}...) = $T(Rs)
-    @eval $T(Rs::NTuple{D,<:Real}...) where D = $T{D}(SVector{D,Float64}.(Rs))
-    @eval $T(Rs::AbstractVector{<:Real}) = (D=length(Rs); $T{D}(SVector{D,Float64}.(Rs)))
+    @eval function convert(::Type{$T{D}}, Vs::StaticVector{D, <:StaticVector{D, <:Real}}) where D
+        $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
+    end
+    @eval $T{D}(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(SVector{D}(Vs))
+    @eval $T(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(Vs)
+    @eval $T{D}(Vs::NTuple{D, NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Vs))
+    @eval $T(Vs::NTuple{D, NTuple{D,<:Real}}) where D = $T{D}(Vs)
+    @eval $T{D}(Vs::AbstractVector{<:Real}...) where D = $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
+    @eval $T(Vs::AbstractVector{<:Real}...) = $T{length(Vs)}(Vs...)
+    @eval $T{D}(Vs::StaticVector{D,<:Real}...) where D = $T{D}(Vs) # resolve ambiguities w/
+    @eval $T(Vs::StaticVector{D,<:Real}...) where D = $T{D}(Vs)    # `::StaticArray` methods
 end
+
+# Fix a bug in StaticArrays: https://github.com/JuliaArrays/StaticArrays.jl/issues/915
+# TODO: Remove when fixed upstream
+Base.abs2(a::StaticArray) = LinearAlgebra.norm_sqr(a)
 
 vecs(Vs::Basis) = Vs.vecs
 # define the AbstractArray interface for DirectBasis{D}

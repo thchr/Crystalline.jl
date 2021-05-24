@@ -18,7 +18,8 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              string, isapprox, zero,
              readuntil, vec, show, summary,
              +, -, ∘, ==, ImmutableDict,
-             isone, one
+             isone, one,
+             convert
 import LinearAlgebra: inv
 import Random                 # → `_Uniform` in src/utils.jl
 import Random: rand           # ⤶
