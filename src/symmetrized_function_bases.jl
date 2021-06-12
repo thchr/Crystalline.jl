@@ -1,4 +1,5 @@
-using SGOps, StaticArrays, LinearAlgebra, SparseArrays, PyPlot
+using Crystalline, StaticArrays, LinearAlgebra, SparseArrays, PyPlot
+import PyPlot: plot
 
 struct CrystalPW{D}
     Gs::Vector{SVector{D,Int}}
@@ -10,9 +11,9 @@ const DEFAULT_αβγ = [0,0,0]
 # Functions by Means of a Computer", Journal of Computational Physics 12, 471 (1973), 
 # [https://doi.org/10.1016/0021-9991(73)90099-5], especially §4 and Eq. (4.13) and below.
 function planewave_projector(sgnum::Integer, klab::String, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) where D
-    lgirs = find_lgirreps(sgnum, klab, Dᵛ)
+    lgirs = get_lgirreps(sgnum, Dᵛ)[klab]
     lg = group(first(lgirs))
-    kv = kvec(lg)(DEFAULT_αβγ)
+    kv = kvec(lg)(DEFAULT_αβγ[SOneTo(D)])
 
     # Reciprocal lattice vectors 𝐊 in a basis of 𝐆ᵢ
     Ks = SVector{D, Int}.(Tuple.(CartesianIndices(map(i->-i:i,idxmax))))
@@ -36,10 +37,10 @@ function planewave_projector(sgnum::Integer, klab::String, Dᵛ::Val{D}, idxmax:
     end
 
     # construct projection matrices
-    Ps = [[spzeros(ComplexF64, s,s) for _ in Base.OneTo(SGOps.irdim(lgir))] for lgir in lgirs]
+    Ps = [[spzeros(ComplexF64, s,s) for _ in Base.OneTo(Crystalline.irdim(lgir))] for lgir in lgirs]
     for (j, lgir) in enumerate(lgirs)
-        ʲΓ = irreps(lgir, DEFAULT_αβγ)
-        dimʲΓ = SGOps.irdim(lgir)
+        ʲΓ = lgir(DEFAULT_αβγ[SOneTo(D)])
+        dimʲΓ = Crystalline.irdim(lgir)
         for d in Base.OneTo(dimʲΓ)
             for (i, opᵢ) in enumerate(lg)
                 Ps[j][d] .+= conj(ʲΓ[i][d,d])*Γs[i]
@@ -73,7 +74,6 @@ function planewave_symfuncs(sgnum::Integer, klab::String, Dᵛ::Val{D}, idxmax::
         end
     end
         
-
     # We ought to reorthogonalize PWs and create linear combinations that "sort" the distinct
     # PWs within a specific [j][d] combination after increasing mean(Ks) contributions
     return PWs
@@ -82,35 +82,52 @@ end
 
 
 """
-
 Example:
-
-    sgnum = 220
-    PWs=planewave_symfuncs(sgnum,"Γ", Val(3), 2 .* (1,1,1));
+    sgnum = 10
+    PWs=planewave_symfuncs(sgnum,"M", Val(2), 1 .* (1,1));
+    Rs = directbasis(sgnum, Val(2))
     j = 3; d = 1; n = 1
-    plot_xyslice(PWs[j][d][n], directbasis(sgnum))
+    plot(PWs[j][d][n], Rs)
 """
-function plot_xyslice(PW::CrystalPW{D}, Rs::DirectBasis{D}, z::Real=0, N::Integer=100) where D
-    f = (coords...)-> calcfourier(SVector{3,Float64}(coords..., z), PW)
+function plot_xyslice(PW::CrystalPW{3}, Rs::DirectBasis{3}, z::Real=0, N::Integer=100)
+    f = (coords...) -> PW(SVector{3,Float64}(coords..., z))
     vals = Matrix{ComplexF64}(undef, N, N)
-    xyz = range(-.5, .5, length=N)
+    xy = range(-.5, .5, length=N)
 
     # TODO: Note that right now, we do not include the Bloch phase, i.e. the result is the
     #       periodic envelope u rather than ψ. Maybe would be good with a toggle.
-    broadcast!(f, vals, reshape(xyz, (N,1)), reshape(xyz, (1,N)))
+    broadcast!(f, vals, reshape(xy, (N,1)), reshape(xy, (1,N)))
 
     fig = plt.figure()
     
-    X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-    Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+    X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xy,(1,N)), reshape(xy, (N,1)))
+    Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xy,(1,N)), reshape(xy, (N,1)))
     
     fig.gca().contourf(X,Y,real.(vals); levels=25, cmap=plt.get_cmap("coolwarm",25))
 end
 
-function calcfourier(xyz, PW::CrystalPW{D}) where D
-    f = zero(ComplexF64)
+function plot(PW::CrystalPW{2}, Rs::DirectBasis{2}, N::Integer=100; part=real, kv=[0,0])
+    f = (coords...) -> PW(SVector{2,Float64}(coords))
+    vals = Matrix{ComplexF64}(undef, N, N)
+    xy = range(-.5, .5, length=N)
+
+    # TODO: Note that right now, we do not include the Bloch phase, i.e. the result is the
+    #       periodic envelope u rather than ψ. Maybe would be good with a toggle.
+    # TODO: Deduplicate duplicated code in 2D/3D cases
+    broadcast!(f, vals, reshape(xy, (N,1)), reshape(xy, (1,N)))
+
+    fig = plt.figure()
+    
+    X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xy,(1,N)), reshape(xy, (N,1)))
+    Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xy,(1,N)), reshape(xy, (N,1)))
+    
+    fig.gca().contourf(X,Y,part.(vals); levels=25, cmap=plt.get_cmap("coolwarm",25))
+end
+
+function (PW::CrystalPW{D})(xyz) where D
+    v = zero(ComplexF64)
     for (G, c) in zip(PW.Gs, PW.cs)
-        f += c*cis(2π*dot(G, xyz)) # ≡ exp(2πiGᵀr))
+        v += c*cis(2π*dot(G, xyz)) # ≡ exp(2πiGᵀr))
     end
-    return f
+    return v
 end
