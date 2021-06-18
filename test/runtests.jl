@@ -4,6 +4,7 @@ using Crystalline, Test
     # basic symmetry operations
     include("basisvecs.jl")
     include("symops.jl")
+    include("SquareStaticMatrices.jl")
 
     # abstractvecs
     include("kvecs.jl")

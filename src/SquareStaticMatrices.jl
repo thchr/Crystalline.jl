@@ -33,14 +33,10 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 # AbstractArray interface
-size(::SqSMatrix{D}) where D = (D,D)
-firstindex(::SqSMatrix) = 1
-lastindex(::SqSMatrix{D}) where D = D
-lastindex(::SqSMatrix{D}, d::Int64) where D = d == 1 ? D : (d == 2 ? D : 1)
 eachcol(A::SqSMatrix) = A.cols
-@propagate_inbounds function getindex(A::SqSMatrix{D}, i::Int) where D
-    @boundscheck 1 ≤ i ≤ D*D || throw(BoundsError(A, (i,)))
-    i, j = (idx+D-1)÷D, mod1(idx, D)
+@propagate_inbounds function getindex(A::SqSMatrix{D}, idx::Int) where D
+    @boundscheck 1 ≤ idx ≤ D*D || throw(BoundsError(A, (idx,)))
+    j, i = (idx+D-1)÷D, mod1(idx, D)
     return @inbounds A.cols[j][i]
 end
 @propagate_inbounds function getindex(A::SqSMatrix{D}, i::Int, j::Int) where D
@@ -73,6 +69,7 @@ end
     @inbounds SqSMatrix{D}(A::AbstractMatrix{T})
 end
 SqSMatrix{D,T}(A::SqSMatrix{D,T}) where {D,T} = A # resolve an ambiguity (StaticMatrix vs. AbstractMatrix)
+SqSMatrix(A::SqSMatrix) = A # resolve another ambiguity
 
 function flatten_nested(cols::NTuple{D, NTuple{D, T}}) where {D,T}
     ntuple(Val{D*D}()) do idx
@@ -120,7 +117,8 @@ convert(::Type{SqSMatrix{D, T}}, A::SqSMatrix{D, T}) where {D, T} = A
 # by the magic of julia's compiler, this reduces to the exact same machine code as if we
 # were writing out ntuples ourselves (i.e. the initial construction as an SMatrix is
 # optimized out completely)
-zero(::Type{SqSMatrix{D,T}}) where {D,T} = SqSMatrix{D,T}(zero(SMatrix{D,D,T}))
-one( ::Type{SqSMatrix{D,T}}) where {D,T} = SqSMatrix{D,T}(one(SMatrix{D,D,T}))
-
+for f in (:zero, :one)
+    @eval $f(::Type{SqSMatrix{D,T}}) where {D,T} = SqSMatrix{D,T}($f(SMatrix{D,D,T}))
+    @eval $f(::SqSMatrix{D,T}) where {D, T} = $f(SqSMatrix{D,T})
+end
 end # module
