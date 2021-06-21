@@ -79,6 +79,14 @@ At present, the package's emphasis is on spinless systems (i.e., double groups a
 ## API stability
 Crystalline.jl is a research package in active development: breaking changes are likely (but we will strive to follow semantic versioning).
 
+## Citation
+
+If you find this package useful in your reseach, please cite our arXiv paper:
+
+- T. Christensen, H.C. Po, J.D. Joannopoulos, M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
+
+In addition, please cite any works explicitly referenced in documentation for individual methods that you use.
+
 
 [ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
 [ci-status-url]:   https://github.com/thchr/Crystalline.jl/actions
