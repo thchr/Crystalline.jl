@@ -35,6 +35,14 @@ using Crystalline, Test
         @test op == SymOperation(Matrix(op)) # Matrix
     end
 
+    @testset "Parsing cornercases" begin
+        # allow some forms of whitespace in xyzt string parsing (issue #29)
+        @test SymOperation("x,y,z") == SymOperation("x, y, z")
+        @test SymOperation("x,-y,+z") == SymOperation(" x, - y, +z")
+        @test SymOperation("x,-y+x,+z-1/2") == SymOperation("x, - y + x, +z - 1/2")
+        @test SymOperation("  x,-y+x+1/3,+z-1/2") == SymOperation("   x, - y + x + 1/3, +z - 1/2")
+    end
+
     @testset "Conversion between xyzt and matrix forms" begin
         for D = 1:3
             Dᵛ = Val(D)
@@ -104,6 +112,11 @@ using Crystalline, Test
         @test_throws DomainError spacegroup(-1,  2)
         @test_throws DomainError spacegroup(2,   0)
         @test_throws DomainError spacegroup(41,  5)
+        @test_throws ArgumentError SymOperation{2}("x,z")
+        @test_throws ArgumentError SymOperation("x,z")
+        @test_throws ArgumentError SymOperation("x,÷z")
+        @test_throws ArgumentError SymOperation("x ,z") # don't allow spaces *after* entries
+        @test_throws DimensionMismatch SymOperation{3}("x,y+z")
     end
 
     @testset "Checking symmorphic space groups" begin

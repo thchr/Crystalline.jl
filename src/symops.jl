@@ -95,21 +95,35 @@ function xyzt2components(s::AbstractString, ::Val{D}) where D
     return SMatrix(W), SVector(w)
 end
 
+
+const IDX2XYZ = ('x', 'y', 'z')
+
 @inline function xyzt2components!(W::MMatrix{D,D,T}, w::MVector{D,T},
                                   xyzts::AbstractVector{<:AbstractString}) where {D,T<:Real}
-    
+
+    chars = D == 3 ? ('x','y','z') : D == 2 ? ('x','y') : ('x',)
     @inbounds for (i,s) in enumerate(xyzts)
         # rotation/inversion/reflection part
         firstidx = nextidx = firstindex(s)
-        while (idx = findnext(c -> c=='x' || c=='y' || c=='z', s, nextidx)) !== nothing
+        while (idx = findnext(c -> c ∈ chars, s, nextidx)) !== nothing
             c = s[idx]
             j = c=='x' ? 1 : (c=='y' ? 2 : 3)
             
-            previdx = prevind(s, idx)
-            if idx == firstidx || s[previdx] == '+'
+            if idx == firstidx
                 W[i,j] = one(T)
-            elseif s[previdx] == '-'
-                W[i,j] = -one(T)
+            else
+                previdx = prevind(s, idx)
+                while (c′=s[previdx]; isspace(s[previdx]))
+                    previdx = prevind(s, previdx)
+                    previdx ≤ firstidx && break
+                end
+                if c′ == '+' || isspace(c′)
+                    W[i,j] = one(T)
+                elseif c′ == '-'
+                    W[i,j] = -one(T)
+                else
+                    throw(ArgumentError("failed to parse provided string representation"))
+                end
             end
             nextidx = nextind(s, idx)
         end
@@ -131,7 +145,6 @@ end
     return W, w
 end
 
-const IDX2XYZ = ('x', 'y', 'z')
 
 function matrix2xyzt(O::AbstractMatrix{<:Real})
     D = size(O,1)
