@@ -63,7 +63,7 @@ using Crystalline, Test
 
         # test associativity (with and without modular arithmetic)
         g₁, g₂, g₃ = sg[5:7] 
-        @test g₁∘(g₂∘g₃) == (g₁∘g₂)∘g₃
+        @test g₁*(g₂*g₃) == (g₁*g₂)*g₃
         @test compose(compose(g₁, g₂, false), g₃, false) == compose(g₁, compose(g₂, g₃, false), false)
     end
 

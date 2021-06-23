@@ -68,7 +68,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
         # tionally, with I first, this is indeed what the `findfirst(...)`  
         # bits below will find)
         if !k_equiv_kv₋
-            g₋ = sgops[findfirst(g-> isapprox(g∘kv, -kv, cntr; atol=DEFAULT_ATOL), sgops)]
+            g₋ = sgops[findfirst(g-> isapprox(g*kv, -kv, cntr; atol=DEFAULT_ATOL), sgops)]
         else
             # This is a bit silly: if k_equiv_kv₋ = true, we will never use g₋; but I'm not sure if 
             # the compiler will figure that out, or if it will needlessly guard against missing g₋?
@@ -383,8 +383,8 @@ function calc_reality(lgir::LGIrrep{D},
 
     s = zero(ComplexF64)
     for op in sgops
-        if isapprox(op∘kv, kv₋, cntr, atol=DEFAULT_ATOL) # check if op∘k == -k; if so, include in sum
-            op² = compose(op, op, false) # this is op∘op, _including_ trivial lattice translation parts
+        if isapprox(op*kv, kv₋, cntr, atol=DEFAULT_ATOL) # check if op*k == -k; if so, include in sum
+            op² = compose(op, op, false) # this is `op*op`, _including_ trivial lattice translation parts
             # find the equivalent of `op²` in `lgops`; this may differ by a number of 
             # primitive lattice vectors `w_op²`; the difference must be included when 
             # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(2πi𝐤⋅𝐭)
@@ -419,7 +419,7 @@ function calc_reality(pgir::PGIrrep)
 
     s = zero(eltype(χs))
     for op in pg
-        op² = op∘op
+        op² = op*op
         idx = findfirst(≈(op²), pg)
         idx === nothing && error("unexpectedly did not find point group element matching op²")
 

@@ -255,21 +255,24 @@ pointgroup(sg::Union{SpaceGroup,LittleGroup}) = pointgroup(operations(sg))
 
 # ----- GROUP ELEMENT COMPOSITION -----
 """ 
-    (∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
+    compose(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
 
 Compose two symmetry operations `op1` ``= \\{W₁|w₁\\}`` and `op2` ``= \\{W₂|w₂\\}``
 using the composition rule (in Seitz notation)
 
-``\\{W₁|w₁\\}∘\\{W₂|w₂\\} = \\{W₁W₂|w₁+W₁w₂\\}``
+``\\{W₁|w₁\\}\\{W₂|w₂\\} = \\{W₁W₂|w₁+W₁w₂\\}``
 
 By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is reduced to the range
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
+
+The multiplication operator [`*`](@ref) is overloaded for `SymOperation`s to call `compose`,
+in the manner `op1 * op2 = compose(op1, op2, modτ=true)`.
 """
-function(∘)(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
-    T((∘)(unpack(op1)..., unpack(op2)..., modτ)...)
+function compose(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
+    T(compose(unpack(op1)..., unpack(op2)..., modτ)...)
 end
-function (∘)(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SMatrix{D,D,<:Real} where R<:SVector{D,<:Real} where D
+function compose(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SMatrix{D,D,<:Real} where R<:SVector{D,<:Real} where D
     W′ = W₁*W₂
     w′ = w₁ + W₁*w₂
 
@@ -279,7 +282,7 @@ function (∘)(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:SM
 
     return W′, w′
 end
-const compose = ∘
+(*)(op1::T, op2::T) where T<:SymOperation = compose(op1, op2)
 
 function reduce_translation_to_unitrange(w::SVector{D, <:Real}) where D # reduces components to range [0.0, 1.0[
     # naïve approach to achieve semi-robust reduction of integer-translation
@@ -306,8 +309,8 @@ end
 
 Compose two symmetry operations `op1` ``= \\{W₁|w₁\\}`` and `op2` ``= \\{W₂|w₂\\}`` and
 return the quotient of ``w₁+W₁w₂`` and 1. This functionality complements
-`op1∘op2`, which yields the translation modulo 1; accordingly, 
-`translation(op1∘op2) + op1⊚op2` yields the translation component
+`op1*op2`, which yields the translation modulo 1; accordingly, 
+`translation(op1*op2) + op1⊚op2` yields the translation component
 of the composition `op1` and `op2` *without* taking it modulo 1,
 i.e. including any "trivial" lattice translation.
 
@@ -348,8 +351,8 @@ The `modτ` keyword argument controls whether composition of operations is taken
 lattice vectors (`true`, default) or not (`false`).
 
 A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
-of `row ∘ col` operators; the table of indices give the symmetry operators relative to the
-ordering of `ops`.
+of `row` and `col` operators; the table of indices give the symmetry operators relative to
+the ordering of `ops`.
 """
 function MultTable(ops::AbstractVector{SymOperation{D}};
                    modτ::Bool=true, verbose::Bool=false) where D
@@ -378,7 +381,7 @@ end
 function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) where D
     ops = operations(lgir)
     sgnum = num(lgir); cntr = centering(sgnum, D)
-    primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices for composition/∘
+    primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices in `compose`
     check_multtable_vs_ir(MultTable(primitive_ops), lgir, αβγ; verbose=verbose)
 end
 function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
@@ -531,10 +534,10 @@ end
 kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 
 @doc raw"""
-    (∘)(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
+    compose(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
 
-Return the composition (or action) of `op` on a reciprocal-space vector `kv`, i.e. 
-`kv' = op ∘ kv`.
+Return the composition (or action) of `op` on a reciprocal-space vector `kv`. Can also be
+called as `op * kv`.
 
 `op` and `kv` are assumed to be specified in the direct lattice and reciprocal lattice 
 bases, respectively (this is the default behavior in Crystalline). As a result, `op` acts
@@ -543,7 +546,7 @@ on `kv` via the transpose of its matrix form, i.e. the `kv` vector is multiplied
 That is, for a given reciprocal vector ``\mathbf{k}`` (i.e. `kv`) and operation ``g`` (i.e.
 `op`) with rotation part ``\mathbf{R}`` (i.e. `rotation(op)`), we define
 ```math
-\mathbf{k}' ≡ g∘\mathbf{k} = \mathbf{R}^{\text{T}}\mathbf{k}
+\mathbf{k}' ≡ g\mathbf{k} = \mathbf{R}^{\text{T}}\mathbf{k}
 ```
 The action of ``g`` on ``\mathbf{k}`` is invariant under any translation parts of ``g``,
 i.e. translations do not act in reciprocal space.
@@ -551,12 +554,13 @@ i.e. translations do not act in reciprocal space.
 If `checkabc = false`, the free part of `KVec` is not transformed (can be improve 
 performance in situations when `kabc` is zero, and several transformations are requested).
 """
-@inline function (∘)(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
+@inline function compose(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
     k₀, kabc = parts(kv)
     k₀′ = rotation(op)'*k₀
     kabc′ = checkabc ? rotation(op)'*kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
+(*)(op::SymOperation{D}, kv::KVec{D}) where D = compose(op, kv)
 
 
 
@@ -861,7 +865,7 @@ function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVe
         g⁻¹ = inv(g)
         for h in opsᴴ
             # check if ghg⁻¹ ∉ G
-            h′ = g∘h∘g⁻¹
+            h′ = g*h*g⁻¹
             if !isapproxin(h′, opsᴴ, atol=Crystalline.DEFAULT_ATOL)
                 if verbose
                     println("\nNormality-check failure:\n",

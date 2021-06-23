@@ -29,17 +29,17 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
 
     αβγ = Crystalline.TEST_αβγ
     @testset "Composition" begin
-        @test SymOperation{2}("x,y")∘KVec{2}("1,α") == KVec{2}("1,α")
+        @test SymOperation{2}("x,y") * KVec{2}("1,α") == KVec{2}("1,α")
 
         # 4⁺ rotation (rotates _oppositely_ in reciprocal space)
-        @test SymOperation{2}("-y,x")∘KVec(.4,.3) == KVec(.3,-.4)
+        @test SymOperation{2}("-y,x") * KVec(.4,.3) == KVec(.3,-.4)
 
         # inserting g⁻¹g inside a dot product of a KVec and an RVec should do nothing (if
         # g doesn't have a translation part; that would shift the RVec also...)
         kv = KVec{3}(".4+α,0.3-γ,-.1+β")
         qv = RVec{3}(".7-γ,0.6+α,.2-α")
         op = SymOperation{3}("-z,-x,-y") # {-3₁₁₁⁺|½,½,½}
-        @test dot((inv(op)∘kv)(αβγ), (op∘qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # g⁻¹g
-        @test dot((op∘kv)(αβγ), (inv(op)∘qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # gg⁻¹
+        @test dot((inv(op)*kv)(αβγ), (op*qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # g⁻¹g
+        @test dot((op*kv)(αβγ), (inv(op)*qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # gg⁻¹
     end
 end

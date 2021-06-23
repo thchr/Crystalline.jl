@@ -35,15 +35,16 @@ We can compose two `SymOperation`s in Crystalline via:
 ```@example operations
 op1 = S"z,x,y" # 3₁₁₁⁺
 op2 = S"z,y,x" # m₋₁₀₁
-op1 ∘ op2
+op1 * op2
 ```
+which is accessed by an overloaded call to `Base.*`, i.e. the multiplication operator (this enables us to also call derived methods of `*`, such as integer powers (e.g., `S"-y,x-y,z"^3 == S"x,y,z"`).
 Note that composition is taken modulo integer lattice translations by default, such that
 ```@example operations
 op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
-op1 ∘ op2′ # equivalent to compose(op1, op2′, true)
+op1 * op2′ # equivalent to compose(op1, op2′, true)
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.
-To compute "unreduced" composition, the alternative [`compose`](@ref) variant of [`∘`](@ref) can be used with an optional third argument `false`:
+To compute "unreduced" composition, the more precise [`compose`](@ref) variant of [`*`](@ref) can be used with an optional third argument `false`:
 ```@example operations
 compose(op1, op2′, false)
 ```

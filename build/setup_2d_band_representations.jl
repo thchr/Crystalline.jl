@@ -122,7 +122,7 @@ function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckPos{D},
     while i ≤ length(ops) && i ≤ length(orbits)
         wpᵢ = orbits[i]
         opᵢ = ops[i]
-        if ops[i]∘vec(wp) ≈ wpᵢ
+        if ops[i]*vec(wp) ≈ wpᵢ
             i += 1 # then ops[i] is indeed a "generator" of wpᵢ
         else
             deleteat!(ops, i)
@@ -145,7 +145,7 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
 
     siteg  = group(siteir)
     wp     = wyck(siteg)   
-    kv′    = constant(h∘kv) # <-- TODO: Why only constant part?
+    kv′    = constant(h*kv) # <-- TODO: Why only constant part?
     χs     = characters(siteir)
 
     # only loop over the cosets/orbits that are not mere centering "copies"
@@ -158,7 +158,7 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
     # sum over all the (non-centering-equivalent) wyckoff positions/cosets in the orbit 
     χᴳₖ = zero(ComplexF64)
     for (wpα′, gα′) in zip(orbits, gαs)
-        tα′α′ = constant(vec(h∘wpα′) - vec(wpα′)) # TODO: <-- explain why we only need constant part here?
+        tα′α′ = constant(vec(h*wpα′) - vec(wpα′)) # TODO: <-- explain why we only need constant part here?
         opᵗ   = SymOperation(-tα′α′)
 
         gα′⁻¹     = inv(gα′)

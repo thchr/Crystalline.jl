@@ -95,15 +95,17 @@ get_wycks(sgnum::Integer, D) = get_wycks(sgnum, Val(D))
 # METHODS
 
 """
-    ∘(op::SymOperation, qv::RVec) --> RVec
+    compose(op::SymOperation, qv::RVec) --> RVec
 
 Return the composition of `op` ``= \\{W|w\\}`` with a real-space vector `qv::RVec`.
 
 The operation is taken to act directly, i.e. returns ``\\{W|w\\}```qv` ``= W```qv```+w``
 rather than ``\\{W|w\\}^{-1}```qv` ``= W^{-1}```qv` ``- W^{-1}w``, which can instead be
-obtained from `inv(op)∘qv`.
+obtained from `compose(inv(op), qv)`.
+
+Can also be called via the multipliication operator, i.e. `op * qv = compose(op, qv)`.
 """
-function (∘)(op::SymOperation{D}, qv::RVec{D}) where D
+function compose(op::SymOperation{D}, qv::RVec{D}) where D
     cnst, free = parts(qv)
     W, w       = unpack(op)
 
@@ -112,8 +114,12 @@ function (∘)(op::SymOperation{D}, qv::RVec{D}) where D
 
     return RVec{D}(cnst′, free′)
 end
-(∘)(op::SymOperation{D}, wp::WyckPos{D}) where D = WyckPos{D}(multiplicity(wp), wp.letter,
-                                                              op∘vec(wp))
+function compose(op::SymOperation{D}, wp::WyckPos{D}) where D
+    WyckPos{D}(multiplicity(wp), wp.letter, compose(op, vec(wp)))
+end
+
+(*)(op::SymOperation{D}, qv::RVec{D}) where D = compose(op, qv)
+(*)(op::SymOperation{D}, wp::WyckPos{D}) where D = compose(op, wp)
 
 
 """
@@ -125,7 +131,7 @@ Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in spa
 
 `g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
 that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
-invariant, such that `all(op -> wp == op∘wp, g) == true`.
+invariant, such that `all(op -> wp == op*wp, g) == true`.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
@@ -167,7 +173,7 @@ julia> MultTable(g)
 The original space group can be reconstructed from a left-coset decomposition, using the
 operations and cosets contained in a `SiteGroup`:
 ```jldoctest sitegroup
-julia> ops = [opʰ∘opᵍ for opʰ in cosets(g) for opᵍ in g];
+julia> ops = [opʰ*opᵍ for opʰ in cosets(g) for opᵍ in g];
 
 julia> Set(sg) == Set(ops)
 true
@@ -202,7 +208,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
         isone(op) && continue # already added identity outside loop; avoid adding twice
 
         W, w = unpack(op) # rotation and translation
-        qv′  = op∘qv
+        qv′  = op * qv
         Δ    = qv′ - qv
         Δcnst, Δfree = parts(Δ)
 
@@ -256,10 +262,10 @@ function MultTable(g::SiteGroup; verbose::Bool=false)
 end
 
 function orbit(g::SiteGroup{D}, wp::WyckPos{D}) where D
-    qv′s = cosets(g) .∘ Ref(wp)  # TODO: Remove this method; superfluous input `wp`
+    qv′s = cosets(g) .* Ref(wp)  # TODO: Remove this method; superfluous input `wp`
 end
 function orbit(g::SiteGroup{D}) where D
-    qv′s = cosets(g) .∘ Ref(wyck(g))
+    qv′s = cosets(g) .* Ref(wyck(g))
 end
 
 

@@ -403,7 +403,7 @@ function find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
                 # a bit of extra work to make sure we find an operator which
                 # is not already in the coset P[matchidx]∘F by growing F with
                 # the "newly added" elements that P[matchidx] produce
-                F = append!(F, Ref(Rs[i]).∘F)
+                F = append!(F, Ref(Rs[i]) .* F)
             end
         end
         return Rs
@@ -442,7 +442,7 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     newklabs = [String[] for _ in OneTo(Nk)]
     for (kidx, (kv, klab)) in enumerate(zip(kvs, klabs))
         for (Ridx, R) in enumerate(Rs)
-            newkv = R∘kv
+            newkv = R*kv
             # compare newkv to the stars of kv: if it is equivalent to any member of star{kv},
             # it is not a "new" k-vector. We do not have to compare to _all_ kv′∈Ω (i.e. to all
             # kvs), because they must have inequivalent stars to kv in the first place and also

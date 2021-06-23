@@ -15,7 +15,7 @@ using Crystalline: constant, free
                 qv = vec(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
-                    qv′ = op∘qv
+                    qv′ = op*qv
                     @test isapprox(constant(qv), constant(qv′))
                     @test isapprox(free(qv),     free(qv′))
                 end
@@ -28,7 +28,7 @@ using Crystalline: constant, free
                 end
 
                 # test that `g` and `cosets(g)` furnishes a left-coset decomposition of `sg`
-                ops = [opʰ∘opᵍ for opʰ in cosets(g) for opᵍ in g];
+                ops = [opʰ*opᵍ for opʰ in cosets(g) for opᵍ in g];
                 @test sort!(seitz.(ops)) == sort!(seitz.(sg))
                 # (the above test is analogous to checking `Set(ops) == Set(sg)`, but the
                 #  `==`-check is not robust due to rounding errors here: unfortunately,

@@ -17,7 +17,7 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              iterate,
              string, isapprox, zero,
              readuntil, vec, show, summary,
-             +, -, ∘, ==, ImmutableDict,
+             *, +, -, ==, ImmutableDict,
              isone, one,
              convert
 import LinearAlgebra: inv
