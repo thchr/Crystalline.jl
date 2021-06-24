@@ -400,7 +400,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
-        matrix(BRS, true);
+        matrix(BRS; includedim=true);
         # row/column names
         row_names = vcat(irreplabels(BRS), "μ"),
         header = (wyck.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix

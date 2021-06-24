@@ -90,3 +90,12 @@ for (sgnum, lgirsd) in enumerate(LGIRS)
 end
 end
 end
+
+@testset "BandRepSet and BandRep" begin
+    BRS = bandreps(230)
+    # iterated concatenation of vectors of `BRS` should give `matrix`
+    @test matrix(BRS) == matrix(BRS; includedim=true) == hcat(BRS...)
+    # length of BandRep as vectors should be = number of irreps + 1 (i.e. includes filling)
+    @test length(BRS[1]) == length(BRS[1].irvec)+1
+    @test BRS[1] == vcat(BRS[1].irvec, dim(BRS[1]))
+end

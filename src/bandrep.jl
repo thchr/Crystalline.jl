@@ -131,7 +131,7 @@ function nontrivial_factors(F::Smith)
     return Λ[nontriv_idx]
 end
 function nontrivial_factors(BRS::BandRepSet)
-    F = smith(matrix(BRS, true), inverse=false)
+    F = smith(matrix(BRS; includedim=true), inverse=false)
     return nontrivial_factors(F)
 end
 
@@ -169,7 +169,7 @@ This is the number of linearly independent basis vectors that span the expansion
 a band structure viewed as symmetry data.
 """ 
 function basisdim(BRS::BandRepSet)
-    Λ = smith(matrix(BRS)).SNF
+    Λ = smith(matrix(BRS; includedim=true)).SNF
     nnz = count(!iszero, Λ) # number of nonzeros in Smith normal diagonal matrix
     return nnz
 end
@@ -190,7 +190,7 @@ function wyckbasis(BRS::BandRepSet)
     # with integer elements such that B = S*diagm(Λ)*T. Λ is a vector
     # [λ₁, λ₂, ..., λᵣ, 0, 0, ..., 0] with λⱼ₊₁ divisible by λⱼ and r ≤ min(n,m).
     # The matrices T and S have integer-valued pseudo-inverses.
-    F = smith(matrix(BRS)) # Smith normal factorization with λⱼ ≥ 0
+    F = smith(matrix(BRS; includedim=true)) # Smith normal factorization with λⱼ ≥ 0
     S, S⁻¹, Λ = F.S, F.Sinv, F.SNF
     #T, T⁻¹ = F.T, F.Tinv,
 

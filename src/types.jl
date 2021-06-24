@@ -680,10 +680,19 @@ band connectivity μ.
 dim(BR::BandRep)     = BR.dim
 
 # define the AbstractArray interface for BandRep
-size(BR::BandRep) = size(BR.irvec) # number of irreps sampled by BandRep
-@propagate_inbounds getindex(BR::BandRep, i::Int) = BR.irvec[i]
+size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
+@propagate_inbounds function getindex(BR::BandRep, i::Int)
+    return i == length(BR.irvec)+1 ? dim(BR) : BR.irvec[i]
+end
 IndexStyle(::Type{<:BandRep}) = IndexLinear()
-iterate(BR::BandRep, i=1) = iterate(BR.irvec, i) # work-around performance issue noted in https://discourse.julialang.org/t/iteration-getindex-performance-of-abstractarray-wrapper-types/53729
+function iterate(BR::BandRep, i=1)
+    # work-around performance issue noted in https://discourse.julialang.org/t/iteration-getindex-performance-of-abstractarray-wrapper-types/53729
+    if i == length(BR)
+        return dim(BR), i+1
+    else
+        return iterate(BR.irvec, i) # also handles `nothing` when iteration is done
+    end
+end
 
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -713,22 +722,24 @@ size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band represent
 IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
 
 """
-    matrix(BRS::BandRepSet[, includedim::Bool=false])
+    matrix(BRS::BandRepSet; includedim::Bool=true)
 
 Return a matrix representation of `BRS::BandRepSet`, with band representations as columns 
 and irreps over rows.
 
-For `includedim=true` the band filling (i.e. `dim.(BRS)`) is included as the last row.
+By default, the last row will give the "filling" of each `BandRep` (or, more precisely,
+number of included bands per `BandRep`, i.e. `dim.(BRS)`. To toggle this off, set the
+keyword argument `includedim` to `false` (default is `includedim = true`).
 """
-function matrix(BRS::BandRepSet, includedim::Bool=false)
-    Nⁱʳʳ, Nᵉᵇʳ = length(BRS[1]), length(BRS)
-    M = Matrix{Int}(undef, Nⁱʳʳ+includedim, Nᵉᵇʳ)
+function matrix(BRS::BandRepSet; includedim::Bool=true)
+    Nⁱʳʳ, Nᵉᵇʳ = length(first(BRS)), length(BRS)
+    M = Matrix{Int}(undef, Nⁱʳʳ - !includedim, Nᵉᵇʳ)
     @inbounds for (j, BR) in enumerate(BRS)
-        for (i, v) in enumerate(BR)
+        for (i, v) in enumerate(BR.irvec)
             M[i,j] = v
         end
         if includedim
-            M[Nⁱʳʳ+1,j] = dim(BR)
+            M[Nⁱʳʳ,j] = dim(BR)
         end
     end
 
