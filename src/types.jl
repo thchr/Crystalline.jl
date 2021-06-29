@@ -745,5 +745,4 @@ function matrix(BRS::BandRepSet; includedim::Bool=true)
 
     return M
 end 
-matrix(BRS::BandRepSet, includedim::Bool=true) = matrix(BRS; includedim=includedim)
-@deprecate matrix(BRS::BandRepSet, includedim::Bool) matrix(BRS::BandRepSet; includedim)
+@deprecate matrix(BRS::BandRepSet, includedim::Bool) matrix(BRS::BandRepSet; includedim=includedim)
