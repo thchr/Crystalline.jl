@@ -11,16 +11,19 @@ end
 # --- SymOperation ---
 function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
-    print(io, opseitz, " ")
-    printstyled(io, repeat('─',max(38-length(opseitz)-length(opxyzt), 1)),
-                    " (", opxyzt, ")"; color=:light_black)
+    print(io, opseitz)
     
-    # don't print matrix format if we IOContext is :compact=>true or dimension is 1
-    if get(io, :compact, false) || D == 1
+    # don't print triplet & matrix format if the IOContext is :compact=>true
+    if get(io, :compact, false)
         return nothing
-    end 
-    
+    end
+
+    # --- print triplet expression ---
+    printstyled(io, " ", repeat('─',max(38-length(opseitz)-length(opxyzt), 1)),
+                    " (", opxyzt, ")"; color=:light_black)
     println(io)
+
+    # --- print matrix ---
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
@@ -48,7 +51,7 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
     return nothing
 end
 _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
-# print arrays of `SymOperation`s compactly
+# print vectors of `SymOperation`s compactly
 show(io::IO, op::SymOperation) = print(io, seitz(op))
 
 # --- MultTable ---
