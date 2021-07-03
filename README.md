@@ -33,10 +33,10 @@ julia> S"x,-y,-z"
 # load the `SymOperation`s of the 3D space group #16 in a conventional setting
 julia> sg = spacegroup(16, Val(3))
 SpaceGroup{3} #16 (P222) with 4 operations:
- 1 ──────────────────────────────── (x,y,z)
- 2₀₀₁ ─────────────────────────── (-x,-y,z)
- 2₀₁₀ ─────────────────────────── (-x,y,-z)
- 2₁₀₀ ─────────────────────────── (x,-y,-z)
+ 1
+ 2₀₀₁
+ 2₀₁₀
+ 2₁₀₀
 
 # load a dictionary of small irreps and their little groups for space group #16, indexed by their k-point labels; then inspect the small irreps at the A point
 julia> lgirs = get_lgirreps(16, Val(3));

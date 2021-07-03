@@ -29,7 +29,6 @@ end # for LGIRS in LGIRSDIM
 end # @testset "Space groups (consistent ..."
 
 @testset "Little groups: group property" begin
-#numset=Int64[]
 for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS
         for lgirs in values(lgirsd)
@@ -37,26 +36,33 @@ for (D, LGIRS) in enumerate(LGIRSDIM)
             cntr = centering(sgnum, D)
             ops = operations(first(lgirs))          # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr) # ops in primitive basis
-            mt = MultTable(primitive_ops)
-            @test mt.isgroup
             
-            # for debugging
-            #mt.isgroup && union!(numset, num(first(lgirs))) # collect info about errors, if any exist
+            # test that multiplication table can be computed
+            @test MultTable(primitive_ops) isa MultTable
         end
     end
 end # for LGIRS in LGIRSDIM
-# for debugging
-#!isempty(numset) && println("The multiplication tables of $(length(numset)) little groups are faulty:\n   # = ", numset)
 end # @testset "Little groups: ..."
 
+@testset "Broadcasting vs. MultTable indexing" begin
+    for D in 1:3
+        for sgnum in 1:MAX_SGNUM[D]
+            # construct equivalent of MultTable as Matrix{SymOperation{D}} by using 
+            # broadcasting and check that this agrees with MultTable and indexing into it
+            sg = spacegroup(sgnum, Val(D))
+            mt  = MultTable(sg)
+            mt′ = sg .* permutedims(sg)
+            @test mt ≈ mt′
+        end
+    end
+end
 for D in 1:3
     @testset "Space groups (Bilbao: $(D)D)" begin
         for sgnum in 1:MAX_SGNUM[D]
             cntr = centering(sgnum, D)
             ops = operations(spacegroup(sgnum, Val(D)))  # ops in conventional basis
             primitive_ops = primitivize.(ops, cntr)      # ops in primitive basis
-            mt = MultTable(primitive_ops)
-            @test mt.isgroup
+            @test MultTable(primitive_ops) isa MultTable # test that it doesn't error
         end
     end
 end
@@ -75,7 +81,7 @@ for (D, LGIRS) in enumerate(LGIRSDIM)
 
             for lgir in lgirs
                 for αβγ in (nothing, Crystalline.TEST_αβγs[D]) # test finite and zero values of αβγ
-                    checkmt = Crystalline.check_multtable_vs_ir(mt, lgir, αβγ; verbose=false)
+                    checkmt = Crystalline.check_multtable_vs_ir(mt, lgir, αβγ)
                     @test all(checkmt)
                     #if !all(checkmt); failcount += 1; end
                 end
@@ -93,9 +99,9 @@ end # @testset "Complex LGIrreps"
             pg = group(first(pgirs))
             for pgir in pgirs
                 mt = MultTable(operations(pg))
-                @test mt.isgroup
+                @test mt isa MultTable
 
-                checkmt = Crystalline.check_multtable_vs_ir(mt, pgir, nothing; verbose=false)
+                checkmt = Crystalline.check_multtable_vs_ir(mt, pgir, nothing)
                 @test all(checkmt)
             end
         end

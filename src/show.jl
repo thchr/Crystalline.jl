@@ -58,7 +58,6 @@ show(io::IO, op::SymOperation) = print(io, seitz(op))
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
     summary(io, mt)
     println(io, ":")
-    mt.isgroup || (println(io, "  invalid multiplication table"); return nothing)
     seitz_ops = seitz.(mt.operations)
     pretty_table(io,
         getindex.(Ref(seitz_ops), mt.table);

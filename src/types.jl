@@ -143,12 +143,14 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct MultTable{D} <: AbstractMatrix{Int64}
+struct MultTable{D} <: AbstractMatrix{SymOperation{D}}
     operations::Vector{SymOperation{D}}
     table::Matrix{Int64} # Cayley table: indexes into `operations`
-    isgroup::Bool
 end
-@propagate_inbounds getindex(mt::MultTable, i::Int) = mt.table[i]
+@propagate_inbounds function getindex(mt::MultTable, i::Int)
+    mtidx = mt.table[i]
+    return mt.operations[mtidx]
+end
 size(mt::MultTable) = size(mt.table)
 IndexStyle(::Type{<:MultTable}) = IndexLinear()
 

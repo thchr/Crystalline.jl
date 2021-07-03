@@ -152,9 +152,9 @@ julia> sg = spacegroup(sgnum, D);
 
 julia> g  = SiteGroup(sg, wp)
 SiteGroup{2} #16 at 2b = [0.333333, 0.666667] with 3 operations:
- 1 ────────────────────────────────── (x,y)
- {3⁺|1,1} ──────────────────── (-y+1,x-y+1)
- {3⁻|0,1} ───────────────────── (-x+y,-x+1)
+ 1
+ {3⁺|1,1}
+ {3⁻|0,1}
 ```
 
 The group structure of a `SiteGroup` can be inspected with `MultTable`:
@@ -256,9 +256,9 @@ function SiteGroup(sgnum::Integer, wp::WyckPos{D}) where D
     return SiteGroup(sg, wp)
 end
 
-# `MulTable`s of `SiteGroup`s should be calculated with modτ = false always
-function MultTable(g::SiteGroup; verbose::Bool=false)
-    MultTable(operations(g); modτ=false, verbose=verbose)
+# `MulTable`s of `SiteGroup`s should be calculated with `modτ = false` always
+function MultTable(g::SiteGroup)
+    MultTable(operations(g); modτ=false)
 end
 
 function orbit(g::SiteGroup{D}, wp::WyckPos{D}) where D
@@ -299,15 +299,15 @@ julia> sg  = spacegroup(sgnum, Val(D));
 
 julia> sitegs = SiteGroup.(Ref(sg), wps)
 SiteGroup{2} #5 at 4b = [α, β] with 1 operations:
- 1 ────────────────────────────────── (x,y)
+ 1
 SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
- 1 ────────────────────────────────── (x,y)
- m₁₀ ─────────────────────────────── (-x,y)
+ 1
+ m₁₀
 
 julia> findmaximal(sitegs)
 SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
- 1 ────────────────────────────────── (x,y)
- m₁₀ ─────────────────────────────── (-x,y)
+ 1
+ m₁₀
 ```
 """
 function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D

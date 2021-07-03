@@ -10,7 +10,7 @@ using Crystalline: constant, free
             wps = get_wycks(sgnum, Dᵛ)
             for wp in wps
                 g = SiteGroup(sg, wp)
-                @test MultTable(g).isgroup
+                @test g isa SiteGroup
 
                 qv = vec(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant

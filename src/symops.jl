@@ -343,7 +343,7 @@ end
 
 
 """
-    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true, verbose=false)
+    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true)
 
 Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
 `SymOperation{D}`s.
@@ -355,7 +355,7 @@ of `row` and `col` operators; the table of indices give the symmetry operators r
 the ordering of `ops`.
 """
 function MultTable(ops::AbstractVector{SymOperation{D}};
-                   modτ::Bool=true, verbose::Bool=false) where D
+                   modτ::Bool=true) where D
     havewarned = false
     N = length(ops)
     table = Matrix{Int64}(undef, N,N)
@@ -364,27 +364,22 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
             op′ = compose(oprow, opcol, modτ)
             match = findfirst(op′′ -> op′≈op′′, ops)
             if isnothing(match)
-                if !havewarned
-                    if verbose; @warn "The given operations do not form a group!"; end
-                    havewarned = true
-                end
-                match = 0
+                throw(DomainError(ops, "provided operations do not form a group"))
             end
             @inbounds table[row,col] = match
         end
     end
-    isgroup = !havewarned # TODO: ... bit sloppy; could/ought to check more carefully
-    return MultTable{D}(ops, table, isgroup)
+    return MultTable{D}(ops, table)
 end
 
 
-function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing; verbose::Bool=false) where D
+function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing) where D
     ops = operations(lgir)
     sgnum = num(lgir); cntr = centering(sgnum, D)
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices in `compose`
-    check_multtable_vs_ir(MultTable(primitive_ops), lgir, αβγ; verbose=verbose)
+    check_multtable_vs_ir(MultTable(primitive_ops), lgir, αβγ)
 end
-function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing; verbose::Bool=false)
+function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing)
     havewarned = false
     Ds = ir(αβγ)
     ops = operations(ir)
@@ -396,7 +391,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
     checked = trues(N, N)
     for (i,Dⁱ) in enumerate(Ds)     # rows
         for (j,Dʲ) in enumerate(Ds) # cols
-            @inbounds mtidx = mt[i,j]
+            @inbounds mtidx = mt.table[i,j]
             if iszero(mtidx) && !havewarned
                 @warn "Provided MultTable is not a group; cannot compare with irreps"
                 checked[i,j] = false
