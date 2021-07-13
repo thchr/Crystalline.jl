@@ -496,16 +496,16 @@ function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
 end
 
 function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
-        # While the direct basis (𝐚 𝐛 𝐜) transforms like 
-        #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
-        # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
-        #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
-        # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
+    # While the direct basis (𝐚 𝐛 𝐜) transforms like 
+    #       (𝐚′ 𝐛′ 𝐜′) = (𝐚 𝐛 𝐜)𝐏
+    # under a basis change matrix 𝐏, the reciprocal basis (𝐚* 𝐛* 𝐜*) transforms like 
+    #       (𝐚*′ 𝐛*′ 𝐜*′) = (𝐚* 𝐛* 𝐜*)(𝐏⁻¹)ᵀ
+    # since (𝐚 𝐛 𝐜)(𝐚* 𝐛* 𝐜*)ᵀ = 2π𝐈 must be conserved after the basis change
 
-        # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
-        # vecs Gᵢ)
-        Gm′ = basis2matrix(Gs)/P'
-        return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
+    # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
+    # vecs Gᵢ)
+    Gm′ = basis2matrix(Gs)/P'
+    return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
 end
 
 """
