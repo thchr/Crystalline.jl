@@ -299,23 +299,23 @@ function primitivize(flat::AbstractFourierLattice{D}, cntr::Char) where D
 end
 
 """
-    conventionalize(flat′::AbstractFourierLattice, cntr::Char) --> ::typeof(flat′)
+    conventionalize(flat::AbstractFourierLattice, cntr::Char) --> ::typeof(flat′)
 
-Given `flat′` referred to a primitive basis with centering `cntr`, compute the derived (but
-physically equivalent) lattice `flat` referred to the associated conventional basis. 
+Given `flat` referred to a primitive basis with centering `cntr`, compute the derived (but
+physically equivalent) lattice `flat′` referred to the associated conventional basis. 
 
 See also the complementary methods
 [`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real})`](@ref) and
 [`primitivize(::AbstractFourierLattice, ::Char)`](@ref) for additional details.
 """
-function conventionalize(flat′::AbstractFourierLattice{D}, cntr::Char) where D
+function conventionalize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     # Short-circuit for lattices that have trivial transformation matrices
     (D == 3 && cntr == 'P') && return flat
     (D == 2 && cntr == 'p') && return flat
     D == 1 && return flat
 
     P = primitivebasismatrix(cntr, Val(D))
-    return transform(flat′, inv(P))
+    return transform(flat, inv(P))
 end
 
 """
