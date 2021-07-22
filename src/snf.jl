@@ -1,6 +1,6 @@
 # Smith Normal Form
 
-function divisable(y::R, x::R ) where {R}
+function divisable(y::R, x::R) where {R}
   x == zero(R) && return y == zero(R)
   return div(y,x)*x == y
 end
@@ -115,11 +115,11 @@ function colpivot(V::AbstractArray{R,2},
     end
 end
 
-function smithpivot(U::AbstractArray{R,2},
-                    Uinv::AbstractArray{R,2},
-                    V::AbstractArray{R,2},
-                    Vinv::AbstractArray{R,2},
-                    D::AbstractArray{R,2},
+function smithpivot(U::AbstractMatrix{R},
+                    Uinv::AbstractMatrix{R},
+                    V::AbstractMatrix{R},
+                    Vinv::AbstractMatrix{R},
+                    D::AbstractMatrix{R},
                     i, j; inverse=true) where {R}
 
     pivot = D[i,j]
@@ -240,11 +240,11 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
         j > cols && break
         Λⱼ = D[j,j]
         if Λⱼ < 0
-            @views V[j,:]    .*= -1 # T′   = sign(Λ)*T    [rows]
+            @views V[j,:] .*= -1        # T′   = sign(Λ)*T    [rows]
             if inverse
                 @views Vinv[:,j] .*= -1 # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
             end
-            D[j,j] = abs(Λⱼ)        # Λ′ = Λ*sign(Λ)
+            D[j,j] = abs(Λⱼ)            # Λ′ = Λ*sign(Λ)
         end
     end
     @logmsg (Base.CoreLogging.Debug-1) "Factorization" D=formatmtx(D) U=formatmtx(U) V=formatmtx(V) U⁻¹=formatmtx(Uinv) V⁻¹=formatmtx(Vinv)
