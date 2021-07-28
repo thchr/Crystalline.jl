@@ -4,12 +4,12 @@ These file `CIR_data.txt` and `PIR_data.txt` are sourced from the
 and contain data needed to generate *space group* irreps.
 In ISOTROPY, the data files are extracted in Fortran using associated files
 `CIR_data.f` and `PIR_data.f` (which we do not include here).
-We extract the data files using Julia instead (see `build/parse_isotropy.jl`).
+We extract the data files using Julia instead (see `build/ParseIsotropy.jl`).
 
 Two datasets are included in ISOTROPY, one for "ordinary" irreps (`CIR_data.txt`)
 and one for "physically real" irreps/coreps in a real form (`PIR_data.txt`).
 In practice, we only use the `CIR_data.txt` dataset in Crystalline.
-(The `PIR_data.txt` dataset can be used via `build/parse_isotropy.jl` to obtain
+(The `PIR_data.txt` dataset can be used via `build/ParseIsotropy.jl` to obtain
 physically real _space group_ (i.e. not little group) irreps, however.)
 
 ## References

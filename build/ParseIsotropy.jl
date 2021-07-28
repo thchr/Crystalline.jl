@@ -1,3 +1,10 @@
+module ParseIsotropy
+
+using Crystalline
+using Crystalline: AbstractIrrep
+
+export parselittlegroupirreps
+
 # --- Magic numbers ---
 const BYTES_PER_KCHAR = 3
 const BYTES_PER_KVEC  = 16*BYTES_PER_KCHAR;
@@ -48,7 +55,7 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
         skip(io, 2)
         sglabel = filter(!isequal(' '), readuntil(io, "\""))
         skip(io, 2)
-        irlabel = roman2greek(filter(!isequal(' '), readuntil(io, "\"")))
+        irlabel = Crystalline.roman2greek(filter(!isequal(' '), readuntil(io, "\"")))
         # read irdim, irreality, knum, pmknum, opnum (rest of line; split at spaces)
         #       irdim  : dimension of IR
         #       irreality : reality of IR (see Sec. 5 of Acta Cryst. (2013). A69, 388)
@@ -428,3 +435,6 @@ function add_special_representation_domain_lgirs(lgirsd::Dict{String, <:Abstract
             
 end
 =#
+
+
+end # module

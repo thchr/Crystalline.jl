@@ -1,7 +1,9 @@
 using Crystalline, Test, PrettyTables
 
 debug = false
-#LGIRS = parselittlegroupirreps()
+if !isdefined(Main, :LGIRS)
+    LGIRS  = get_lgirreps.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files
+end
 @testset "Order of space group, Bilbao vs. ISOTROPY, in primitivized basis" begin
     for sgnum = 1:230
         cntr = centering(sgnum, 3)

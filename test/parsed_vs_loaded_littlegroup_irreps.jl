@@ -1,7 +1,9 @@
 using Crystalline, Test
 
 if !isdefined(Main, :LGIRS′)
-    LGIRS′ = parselittlegroupirreps() # parsed directly from ISOTROPY's files
+    include(joinpath(@__DIR__, "../build/ParseIsotropy.jl"))
+    using .ParseIsotropy
+    LGIRS′ = parselittlegroupirreps() # parsed explicitly from ISOTROPY's data (see ParseIsotropy)
 end
 if !isdefined(Main, :LGIRS)
     LGIRS  = get_lgirreps.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files

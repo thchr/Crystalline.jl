@@ -118,6 +118,8 @@ foreach(jldfile -> close(jldfile), values(Crystalline.LGIRREPS_JLDFILES))
 foreach(jldfile -> close(jldfile), values(Crystalline.LGS_JLDFILES))
 
 # 3D (from ISOTROPY)
+include("build/ParseIsotropy.jl") # load the ParseIsotropy module which 
+using Main.ParseIsotropy              # exports `parselittlegroupirreps`
 __write_littlegroupirreps(parselittlegroupirreps())
 
 # 2D (from point group matching)
