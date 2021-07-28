@@ -2,7 +2,7 @@ We vendor the entirety of https://github.com/wildart/SmithNormalForm.jl because 
 However, in order for Crystalline to be registered in the General Registry, we cannot depend on an unregistrered package, so we need to vendor it ourselves.
 
 ## git subtree
-We can use git's subtree functionality to keep pull down SmithNormalForm.jl and also keep it up-to-date:
+We can use git's subtree functionality to pull down SmithNormalForm.jl and also keep it up-to-date:
 
 Specifically, SmithNormalForm.jl's git repo was added following the strategy in https://www.atlassian.com/git/tutorials/git-subtree, with the commands:
 
