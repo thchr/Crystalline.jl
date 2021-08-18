@@ -75,15 +75,19 @@ Compute a `UnityFourierLattice`, modulate it with random inter-orbit coefficient
 via `modulate`, and finally plot it (via PyPlot.jl):
 
 ```julia-repl
-julia> uflat = levelsetlattice(16, 2)
+julia> uflat = levelsetlattice(16, Val(2))
 julia> flat  = modulate(uflat)
-julia> Rs    = directbasis(16, 2) 
+julia> Rs    = directbasis(16, Val(2)) 
 julia> using PyPlot
 julia> plot(flat, Rs)
 ```
 """
-levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2, D)) = levelsetlattice(sgnum, Val(D), idxmax)
-function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}) where D
+function levelsetlattice(sgnum::Integer, D::Integer=2,
+                         idxmax::NTuple{D′,Int}=ntuple(i->2, D)) where D′
+    D == D′ || throw(DomainError((D=D, idxmax=idxmax), "incompatible dimensions"))
+    return levelsetlattice(sgnum, Val(D′), idxmax)
+end
+function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntuple(i->2, D)) where D
     # check validity of inputs
     (sgnum < 1)             && throw(DomainError(sgnum, "sgnum must be greater than 1"))
     D ∉ (1,2,3)             && _throw_invaliddim(D)
@@ -276,9 +280,9 @@ conventional and primitive basis (requires `using PyPlot`):
 ```julia-repl
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
 
-julia> Rs   = directbasis(sgnum, D)     # conventional basis (rectangular)
-julia> flat = levelsetlattice(sgnum, D) # Fourier lattice in basis of Rs
-julia> flat = modulate(flat)            # modulate the lattice coefficients
+julia> Rs   = directbasis(sgnum, Val(D))     # conventional basis (rectangular)
+julia> flat = levelsetlattice(sgnum, Val(D)) # Fourier lattice in basis of Rs
+julia> flat = modulate(flat)                 # modulate the lattice coefficients
 julia> plot(flat, Rs)
 
 julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
