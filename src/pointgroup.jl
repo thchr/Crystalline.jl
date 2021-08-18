@@ -22,7 +22,7 @@ const PGS_NUM2IUC = (
 # a flat tuple-listing of all the iuc labels in PGS_NUM2IUC; sliced across dimensions
 const PGS_IUCs = map(x->tuple(Iterators.flatten(x)...), PGS_NUM2IUC)
 # a tuple of ImmutableDicts, giving maps from iuc label to point group number
-const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(x->lab∈x, PGS_NUM2IUC[D])
+const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PGS_NUM2IUC[D])
                            for lab in PGS_IUCs[D]]...) for D in (1,2,3)]...)
 # The IUC notation for point groups can be mapped to the Schoenflies notation, but the 
 # mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C3v but 
@@ -110,12 +110,11 @@ end
 @inline pointgroup(pgnum::Integer, D::Integer, setting::Integer=1) = pointgroup(pgnum, Val(D), setting)
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
-function find_parent_pointgroup(g::AbstractGroup)
+function find_parent_pointgroup(g::AbstractGroup{D}) where D
     # Note: this method will only find parent point groups with the same setting (i.e. 
     #       basis) as `g` *and* with the same operator sorting. From a more general
     #       perspective, one might be interested in finding any isomorphic parent point
     #       group (that is achieved by `find_isomorphic_parent_pointgroup`).
-    D = dim(g)
     xyzt_pgops = sort!(xyzt.(pointgroup(g)))
 
     @inbounds for iuclab in PGS_IUCs[D]
@@ -303,7 +302,7 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
         equal = true
         for I_group in I_groups
             for i in I_group
-                idx = findfirst(opᵖ -> opᵖ == g′[i], (@view pg[I_group]))
+                idx = findfirst(==(g′[i]), (@view pg[I_group]))
                 idx === nothing && (equal = false; break) # ... not equal
                 P[i] = idx + I_group[1] - 1
             end

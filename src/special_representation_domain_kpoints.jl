@@ -536,7 +536,7 @@ function _find_arithmetic_partner(sg::SpaceGroup)
         N_arith_crys_class = length(SYMMORPH_SGNUMS[D])
         # exploit that the arithmetic partner typically is close to the index
         # of the space group, but is (at least for 3D space groups) always smaller
-        idx₀ = findfirst(x->sgnum<x, SYMMORPH_SGNUMS[D])
+        idx₀ = findfirst(>(sgnum), SYMMORPH_SGNUMS[D])
         if idx₀ === nothing # no point group of smaller index than the provided sg
             idx₀ = N_arith_crys_class
         end 

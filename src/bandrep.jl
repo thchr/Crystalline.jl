@@ -127,13 +127,14 @@ Return the nontrivial (i.e., ≠ {0,1}) elementary factors of an EBR basis, prov
 """
 function nontrivial_factors(F::Smith)
     Λ = F.SNF
-    nontriv_idx = findall(x -> !(isone(x) || iszero(x)), Λ)
+    nontriv_idx = findall(is_not_one_or_zero, Λ)
     return Λ[nontriv_idx]
 end
 function nontrivial_factors(BRS::BandRepSet)
     F = smith(matrix(BRS; includedim=true), inverse=false)
     return nontrivial_factors(F)
 end
+is_not_one_or_zero(x) = !(isone(x) || iszero(x))
 
 """
     classification(BRS_or_F::Union{BandRepSet, Smith}) --> String

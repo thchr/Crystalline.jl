@@ -16,20 +16,20 @@ function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
     if !isvalid_sphericaltriangle(α,β,γ)
         throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
     end
+    sinγ, cosγ = sincos(γ)
     # R₁ and R₂ are easy
     R₁ = SVector{3,Float64}(a, 0.0, 0.0)
-    R₂ = SVector{3,Float64}(b.*(cos(γ), sin(γ), 0.0))
+    R₂ = SVector{3,Float64}(b*cosγ, b*sinγ, 0.0)
     # R3 is harder
     cosα = cos(α)
     cosβ = cos(β)
-    sinγ,cosγ = sincos(γ)
     ϕ = atan(cosα - cosγ*cosβ, sinγ*cosβ)
-    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 -2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
-    sinθ,cosθ = sincos(θ)
-    sinϕ,cosϕ = sincos(ϕ)
+    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 - 2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
+    sinθ, cosθ = sincos(θ)
+    sinϕ, cosϕ = sincos(ϕ)
     R₃ = SVector{3,Float64}(c.*(sinθ*cosϕ, sinθ*sinϕ, cosθ))
 
-    Rs = DirectBasis(R₁,R₂,R₃)
+    Rs = DirectBasis(R₁, R₂, R₃)
     return Rs
 end
 
@@ -67,11 +67,11 @@ crystal(a::Real) = DirectBasis(SVector{1,Float64}(float(a)))
 # http://mathworld.wolfram.com/SphericalTrigonometry.html; due to (1), it can 
 # be simplified to sin(s-α)*sin(s-β)*sin(s-γ) > 0. This impacts generation 
 # of triclinic and monoclinic crystals.
-function isvalid_sphericaltriangle(α,β,γ)
+function isvalid_sphericaltriangle(α::Real, β::Real, γ::Real)
     s = (α+β+γ)/2
-    check1 = 0 < s < π;                     
-    check2 = sin(s-α)*sin(s-β)*sin(s-γ) > 0 
-    return check1 && check2 
+    check1 = zero(s) < s < π
+    check2 = sin(s-α)*sin(s-β)*sin(s-γ) > zero(s)
+    return check1 && check2
 end
 
 °(φ::Real) = deg2rad(φ)

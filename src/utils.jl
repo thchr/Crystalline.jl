@@ -40,10 +40,10 @@ function fractionify!(io::IO, x::Number, forcesign::Bool=true, tol::Real=1e-6)
         print(io, signaschar(x))
     end
     t = rationalize(float(x), tol=tol) # convert to "minimal" Rational fraction (within nearest `tol` neighborhood)
+    print(io, abs(numerator(t)))
     if !isinteger(t)
-        print(io, abs(numerator(t)), '/', denominator(t))
-    else
-        print(io, abs(numerator(t)))
+        print(io, '/')
+        print(io, denominator(t))
     end
     return nothing
 end

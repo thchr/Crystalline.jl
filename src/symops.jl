@@ -362,7 +362,7 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
     for (row,oprow) in enumerate(ops)
         for (col,opcol) in enumerate(ops)
             op′ = compose(oprow, opcol, modτ)
-            match = findfirst(op′′ -> op′≈op′′, ops)
+            match = findfirst(≈(op′), ops)
             if isnothing(match)
                 throw(DomainError(ops, "provided operations do not form a group"))
             end
@@ -423,7 +423,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing)
                     if verbose
                         println("""Provided irreps do not match group multiplication table for group $(num(ir)) in irrep $(label(ir)):
                                  First failure at (row,col) = ($(i),$(j));
-                                 Expected idx $(mtidx), got idx $(findall(D′ -> D′≈Dⁱʲ, Ds))""")
+                                 Expected idx $(mtidx), got idx $(findall(≈(Dⁱʲ), Ds))""")
                         print("Expected irrep = ")
                         if ir isa LGIrrep
                             println(cis(ϕ)*Ds[mtidx])
