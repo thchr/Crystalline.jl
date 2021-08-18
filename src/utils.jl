@@ -11,7 +11,7 @@
 @noinline _throw_invalid_sgnum(sgnum::Integer, D::Integer) =
     throw(DomainError(sgnum, "sgnum cannot exceed $(MAX_SGNUM[D]) for dimension D=$(D)"))
 
-# === string manipulation ===
+# === string manipulation/parsing ===
 """ 
     parsefraction(str::AbstractString)
 
@@ -54,6 +54,32 @@ function fractionify(x::Number, forcesign::Bool=true, tol::Real=1e-6)
 end
 
 signaschar(x::Real) = signbit(x) ? '-' : '+'
+
+function searchpriornumerals(coord, pos₂, ::Type{T}=Float64) where T
+    pos₁ = pos₂
+    while (prev = prevind(coord, pos₁)) != 0 # not first character
+        if isnumeric(coord[prev]) || coord[prev] == '.'
+            pos₁ = prev
+        elseif coord[prev] == '+' || coord[prev] == '-'
+            pos₁ = prev
+            break
+        else 
+            break
+        end
+    end
+    prefix = coord[pos₁:prevind(coord, pos₂)]
+    if !any(isnumeric, prefix) # in case there's no numerical prefix, it must be unity
+        if prefix == "+" || prefix == ""
+            return one(T)
+        elseif prefix == "-"
+            return -one(T)
+        else
+            throw(DomainError(prefix, "unable to parse prefix"))
+        end
+    else
+        return parse(T, prefix)
+    end
+end
 
 # --- UNICODE FUNCTIONALITY ---
 const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>'₅',  # digits

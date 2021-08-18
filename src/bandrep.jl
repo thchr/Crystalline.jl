@@ -271,26 +271,6 @@ function split_paren(str::AbstractString)
     return before_paren, inside_paren
 end
 
-function searchpriornumerals(coord, pos₂)
-    pos₁ = copy(pos₂)
-    while (prev = prevind(coord, pos₁)) != 0 # not first character
-        if isnumeric(coord[prev]) || coord[prev] == '.'
-            pos₁ = prev
-        elseif coord[prev] == '+' || coord[prev] == '-'
-            pos₁ = prev
-            break
-        else 
-            break
-        end
-    end
-    prefix = coord[pos₁:prevind(coord, pos₂)] 
-    if !any(isnumeric, prefix) # in case there's no numerical prefix, it must be unity
-        prefix *= "1"
-    end
-
-    return prefix
-end
-
 
 """
     matching_littlegroups(BRS::BandRepSet)

@@ -213,8 +213,7 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
         for (j, matchgroup) in enumerate((('α','u','x'),('β','v','y'),('γ','w','z')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
-                prefix = searchpriornumerals(coord, pos₂)
-                free[i,j] = parse(Float64, prefix)
+                free[i,j]  = searchpriornumerals(coord, pos₂)
             end
         end
         
