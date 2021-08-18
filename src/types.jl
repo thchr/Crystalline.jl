@@ -114,6 +114,7 @@ SymOperation(s::AbstractString) = SymOperation{count(==(','), s)+1}(s)
 @propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
 IndexStyle(::Type{<:SymOperation}) = IndexLinear()
 size(::SymOperation{D}) where D = (D, D+1)
+copy(op::SymOperation) = op # cf. https://github.com/JuliaLang/julia/issues/41918
 
 rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of an operation

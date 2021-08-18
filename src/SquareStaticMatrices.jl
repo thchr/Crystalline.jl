@@ -18,7 +18,7 @@ using Base: @propagate_inbounds
 using StaticArrays: StaticMatrix
 import StaticArrays: SMatrix, MMatrix
 import Base: convert, size, getindex, firstindex, lastindex, eachcol, one, zero,
-             IndexStyle
+             IndexStyle, copy
 
 export SqSMatrix
 
@@ -44,6 +44,7 @@ end
     return @inbounds A.cols[j][i]
 end
 IndexStyle(::Type{<:SqSMatrix}) = IndexCartesian()
+copy(A::SqSMatrix) = A # cf. https://github.com/JuliaLang/julia/issues/41918
 
 # ---------------------------------------------------------------------------------------- #
 # constructors and converters 

@@ -13,7 +13,7 @@ using DocStringExtensions
 using Base: OneTo, @propagate_inbounds
 
 import Base: getindex, setindex!,      # → iteration/AbstractArray interface
-             IndexStyle, size, length, # ⤶
+             IndexStyle, size, copy,   # ⤶
              iterate,
              string, isapprox, zero,
              readuntil, vec, show, summary,
