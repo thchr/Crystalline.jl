@@ -28,9 +28,9 @@
 # │  220  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 217  │              │
 # └───────┴─────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────────────────────────┴──────────────┘
 # In principle, these irreps _could_ be constructed from the existing irreps in ISOTROPY by
-# suitable transformations, as described by B&C (e.g. near p. 414). Unfortunately, we have
-# thus far not managed to implement that scheme correctly. Instead, we here just go the
-# brute-force path and tabulate the things we need manually.
+# suitable transformations, as described by B&C (e.g. near p. 414) or CDML (p. 69-73).
+# Unfortunately, we have thus far not managed to implement that scheme correctly. Instead,
+# we here just go the brute-force path and tabulate the things we need manually.
 # NB: Of the above space groups, only SG 82 has nontrivial symmetry indicator for bosons
 # with TR. Most of the space groups, however, can support symmetry-indicated fragile
 # topology (÷ means 'cannot').
@@ -449,11 +449,11 @@ LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
 lgops = SymOperation{3}.(["x,y,z", "-y,x-y,z", "-x+y,-x,z", "y,x,z+1/2", "x-y,-y,z+1/2", "-x,-x+y,z+1/2"]) # 1, 3₀₀₁⁺, 3₀₀₁⁻, {m₋₁₁₀|0,0,½}, {m₁₂₀|0,0,½}, {m₂₁₀|0,0,½}
-Psτs = [([1, 1, 1, 1, 1, 1],    [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
-        ([1, 1, 1, -1, -1, -1], [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
+Psτs = [([1, 1, 1, 1, 1, 1],    [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
+        ([1, 1, 1, -1, -1, -1], [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
         ([[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)],
           [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]],
-         [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]), ]
+         [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]), ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 197 =========

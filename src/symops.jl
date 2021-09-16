@@ -379,7 +379,8 @@ function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing) where D
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices in `compose`
     check_multtable_vs_ir(MultTable(primitive_ops), lgir, αβγ)
 end
-function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing)
+function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
+            verbose::Bool=false)
     havewarned = false
     Ds = ir(αβγ)
     ops = operations(ir)
@@ -419,19 +420,17 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing)
             end
             if !match
                 checked[i,j] = false
-                if !havewarned
-                    if verbose
-                        println("""Provided irreps do not match group multiplication table for group $(num(ir)) in irrep $(label(ir)):
-                                 First failure at (row,col) = ($(i),$(j));
-                                 Expected idx $(mtidx), got idx $(findall(≈(Dⁱʲ), Ds))""")
-                        print("Expected irrep = ")
-                        if ir isa LGIrrep
-                            println(cis(ϕ)*Ds[mtidx])
-                        else
-                            println(Dⁱʲ)
-                        end
-                        println("Got irrep      = $(Dⁱʲ)")
+                if !havewarned && verbose
+                    println("""Provided irreps do not match group multiplication table for group $(num(ir)) in irrep $(label(ir)):
+                                First failure at (row,col) = ($(i),$(j));
+                                Expected idx $(mtidx), got idx $(findall(≈(Dⁱʲ), Ds))""")
+                    print("Expected irrep = ")
+                    if ir isa LGIrrep
+                        println(cis(ϕ)*Ds[mtidx])
+                    else
+                        println(Dⁱʲ)
                     end
+                    println("Got irrep      = $(Dⁱʲ)")
                     havewarned = true
                 end
             end
