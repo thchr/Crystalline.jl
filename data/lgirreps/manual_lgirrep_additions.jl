@@ -45,7 +45,6 @@ using Crystalline
 #    https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl
 # to our own data format for the missing k-points listed in 
 #   src/special_representation_domain_kpoints.jl
-# TODO: This needs to be merged into the special-points branch before master
 
 function build_lgirrep_with_type(cdml, lg, Psτs, sgops)
     # input handling
@@ -136,7 +135,8 @@ LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 # ========= 121 =========
 sgnum = 121
 # PA₁, PA₂, PA₃, PA₄, PA₅
-klab  = "PA"
+
+
 kv    = KVec(-1/2,-1/2,-1/2)
 lgops = SymOperation{3}.(["x,y,z", "-x,-y,z", "y,-x,-z", "-y,x,-z", "-x,y,-z", "x,-y,-z", "-y,-x,z", "y,x,z"]) 
                           # 1, 2₀₀₁, -4⁺₀₀₁, -4⁻₀₀₁, 2₀₁₀, 2₁₀₀, m₁₁₀, m₁₋₁₀
