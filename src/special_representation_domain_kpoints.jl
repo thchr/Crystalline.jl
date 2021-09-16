@@ -613,12 +613,12 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
         end
 
         # read data from csv file
-        data = CSV.read(loadpath; kwargs...)
+        data = CSV.File(loadpath; kwargs...)
 
         # convert csv file to ImmutableDict of KVecMapping NTuples
         cur_sgnum = 0
         tempvec = Vector{KVecMapping}()
-        for (idx, row) in enumerate(eachrow(data))
+        for (idx, row) in enumerate(data)
             if iszero(row[:kᴮ_num])
                 if cur_sgnum ≠ 0
                     d = Base.ImmutableDict(d, cur_sgnum=>tuple(tempvec...))
@@ -789,12 +789,13 @@ end
 # Pa3 (Tₕ⁶), sg 205, cannot be treated by the transformation method and requires  
 # manual treatment (B&C p. 415-417); fortunately, the Z′₁=ZA₁ irrep of 205 is  
 # already included in ISOTROPY.
-function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}}}, verbose::Bool=false) where D
+function add_ΦnotΩ_lgirs!(lgirsd::AbstractDict{String, <:AbstractVector{LGIrrep{D}}}, 
+            verbose::Bool=false) where D
     D ≠ 3 && _throw_1d2d_not_yet_implemented(D)
 
-    sgnum = num(first(first(lgirsvec)))
+    sgnum = num(first(last(first(lgirsd))))
     G = spacegroup(sgnum)
-    old_klabs = (klabel(first(lgirs)) for lgirs in lgirsvec)
+    old_klabs = collect(keys(lgirsd))
 
     # does this space group contain any nontrivial k-vectors in Φ-Ω?
     d = ΦnotΩ_kvecs(sgnum, D) 
@@ -816,7 +817,7 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
     # their LGIrreps by the transformation approach, irregardless of whether they
     # are orphans of type 0, 1 (a), or 2 (b) cf. CDML p. 71
     orphantype ∈ (0,1,2) || throw("Unexpected error: please file a bug-report")
-    NkinΩ = length(lgirsvec)
+    NkinΩ = length(lgirsd)
     for kvmap in kvmaps
         opᴿ = kvmap.op # in CDML notation, opᴿ = {R|v}
 
@@ -828,7 +829,7 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
         end
 
         # data at kᴬ∈Ω
-        lgirsᴬ = find_lgirreps(lgirsvec, kvmap.kᴬlab)   # vec of LGIrreps at kᴬ∈Ω
+        lgirsᴬ = lgirsd[kvmap.kᴬlab]   # vec of LGIrreps at kᴬ∈Ω
         if lgirsᴬ === nothing
             # this can happen for some k-vectors that are only included for a specific
             # BZ configurations that only arise for certain lattice constants; in 
@@ -837,24 +838,26 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
             verbose && @info "Could not find the k-vector $(kvmap.kᴬlab) in ISOTROPY's dataset: cannot map to $(kvmap.kᴮlab)"
             continue
         end
-        lgᴬ  = first(lgirsᴬ).lg                          # LittleGroup at kᴬ∈Ω
-        kᴬ   = lgᴬ.kv                                    # KVec at kᴬ∈Ω
+        lgᴬ  = group(first(lgirsᴬ))                      # LittleGroup at kᴬ∈Ω
+        kᴬ   = kvec(lgᴬ)                                 # KVec at kᴬ∈Ω
         opsᴬ = operations(lgᴬ)
 
         # data at kᴮ∈Φ-Ω
-        kᴮ = opᴿ∘kᴬ # kᴮ = {R|v}kᴬ = Rkᴬ
+        kᴮ = opᴿ*kᴬ # kᴮ = {R|v}kᴬ = Rkᴬ
         # find LittleGroup at kᴮ from the LittleGroup at kᴬ, i.e. lgᴬ: this involves
         # computing the transformed operators {R|v}{S|w}{R|v}⁻¹ ≡ {U|z} ≡ {E|x}{U|y},  
-        # which we denote {E|xsᴮ[i]}∘opsᴮ[i] here (and which CDML denotes {E|x}{U|y}):
+        # which we denote {E|xsᴮ[i]} * opsᴮ[i] here (and which CDML denotes {E|x}{U|y}):
         # x is a pure lattice translation and y is a fractional translation
         opsᴮ = Vector{SymOperation{D}}(undef, length(opsᴬ))        # vector of opᴮ
         xsᴮ  = [Vector{Float64}(undef, D) for _ in 1:length(opsᴬ)] # vector of xᴮ
         opᴿ⁻¹ = inv(opᴿ)
         for (i, opᴬ) in enumerate(operations(lgᴬ)) # in CDML notation, opᴬ = {S|w}
-            opᴮ′ = ∘(∘(opᴿ, opᴬ, false), opᴿ⁻¹, false) # unreduced {R|v}{S|w}{R|v}⁻¹ operation
-            z = copy(translation(opᴮ′)) # ≡ x+y
-            y = reduce_translation_to_unitrange!(translation(opᴮ′)) # mutates opᴮ′ so its translation is reduced
-            opsᴮ[i] = SymOperation{D}(matrix(opᴮ′)) # in CDML notation, opsᴮ[i] = {U|y} [recomputes xyzt which is wrong now]
+            opᴮ′ = compose(compose(opᴿ, opᴬ, false), opᴿ⁻¹, false) # unreduced {R|v}{S|w}{R|v}⁻¹ operation
+            z = translation(opᴮ′) # ≡ x+y
+            y = reduce_translation_to_unitrange(translation(opᴮ′))
+            U = opᴮ′.rotation
+            opᴮ′ = SymOperation(U, y) # reduce opᴮ′'s translation to unit range
+            opsᴮ[i] = opᴮ′   # in CDML notation, opsᴮ[i] = {U|y}
             xsᴮ[i] .= z .- y # in CDML notation, xsᴮ[i] = x
             # CDML (4.11): v + Rw - Uv - y
             #x = translation(opᴿ) + rotation(opᴿ)*translation(opᴬ) - rotation(opsᴮ[i])*translation(opᴿ) - translation(opsᴮ[i]) 
@@ -876,9 +879,9 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
             #      exp(ikᴮτᴮ)Pᴮ = exp(-ikᴮx)exp(ikᴬτᴬ)Pᴬ = exp[i(kᴬτᴬ-kᴮx)]Pᴬ
             # Then we can exploit that kᴬ⋅τᴬ = (R⁻¹kᴮ)ᵀτᴬ = kᴮ⋅(R⁻¹)ᵀτᴬ, and that
             # operators g in an lattice basis act on k-vectors in a reciprocal
-            # basis as (gᵀ)⁻¹, see (∘)(::SymOperation, ::KVec) doc-string, 
+            # basis as (gᵀ)⁻¹, see (*)(::SymOperation, ::KVec) doc-string, 
             # such that, ultimately, R acts directly on τᴬ, i.e.
-            #   exp(ikᴮτᴮ)Pᴮ = exp[ikᴮ(Rτᴬ-x)]Pᴬ
+            #       exp(ikᴮτᴮ)Pᴮ = exp[ikᴮ(Rτᴬ-x)]Pᴬ
             # The objective is then simply to determine the fixed and variable
             # parts of kᴮ⋅(Rτᴬ-xᴮ); if there is no variable phase contribution
             # we absorb the fixed contribution into Pᴮ and let τᴮ be a zero-vector
@@ -906,14 +909,15 @@ function add_ΦnotΩ_lgirs!(lgirsvec::AbstractVector{<:AbstractVector{LGIrrep{D}
                 end
             end
             # ... build the new LGIrrep
-            push!(lgirsᴮ, LGIrrep{D}(lgirᴮlab, lgᴮ, Psᴮ, τsᴮ, lgirᴬ.type))
+            push!(lgirsᴮ, LGIrrep{D}(lgirᴮlab, lgᴮ, Psᴮ, τsᴮ, reality(lgirᴬ)))
             # TODOs:
             #   - we assume type-field is unchanged by transformation: verify?
             #   - the method doesn't seem to work right now: doesn't agree with Bilbao nor ISOTROPY (ZA)
         end
-        push!(lgirsvec, lgirsᴮ)
+        lgirsd[kvmap.kᴮlab] = lgirsᴮ
     end
-    return (@view lgirsvec[NkinΩ+1:end]) # return a view of the new LGIrrep vectors in Φ-Ω
+    kᴮlabs = getfield.(kvmaps, Ref(:kᴮlab))
+    return filter(p->p.first ∈ kᴮlabs, lgirsd) # return a view of the new LGIrrep vectors in Φ-Ω
 end
 
 add_ΦnotΩ_lgirs!(sgnum::Integer, D::Integer=3, verbose::Bool=false) = add_ΦnotΩ_lgirs!(get_lgirreps(sgnum, Val(D)), verbose)

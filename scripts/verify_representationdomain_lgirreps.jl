@@ -1,6 +1,8 @@
 using Crystalline, LinearAlgebra, Test
 
-include("../data/stopgap_missing_lgirreps.jl") # loads lgirs_dict with some special-point lgirs
+# load `LGIRS_add` with some special-point lgirs
+include(joinpath((@__DIR__), "../data/stopgap_missing_lgirreps.jl"))
+
 # Choose one of 195, 198, 200, 201
 #for sgnum in [195, 198, 200, 201] # works for 195 and 200; not for 198 and 201
 #sgnum = 201
@@ -10,16 +12,11 @@ include("../data/stopgap_missing_lgirreps.jl") # loads lgirs_dict with some spec
 sgnum = 82
 target_klab = "PA"
 
-lgirsvec = get_lgirreps(sgnum, Val(3))
-append!(lgirsvec, lgirs_dict[sgnum])
+lgirsd = get_lgirreps(sgnum, Val(3))
+haskey(lgirsd, target_klab) && throw("`get_lgirreps` already returns this k-label")
+target_lgirs = LGIRS_add[sgnum][target_klab]
 
-target_kidx = findfirst(x->klabel(first(x))==target_klab, lgirsvec)
-if target_kidx !== nothing
-    target_lgirs = deepcopy(lgirsvec[target_kidx])
-    deleteat!(lgirsvec, target_kidx)
-end
-
-added_lgirs = find_lgirreps(add_ΦnotΩ_lgirs!(deepcopy(lgirsvec), true), target_klab);
+added_lgirs = add_ΦnotΩ_lgirs!(deepcopy(lgirsd), true)[target_klab];
 
 #=
 println("\nOriginal: ", string(target_lgirs[1].lg.kv))
@@ -29,22 +26,23 @@ display(added_lgirs[1].lg.kv)
 display.(added_lgirs)
 println()
 =#
+##
 
 # Check operator sorting and k-vector
 #@test target_lgirs[1].lg.kv == added_lgirs[1].lg.kv
-@test all(operations(target_lgirs[1].lg) .== operations(added_lgirs[1].lg))
+@test all(operations(group(first(target_lgirs))) .== operations(group(first(added_lgirs))))
 
 # Print some info
-println('\n','-'^25, ' ', sgnum, ' ', '-'^25, "\nk = ", string(target_lgirs[1].lg.kv), '\n')
+println('\n','-'^25, ' ', sgnum, ' ', '-'^25, "\nk = ", string(kvec(group(first(target_lgirs)))), '\n')
 print("ops = ")
-join(stdout, seitz.(operations(target_lgirs[1].lg)), ", ")
+join(stdout, seitz.(operations(group(first(target_lgirs)))), ", ")
 println('\n')
 
 # Difference
 αβγ = [0.3,0.2,0.4]
 
 δχ = characters.(target_lgirs, Ref(αβγ)) .- characters.(added_lgirs, Ref(αβγ))
-δP = irreps.(target_lgirs, Ref(αβγ)) .- irreps.(added_lgirs, Ref(αβγ))
+δP = [lgir(αβγ) for lgir in target_lgirs] .- [lgir(αβγ) for lgir in added_lgirs]
 
 println.(label.(added_lgirs), Ref(": |δχ| = "), norm.(δχ), ", |δP| = ", norm.(δP)); println()
 

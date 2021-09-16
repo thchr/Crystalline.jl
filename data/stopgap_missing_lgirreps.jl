@@ -22,10 +22,9 @@ function build_lgirrep_with_type(cdml, lg, Psτs, sgops)
         Ps = fill.(Ps, 1, 1)
     end
 
-    lgir  = LGIrrep{3}(cdml, lg, Ps, τs, 0) # sentinel =0 for reality type
-    typeᴴ = herring(lgir, sgops)
-    type  = typeᴴ == -1 ? 2 : typeᴴ == 0 ? 3 : 1 # {1,-1,0} ⇒ {1,2,3} (Herring ⇒ ISOTROPY)
-    lgir  = LGIrrep{3}(cdml, lg, Ps, τs, type) # update reality type
+    lgir  = LGIrrep{3}(cdml, lg, Ps, τs, REAL)    # place-holder `REAL` reality type
+    reality = calc_reality(lgir, sgops)
+    lgir  = LGIrrep{3}(cdml, lg, Ps, τs, reality) # update reality type
 end
 
 function prepare_lg_and_sgops(sgnum, kv, klab, ops)
@@ -40,10 +39,14 @@ function assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
     lgirs     = build_lgirrep_with_type.(cdmls, Ref(lg), Psτs, Ref(sgops))
 end
 
+if !isdefined(Main, :cispi)
+    cispi(x) = cis(π*x)
+end
+
 # "preallocate" a storage dict
 sgnums = [23, 24, 82, 121, 122, 143, 144, 145, 150, 152, 154, 157, 159, 174, 189, 190, 197, 
           199, 217, 220]
-lgirs_dict = Dict(sgnum=>Vector{Vector{LGIrrep{3}}}() for sgnum in sgnums)
+LGIRS_add = Dict(sgnum=>Dict{String, Vector{LGIrrep{3}}}() for sgnum in sgnums)
 
 # ========= 23 =========
 sgnum = 23
@@ -58,7 +61,7 @@ Psτs = [[1, 1, 1, 1],    # Ps = matrices
         [1, -1, -1, 1],
         [1, 1, -1, -1],
         [1, -1, 1, -1],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 
 # ========= 24 =========
@@ -70,7 +73,7 @@ lgops = SymOperation{3}.(["x,y,z", "x,-y,-z+1/2", "-x+1/2,y,-z", "-x,-y+1/2,z"])
 
 Psτs = [[[1 0; 0 1], [1 0; 0 -1], [0 -im; im 0], [0 1; 1 0]],
        ]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 
 # ========= 82  =========
@@ -84,7 +87,7 @@ Psτs = [[1, 1, 1, 1],
         [1, 1, -1, -1],
         [1, -1, -im, im],
         [1, -1, im, -im],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 
 # ========= 121 =========
@@ -100,7 +103,7 @@ Psτs = [[1, 1, 1, 1, 1, 1, 1, 1],
         [1, 1, -1, -1, -1, -1, 1, 1],
         [1, 1, 1, 1, -1, -1, -1, -1],
         [[1 0; 0 1], [-1 0; 0 -1], [0 -1; 1 0], [0 1; -1 0], [0 1; 1 0], [0 -1; -1 0], [1 0; 0 -1], [-1 0; 0 1]],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 122 =========
 sgnum = 122
@@ -112,7 +115,7 @@ lgops = SymOperation{3}.(["x,y,z", "-x,-y,z", "y,-x,-z", "-y,x,-z", "-x,y+1/2,-z
 
 Psτs = [[[1 0; 0 1], [1 0; 0 -1], [1 0; 0 im], [1 0; 0 -im], [0 -1; 1 0], [0 1; 1 0], [0 -im; 1 0], [0 im; 1 0]],
         [[1 0; 0 1], [1 0; 0 -1], [-1 0; 0 -im], [-1 0; 0 im], [0 1; -1 0], [0 -1; -1 0], [0 -im; 1 0], [0 im; 1 0]],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 143 =========
 sgnum = 143
@@ -120,23 +123,22 @@ lgops = SymOperation{3}.(["x,y,z", "-y,x-y,z", "-x+y,-x,z"]) # 1, 3⁺₀₀₁,
 # HA₁, HA₂, HA₃
 klab  = "HA"
 kv    = KVec("-1/3,-1/3,-1/2")
-
 Psτs = [[1, 1, 1],
-        [1, cis(-2π/3), cis(2π/3)],
-        [1, cis(2π/3), cis(-2π/3)],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+        [1, cispi(-2/3), cispi(2/3)],
+        [1, cispi(2/3), cispi(-2/3)],]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec("-1/3,-1/3,0")
 # ... same lgops & irreps as HA₁, HA₂, HA₃
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
 # ... same lgops & irreps as HA₁, HA₂, HA₃
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 144 =========
 sgnum = 144
@@ -144,27 +146,26 @@ lgops = SymOperation{3}.(["x,y,z", "-y,x-y,z+1/3", "-x+y,-x,z+2/3"]) # 1, {3⁺�
 # HA₁, HA₂, HA₃
 klab = "HA"
 kv   = KVec("-1/3,-1/3,-1/2")
-
-Psτs = [[1, cis(-π/3), cis(-2π/3)],
+Psτs = [[1, cispi(-1/3), cispi(-2/3)],
         [1, -1, 1],
-        [1, cis(π/3), cis(-2π/3)],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+        [1, cispi(1/3), cispi(2/3)],]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec("-1/3,-1/3,0")
 Psτs = [[1, 1, 1],
-        [1, cis(-2π/3), cis(2π/3)],
-        [1, cis(2π/3), cis(-2π/3)],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+        [1, cispi(-2/3), cispi(2/3)],
+        [1, cispi(2/3), cispi(-2/3)],]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
-Psτs = [([1, 1, 1],                  [[0.0, 0, 0], [0,0,1/3], [0,0,2/3]]), # nonzero τs
-        ([1, cis(-2π/3), cis(2π/3)], [[0.0, 0, 0], [0,0,1/3], [0,0,2/3]]),
-        ([1, cis(2π/3), cis(-2π/3)], [[0.0, 0, 0], [0,0,1/3], [0,0,2/3]]),]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+Psτs = [([1, 1, 1],                    [[0.0,0,0], [0,0,1/3], [0,0,2/3]]), # nonzero τs
+        ([1, cispi(-2/3), cispi(2/3)], [[0.0,0,0], [0,0,1/3], [0,0,2/3]]),
+        ([1, cispi(2/3), cispi(-2/3)], [[0.0,0,0], [0,0,1/3], [0,0,2/3]]),]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 145 =========
 sgnum = 145
@@ -173,25 +174,27 @@ lgops = SymOperation{3}.(["x,y,z", "-y,x-y,z+2/3", "-x+y,-x,z+1/3"]) # 1, {3⁺�
 klab = "HA"
 kv   = KVec("-1/3,-1/3,-1/2")
 Psτs = [[1, 1, -1],
-        [1, cis(-2π/3), cis(-π/3)],
-        [1, cis(2π/3), cis(π/3)],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+        [1, cispi(-2/3), cispi(-1/3)],
+        [1, cispi(2/3), cispi(1/3)],]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec("-1/3,-1/3,0")
+# ... same lgops as HA₁, HA₂, HA₃
 Psτs = [[1, 1, 1],
-        [1, cis(-2π/3), cis(2π/3)],
-        [1, cis(2π/3), cis(-2π/3)],]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+        [1, cispi(-2/3), cispi(2/3)],
+        [1, cispi(2/3), cispi(-2/3)],]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
-Psτs = [([1, 1, 1],                  [[0.0, 0, 0], [0,0,2/3], [0,0,1/3]]), # nonzero τs
-        ([1, cis(-2π/3), cis(2π/3)], [[0.0, 0, 0], [0,0,2/3], [0,0,1/3]]),
-        ([1, cis(2π/3), cis(-2π/3)], [[0.0, 0, 0], [0,0,2/3], [0,0,1/3]]),]
-push!(lgirs_dict[sgnum], assemble_lgirreps(sgnum, kv, klab, lgops, Psτs))
+# ... same lgops as HA₁, HA₂, HA₃
+Psτs = [([1, 1, 1],                    [[0.0,0,0], [0,0,2/3], [0,0,1/3]]), # nonzero τs
+        ([1, cispi(-2/3), cispi(2/3)], [[0.0,0,0], [0,0,2/3], [0,0,1/3]]),
+        ([1, cispi(2/3), cispi(-2/3)], [[0.0,0,0], [0,0,2/3], [0,0,1/3]]),]
+LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 150 =========
 sgnum = 150
