@@ -1,10 +1,50 @@
+# The goal of this script is to tabulate and construct the irreps in Φ-Ω (basic domain, Ω; 
+# representation domain, Φ) that are missing from ISOTROPY but still feature in the bandreps
+# from Bilbao. By manual comparison, we found that there are 145 such irreps, across 20
+# space groups, namely:
+# ┌───────┬─────────────────────────────────────────────────────────────────────────────┬───────────────┬────────────────────────────────┬──────────────┐
+# │       │  Missing                                                                    │  Missing      │  [NS≡nonsymmorph; S≡symmorph]  │  Has fragile │
+# │  SGs  │  LGIrrep labels                                                             │  KVec labels  │  Match method                  │  phases?     │
+# │───────┼─────────────────────────────────────────────────────────────────────────────┼───────────────┼────────────────────────────────┼──────────────│
+# │  23   │  WA₁, WA₂, WA₃, WA₄                                                         │  WA           │  S:  MonoOrthTetraCubic ┐      │  ÷           │
+# │  24   │  WA₁                                                                        │  WA           │  NS: Inherits from      └ 23   │  ÷           │
+# │  82   │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic        │              │
+# │  121  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │              │
+# │  122  │  PA₁, PA₂                                                                   │  PA           │  NS: Inherits from      └ 121  │              │
+# │  143  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  144  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
+# │  145  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │  ÷           │
+# │  150  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  152  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
+# │  154  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │              │
+# │  157  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
+# │  159  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Inherits from └ 157       │              │
+# │  174  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex                    │              │
+# │  189  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
+# │  190  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃                 │  HA, KA, PA   │  NS: Inherits from └ 189       │              │
+# │  197  │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic ┐      │  ÷           │
+# │  199  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 197  │  ÷           │
+# │  217  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │              │
+# │  220  │  PA₁, PA₂, PA₃                                                              │  PA           │  NS: Inherits from      └ 217  │              │
+# └───────┴─────────────────────────────────────────────────────────────────────────────┴───────────────┴────────────────────────────────┴──────────────┘
+# In principle, these irreps _could_ be constructed from the existing irreps in ISOTROPY by
+# suitable transformations, as described by B&C (e.g. near p. 414) or CDML (p. 69-73).
+# Unfortunately, we have thus far not managed to implement that scheme correctly. Instead,
+# we here just go the brute-force path and tabulate the things we need manually.
+# NB: Of the above space groups, only SG 82 has nontrivial symmetry indicator for bosons
+# with TR. Most of the space groups, however, can support symmetry-indicated fragile
+# topology (÷ means 'cannot').
+
+# ======================================================================================== #
+# ================================== UTILITY FUNCTIONS =================================== #
+# ======================================================================================== #
+
 using Crystalline
 
 # manually converting
 #    https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl
 # to our own data format for the missing k-points listed in 
 #   src/special_representation_domain_kpoints.jl
-# TODO: This needs to be merged into the special-points branch before master
 
 function build_lgirrep_with_type(cdml, lg, Psτs, sgops)
     # input handling
@@ -43,14 +83,15 @@ if !isdefined(Main, :cispi)
     cispi(x) = cis(π*x)
 end
 
-# "preallocate" a storage dict
-sgnums = [23, 24, 82, 121, 122, 143, 144, 145, 150, 152, 154, 157, 159, 174, 189, 190, 197, 
-          199, 217, 220]
-LGIRS_add = Dict(sgnum=>Dict{String, Vector{LGIrrep{3}}}() for sgnum in sgnums)
 
 # ======================================================================================== #
 # =========================== MANUALLY COPIED IRREP DATA BELOW =========================== #
 # ======================================================================================== #
+
+# "preallocate" a storage dict
+sgnums = [23, 24, 82, 121, 122, 143, 144, 145, 150, 152, 154, 157, 159, 174, 189, 190, 197, 
+          199, 217, 220]
+LGIRS_add = Dict(sgnum=>Dict{String, Vector{LGIrrep{3}}}() for sgnum in sgnums)
 
 # ========= 23 =========
 sgnum = 23
@@ -407,11 +448,11 @@ LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
 lgops = SymOperation{3}.(["x,y,z", "-y,x-y,z", "-x+y,-x,z", "y,x,z+1/2", "x-y,-y,z+1/2", "-x,-x+y,z+1/2"]) # 1, 3₀₀₁⁺, 3₀₀₁⁻, {m₋₁₁₀|0,0,½}, {m₁₂₀|0,0,½}, {m₂₁₀|0,0,½}
-Psτs = [([1, 1, 1, 1, 1, 1],    [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
-        ([1, 1, 1, -1, -1, -1], [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
+Psτs = [([1, 1, 1, 1, 1, 1],    [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
+        ([1, 1, 1, -1, -1, -1], [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]),
         ([[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)],
           [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]],
-         [[0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2], [0,0,1/2]]), ]
+         [[0,0,0.0], [0,0,0.0], [0,0,0.0], [0,0,1/2], [0,0,1/2], [0,0,1/2]]), ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
 # ========= 197 =========
