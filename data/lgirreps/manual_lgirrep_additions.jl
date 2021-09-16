@@ -135,7 +135,7 @@ LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 # ========= 121 =========
 sgnum = 121
 # PA₁, PA₂, PA₃, PA₄, PA₅
-klab = "PA"
+klab  = "PA"
 kv    = KVec(-1/2,-1/2,-1/2)
 lgops = SymOperation{3}.(["x,y,z", "-x,-y,z", "y,-x,-z", "-y,x,-z", "-x,y,-z", "x,-y,-z", "-y,-x,z", "y,x,z"]) 
                           # 1, 2₀₀₁, -4⁺₀₀₁, -4⁻₀₀₁, 2₀₁₀, 2₁₀₀, m₁₁₀, m₁₋₁₀
