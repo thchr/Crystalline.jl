@@ -118,9 +118,17 @@ foreach(jldfile -> close(jldfile), values(Crystalline.LGIRREPS_JLDFILES))
 foreach(jldfile -> close(jldfile), values(Crystalline.LGS_JLDFILES))
 
 # 3D (from ISOTROPY)
-include("build/ParseIsotropy.jl") # load the ParseIsotropy module which 
-using Main.ParseIsotropy              # exports `parselittlegroupirreps`
-__write_littlegroupirreps(parselittlegroupirreps())
+include(joinpath((@__DIR__), "ParseIsotropy.jl")) # load the ParseIsotropy module
+using Main.ParseIsotropy                                # (exports `parselittlegroupirreps`)
+LGIRS_3D = parselittlegroupirreps()
+# ... ISOTROPY is missing several irreps; we bring those in below, obtained from manual
+# transcription of irreps from Bilbao; script below defines `LGIRS_add` which stores these
+# manual additions (a Dict with `sgnum` keys)
+include(joinpath((@__DIR__), "..", "data/lgirreps/manual_lgirrep_additions.jl"))
+for (sgnum, lgirsd_add) in LGIRS_add # merge Bilbao additions with ISOTROPY irreps
+    merge!(LGIRS_3D[sgnum], lgirsd_add)
+end
+__write_littlegroupirreps(LGIRS_3D)
 
 # 2D (from point group matching)
 __write_littlegroupirreps(LGIRS_2D′)
