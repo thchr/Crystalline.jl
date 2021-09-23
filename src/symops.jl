@@ -690,7 +690,7 @@ function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char,
         return ops′_reduced
     end
 end
-@inline function reduce_ops(slg::Union{<:SpaceGroup, <:LittleGroup}, 
+@inline function reduce_ops(slg::Union{SpaceGroup, LittleGroup}, 
                             conv_or_prim::Bool=true, modw::Bool=true)
     return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
@@ -769,7 +769,8 @@ end
 
 
 """
-    _findsubgroup(opsᴳ, opsᴴ) --> (Bool, Vector{Int64})
+    _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
+                                                    --> (Bool, Vector{Int64})
 
 Determine whether the group ``H`` (with operators `opsᴴ`) is a subgroup
 of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
@@ -778,7 +779,8 @@ that `opsᴳ[idxs]` ``≡ H``.
 The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
 
 """
-function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{<:SymOperation{<:Any}}
+function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
+                       opsᴴ::AbstractVector{SymOperation{D}}) where D
     idxsᴳ²ᴴ = Vector{Int64}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
         idxᴳ = findfirst(==(opᴴ), opsᴳ)
@@ -790,10 +792,9 @@ function _findsubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{<:SymOperat
     end
     return true, idxsᴳ²ᴴ
 end
-_findsubgroup(G::T, H::T) where T<:SpaceGroup = _findsubgroup(operations(G), operations(H))
 
 """
-    issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D}} --> Bool
+    issubgroup(opsᴳ::T, opsᴴ::T′) where T⁽′⁾<:AbstractVector{SymOperation} --> Bool
 
 Determine whether the operations in group ``H`` are a subgroup of the group ``G`` (each with 
 operations `opsᴳ` and `opsᴴ`, respectively), i.e. whether ``H<G``.
@@ -807,7 +808,8 @@ This compares space groups rather than space group types, i.e. the comparison as
 matching setting choice between ``H`` and ``G``. To compare space group types with different
 conventional settings, they must first be transformed to a shared setting.
 """
-function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D}} where D
+function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
+                    opsᴴ::AbstractVector{SymOperation{D}}) where D
     ΔW = Matrix{Float64}(undef, D, D) # work matrices
     Δw = Vector{Float64}(undef, D)
     for h in opsᴴ
@@ -834,11 +836,9 @@ function issubgroup(opsᴳ::T, opsᴴ::T) where T<:AbstractVector{SymOperation{D
     end
     return true
 end
-issubgroup(G::T, H::T) where T<:SpaceGroup = issubgroup(operations(G), operations(H))
-
 
 """
-    isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{SymOperation{D}}
+    isnormal(opsᴳ::T, opsᴴ::T′; verbose::Bool=false) where T⁽′⁾<:AbstractVector{SymOperation},
                                                     --> Bool
 
 Determine whether the operations in group ``H`` are normal in the group ``G`` (each with 
@@ -854,7 +854,9 @@ comparison assumes a matching setting choice between ``H`` and ``G``. To compare
 group types with different conventional settings, they must first be transformed
 to a shared setting.
 """
-function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVector{<:SymOperation{<:Any}}
+function isnormal(opsᴳ::AbstractVector{SymOperation{D}},
+                  opsᴴ::AbstractVector{SymOperation{D}};
+                  verbose::Bool=false) where D
     for g in opsᴳ
         g⁻¹ = inv(g)
         for h in opsᴴ
@@ -874,7 +876,6 @@ function isnormal(opsᴳ::T, opsᴴ::T; verbose::Bool=false) where T<:AbstractVe
     
     return true
 end
-isnormal(G::T, H::T) where T<:SpaceGroup = isnormal(operations(G), operations(H))
 
 """
 $(TYPEDSIGNATURES)
