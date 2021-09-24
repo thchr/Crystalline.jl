@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "Citation:"
+authors:
+- family-names: "Christensen"
+  given-names: "Thomas"
+title: "Crystalline.jl"
+license: "MIT"
+date-released: 2021-06-18
+url: "https://github.com/thchr/Crystalline.jl"
+preferred-citation:
+  authors:
+    - family-names: "Christensen"
+      given-names: "Thomas"
+    - family-names: "Po"
+      given-names: "Hoi Chun"
+    - family-names: "Joannopoulos"
+      given-names: "John D."
+    - family-names: "Soljačić"
+      given-names: "Marin"
+  url: "https://arxiv.org/abs/2106.10267"
+  journal: "arXiv:2106.10267"
+  title: "Location and topology of the fundamental gap in photonic crystals"
+  type: article
+  year: 2021
