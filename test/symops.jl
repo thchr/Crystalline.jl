@@ -107,6 +107,17 @@ using Crystalline, Test
         @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
     end
 
+    @testset "Generators" begin
+        for Dᵛ in (Val(1), Val(2), Val(3))
+            D = typeof(Dᵛ).parameters[1]
+            for sgnum in 1:MAX_SGNUM[D]
+                ops1 = sort(spacegroup(sgnum, Dᵛ), by=xyzt)
+                ops2 = sort(generate(generators(sgnum, Dᵛ)), by=xyzt)
+                @test ops1 ≈ ops2
+            end
+        end
+    end
+
     @testset "Error types and domain checking" begin
         @test_throws DomainError spacegroup(231, 3)    
         @test_throws DomainError spacegroup(-1,  2)

@@ -1,18 +1,12 @@
 using Crystalline, HTTP, Gumbo
 
-#= Small convenience script to crawl and subsequently write all the xyzt
-   forms of the symmetry operations of the 230 three-dimensional space-
-   groups. Enables us to just read the symmetry data from the hard-disk
-   rather than constantly querying the Bilbao server =#
-for sgnum in 1:230
-    sgops_str = Crystalline.crawl_sgops_xyzt(sgnum)
-    filename = (@__DIR__)*"/../data/sgops/3d/"*string(sgnum)*".csv"
-    open(filename; write=true, create=true, truncate=true) do io
-        foreach(str -> write(io, str, '\n'), sgops_str)
-    end 
-end
+# Small convenience script to crawl and subsequently write all the xyzt forms of the
+# symmetry operations of the 230 three-dimensional space groups. Enables us to just read the
+# symmetry data from the hard-disk rather than constantly querying the Bilbao server
 
-# ----- NOW-REDUNANT FUNCTIONS FOR CRAWLING 3D SPACE GROUPS FROM BILBAO -----
+# ---------------------------------------------------------------------------------------- #
+## Functions for crawling the operations of 3D space groups from Bilbao
+
 """ 
     crawl_sgops_xyzt(sgnum::Integer, D::Integer=3)
 
@@ -47,4 +41,15 @@ function _stripnum(s)
         _,s′ = split(s, isspace; limit=2)
     end
     return String(s′) # ensure we return a String, rather than possibly a SubString
+end
+ 
+# ---------------------------------------------------------------------------------------- #
+## Use crawling functions & write information to `/data/`
+
+for sgnum in 1:230
+    sgops_str = crawl_sgops_xyzt(sgnum)
+    filename = (@__DIR__)*"/../data/sgops/3d/"*string(sgnum)*".csv"
+    open(filename; write=true, create=true, truncate=true) do io
+        foreach(str -> write(io, str, '\n'), sgops_str)
+    end 
 end

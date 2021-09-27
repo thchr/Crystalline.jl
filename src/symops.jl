@@ -26,9 +26,16 @@ function read_sgops_xyzt(sgnum::Integer, D::Integer)
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
     filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".csv"
-    sgops_str = readlines(filepath)
 
-    return sgops_str
+    return readlines(filepath)
+end
+
+function read_sggens_xyzt(sgnum::Integer, D::Integer)
+    @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
+
+    filepath = (@__DIR__)*"/../data/generators/sgs/"*string(D)*"d/"*string(sgnum)*".csv"
+
+    return readlines(filepath)
 end
 
 function _check_valid_sgnum_and_dim(sgnum::Integer, D::Integer)
@@ -68,12 +75,31 @@ which are:
 See also [`directbasis`](@ref).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
-    sgops_str = read_sgops_xyzt(sgnum, D)
-    sgops = SymOperation{D}.(sgops_str)
+    ops_str = read_sgops_xyzt(sgnum, D)
+    ops = SymOperation{D}.(ops_str)
 
-    return SpaceGroup{D}(sgnum, sgops)
+    return SpaceGroup{D}(sgnum, ops)
 end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
+
+""" 
+    generators(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
+
+Return the generators of the space group with number `sgnum` and dimensionality `D` as a
+`Vector{SymOperation{D}}`. See additional description of default setting choices for
+symmetry operators in [`spacegroup`](@ref).
+
+By continued mutual composition of the returned symmetry operations, the entire space group
+can be generated (see [`generate`](@ref)).
+Specifically, it holds that `generate(generators(sgnum, D))` and `spacegroup(sgnum, D))`
+will return the same operations (albeit generally differently sorted).
+"""
+function generators(sgnum::Integer, ::Val{D}=Val(3)) where D
+    ops_str = read_sggens_xyzt(sgnum, D)
+
+    return SymOperation{D}.(ops_str)
+end
+generators(sgnum::Integer, D::Integer) = generators(sgnum, Val(D))
 
 function xyzt2matrix(s::AbstractString, Dᵛ::Val{D}) where D
     W, w = xyzt2components(s, Dᵛ)

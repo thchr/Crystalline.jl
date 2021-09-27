@@ -78,7 +78,7 @@ export @S_str, spacegroup, compose,
        primitivize, conventionalize, cartesianize,
        reduce_ops, transform,
        issubgroup, isnormal,
-       generate
+       generate, generators
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export get_wycks, WyckPos,
