@@ -22,4 +22,16 @@ MultTable(sg)
 
 ### Symmorphic vs. nonsymorphic space groups
 To determine whether a space group is symmorphic or not, use [`issymmorph`](@ref) taking either a `SpaceGroup`, a `LittleGroup`, or a space group identified by its number and dimensionality (in the latter case, using tabulated look-up).
-To test whether a given `SymOperation` is symmorphic in a given centering setting, use [`issymmorh(::SymOperation, ::Char)`](@ref)
+To test whether a given `SymOperation` is symmorphic in a given centering setting, use [`issymmorph(::SymOperation, ::Char)`](@ref)
+
+# Generators
+Generators of `SpaceGroup`s and `PointGroup`s can be obtained via [`generators`](@ref) via:
+```@example spacegroup
+ops = generators(sgnum, SpaceGroup{D})
+```
+
+The [`generate`](@ref) method allows us to check that the returned generators in fact _do_ generate the desired space group. Specifically, we can verify that `generate(ops)` returns operators identical to those contained in `sg`:
+```@exaple spacegroup
+sg′ = generate(ops)
+```
+[`generate`](@ref) uses iterated composition to generate the group associated with a set of input generators.
