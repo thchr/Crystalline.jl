@@ -104,7 +104,6 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     end
     return
 end
-string(v::AbstractVec) = (io=IOBuffer(); show(io, MIME"text/plain"(), v); String(take!(io)))
 # print arrays of `AbstractVec`s compactly
 show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 
@@ -128,13 +127,10 @@ function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
         if i < order(g); println(io); end
     end
 end
-function show(io::IO, ::MIME"text/plain", gs::AbstractVector{<:AbstractGroup})
-    # TODO: This kind of show extension is bad style, afaik...
-    Ngs = length(gs)
-    for (i,g) in enumerate(gs)
-        show(io, MIME"text/plain"(), g); 
-        if i < Ngs; println(io); end
-    end
+function show(io::IO, g::T) where T<:AbstractGroup
+    print(io, T, '[')
+    join(io, g, ", ")
+    print(io, ']')
 end
 
 
