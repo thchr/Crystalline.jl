@@ -16,7 +16,7 @@ macro S_str(s)
     SymOperation(s)
 end
 
-""" 
+"""
     read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 
 Obtains the symmetry operations in xyzt format for a given space group number `sgnum` by
@@ -66,13 +66,16 @@ The default choices for the conventional basis vectors follow the conventions of
 Crystallographic Server (or, equivalently, the International Tables of Crystallography), 
 which are:
 
-- Unique axis b (cell choice 1) for space groups within the monoclinic system.
+- Unique axis *b* (cell choice 1) for monoclinic space groups.
 - Obverse triple hexagonal unit cell for rhombohedral space groups.
-- Origin choice 2: inversion center at (0,0,0). (relevant for the centrosymmetric space
-  groups where there are two origin choices, in the orthorhombic, tetragonal and cubic 
-  systems)
+- Origin choice 2: inversion centers are placed at (0,0,0). (relevant for certain
+  centrosymmetric space groups with two possible choices; e.g., in the orthorhombic,
+  tetragonal or cubic crystal systems).
 
 See also [`directbasis`](@ref).
+
+Please cite the original data sources if used in published work ([Aroyo et al., Z.
+Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15))
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     ops_str = read_sgops_xyzt(sgnum, D)
@@ -82,17 +85,20 @@ See also [`directbasis`](@ref).
 end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
-""" 
+"""
     generators(sgnum::Integer, D::Integer=3) --> SpaceGroup{D}
 
 Return the generators of the space group with number `sgnum` and dimensionality `D` as a
 `Vector{SymOperation{D}}`. See additional description of default setting choices for
 symmetry operators in [`spacegroup`](@ref).
 
-By continued mutual composition of the returned symmetry operations, the entire space group
-can be generated (see [`generate`](@ref)).
+By iterated composition of the returned symmetry operations, the entire space group can be
+generated (see [`generate`](@ref)).
 Specifically, it holds that `generate(generators(sgnum, D))` and `spacegroup(sgnum, D))`
 will return the same operations (albeit generally differently sorted).
+
+Please cite the original data sources if used in published work ([Aroyo et al., Z.
+Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15))
 """
 function generators(sgnum::Integer, ::Val{D}=Val(3)) where D
     ops_str = read_sggens_xyzt(sgnum, D)
