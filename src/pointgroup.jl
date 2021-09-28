@@ -75,20 +75,26 @@ schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
 # --- Point groups & operators ---
 unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
 
-function read_pgops_xyzt(iuclab::String, ::Val{D}=Val(3)) where D
+function read_pgops_xyzt(iuclab::String, D::Integer)
     D ∉ (1,2,3) && _throw_invaliddim(D)
     iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
     filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
-    ops_str = readlines(filepath)
-    return ops_str
-end
-read_pgops_xyzt(iuclab::String, D::Integer) = read_pgops_xyzt(iuclab, Val(D))
 
+    return readlines(filepath)
+end
+
+
+"""
+    pointgroup(iuclab::String, ::Union{Val{D}, Integer}=Val(3))  -->  PointGroup{D}
+
+Return the symmetry operations associated with the point group identified with label
+`iuclab` in dimension `D` as a `PointGroup{D}`.
+"""
 @inline function pointgroup(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
     pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
-    ops_str = read_pgops_xyzt(iuclab, Dᵛ)
+    ops_str = read_pgops_xyzt(iuclab, D)
     
     return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
 end
@@ -100,10 +106,23 @@ end
     @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PGS_NUM2IUC[pgnum]"))
     return @inbounds iucs[setting]
 end
-@inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Int=1) where D
+
+"""
+    pointgroup(pgnum::Integer, ::Union{Val{D}, Integer}=Val(3), setting=1)  -->  PointGroup{D}
+
+Return the symmetry operations associated with the point group identfied with canonical
+number `pgnum` in dimension `D` as a `PointGroup{D}`. The connection between a point group's
+numbering and its IUC label is enumerated in `Crystalline.PGS_NUM2IUC[D]` and
+`Crystalline.IUC2NUM[D]`.
+
+Certain point groups feature in multiple setting variants: e.g., IUC labels 321 and 312 both
+correspond to `pgnum = 18` and correspond to the same group structure expressed in two
+different settings. The `setting` argument allows choosing between these setting variations.
+"""
+@inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
     iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    ops_str = read_pgops_xyzt(iuclab, Dᵛ)
+    ops_str = read_pgops_xyzt(iuclab, D)
 
     return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
 end
