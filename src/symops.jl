@@ -89,19 +89,47 @@ end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
 """
-    generators(sgnum::Integer, type::Type{<:Union{SpaceGroup{D}, PointGroup{D}}})
-                                                              -->  Vector{SymOperation{D}}
+    generators(sgnum::Integer, T::Type{SpaceGroup{D}})       -->  Vector{SymOperation{D}}
+    generators(pgiuc::String, T::PointGroup{D}})
+    generators(pgnum::Integer, T::PointGroup{D}}, setting::Integer=1)
 
-Return the generators of the concrete group type `type` (a `SpaceGroup` or a `PointGroup`,
-parameterized by its dimensionality `D`) with number `sgnum` as a `Vector{SymOperation{D}}`.
-See additional description of default nomenclature and setting choices in
-[`spacegroup`](@ref) and [`pointgroup`](@ref).
+Return the generators of the group type `T` which may be a `SpaceGroup{D}` or a 
+`PointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group is
+determined by inputting as the first argument:
 
-By iterated composition of the returned symmetry operations, the entire space group can be
-generated (see [`generate`](@ref)).
-Specifically, it holds that `generate(generators(sgnum, D))` and `spacegroup(sgnum, D))`
-will return the same operations (albeit generally differently sorted).
+- `SpaceGroup{D}`: the space group number `sgnum::Integer` (see also [`spacegroup`](@ref)).
+- `PointGroup{D}`: the point group IUC label `pgiuc::String` (see also [`pointgroup(::String)`).
+  Alternatively, by the canonical point group number `pgnum::Integer`, possibly
+  supplemented by an integer-valued setting choice `setting::Integer` (see also
+  [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
 
+Setting choices match those in [`spacegroup`](@ref) and [`pointgroup`](@ref).
+
+Iterated composition of the returned symmetry operations will generate all operations of the
+associated space or point group (see [`generate`](@ref)).
+Specifically, `generate(generators(sgnum, `SpaceGroup{D}))` and `spacegroup(sgnum, D)`
+return identical operations (albeit generally differently sorted); similarly so for point
+groups.
+
+## Example
+
+Generators of space group 200:
+```jldoctest
+julia> generators(200, SpaceGroup{3})
+4-element Vector{SymOperation{3}}:
+ 2₀₀₁
+ 2₀₁₀
+ 3₁₁₁⁺
+ -1
+```
+
+Generators of point group m-3m:
+```jldoctest
+julia> generators("2/m", PointGroup{3})
+2-element Vector{SymOperation{3}}:
+ 2₀₁₀
+ -1
+```
 
 ## Citing
 

@@ -116,7 +116,8 @@ end
 end
 
 """
-    pointgroup(pgnum::Integer, ::Union{Val{D}, Integer}=Val(3), setting=1)  -->  PointGroup{D}
+    pointgroup(pgnum::Integer, ::Union{Val{D}, Integer}=Val(3), setting::Integer=1)
+                                                                      -->  PointGroup{D}
 
 Return the symmetry operations associated with the point group identfied with canonical
 number `pgnum` in dimension `D` as a `PointGroup{D}`. The connection between a point group's
@@ -139,6 +140,12 @@ end
 function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
     ops_str = read_pggens_xyzt(iuclab, D)
     return SymOperation{D}.(ops_str)
+end
+function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) where D
+    iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
+    ops_str = read_pgops_xyzt(iuclab, D)
+
+    return SymOperation{3}.(ops_str)
 end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
