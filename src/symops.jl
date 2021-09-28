@@ -133,11 +133,12 @@ julia> generators("2/m", PointGroup{3})
 
 ## Citing
 
-Please cite the original data sources if used in published work ([Aroyo et al., Z.
-Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)
-for space group generators and the Bilbao Crystallographic Server's
-[2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html) for point group
-generators).
+Please cite the original data sources if used in published work:
+
+- Space groups generators:
+  [Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15 (2006)](https://doi.org/10.1524/zkri.2006.221.1.15);
+- Point group generators: Bilbao Crystallographic Server's
+  [2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html)).
 
 
 ## Extended help
