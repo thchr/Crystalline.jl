@@ -20,11 +20,16 @@ We can compute the multiplication table of a space group (under the previously d
 MultTable(sg)
 ```
 
+Alternatively, exploiting overloading of the `*`-operator, "raw" multiplication tables can be constructed via a simple outer product:
+```@example spacegroup
+sg .* permutedims(sg) # equivalent to `reshape(kron(sg, sg), (length(sg), length(sg)))`
+```
+
 ### Symmorphic vs. nonsymorphic space groups
 To determine whether a space group is symmorphic or not, use [`issymmorph`](@ref) taking either a `SpaceGroup`, a `LittleGroup`, or a space group identified by its number and dimensionality (in the latter case, using tabulated look-up).
 To test whether a given `SymOperation` is symmorphic in a given centering setting, use [`issymmorph(::SymOperation, ::Char)`](@ref)
 
-### Group generators
+## Group generators
 Generators of `SpaceGroup`s and `PointGroup`s are accessible via [`generators`](@ref), e.g.:
 ```@example spacegroup
 ops = generators(sgnum, SpaceGroup{D})
