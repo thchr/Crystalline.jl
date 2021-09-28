@@ -75,6 +75,8 @@ which are:
 
 See also [`directbasis`](@ref).
 
+## Citing
+
 Please cite the original data sources if used in published work ([Aroyo et al., Z.
 Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
 """
@@ -87,19 +89,27 @@ end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
 """
-    generators(sgnum::Integer, type::Type{<:AbstractGroup})  -->  Vector{SymOperation{D}}
+    generators(sgnum::Integer, type::Type{<:Union{SpaceGroup{D}, PointGroup{D}}})
+                                                              -->  Vector{SymOperation{D}}
 
-Return the generators of the concrete group type `type` (parameterized by its dimensionality
-`D`) with number `sgnum` as a `Vector{SymOperation{D}}`. See additional description of
-default setting choices for symmetry operators in [`spacegroup`](@ref).
+Return the generators of the concrete group type `type` (a `SpaceGroup` or a `PointGroup`,
+parameterized by its dimensionality `D`) with number `sgnum` as a `Vector{SymOperation{D}}`.
+See additional description of default nomenclature and setting choices in
+[`spacegroup`](@ref) and [`pointgroup`](@ref).
 
 By iterated composition of the returned symmetry operations, the entire space group can be
 generated (see [`generate`](@ref)).
 Specifically, it holds that `generate(generators(sgnum, D))` and `spacegroup(sgnum, D))`
 will return the same operations (albeit generally differently sorted).
 
+
+## Citing
+
 Please cite the original data sources if used in published work ([Aroyo et al., Z.
-Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
+Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)
+for space group generators and the Bilbao Crystallographic Server's
+[2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html) for point group
+generators).
 
 
 ## Extended help

@@ -33,7 +33,7 @@ function crawl_generators_html(sgnum::Integer, D::Integer=3)
 end
 
 # ---------------------------------------------------------------------------------------- #
-## Use crawling functions & write information to `/data/`
+## Use crawling functions & write information to `/data/generators/sgs/3d/`
 for sgnum in 1:230
     println(sgnum)
     gens_str = crawl_generators_xyzt(sgnum)

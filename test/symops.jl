@@ -108,11 +108,11 @@ using Crystalline, Test
     end
 
     @testset "Generators" begin
-        for (Dᵛ, sgtype) in ((Val(1), SpaceGroup{1}), (Val(2), SpaceGroup{2}), (Val(3), SpaceGroup{3}))
+        for (Dᵛ, gtype) in ((Val(1), SpaceGroup{1}), (Val(2), SpaceGroup{2}), (Val(3), SpaceGroup{3}))
             D = typeof(Dᵛ).parameters[1]
             for sgnum in 1:MAX_SGNUM[D]
                 ops1 = sort(spacegroup(sgnum, Dᵛ), by=xyzt)
-                ops2 = sort(generate(generators(sgnum, sgtype)), by=xyzt)
+                ops2 = sort(generate(generators(sgnum, gtype)), by=xyzt)
                 @test ops1 ≈ ops2
             end
         end

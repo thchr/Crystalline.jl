@@ -20,7 +20,7 @@ const PGS_NUM2IUC = (
      ["6/mmm"], ["23"], ["m-3"], ["432"], ["-43m"], ["m-3m"])
 )
 # a flat tuple-listing of all the iuc labels in PGS_NUM2IUC; sliced across dimensions
-const PGS_IUCs = map(x->tuple(Iterators.flatten(x)...), PGS_NUM2IUC)
+const PGS_IUCs = map(x->collect(Iterators.flatten(x)), PGS_NUM2IUC)
 # a tuple of ImmutableDicts, giving maps from iuc label to point group number
 const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PGS_NUM2IUC[D])
                            for lab in PGS_IUCs[D]]...) for D in (1,2,3)]...)
@@ -76,14 +76,22 @@ schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
 unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
 
 function read_pgops_xyzt(iuclab::String, D::Integer)
-    D ∉ (1,2,3) && _throw_invaliddim(D)
-    iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
+    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
+    @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
     filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
 
     return readlines(filepath)
 end
 
+function read_pggens_xyzt(iuclab::String, D::Integer)
+    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
+    @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
+
+    filepath = (@__DIR__)*"/../data/generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
+
+    return readlines(filepath)
+end
 
 """
     pointgroup(iuclab::String, ::Union{Val{D}, Integer}=Val(3))  -->  PointGroup{D}
@@ -92,7 +100,6 @@ Return the symmetry operations associated with the point group identified with l
 `iuclab` in dimension `D` as a `PointGroup{D}`.
 """
 @inline function pointgroup(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
-    D ∉ (1,2,3) && _throw_invaliddim(D)
     pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
     ops_str = read_pgops_xyzt(iuclab, D)
     
@@ -101,6 +108,7 @@ end
 @inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
 
 @inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
+    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
     @boundscheck 1 ≤ pgnum ≤ length(PGS_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PGS_NUM2IUC"))
     iucs = @inbounds PGS_NUM2IUC[D][pgnum]
     @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PGS_NUM2IUC[pgnum]"))
@@ -120,13 +128,18 @@ correspond to `pgnum = 18` and correspond to the same group structure expressed 
 different settings. The `setting` argument allows choosing between these setting variations.
 """
 @inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
-    D ∉ (1,2,3) && _throw_invaliddim(D)
     iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
     ops_str = read_pgops_xyzt(iuclab, D)
 
     return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
 end
 @inline pointgroup(pgnum::Integer, D::Integer, setting::Integer=1) = pointgroup(pgnum, Val(D), setting)
+
+# --- Point group generators ---
+function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
+    ops_str = read_pggens_xyzt(iuclab, D)
+    return SymOperation{D}.(ops_str)
+end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup{D}) where D

@@ -2,6 +2,8 @@ using Crystalline, Test
 using Crystalline: corep_orthogonality_factor
 using LinearAlgebra: dot
 
+@testset "Point groups" begin
+
 @testset "Find a point group for every space group" begin
     for D in 1:3
         for sgnum in 1:MAX_SGNUM[D]
@@ -29,7 +31,18 @@ end
     end
 end
 
-@testset "Point group irrep orthogonality" begin
+@testset "Generators" begin
+    for (Dᵛ, gtype) in ((Val(1), PointGroup{1}), (Val(2), PointGroup{2}), (Val(3), PointGroup{3}))
+        D = typeof(Dᵛ).parameters[1]
+        for iuclab in Crystalline.PGS_IUCs[D]
+            ops1 = sort(pointgroup(iuclab, Dᵛ), by=xyzt)
+            ops2 = sort(generate(generators(iuclab, gtype)), by=xyzt)
+            @test ops1 ≈ ops2
+        end
+    end
+end
+
+@testset "Irrep orthogonality" begin
 ## 2ⁿᵈ orthogonality theorem (characters) [automatically includes 1ˢᵗ orthog. theorem also]: 
 #       ∑ᵢχᵢ⁽ᵃ⁾*χᵢ⁽ᵝ⁾ = δₐᵦfNₒₚ⁽ᵃ⁾  
 # for irreps Dᵢ⁽ᵃ⁾ and Dᵢ⁽ᵝ⁾ in the same point group (with i running over the 
@@ -94,4 +107,5 @@ end # @testset "2ⁿᵈ orthogonality theorem"
         end
     end
 end # @testset "Great orthogonality theorem"
-end # @testset "Point group irrep orthogonality"
+end # @testset "Irrep orthogonality"
+end # @testset "Point groups
