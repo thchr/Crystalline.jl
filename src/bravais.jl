@@ -389,7 +389,7 @@ end
 
 @inline function centeringtranslation(cntr::Char, ::Val{D}=Val(3)) where D
     if D == 3
-        if cntr == 'P';     return zeros(SVector{3})
+        if     cntr == 'P'; return zeros(SVector{3})
         elseif cntr == 'I'; return SVector((1,1,1)./2)
         elseif cntr == 'F'; return SVector((1,0,1)./2)
         elseif cntr == 'R'; return SVector((2,1,1)./3)
@@ -398,7 +398,7 @@ end
         else;               _throw_invalidcntr(cntr)
         end
     elseif D == 2
-        if cntr == 'p';     return zeros(SVector{2})
+        if     cntr == 'p'; return zeros(SVector{2})
         elseif cntr == 'c'; return SVector((1,1)./2)
         else;               _throw_invalidcntr(cntr)
         end
@@ -406,6 +406,19 @@ end
         return zeros(SVector{1})
     else 
         _throw_invaliddim(D)
+    end
+end
+
+function all_centeringtranslations(cntr::Char, Dᵛ::Val{D}=Val(3)) where D
+    if D == 3 && cntr == 'F'
+        # primitive cell has 1/4th the volume of conventional cell: 3 extra centers
+        return [SVector((1,0,1)./2), SVector((0,1,1)./2), SVector((1,1,0)./2)]
+    elseif D == 3 && cntr == 'R'
+        # primitive cell has 1/3rd the volume of conventional cell: 2 extra centers
+        return [SVector((2,1,1)./3), SVector((1,2,2)./3)]
+    else
+        # primitive cell has half the volume of conventional cell: 1 extra center
+        return [centeringtranslation(cntr, Dᵛ)]
     end
 end
 

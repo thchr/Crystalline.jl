@@ -80,6 +80,9 @@ export @S_str, spacegroup, compose,
        issubgroup, isnormal,
        generate, generators
 
+include("conjugacy.jl") # construction of conjugacy classes
+export classes, is_abelian
+
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export get_wycks, WyckPos,
        multiplicity, vec,

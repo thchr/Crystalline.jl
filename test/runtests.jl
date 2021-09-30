@@ -28,6 +28,9 @@ using Crystalline, Test
     include("irreps_reality.jl")
     include("lgirreps_vs_pgirreps_at_Gamma.jl")
 
+    # conjugacy classes and irreps
+    include("conjugacy.jl")
+
     # lattices
     include("lattices.jl")
 

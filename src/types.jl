@@ -604,7 +604,7 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
     mt = MultTable(primitivize(lg)) 
     for (row, oprow) in enumerate(lg)
         for (col, opcol) in enumerate(lg)
-            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt[row,col]])
+            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt.table[row,col]])
             ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
             α[row,col] = cis(ϕ)
         end
