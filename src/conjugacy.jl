@@ -1,12 +1,13 @@
 """
-    classes(ops::AbstractVector{<:SymOperation}, cntr::Union{Char, Nothing}=nothing)
-                                                        -->  Vector{Vector{eltype(ops)}}
+    classes(ops::AbstractVector{SymOperation{D}}, [cntr::Union{Char, Nothing}])
+                                                    -->  Vector{Vector{SymOperation{D}}}
 
 Return the conjugacy classes of a group ``G`` defined by symmetry operations `ops`.
 
+## Definitions
 Two elements ``a`` and ``b`` in ``G`` are considered conjugate if there exists a ``g ∈ G``
-such that ``g a g⁻¹ = b``. This defines an equivalence relation ``~``, i.e., we say that
-``a ~ b`` if ``a`` and ``b`` are conjugate.
+such that ``gag^{-1} = b``. This defines an equivalence relation ``\\tilde``, i.e., we say
+that ``a \\tilde b`` if ``a`` and ``b`` are conjugate.
 The conjugacy classes of ``G`` are the distinct equivalence classes that can be identified
 under this equivalence relation, i.e. the grouping of ``G`` into subsets that are equivalent
 under conjugacy.
@@ -104,9 +105,9 @@ end
     is_abelian(ops::AbstractVector{SymOperation}, [cntr::Union{Char, Nothing}])  -->  Bool
 
 Return the group ``G`` with elements `ops` is Abelian, that is, whether all its elements 
-mutually commute in the sense that ``g = hgh⁻¹`` for all ``g,h ∈ G``.
+mutually commute in the sense that ``g = hgh^{-1}`` for all ``g,h ∈ G``.
 
-See discussion of setting considerations in [`classes`](@ref) for `cntr` argument.
+See discussion of the setting argument `cntr` in [`classes`](@ref).
 """
 function is_abelian(ops::AbstractVector{SymOperation{D}}, cntr::Union{Char, Nothing}=nothing) where D
     return length(classes(ops, cntr)) == length(ops)
