@@ -617,7 +617,7 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct CharacterTable{D}
+struct CharacterTable{D} <: AbstractMatrix{ComplexF64}
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
     chartable::Matrix{ComplexF64} # Stored as irreps-along-columns & operations-along-rows
@@ -626,13 +626,20 @@ struct CharacterTable{D}
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
     tag::String
 end
-CharacterTable{D}(ops::AbstractVector{SymOperation{D}}, irlabs::Vector{String}, 
-    chartable::Matrix{ComplexF64}) where D = CharacterTable{D}(ops, irlabs, chartable, "")
+function CharacterTable{D}(ops::AbstractVector{SymOperation{D}},
+            irlabs::AbstractVector{String},
+            chartable::AbstractMatrix{<:Real}) where D
+    return CharacterTable{D}(ops, irlabs, chartable, "")
+end
 
 operations(ct::CharacterTable) = ct.ops
 labels(ct::CharacterTable) = ct.irlabs
-characters(ct::CharacterTable) = ct.chartable
+characters(ct::CharacterTable) = ct.chartable # TODO: maybe remove this? Redudant cf. `getindex`
 tag(ct::CharacterTable) = ct.tag
+
+@propagate_inbounds getindex(ct::CharacterTable, i::Int) = characters(ct)[i]
+size(ct::CharacterTable) = size(ct.chartable)
+IndexStyle(::Type{<:CharacterTable}) = IndexLinear()
 
 """
     CharacterTable(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)

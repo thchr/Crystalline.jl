@@ -39,4 +39,17 @@ end
             end
         end
     end
+
+    @testset "Indexing" begin
+        pgirs = get_pgirreps("m-3m", Val(3))
+        ct = CharacterTable(pgirs)
+        χs = characters(ct)
+
+        @test ct[3] == χs[3]
+        @test ct[:,3] == χs[:,3]
+        @test ct[2,:] == χs[2,:]
+        @test ct' == χs'
+        @test ct'*ct ≈ χs'*χs # may differ since one dispatches to generic matmul, the other to BLAS
+        @test size(ct) == size(χs)
+    end
 end
