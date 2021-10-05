@@ -26,7 +26,10 @@ export crystal,
     directbasis,
     reciprocalbasis,
     DirectBasis,
-    ReciprocalBasis
+    ReciprocalBasis,
+    transform,
+    primitivize,
+    conventionalize
 
 # ---------------------------------------------------------------------------------------- #
 

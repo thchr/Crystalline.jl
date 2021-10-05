@@ -16,13 +16,16 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         for D in 1:3
             for sgnum in 1:MAX_SGNUM[D]
                 cntr = centering(sgnum, D)
-                Rs = directbasis(sgnum, D)
-                Rs′ = primitivize(Rs, cntr)
-                Gs′ᵃ = primitivize(reciprocalbasis(Rs), cntr)
+                Rs   = directbasis(sgnum, D)
+                Rs′  = primitivize(Rs, cntr)
+                Gs   = reciprocalbasis(Rs)
+                Gs′ᵃ = primitivize(Gs, cntr)
                 Gs′ᵇ = reciprocalbasis(Rs′)
 
                 @test Gs′ᵃ ≈ Gs′ᵇ
-                @test all(dot(Gs′ᵇ[i], Rs′[i])≈2π for i in 1:D)
+                @test all(dot(Gs′ᵇ[i], Rs′[i]) ≈ 2π for i in 1:D)
+                @test conventionalize(Rs′, cntr) ≈ Rs
+                @test conventionalize(Gs′ᵃ, cntr) ≈ Gs
             end
         end
     end

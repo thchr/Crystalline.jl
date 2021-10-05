@@ -224,7 +224,7 @@ function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
 end
 function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Gs
+        return Gs′
     else         
         P = primitivebasismatrix(cntr, Val(D))        
         return transform(Gs′, inv(P))

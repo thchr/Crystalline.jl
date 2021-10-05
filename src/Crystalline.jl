@@ -36,7 +36,7 @@ import .SmithNormalForm: Smith # TODO: remove explicit import when we update Smi
 export Smith
 
 @reexport using Bravais
-import Bravais: primitivize, conventionalize, centering
+import Bravais: primitivize, conventionalize, transform, centering
 using Bravais: stack, all_centeringtranslations, centeringtranslation
 
 # included files and exports
@@ -78,8 +78,8 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,
        issymmorph, littlegroup, kstar,
        pointgroup,
-       primitivize, conventionalize, cartesianize,
-       reduce_ops, transform,
+       cartesianize,
+       reduce_ops,
        issubgroup, isnormal,
        generate, generators
 
