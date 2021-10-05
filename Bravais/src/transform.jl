@@ -151,7 +151,7 @@ end
 """ 
     primitivize(Vs::AbstractBasis, sgnum::Integer) --> Vs′::AbstractBasis
 
-Return the primtive `AbstractBasis` `Vs′` associated with the input (a conventional basis
+Return the primitive `AbstractBasis` `Vs′` associated with the input (a conventional basis
 `Vs` in dimension `D` in a crystal system consistent with space group number `sgnum`).
 The space group number is used to infer the associated centering type which determines the
 required transformation (see also [`centering`](@ref)).
@@ -172,7 +172,7 @@ end
 """
     primitivize(Rs::DirectBasis, cntr::Char) --> Rs′::DirectBasis
 
-Return the primtive direct basis `Rs′` associated with the input (a conventional direct
+Return the primitive direct basis `Rs′` associated with the input (a conventional direct
 basis `Rs` with centering type `cntr`).
 """
 function primitivize(Rs::DirectBasis{D}, cntr::Char) where D

@@ -3,7 +3,7 @@
 abstract type AbstractFourierLattice{D}; end
 getcoefs(flat::AbstractFourierLattice) = flat.orbitcoefs
 getorbits(flat::AbstractFourierLattice) = flat.orbits
-dim(flat::AbstractFourierLattice{D}) where D = D
+dim(::AbstractFourierLattice{D}) where D = D
 function (==)(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice)
     return flat1.orbits == flat2.orbits && flat1.orbitcoefs == flat2.orbitcoefs
 end
@@ -11,7 +11,8 @@ function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; 
     return ( isapprox(flat1.orbits,     flat2.orbits;     kwargs...) && 
              isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
 end
-"""
+
+@doc """
     UnityFourierLattice{D} <: AbstractFourierLattice{D}
 
 A general `D`-dimensional Fourier (plane wave) lattice specified by orbits of
@@ -23,13 +24,8 @@ struct UnityFourierLattice{D} <: AbstractFourierLattice{D}
     orbits::Vector{Vector{SVector{D, Int}}} # Vector of orbits of 𝐆-vectors (in 𝐆-basis)
     orbitcoefs::Vector{Vector{ComplexF64}}  # Vector of interrelations between coefficients of 𝐆-plane waves within an orbit; unit norm
 end
-function UnityFourierLattice(orbits, orbitcoefs)
-    D = length(first(first(orbits)))
-    UnityFourierLattice{D}(orbits, orbitcoefs)
-end
 
-
-"""
+@doc """
     ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
 
 A `D`-dimensional concrete Fourier (plane wave) lattice, derived from 
@@ -49,7 +45,7 @@ end
 #   Ôexp(iG⋅r) = Ôexp(iG⋅Ô⁻¹r) = exp[iG⋅(W⁻¹r-W⁻¹w)]
 # and 
 #   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
-"""
+@doc """
     levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,D))
         --> UnityFourierLattice{D}
 
@@ -184,7 +180,7 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntu
 end
 
 
-"""
+@doc """
     orbit(Ws, x)
 
 Computes the orbit of a direct-space point `x` under a set of point-group operations `Ws`,
@@ -322,7 +318,7 @@ function conventionalize(flat::AbstractFourierLattice{D}, cntr::Char) where D
     return transform(flat, inv(P))
 end
 
-"""
+@doc """
     modulate(flat::UnityFourierLattice{D},
     modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
     expon::Union{Nothing, Real}=nothing)
@@ -345,7 +341,7 @@ smoothing operation; it simply suppresses "high-frequency" components).
 If `expon = nothing`, no rescaling is performed. 
 
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
-of a `ModulatedFourierLattice`.
+of a [`ModulatedFourierLattice`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
@@ -374,14 +370,14 @@ function modulate(flat::AbstractFourierLattice{D},
     return ModulatedFourierLattice{D}(orbits, modulated_orbitcoefs)
 end
 
-""" 
+@doc """ 
     normscale(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
 
 Applies subsequent norm-rescaling via `expon`; see detailed description 
 in `modulate`. An in-place variant is provided as `normscale!`.
 """
 normscale(flat::ModulatedFourierLattice, expon::Real) = normscale!(deepcopy(flat), expon)
-"""
+@doc """
     normscale!(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
 
 In-place equivalent of `normscale`: changes `flat`.
@@ -426,8 +422,8 @@ Evaluate an `AbstractFourierLattice` at the point `xyz` and return its real part
     \mathop{\mathrm{Re}}\sum_i c_i \exp(2\pi i\mathbf{G}_i\cdot\mathbf{r})
 ```
 
-with $\mathrm{G}_i$ denoting reciprocal lattice vectors in the allowed orbits of `flat`,
-with $c_i$ denoting the associated coefficients (and $\mathbf{r} \equiv$ `xyz`).
+with ``\mathrm{G}_i`` denoting reciprocal lattice vectors in the allowed orbits of `flat`,
+with ``c_i`` denoting the associated coefficients (and ``\mathbf{r} \equiv`` `xyz`).
 
 `xyz` may be any iterable object with dimension matching `flat` consisting of real numbers
 (e.g., a `Tuple`, `Vector`, or `SVector`). Alternatively, the coordinates can be supplied

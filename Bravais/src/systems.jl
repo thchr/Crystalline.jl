@@ -1,5 +1,5 @@
 """
-    crystal(a,b,c,α,β,γ) --> Rs::DirectBasis{3}
+    crystal(a, b, c, α, β, γ)  -->  DirectBasis{3}
 
 Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2``, ``\\mathbf{R}_3`` in a 3D
 Cartesian basis for a right-handed coordinate system with specified basis vector lengths
@@ -35,7 +35,7 @@ function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
 end
 
 """
-    crystal(a,b,γ) --> DirectBasis{2}
+    crystal(a, b, γ)  -->  DirectBasis{2}
 
 Calculate basis vectors ``\\mathbf{R}_1``, ``\\mathbf{R}_2`` in a 2D Cartesian basis for a 
 right-handed coordinate system with specified basis vector lengths `a`, `b` (associated with
@@ -53,7 +53,7 @@ function crystal(a::Real,b::Real,γ::Real)
 end
 
 """
-    crystal(a)  --> DirectBasis{1}
+    crystal(a)   -->  DirectBasis{1}
     
 Return a one-dimensional crystal with lattice period `a`.
 """

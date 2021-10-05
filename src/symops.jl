@@ -687,28 +687,30 @@ end
 @doc raw""" 
     transform(op::SymOperation, P::Matrix{<:Real}, 
               p::Union{Vector{<:Real}, Nothing}=nothing,
-              modw::Bool=true)                          --> SymOperation
+              modw::Bool=true)                           --> SymOperation
 
 Transforms a `op` ``= \{\mathbf{W}|\mathbf{w}\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
 `op′` ``= \{\mathbf{W}'|\mathbf{w}'\}`` (see ITA6 Sec. 1.5.2.3):
 
-``
+```math
 \{\mathbf{W}'|\mathbf{w}'\} = \{\mathbf{P}|\mathbf{p}\}^{-1}\{\mathbf{W}|\mathbf{w}\}
 \{\mathbf{P}|\mathbf{p}\}
-``
+```
 
 with
 
-``\mathbf{W}' = \mathbf{P}^{-1}\mathbf{W}\mathbf{P}``
-and
-``\mathbf{w}' = \mathbf{P}^{-1}(\mathbf{w}+\mathbf{W}\mathbf{p}-\mathbf{p})``
+```math
+\mathbf{W}' = \mathbf{P}^{-1}\mathbf{W}\mathbf{P}
+\text{ and }
+\mathbf{w}' = \mathbf{P}^{-1}(\mathbf{w}+\mathbf{W}\mathbf{p}-\mathbf{p})
+```
 
 By default, the translation part of `op′`, i.e. ``\mathbf{w}'``, is reduced to the range
 ``[0,1)``, i.e. computed modulo 1. This can be disabled by setting `modw = false` (default,
 `modw = true`).
 
-See also [`primitivize`](@ref) and [`conventionalize`](@ref).
+See also [`Bravais.primitivize`](@ref) and [`Bravais.conventionalize`](@ref).
 """
 function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
@@ -870,7 +872,6 @@ of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
 an indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `false`), such
 that `opsᴳ[idxs]` ``≡ H``. 
 The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
-
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                        opsᴴ::AbstractVector{SymOperation{D}}) where D
@@ -937,7 +938,9 @@ end
 Determine whether the operations in group ``H`` are normal in the group ``G`` (each with 
 operations `opsᴳ` and `opsᴴ`), in the sense that 
     
-``ghg⁻¹ ∈ H, ∀ g∈G, ∀ h∈H``
+```math
+ghg⁻¹ ∈ H, ∀ g∈G, ∀ h∈H
+```
 
 Returns a Boolean answer (`true` if normal, `false` if not).
 
