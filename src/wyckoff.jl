@@ -298,13 +298,11 @@ julia> sg  = spacegroup(sgnum, Val(D));
 
 
 julia> sitegs = SiteGroup.(Ref(sg), wps)
-SiteGroup{2} #5 at 4b = [α, β] with 1 operations:
- 1
-SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
- 1
- m₁₀
+2-element Vector{SiteGroup{2}}:
+ SiteGroup{2}[1]
+ SiteGroup{2}[1, m₁₀]
 
-julia> findmaximal(sitegs)
+julia> only(findmaximal(sitegs))
 SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
  1
  m₁₀
