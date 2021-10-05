@@ -1,10 +1,10 @@
 # Bravais types and basis systems
 
-```@meta
-CurrentModule = Crystalline
-```
-
 ## Bravais.jl
+
+```@meta
+CurrentModule = Bravais
+```
 
 ```@docs
 crystal
@@ -18,7 +18,12 @@ primitivize(::ReciprocalBasis, ::Char)
 conventionalize(::DirectBasis, ::Char)
 ```
 
-## Extensions of Bravais.jl methods
+## Crystalline.jl extensions of Bravais.jl functions
+
+```@meta
+CurrentModule = Crystalline
+```
+
 ```@docs
 transform
 primitivize(::Crystalline.AbstractVec, ::Char)

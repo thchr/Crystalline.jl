@@ -6,7 +6,7 @@ using Crystalline
 DocMeta.setdocmeta!(Crystalline, :DocTestSetup, :(using Crystalline); recursive=true)
 
 makedocs(
-    modules = [Crystalline],
+    modules = [Crystalline, Bravais],
     sitename = "Crystalline.jl",
     authors = "Thomas Christensen <tchr@mit.edu> and contributors",
     repo = "https://github.com/thchr/Crystalline.jl/blob/{commit}{path}#L{line}",
