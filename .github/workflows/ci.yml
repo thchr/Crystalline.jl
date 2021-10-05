@@ -35,6 +35,11 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
+      - run: | # force use of the local version of Bravais (instead of just the latest registered version)
+          julia --color=yes --project -e '
+            using Pkg
+            pkg"dev . Bravais"'
+        shell: bash # avoid escaping issues w/ pwsh on Windows (cf. https://github.com/julia-actions/setup-julia#matrix-testing)
       - uses: julia-actions/julia-buildpkg@latest
       - uses: julia-actions/julia-runtest@latest
       - uses: julia-actions/julia-processcoverage@v1

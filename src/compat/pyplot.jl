@@ -10,7 +10,7 @@ const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor
 
 # ::DirectBasis ---------------------------------------------------------------------------
 
-function plot(Rs::Basis{D}, 
+function plot(Rs::AbstractBasis{D}, 
               cntr::SVector{D, <:Real}=zeros(SVector{D, Float64}),
               ax=plt.figure().gca(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
 
@@ -200,7 +200,7 @@ function mesh_3d_levelsetlattice(flat::AbstractFourierLattice, isoval::Real,
     return verts′, faces′
 end
 
-function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::Basis{3})
+function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::AbstractBasis{3})
     Nᵛᵉʳᵗˢ = length(verts); Nᶠᵃᶜᵉˢ = length(faces)
     verts′ = Matrix{Float64}(undef, Nᵛᵉʳᵗˢ, 3)
     @inbounds @simd for j in (1,2,3) # Cartesian xyz-coordinates

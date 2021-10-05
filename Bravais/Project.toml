@@ -1,0 +1,11 @@
+name = "Bravais"
+uuid = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
+authors = ["Thomas Christensen <tchr@mit.edu>"]
+version = "0.1.0"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[compat]
+StaticArrays = "1.2.8"

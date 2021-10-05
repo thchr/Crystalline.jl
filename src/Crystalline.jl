@@ -8,6 +8,7 @@ using JLD2
 using PrettyTables
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
 using Requires
+using Reexport
 using DocStringExtensions
 
 using Base: OneTo, @propagate_inbounds
@@ -21,8 +22,7 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              isone, one,
              convert
 import LinearAlgebra: inv
-import Random                 # → `_Uniform` in src/utils.jl
-import Random: rand           # ⤶
+
 
 # include submodules
 include("SquareStaticMatrices.jl")
@@ -34,6 +34,10 @@ using .SmithNormalForm
 export smith # export, so that loading Crystalline effectively also provides SmithNormalForm
 import .SmithNormalForm: Smith # TODO: remove explicit import when we update SmithNormalForm
 export Smith
+
+@reexport using Bravais
+import Bravais: primitivize, conventionalize, centering
+using Bravais: stack, all_centeringtranslations, centeringtranslation
 
 # included files and exports
 include("constants.jl")
@@ -56,7 +60,6 @@ export SymOperation,                        # types
        getindex, rotation, translation, 
        issymmorph,
        num, order, operations,              # ::AbstractGroup
-       norms, angles,                       # ::Basis
        kstar, klabel, characters,           # ::AbstractIrrep
        label, reality, group,
        israyrep, kvec,                      # ::LGIrrep
@@ -95,11 +98,6 @@ export find_representation
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export pointgroup, get_pgirreps,
        PGS_IUCs, find_isomorphic_parent_pointgroup
-
-include("bravais.jl")
-export crystal, crystalsystem,
-       bravaistype,
-       directbasis, reciprocalbasis
 
 include("irreps_reality.jl")
 export calc_reality, realify
