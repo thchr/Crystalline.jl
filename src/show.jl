@@ -135,36 +135,42 @@ end
 
 
 # --- LGIrrep & PGIrrep ---
+function show(io::IO, plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
+    # TODO: This kind of show extension is bad style, afaik...
+    plg = group(first(plgirs))
+    Nᵢᵣ = length(plgirs)
+    println(io, typeof(plgirs), " #", num(plg), " (", label(plg), ") with ", 
+        Nᵢᵣ, " irrep", Nᵢᵣ == 1 ? "" : "s", ":")
+    matrix_columns = Matrix{AnsiTextCell}(undef, length(plg), Nᵢᵣ)
+    for (i, plgir) in enumerate(plgirs)
+        matrix_columns[:,i] = map(1:length(plg)) do j
+            #AnsiTextCell(rstrip(sprint(io′ -> pretty_table(io′, m, tf=tf_matrix, noheader=true)), '\n'))
+            AnsiTextCell(sprint(io′ -> prettyprint_irrep_matrix(io′, plgir, j, "")))
+            # FIXME: change to add padding when https://github.com/ronisbr/PrettyTables.jl/issues/147 is fixed
+        end
+    end
+    pretty_table(io, matrix_columns;
+        header=formatirreplabel.(label.(plgirs)),
+        row_names=seitz.(plg),
+        row_name_alignment=:r,
+        alignment=:l, # FIXME: change to `:c` when https://github.com/ronisbr/PrettyTables.jl/issues/147 is fixed
+        header_alignment=:c,
+        crop=:both,
+        tf = tf_unicode,
+        vlines = [1,], hlines = [:begin, 1, :end])
+    return nothing
+end
+
 function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
+    # TODO: print in format that matches `AbstractVector{Union{<:LGIrrep, <:PGIrrep}}` above
     lgirlab = formatirreplabel(label(plgir))
     lablen = length(lgirlab)
     nindent = lablen+1
     prettyprint_header(io, lgirlab)
     prettyprint_irrep_matrices(io, plgir, nindent)
 end
-function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
-    # TODO: This kind of show extension is bad style, afaik...
-    # Header line
-    plg = group(first(plgirs))
-    print(io, "$T: ")
-    prettyprint_group_header(io, plg)
-
-    Nᵢᵣ = length(plgirs)
-    for (i,plgir) in enumerate(plgirs)
-        show(io, MIME"text/plain"(), plgir)
-        if i != Nᵢᵣ; println(io); end
-    end
-end
 
 # ... utilities to print PGIrreps and LGIrreps
-function prettyprint_group_header(io::IO, plg::AbstractGroup)
-    print(io, "#", num(plg), " (", iuc(plg), ")")
-    if plg isa LittleGroup
-        print(io, " at " , klabel(plg), " = ")
-        show(io, MIME"text/plain"(), kvec(plg))
-    end
-    println(io)
-end
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
                                       ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
@@ -173,12 +179,11 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
 
     else # matrix case
         formatter(x) = round(x, digits=4)
-        # FIXME: not very optimal; e.g. makes a whole copy and doesn't handle displaysize
         compact_print_matrix(io, printP, prefix, formatter)
     end
 end
 function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
-                                    atol::Real=DEFAULT_ATOL)
+                                   atol::Real=DEFAULT_ATOL)
 
     if isapprox(v, real(v), atol=atol)          # real scalar
         if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
@@ -197,13 +202,14 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
         vρ, vθ = abs(v), angle(v)
         vθ /= π
         isapprox(vρ, 1.0, atol=atol) && print(io, vρ)
-        print(io, "exp(") 
+        print(io, "exp(")
         if isapprox(abs(vθ), 1.0, atol=atol)
             signbit(vθ) && print(io, '-')
         else
             print(io, vθ)
         end
         print(io, "iπ)")
+        # TODO: Find a way to write e.g. "exp(2iπ/3)" nicely, instead of "exp(0.666666667iπ)"
         #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
