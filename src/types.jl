@@ -273,15 +273,15 @@ end
 """
     isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
                                                             
-Compute approximate equality of two KVec's `k1` and `k2` modulo any 
-primitive G-vectors. To ensure that primitive G-vectors are used, 
-the centering type `cntr` (see `centering(cntr, dim)`) must be given
-(the dimensionality is inferred from `kv1` and `kv2`).
-Optionally, keyword arguments (e.g., `atol` and `rtol`) can be 
-provided, to include in calls to `Base.isapprox`.
+Compute approximate equality of two `KVec`s `k1` and `k2` modulo any primitive reciprocal
+lattice vectors. To ensure that primitive reciprocal lattice vectors are used, the centering
+type `cntr` (see [`Bravais.centering`](@ref)) must be given (the dimensionality is inferred
+from `kv1` and `kv2`).
+Optionally, keyword arguments (e.g., `atol` and `rtol`) can be provided, to be forwarded
+to `Base.isapprox`.
 
-If `cntr` is not provided, the comparison will not account for equivalence
-by primitive G-vectors.
+If `cntr` is not provided, the comparison will not account for equivalence by primitive
+reciprocal lattice vectors.
 """
 function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
     k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
@@ -306,10 +306,10 @@ end
 Return a transformed coordinate vector `v′` from an original coordinate vector `v` using a
 basis change matrix `P`.
 
-Note that a basis change matrix `P` transforms direct coordinate vectors ([`RVec`](@ref)) as
-``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordinates
-([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see e.g. ITA7 
-Secs. 1.5.1.2 and 1.5.2.1).
+Note that a basis change matrix `\mathbf{P}` transforms direct coordinate vectors (`RVec`)
+as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordinates
+(`KVec`) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see e.g. ITA7 Secs. 1.5.1.2
+and 1.5.2.1).
 """
 function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     # P maps an "original" reciprocal-space coefficient vector (k₁ k₂ k₃)ᵀ to a transformed
@@ -331,8 +331,8 @@ end
 Transforms a conventional coordinate vector `v` to a standard primitive basis (specified by
 the centering type `cntr`), returning the primitive coordinate vector `v′`.
 
-Note that a basis change matrix ``P`` (as returned e.g. by
-[`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
+Note that a basis change matrix ``\mathrbf{P}`` (as returned e.g. by
+[`Bravais.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
 ([`RVec`](@ref)) as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal
 coordinates ([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see
 e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
@@ -353,7 +353,7 @@ end
 Transforms a primitive coordinate vector `v′` back to a standard conventional basis
 (specified by the centering type `cntr`), returning the conventional coordinate vector `v`.
 
-See also [`primitivize(::AbstractVec, ::Char`](@ref) and `transform`.
+See also [`primitivize(::AbstractVec, ::Char`)](@ref) and [`transform`](@ref).
 """
 function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
