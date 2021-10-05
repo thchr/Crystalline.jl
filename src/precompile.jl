@@ -5,7 +5,6 @@
 #               for D in 3:-1:2
 #                   spacegroup(MAX_SGNUM[D], Val(D))
 #                   get_lgirreps(MAX_SGNUM[D], Val(D))
-#                   bravaistype(MAX_SGNUM[D], D)
 #                   directbasis(MAX_SGNUM[D], Val(D))
 #                   get_wycks(MAX_SGNUM[D], Val(D))
 #                   pointgroup(PGS_IUCs[D][end], Val(D))
