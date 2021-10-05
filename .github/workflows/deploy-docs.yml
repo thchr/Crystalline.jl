@@ -20,6 +20,7 @@ jobs:
         run: |
           julia --project=docs/ -e '
             using Pkg
+            pkg"dev . Bravais"
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - name: Build and deploy

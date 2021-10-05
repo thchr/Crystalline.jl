@@ -1,75 +1,7 @@
-# --- DirectBasis and ReciprocalBasis for crystalline lattices ---
-"""
-$(TYPEDEF)
-"""
-abstract type Basis{D} <: StaticVector{D, SVector{D,Float64}} end
-for T in (:DirectBasis, :ReciprocalBasis)
-    @eval begin
-        @doc """
-            $($T){D} <: Basis{D}
+# ---------------------------------------------------------------------------------------- #
+# SymOperation
+# ---------------------------------------------------------------------------------------- #
 
-        - `vecs::SVector{D, SVector{D,Float64}}`
-        """
-        struct $T{D} <: Basis{D}
-            vecs::SVector{D, SVector{D,Float64}}
-            $T{D}(vecs::SVector{D, SVector{D,Float64}}) where D = new{D}(vecs)
-            $T(vecs::SVector{D, SVector{D,Float64}}) where D    = new{D}(vecs)
-        end
-    end
-    @eval function convert(::Type{$T{D}}, Vs::StaticVector{D, <:StaticVector{D, <:Real}}) where D
-        $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
-    end
-    @eval $T{D}(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(SVector{D}(Vs))
-    @eval $T(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, NTuple{D,<:Real}}) where D = $T{D}(SVector{D,Float64}.(Vs))
-    @eval $T(Vs::NTuple{D, NTuple{D,<:Real}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, <:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T(Vs::NTuple{D, <:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T{D}(Vs::AbstractVector{<:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T(Vs::AbstractVector{<:AbstractVector{<:Real}}) = $T(Vs...)
-    @eval $T{D}(Vs::AbstractVector{<:Real}...) where D = $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
-    @eval $T(Vs::AbstractVector{<:Real}...) = $T{length(Vs)}(Vs...)
-    @eval $T{D}(Vs::StaticVector{D,<:Real}...) where D = $T{D}(Vs) # resolve ambiguities w/
-    @eval $T(Vs::StaticVector{D,<:Real}...) where D = $T{D}(Vs)    # `::StaticArray` methods
-end
-
-# Fix a bug in StaticArrays: https://github.com/JuliaArrays/StaticArrays.jl/issues/915
-# TODO: Remove when fixed upstream
-Base.abs2(a::StaticArray) = LinearAlgebra.norm_sqr(a)
-
-vecs(Vs::Basis) = Vs.vecs
-# define the AbstractArray interface for DirectBasis{D}
-@propagate_inbounds getindex(Vs::Basis, i::Int) = vecs(Vs)[i]
-size(::Basis{D}) where D = (D,)
-IndexStyle(::Type{<:Basis}) = IndexLinear()
-
-norms(Rs::Basis) = norm.(Rs)
-_angle(rA,rB) = acos(dot(rA,rB)/(norm(rA)*norm(rB)))
-function angles(Rs::Basis{D}) where D
-    D == 1 && return nothing
-    γ = _angle(Rs[1], Rs[2])
-    if D == 3
-        α = _angle(Rs[2], Rs[3])
-        β = _angle(Rs[3], Rs[1])
-        return α,β,γ
-    end
-    return γ
-end
-
-"""
-    basis2matrix(Vs::Basis{D}) where D
-
-Compute a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::Basis{D}`, i.e. a matrix whose columns
-are the basis vectors in `Vs`. 
-
-Note: Trying to use the iteration interface via `hcat(Vs...)` does not lead to a correctly
-      inferred type Matrix::Float64 (and a type-assertion does not improve speed much).
-      Instead, we just use the .vec field of `Vs` directly, which achieves good performance.
-"""
-basis2matrix(Vs::Basis{D}) where D = hcat(vecs(Vs)...)
-
-
-# --- Symmetry operations ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
@@ -144,7 +76,11 @@ function isone(op::SymOperation{D}) where D
     end
     return true
 end
-# --- Multiplication table ---
+
+# ---------------------------------------------------------------------------------------- #
+# MultTable
+# ---------------------------------------------------------------------------------------- #
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
@@ -159,12 +95,15 @@ end
 size(mt::MultTable) = size(mt.table)
 IndexStyle(::Type{<:MultTable}) = IndexLinear()
 
-# --- 𝐤-vectors ---
-# 𝐤-vectors are specified as a pair (k₀, kabc), denoting a 𝐤-vector
+
+# ---------------------------------------------------------------------------------------- #
+# AbstractVec: KVec & RVec
+# ---------------------------------------------------------------------------------------- #
+
+# 𝐤-vectors (or, equivalently, 𝐫-vectors) are specified as a pair (k₀, kabc), denoting a 𝐤-vector
 #       𝐤 = ∑³ᵢ₌₁ (k₀ᵢ + aᵢα+bᵢβ+cᵢγ)*𝐆ᵢ     (w/ recip. basis vecs. 𝐆ᵢ)
-# here the matrix kabc is columns of the vectors (𝐚,𝐛,𝐜) while α,β,γ are free
-# parameters ranging over all non-special values (i.e. not coinciding with any 
-# high-sym 𝐤)
+# here the matrix kabc is columns of the vectors (𝐚,𝐛,𝐜) while α,β,γ are free parameters
+# ranging over all non-special values (i.e. not coinciding with any high-sym 𝐤).
 
 abstract type AbstractVec{D} end
 # A type which must have a vector field `cnst` (subtyping `AbstractVector`, of length `D`)
@@ -358,7 +297,78 @@ function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
 end
 
 
-# --- Abstract spatial group ---
+# Note that the _coefficients_ of a general 𝐤- or 𝐫-vector transforms differently than the
+# reciprocal or direct _basis_, which transforms from non-primed to primed variants. See
+# discussion in Bravais.jl /src/transform.jl.
+@doc raw"""
+    transform(v::T, P::AbstractMatrix) where T<:AbstractVec --> v′::T
+
+Return a transformed coordinate vector `v′` from an original coordinate vector `v` using a
+basis change matrix `P`.
+
+Note that a basis change matrix `P` transforms direct coordinate vectors ([`RVec`](@ref)) as
+``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordinates
+([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see e.g. ITA7 
+Secs. 1.5.1.2 and 1.5.2.1).
+"""
+function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
+    # P maps an "original" reciprocal-space coefficient vector (k₁ k₂ k₃)ᵀ to a transformed
+    # coefficient vector (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ
+    k₀, kabc = parts(kv)
+    return KVec{D}(P'*k₀, P'*kabc)
+end
+
+function transform(rv::RVec{D}, P::AbstractMatrix{<:Real}) where D
+    # P maps an "original" direct-space coefficient vector (r₁ r₂ r₃)ᵀ to a transformed
+    # coefficient vector (r₁′ r₂′ r₃′)ᵀ = P⁻¹(r₁ r₂ r₃)ᵀ
+    rcnst, rfree = parts(rv)
+    return RVec{D}(P\rcnst, P\rfree)
+end
+
+@doc raw"""
+    primitivize(v::T, cntr::Char) where T<:AbstractVec{D} --> v′::T
+
+Transforms a conventional coordinate vector `v` to a standard primitive basis (specified by
+the centering type `cntr`), returning the primitive coordinate vector `v′`.
+
+Note that a basis change matrix ``P`` (as returned e.g. by
+[`Crystalline.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
+([`RVec`](@ref)) as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal
+coordinates ([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see
+e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
+Recall also the distinction between transforming a basis and the coordinates of a vector.
+"""
+function primitivize(v::AbstractVec{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p'
+        return v
+    else
+        P = primitivebasismatrix(cntr, Val(D))
+        return transform(v, P)
+    end
+end
+
+"""
+    conventionalize(v′::T, cntr::Char) where T<:AbstractVec{D} --> v::T
+
+Transforms a primitive coordinate vector `v′` back to a standard conventional basis
+(specified by the centering type `cntr`), returning the conventional coordinate vector `v`.
+
+See also [`primitivize(::AbstractVec, ::Char`](@ref) and `transform`.
+"""
+function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p'
+        return v′
+    else
+        P = primitivebasismatrix(cntr, Val(D))
+        return transform(v′, inv(P))
+    end
+end
+
+
+# ---------------------------------------------------------------------------------------- #
+# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup
+# ---------------------------------------------------------------------------------------- #
+
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
@@ -419,8 +429,10 @@ kvec(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
 
-# --- Reality type enum ---
-# 1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
+# ---------------------------------------------------------------------------------------- #
+# Reality <: Enum{Int8}:    1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
+# ---------------------------------------------------------------------------------------- #
+ 
 """
     Reality <: Enum{Int8}
 
@@ -442,7 +454,10 @@ real" irreps (co-reps) via [`realify`](@ref).
     COMPLEX    = 0
 end
 
-# --- Abstract group irreps ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractIrrep: PGIrrep, LGIrrep
+# ---------------------------------------------------------------------------------------- #
+
 """ 
     AbstractIrrep{D}
 
@@ -613,7 +628,10 @@ function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing)
 end
 
 
-# --- Character table ---
+# ---------------------------------------------------------------------------------------- #
+# CharacterTable
+# ---------------------------------------------------------------------------------------- #
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
@@ -662,7 +680,11 @@ function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
     return CharacterTable{D}(operations(first(irs)), label.(irs), table, tag)
 end
 
-# --- Band representations ---
+# ---------------------------------------------------------------------------------------- #
+# BandRep & BandRepSet (band representations)
+# ---------------------------------------------------------------------------------------- #
+
+# --- BandRep ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
@@ -707,6 +729,7 @@ function iterate(BR::BandRep, i=1)
     end
 end
 
+# --- BandRepSet ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """

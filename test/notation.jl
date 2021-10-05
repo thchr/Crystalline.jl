@@ -53,4 +53,12 @@ using Crystalline, Test
             end
         end
     end
+
+    @testset "Centering, Bravais types, & IUC" begin
+        for D in 1:3
+            for sgnum in 1:MAX_SGNUM[D]
+                @test first(iuc(sgnum, D)) == centering(sgnum, D) == last(bravaistype(sgnum, D; normalize=false))
+            end
+        end
+    end
 end

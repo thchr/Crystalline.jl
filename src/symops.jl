@@ -818,7 +818,7 @@ assumes integer coefficients for its point-group matrix: as a consequence, displ
 representation remains valid, however.
 """
 function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
-    𝐑 = basis2matrix(Rs)
+    𝐑 = stack(Rs)
     # avoids computing inv(𝐑) by _not_ calling out to transform(opˡ, inv(𝐑))
     op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑*translation(op)])
     return op′

@@ -6,10 +6,8 @@
     throw(DomainError(D, "dimensions D=2 not yet supported"))
 @noinline _throw_invaliddim(D::Integer) =
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
-@noinline _throw_invalidcntr(cntr::Char) =
-    throw(DomainError(cntr, "centering must be {P,I,F,R,A,C} in 3D, {p,c} in 2D, or p in 1D"))
 @noinline _throw_invalid_sgnum(sgnum::Integer, D::Integer) =
-    throw(DomainError(sgnum, "sgnum cannot exceed $(MAX_SGNUM[D]) for dimension D=$(D)"))
+    throw(DomainError(sgnum, "sgnum must be between 1 and $(MAX_SGNUM[D]) in dimension $(D)"))
 
 # === string manipulation/parsing ===
 """ 
@@ -298,16 +296,3 @@ if VERSION < v"1.5"
     end
     Base.ImmutableDict(ps::Pair...) = Base.ImmutableDict(ps)
 end
-
-# Distributions.jl provides a nice Uniform distribution type - but it is not worth adding
-# the high compilation-time of Distributions (~7 s) just for that functionality, so we just
-# copy a subset of the methods and the struct here, distinguishing the struct-pirating by an 
-# underscore. We only copy the scalar rand(..) methods (i.e. no array generators).
-struct _Uniform{T<:Real}
-    a::T # low
-    b::T # high (unchecked...)
-end
-_Uniform(a::Real, b::Real) = _Uniform(promote(a, b)...)
-_Uniform(a::Integer, b::Integer) = _Uniform(float(a), float(b))
-rand(u::_Uniform) = rand(Random.GLOBAL_RNG, u)
-rand(rng::Random.AbstractRNG, u::_Uniform) = u.a + (u.b - u.a) * rand(rng)

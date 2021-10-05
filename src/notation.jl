@@ -1,9 +1,10 @@
 """
     schoenflies(sgnum::Integer) --> String
 
-Returns the [Schoenflies notation](https://en.wikipedia.org/wiki/Schoenflies_notation) for
-a given space group number `sgnum` in three dimensions.
-Note that Schoenflies notation is well-defined only for 3D point groups and space groups.
+Return the [Schoenflies notation](https://en.wikipedia.org/wiki/Schoenflies_notation) for
+space group number `sgnum` in dimension 3.
+
+Note that Schoenflies notation is well-defined only for 3D point and space groups.
 """
 schoenflies(sgnum::Integer) = SCHOENFLIES_TABLE[sgnum]
 schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
@@ -11,38 +12,37 @@ schoenflies(sg::SpaceGroup{3}) = schoenflies(num(sg))
 """
     iuc(sgnum::Integer, D::Integer=3) --> String
 
-Returns the IUC (International Union of Crystallography) notation for space group number
-`sgnum` and dimensionality `D`, as used in the International Tables of Crystallography. 
+Return the IUC (International Union of Crystallography) notation for space group number
+`sgnum` in dimension `D` (1, 2, or 3), as used in the International Tables of
+Crystallography.
+
 The notation is sometimes also known as the
-[Hermann-Mauguin notation](https://en.wikipedia.org/wiki/Hermann%E2%80%93Mauguin_notation)
+[Hermann-Mauguin notation](https://en.wikipedia.org/wiki/Hermann–Mauguin_notation)
 and is also accessible by the alias `hermannmauguin(sgnum, D)`. 
-IUC/Hermann-Mauguin notation applies in one, two, and three-dimensions.
 """
-@inline iuc(sgnum::Integer, D::Integer=3) = SGS_IUC_NOTATION[D][sgnum]
+@inline function iuc(sgnum::Integer, D::Integer=3)
+    if D==3
+        @boundscheck (sgnum ∈ 1:230) || _throw_invalid_sgnum(sgnum, 3)
+        return @inbounds SGS_IUC_NOTATION[3][sgnum]
+    elseif D==2
+        @boundscheck (sgnum ∈ 1:17) || _throw_invalid_sgnum(sgnum, 2)
+        return @inbounds SGS_IUC_NOTATION[2][sgnum]
+    elseif D==1
+        @boundscheck (sgnum ∈ 1:2) || _throw_invalid_sgnum(sgnum, 1)
+        return @inbounds SGS_IUC_NOTATION[1][sgnum]
+    else
+        _throw_invaliddim(D)
+    end
+end
 @inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
 const hermannmauguin = iuc # alias
 
 """ 
-    centering(sg::SpaceGroup) --> Char
-    centering(sgnum::Integer, D::Integer=3) --> Char
+    centering(sg_or_lg::Union{SpaceGroup, LittleGroup}) --> Char
 
-Determines the conventional centering type of a given space/plane group `sg` (alternatively
-specified by its conventional number `sgnum` and dimensionality `D` by comparison with the
-Hermann-Mauguin notation's first letter. 
-
-Possible output values, depending on dimensionality `D`, are (see ITA Sec. 9.1.4):
-
-    D=2 ┌ 'p': no centring (primitive)
-        └ 'c': face centered
-
-    D=3 ┌ 'P': no centring (primitive)
-        ├ 'I': body centred (innenzentriert)
-        ├ 'F': all-face centred
-        ├ 'A', 'B', 'C': one-face centred, (b,c) or (c,a) or (a,b)
-        └ 'R': hexagonal cell rhombohedrally centred
+Return the conventional centering type of a `SpaceGroup` or `LittleGroup`.
 """
-centering(sgnum::Integer, D::Integer=3) = first(iuc(sgnum, D))
-centering(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = first(centering(num(sg), D))
+centering(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = centering(num(sg), D)
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]
@@ -183,7 +183,7 @@ const SGS_IUC_NOTATION = (
 Computes the correponding Seitz notation for a symmetry operation in triplet/xyzt form.
 
 Implementation based on ITA5 Table 11.2.1.1, with 3D point group parts inferred from
-the trace and determinant of the matrix ``\mathb{W]`` in the triplet
+the trace and determinant of the matrix ``\mathb{W}`` in the triplet
 ``\{\mathbf{W}|\mathbf{w}\}``.
 
 | detW/trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |
