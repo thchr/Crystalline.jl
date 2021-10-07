@@ -39,7 +39,11 @@
 #
 # The values of P depend on convention. We adopt those of Table 2 of the Aroyo's Bilbao
 # publication (https://doi.org/10.1107/S205327331303091X), which give the coefficients of
-# (Pᵀ)⁻¹.
+# (Pᵀ)⁻¹. Equivalently, this is the "CDML" setting choices that can also be inferred by
+# combining Tables 1.5.4.1 and 1.5.4.2 of the International Tables of Crystallography,
+# Vol. B, Ed. 2, 2001 (ITB2). Of note, this is _not_ the standard ITA choice for the
+# primitive cell for 'R' or 'A'-centered cells (see Tables 3.1.2.2 of ITA6; the CDML
+# convention is more widespread, however, especially for k-vectors; hence our choice).
 # See also the 2016 HPKOT/Hinuma paper (https://doi.org/10.1016/j.commatsci.2016.10.015)
 # for additional details and context, though note that they use different matrices for 'A'
 # and complicate the 'C' scenario (Table 3).
@@ -61,18 +65,45 @@ const PRIMITIVE_BASIS_MATRICES = (
         'C'=>SMatrix{3,3,Float64}([1 1 0; -1 1 0; 0 0 2]./2))   # base-centered (along z)
     )
 
-"""
+@doc raw"""
     primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) -> SMatrix{D,D,Float64}
 
 Return the transformation matrix `P` that transforms a conventional unit cell with centering
-`cntr` to the corresponding primitive unit cell (in dimension `D`).
+`cntr` to the corresponding primitive unit cell (in dimension `D`) in CDML setting.
 
-The choice of transformation matrix `P` (equivalently, the assumed setting choice) is
-consistent with the choice in the International Table of Crystallography and the Bilbao
-Crystallographic Server [^1].
+## Setting conventions
 
-[^1]: Aroyo et al., [Acta Cryst. A70, 126 (2014)](https://doi.org/10.1107/S205327331303091X):
+The returned transformation matrix ``\mathbf{P}`` transforms a direct-space conventional
+basis ``(\mathbf{a} \mathbf{b} \mathbf{c})`` to the direct-space primitive basis
+
+```math
+    (\mathbf{a}\prime \mathbf{b}\prime \mathbf{c}\prime) =
+    (\mathbf{a} \mathbf{b} \mathbf{c})\mathbf{P}
+```
+
+Analogously, ``\mathbf{P}`` transforms a reciprocal-space conventional basis
+``(\mathbf{a}* \mathbf{b}* \mathbf{c}*)`` to ``(\mathbf{a}*′ \mathbf{b}*′ \mathbf{c}*′) = 
+(\mathbf{a}* \mathbf{b}* \mathbf{c}*)(\mathbf{P}^{-1})^{\text{T}}`` (see
+[`transform(::DirectBasis, ::AbstractMatrix)`](@ref) and
+[`transform(::ReciprocalBasis, ::AbstractMatrix)`](@ref)).
+
+The setting choice for the primitive cell implied by ``\mathbf{P}`` follows the widely
+adopted CDML convention [^CDML].
+This convention is explicated in Table 2 of [^Aroyo] and is followed e.g. on the Bilbao
+Crystallographic Server [^BCS] (equivalently, the setting can be inferred from Tables
+1.5.4.1 and 1.5.4.2 of [^ITB2]) and in the CDML reference work on space group irreps.
+Note that this setting choice is _not_ what is frequently referred to as the "ITA primitive
+setting", from which it differs for hP, hR, and oA Bravais types.
+The setting choice is usually referred to as the CDML primitive setting, or, less
+frequently, as the crystallographic primitive setting.
+
+## References
+
+[^CDML] Cracknell, Davies, Miller, & Love, Kroenecker Product Tables, Vol. 1 (1979).
+[^BCS] Bilbao Crystallographic Server: [KVEC](https://www.cryst.ehu.es/cryst/get_kvec.html).
+[^Aroyo]: Aroyo et al., [Acta Cryst. A70, 126 (2014)](https://doi.org/10.1107/S205327331303091X):
       Table 2 gives (`P`ᵀ)⁻¹.
+[^ITB2]: Hahn, International Tables of Crystallography, Vol. B, 2nd edition (2001).
 """
 @inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
     D∉1:3 && _throw_invaliddim(D)
@@ -148,6 +179,36 @@ function reciprocalbasis(Rs::Union{DirectBasis{D},
 end
 
 
+@doc raw"""
+    transform(Rs::ReciprocalBasis, P::AbstractMatrix{<:Real})
+
+Transform a direct basis `Rs` ``= (\mathbf{a} \mathbf{b} \mathbf{c})`` under the
+transformation matrix `P` ``= \mathbf{P}`, returning 
+`Rs′` ``= (\mathbf{a}′ \mathbf{b}′ \mathbf{c}′) = (\mathbf{a} \mathbf{b} \mathbf{c})
+\mathbf{P}``.
+"""
+function transform(Rs::DirectBasis{D}, P::AbstractMatrix{<:Real}) where D
+    # Rm′ = Rm*P (w/ Rm a matrix w/ columns of untransformed direct basis vecs Rᵢ)
+    Rm′ = stack(Rs)*P
+    return DirectBasis{D}(ntuple(i->Rm′[:,i], Val(D)))
+end
+
+@doc raw"""
+    transform(Gs::ReciprocalBasis, P::AbstractMatrix{<:Real})
+
+Transform a reciprocal basis `Gs` ``= (\mathbf{a}* \mathbf{b}* \mathbf{c}*)`` under the
+transformation matrix `P` ``= \mathbf{P}`, returning 
+`Gs′` ``= (\mathbf{a}*′ \mathbf{b}*′ \mathbf{c}*′) = (\mathbf{a}* \mathbf{b}* \mathbf{c}*)
+(\mathbf{P}^{-1})^{\text{T}}``.
+"""
+function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
+    # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
+    # vecs Gᵢ)
+    Gm′ = stack(Gs)/P'
+    return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
+end
+
+
 """ 
     primitivize(Vs::AbstractBasis, sgnum::Integer) --> Vs′::AbstractBasis
 
@@ -161,12 +222,6 @@ For centering types `'P'` and `'p'`, the conventional and primitive bases coinci
 function primitivize(Vs::AbstractBasis{D}, sgnum::Integer) where D
     cntr = centering(sgnum, D)
     return primitivize(Vs, cntr)
-end
-
-function transform(Rs::DirectBasis{D}, P::AbstractMatrix{<:Real}) where D
-    # Rm′ = Rm*P (w/ Rm a matrix w/ columns of untransformed direct basis vecs Rᵢ)
-    Rm′ = stack(Rs)*P
-    return DirectBasis{D}(ntuple(i->Rm′[:,i], Val(D)))
 end
 
 """
@@ -186,6 +241,21 @@ function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
 end
 
 """
+    primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
+    
+Return the primitive reciprocal basis `Gs′` associated with the input (a conventional
+reciprocal basis `Gs` with centering type `cntr`).
+"""
+function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return Gs
+    else         
+        P = primitivebasismatrix(cntr, Val(D))        
+        return transform(Gs, P)
+    end
+end
+
+"""
     conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
 
 Return the conventional direct basis `Rs` associated with the input (a primitive direct
@@ -201,27 +271,12 @@ function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
     end  
 end
 
-function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
-    # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
-    # vecs Gᵢ)
-    Gm′ = stack(Gs)/P'
-    return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
-end
+"""
+    conventionalize(Gs′::ReciprocalBasis, cntr::Char) --> Gs::ReciprocalBasis
 
+Return the conventional reciprocal basis `Gs` associated with the input (a primitive
+reciprocal basis `Gs′` with centering type `cntr`).
 """
-    primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
-    
-Return the primitive reciprocal basis `Gs′` associated with the input (a conventional
-reciprocal basis `Gs` with centering type `cntr`).
-"""
-function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
-    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Gs
-    else         
-        P = primitivebasismatrix(cntr, Val(D))        
-        return transform(Gs, P)
-    end
-end
 function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return Gs′

@@ -79,12 +79,12 @@ end
 °(φ::Real) = deg2rad(φ)
 
 """ 
-    crystalsystem(R::DirectBasis{D})
+    crystalsystem(Rs::DirectBasis{D})
 
-Determine the crystal system of a point lattice specified in a conventional `DirectBasis{D}`
-of dimension `D` using Tables 2.1.2.1, 9.1.7.1, & 9.1.7.2 of the International Tables of 
-Crystallography, Volume 1 (ITA). 
-There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
+Determine the crystal system of a point lattice `Rs`, assuming the conventional setting
+choice defined in the International Tables of Crystallography [^ITA7].
+
+There are 4 crystal systems in 2D and 7 in 3D (see Section 2.1.2(iii) of [^ITA5]):
 
 | `D`    | System       | Conditions             | Free parameters      |
 |:-------|--------------|------------------------|----------------------|
@@ -101,9 +101,13 @@ There are 4 crystal systems in 2D and 7 in 3D (see ITA 2.1.2(iii)):
 |        | monoclinic   | α=γ=90°                | a,b,c,β≥90°          |
 |        | triclinic    | none                   | a,b,c,α,β,γ          |
 
-The DirectBasis input is assumed to use conventional basis vectors; i.e. not necessarily
-primitive. For primitive basis vectors, the crystal system can be further reduced into
-5 Bravais types in 2D and 14 in 3D.
+The `Rs` must specify a set of conventional basis vectors, i.e., not generally primitive.
+For primitive basis vectors, the crystal system can be further reduced into 5 Bravais types
+in 2D and 14 in 3D (see [`@bravaistype`](@ref)).
+
+[^ITA7] M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
+        3.1.2.1 and 3.1.2.2. (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
+[^ITA5] T. Hahn, International Tables of Crystallography, Vol. A, 5th edition (2005).
 """
 function crystalsystem(Rs::DirectBasis{D}) where D
     if D == 1
@@ -234,7 +238,7 @@ function directbasis(sgnum::Integer, Dᵛ::Val{D}=Val(3);
             # the crystal basis matches the a hexagonal one, even when the 
             # Bravais type is rhombohedral (of course, the primitive basis 
             # differs). The conventional cell is always chosen to have (triple
-            # obverse) hexagonal axes (see ITA7 Sec. 3.1.1.4, Tables 2.1.1.1, 
+            # obverse) hexagonal axes (see ITA6 Sec. 3.1.1.4, Tables 2.1.1.1, 
             # & 3.1.2.2).
             # For rhombohedral systems the primitive cell has a=b=c, α=β=γ<120°≠90°.
             # Note that the hexagonal and trigonal crystal systems also share 
@@ -321,13 +325,14 @@ of the single-character crystal abbreviation and the centering type).
 
 If the centering type associated with `sgnum` is `'A'`, we can choose (depending on the
 keyword argument `normalize`, defaulting to `false`) to "normalize" to the centering type
-`'C'`, since the difference between `A` and `C` centering only amounts to a basis change.
+`'C'`, since the difference between `'A'` and `'C'` centering only amounts to a basis
+change.
 With `normalize=true` we then have only the canonical 14 Bravais type, i.e. 
 `unique(bravaistype.(1:230, 3), normalize=true)` returns only 14 distinct types, rather
 than 15.
 
 This only affects space groups 38-41 (normalizing their conventional Bravais types from
-`oA` to `oC`).
+`"oA"` to `"oC"`).
 """
 function bravaistype(sgnum::Integer, D::Integer=3; normalize::Bool=false)
     @boundscheck boundscheck_sgnum(sgnum, D)
@@ -372,7 +377,7 @@ Possible values of `cntr`, depending on dimensionality `D`, are (see ITA Sec. 9.
     - `cntr = 'P'`: no centring (primitive)
     - `cntr = 'I'`: body centred (innenzentriert)
     - `cntr = 'F'`: all-face centred
-    - `cntr = 'A'`, `'B'`, or `'C'`: one-face centred, (b,c) or (c,a) or (a,b)
+    - `cntr = 'A'` or `'C'`: one-face centred, (b,c) or (a,b)
     - `cntr = 'R'`: hexagonal cell rhombohedrally centred
 """
 centering(sgnum::Integer, D::Integer=3) = last(bravaistype(sgnum, D))

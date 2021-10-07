@@ -12,7 +12,7 @@ D     = 3  # dimension
 sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
 sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called with a `Val{D}` dimension to ensure type stability; here we have D::Int instead for simplicity
 ```
-By default, the returned operations are given in the conventional setting of the International Tables of Crystallography, Volume A (ITA). Conversion to the standard primitive lattices can be accomplished via [`primitivize`](@ref).
+By default, the returned operations are given in the conventional setting of the International Tables of Crystallography, Volume A (ITA). Conversion to a primitive basis (in the CDML setting) can be accomplished via [`primitivize`](@ref).
 
 ### Multiplication tables
 We can compute the multiplication table of a space group (under the previously defined notion of operator composition) using [`MultTable`](@ref):
