@@ -76,7 +76,7 @@ julia> wps = get_wycks(16, 2)
 ```
 
 ## References
-[^1]: Aroyo, *et. al.*,
+[^1]: Aroyo, *et al.*,
       [Z. Kristallogr. **221**, 15-27 (2006)](https://doi.org/0.1524/zkri.2006.221.1.15)
 """
 function get_wycks(sgnum::Integer, ::Val{D}=Val(3)) where D

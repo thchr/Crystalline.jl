@@ -66,43 +66,53 @@ const PRIMITIVE_BASIS_MATRICES = (
     )
 
 @doc raw"""
-    primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) -> SMatrix{D,D,Float64}
+    primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) --> SMatrix{D,D,Float64}
 
 Return the transformation matrix `P` that transforms a conventional unit cell with centering
 `cntr` to the corresponding primitive unit cell (in dimension `D`) in CDML setting.
 
-## Setting conventions
+## Transformations in direct and reciprocal space
 
 The returned transformation matrix ``\mathbf{P}`` transforms a direct-space conventional
-basis ``(\mathbf{a} \mathbf{b} \mathbf{c})`` to the direct-space primitive basis
+basis ``(\mathbf{a}\ \mathbf{b}\ \mathbf{c})`` to the direct-space primitive basis
 
 ```math
-    (\mathbf{a}\prime \mathbf{b}\prime \mathbf{c}\prime) =
-    (\mathbf{a} \mathbf{b} \mathbf{c})\mathbf{P}
+    (\mathbf{a}'\ \mathbf{b}'\ \mathbf{c}') =
+    (\mathbf{a}\ \mathbf{b}\ \mathbf{c})\mathbf{P}
 ```
 
 Analogously, ``\mathbf{P}`` transforms a reciprocal-space conventional basis
-``(\mathbf{a}* \mathbf{b}* \mathbf{c}*)`` to ``(\mathbf{a}*′ \mathbf{b}*′ \mathbf{c}*′) = 
-(\mathbf{a}* \mathbf{b}* \mathbf{c}*)(\mathbf{P}^{-1})^{\text{T}}`` (see
-[`transform(::DirectBasis, ::AbstractMatrix)`](@ref) and
+``(\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)`` to 
+
+```math
+(\mathbf{a}^{*\prime}\ \mathbf{b}^{*\prime}\ \mathbf{c}^{*\prime}) =
+(\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)(\mathbf{P}^{-1})^{\text{T}}
+```
+see also [`transform(::DirectBasis, ::AbstractMatrix)`](@ref) and
 [`transform(::ReciprocalBasis, ::AbstractMatrix)`](@ref)).
 
-The setting choice for the primitive cell implied by ``\mathbf{P}`` follows the widely
-adopted CDML convention [^CDML].
-This convention is explicated in Table 2 of [^Aroyo] and is followed e.g. on the Bilbao
-Crystallographic Server [^BCS] (equivalently, the setting can be inferred from Tables
-1.5.4.1 and 1.5.4.2 of [^ITB2]) and in the CDML reference work on space group irreps.
+## Setting conventions
+
+The setting choice for the primitive cell implied by the returned ``\mathbf{P}`` follows the
+widely adopted Cracknell-Davies-Miller-Love (CDML) convention.[^CDML]
+This convention is explicated e.g. in Table 2 of [^Aroyo] (or, alternatively, can be
+inferred from Tables 1.5.4.1 and 1.5.4.2 of [^ITB2]) and is followed e.g. on the Bilbao
+Crystallographic Server[^BCS] and in the CDML reference work on space group irreps.[^CDML]
+
 Note that this setting choice is _not_ what is frequently referred to as the "ITA primitive
 setting", from which it differs for hP, hR, and oA Bravais types.
+
 The setting choice is usually referred to as the CDML primitive setting, or, less
-frequently, as the crystallographic primitive setting.
+frequently and more ambiguously, as the crystallographic primitive setting.
 
-## References
+[^CDML]: Cracknell, Davies, Miller, & Love, Kroenecker Product Tables, Vol. 1 (1979).
 
-[^CDML] Cracknell, Davies, Miller, & Love, Kroenecker Product Tables, Vol. 1 (1979).
-[^BCS] Bilbao Crystallographic Server: [KVEC](https://www.cryst.ehu.es/cryst/get_kvec.html).
-[^Aroyo]: Aroyo et al., [Acta Cryst. A70, 126 (2014)](https://doi.org/10.1107/S205327331303091X):
-      Table 2 gives (`P`ᵀ)⁻¹.
+[^BCS]: Bilbao Crystallographic Server, [KVEC](https://www.cryst.ehu.es/cryst/get_kvec.html).
+
+[^Aroyo]: Aroyo *et al.*, [Acta Cryst. A70, 126 (2014)]
+          (https://doi.org/10.1107/S205327331303091X): Table 2 gives
+          ``(\mathbf{P}^{-1})^{\text{T}}``.
+
 [^ITB2]: Hahn, International Tables of Crystallography, Vol. B, 2nd edition (2001).
 """
 @inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
@@ -180,11 +190,11 @@ end
 
 
 @doc raw"""
-    transform(Rs::ReciprocalBasis, P::AbstractMatrix{<:Real})
+    transform(Rs::DirectBasis, P::AbstractMatrix{<:Real})
 
-Transform a direct basis `Rs` ``= (\mathbf{a} \mathbf{b} \mathbf{c})`` under the
-transformation matrix `P` ``= \mathbf{P}`, returning 
-`Rs′` ``= (\mathbf{a}′ \mathbf{b}′ \mathbf{c}′) = (\mathbf{a} \mathbf{b} \mathbf{c})
+Transform a direct basis `Rs` ``= (\mathbf{a}\ \mathbf{b}\ \mathbf{c})`` under the
+transformation matrix `P` ``= \mathbf{P}``, returning 
+`Rs′` ``= (\mathbf{a}'\ \mathbf{b}'\ \mathbf{c}') = (\mathbf{a}\ \mathbf{b}\ \mathbf{c})
 \mathbf{P}``.
 """
 function transform(Rs::DirectBasis{D}, P::AbstractMatrix{<:Real}) where D
@@ -196,10 +206,10 @@ end
 @doc raw"""
     transform(Gs::ReciprocalBasis, P::AbstractMatrix{<:Real})
 
-Transform a reciprocal basis `Gs` ``= (\mathbf{a}* \mathbf{b}* \mathbf{c}*)`` under the
-transformation matrix `P` ``= \mathbf{P}`, returning 
-`Gs′` ``= (\mathbf{a}*′ \mathbf{b}*′ \mathbf{c}*′) = (\mathbf{a}* \mathbf{b}* \mathbf{c}*)
-(\mathbf{P}^{-1})^{\text{T}}``.
+Transform a reciprocal basis `Gs` ``= (\mathbf{a}^* \mathbf{b}^* \mathbf{c}^*)`` under the
+transformation matrix `P` ``= \mathbf{P}``, returning 
+`Gs′` ``= (\mathbf{a}^{*\prime}\ \mathbf{b}^{*\prime}\ \mathbf{c}^{*\prime}) =
+(\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)(\mathbf{P}^{-1})^{\text{T}}``.
 """
 function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
     # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
@@ -210,12 +220,12 @@ end
 
 
 """ 
-    primitivize(Vs::AbstractBasis, sgnum::Integer) --> Vs′::AbstractBasis
+    primitivize(Vs::AbstractBasis, sgnum::Integer) --> Vs′::typeof(Vs)
 
 Return the primitive `AbstractBasis` `Vs′` associated with the input (a conventional basis
 `Vs` in dimension `D` in a crystal system consistent with space group number `sgnum`).
 The space group number is used to infer the associated centering type which determines the
-required transformation (see also [`centering`](@ref)).
+required transformation (see also [`centering(::Integer, ::Integer)`](@ref)).
 
 For centering types `'P'` and `'p'`, the conventional and primitive bases coincide.
 """

@@ -301,15 +301,17 @@ end
 # reciprocal or direct _basis_, which transforms from non-primed to primed variants. See
 # discussion in Bravais.jl /src/transform.jl.
 @doc raw"""
-    transform(v::T, P::AbstractMatrix) where T<:AbstractVec --> v′::T
+    transform(v::AbstractVec, P::AbstractMatrix)  -->  v′::typeof(v)
 
 Return a transformed coordinate vector `v′` from an original coordinate vector `v` using a
 basis change matrix `P`.
 
-Note that a basis change matrix `\mathbf{P}` transforms direct coordinate vectors (`RVec`)
+Note that a basis change matrix ``\mathbf{P}`` transforms direct coordinate vectors (`RVec`)
 as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordinates
-(`KVec`) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see e.g. ITA7 Secs. 1.5.1.2
-and 1.5.2.1).
+(`KVec`) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` [^ITA6]
+
+[^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th edition (2016):
+         Secs. 1.5.1.2 and 1.5.2.1.
 """
 function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     # P maps an "original" reciprocal-space coefficient vector (k₁ k₂ k₃)ᵀ to a transformed
@@ -317,7 +319,6 @@ function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     k₀, kabc = parts(kv)
     return KVec{D}(P'*k₀, P'*kabc)
 end
-
 function transform(rv::RVec{D}, P::AbstractMatrix{<:Real}) where D
     # P maps an "original" direct-space coefficient vector (r₁ r₂ r₃)ᵀ to a transformed
     # coefficient vector (r₁′ r₂′ r₃′)ᵀ = P⁻¹(r₁ r₂ r₃)ᵀ
@@ -326,17 +327,19 @@ function transform(rv::RVec{D}, P::AbstractMatrix{<:Real}) where D
 end
 
 @doc raw"""
-    primitivize(v::T, cntr::Char) where T<:AbstractVec{D} --> v′::T
+    primitivize(v::AbstractVec, cntr::Char)  -->  v′::typeof(v)
 
 Transforms a conventional coordinate vector `v` to a standard primitive basis (specified by
 the centering type `cntr`), returning the primitive coordinate vector `v′`.
 
-Note that a basis change matrix ``\mathrbf{P}`` (as returned e.g. by
+Note that a basis change matrix ``\mathbf{P}`` (as returned e.g. by
 [`Bravais.primitivebasismatrix`](@ref)) transforms direct coordinate vectors
 ([`RVec`](@ref)) as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal
-coordinates ([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\mathrm{T}}\mathbf{k}`` (see
-e.g. ITA7 Sec. 1.5.1.2 and 1.5.2.1).
+coordinates ([`KVec`](@ref)) as ``\mathbf{k}' = \mathbf{P}^{\text{T}}\mathbf{k}`` [^ITA6].
 Recall also the distinction between transforming a basis and the coordinates of a vector.
+
+[^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th edition (2016):
+         Secs. 1.5.1.2 and 1.5.2.1.
 """
 function primitivize(v::AbstractVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'
@@ -348,12 +351,12 @@ function primitivize(v::AbstractVec{D}, cntr::Char) where D
 end
 
 """
-    conventionalize(v′::T, cntr::Char) where T<:AbstractVec{D} --> v::T
+    conventionalize(v′::AbstractVec, cntr::Char)  -->  v::typeof(AbstractVec)
 
 Transforms a primitive coordinate vector `v′` back to a standard conventional basis
 (specified by the centering type `cntr`), returning the conventional coordinate vector `v`.
 
-See also [`primitivize(::AbstractVec, ::Char`)](@ref) and [`transform`](@ref).
+See also [`primitivize`](@ref) and [`transform`](@ref).
 """
 function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p'

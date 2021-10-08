@@ -79,10 +79,10 @@ end
 °(φ::Real) = deg2rad(φ)
 
 """ 
-    crystalsystem(Rs::DirectBasis{D})
+    crystalsystem(Rs::DirectBasis{D})  -->  String
 
 Determine the crystal system of a point lattice `Rs`, assuming the conventional setting
-choice defined in the International Tables of Crystallography [^ITA7].
+choice defined in the International Tables of Crystallography [^ITA6].
 
 There are 4 crystal systems in 2D and 7 in 3D (see Section 2.1.2(iii) of [^ITA5]):
 
@@ -105,9 +105,10 @@ The `Rs` must specify a set of conventional basis vectors, i.e., not generally p
 For primitive basis vectors, the crystal system can be further reduced into 5 Bravais types
 in 2D and 14 in 3D (see [`@bravaistype`](@ref)).
 
-[^ITA7] M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
-        3.1.2.1 and 3.1.2.2. (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
-[^ITA5] T. Hahn, International Tables of Crystallography, Vol. A, 5th edition (2005).
+[^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
+         3.1.2.1 and 3.1.2.2. (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
+
+[^ITA5]: T. Hahn, International Tables of Crystallography, Vol. A, 5th edition (2005).
 """
 function crystalsystem(Rs::DirectBasis{D}) where D
     if D == 1
@@ -323,16 +324,16 @@ of the single-character crystal abbreviation and the centering type).
 
 ## Keyword arguments
 
-If the centering type associated with `sgnum` is `'A'`, we can choose (depending on the
-keyword argument `normalize`, defaulting to `false`) to "normalize" to the centering type
-`'C'`, since the difference between `'A'` and `'C'` centering only amounts to a basis
-change.
-With `normalize=true` we then have only the canonical 14 Bravais type, i.e. 
-`unique(bravaistype.(1:230, 3), normalize=true)` returns only 14 distinct types, rather
-than 15.
+- **`normalize`:** If the centering type associated with `sgnum` is `'A'`, we can choose
+  (depending on the keyword argument `normalize`, defaulting to `false`) to "normalize" to
+  the centering type `'C'`, since the difference between `'A'` and `'C'` centering only
+  amounts to a basis change.
+  With `normalize=true` we then have only the canonical 14 Bravais type, i.e. 
+  `unique(bravaistype.(1:230, 3), normalize=true)` returns only 14 distinct types, rather
+  than 15.
 
-This only affects space groups 38-41 (normalizing their conventional Bravais types from
-`"oA"` to `"oC"`).
+  This only affects space groups 38-41 (normalizing their conventional Bravais types from
+  `"oA"` to `"oC"`).
 """
 function bravaistype(sgnum::Integer, D::Integer=3; normalize::Bool=false)
     @boundscheck boundscheck_sgnum(sgnum, D)
