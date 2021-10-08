@@ -33,8 +33,8 @@ end
 
 # Check basis dimension of spinless, time-reversal invariant band representations
 # using Table 2 of Po, Watanabe, & Vishwanath Nature Commun 8, 50 (2017).
-@testset "Band structure dimen. (TR invar., spinless)" begin
-    table4 = Vector{Int64}(undef,230)
+@testset "Band structure dimension (TR invar., spinless)" begin
+    table4 = Vector{Int64}(undef, 230)
     table4[[1, 4, 7, 9, 19, 29, 33, 76, 78, 144, 145, 169, 170]] .= 1
     table4[[8, 31, 36, 41, 43, 80, 92, 96, 110, 146, 161, 198]] .= 2
     table4[[5, 6, 18, 20, 26, 30, 32, 34, 40, 45, 46, 61, 106, 109, 151, 152, 153, 154, 159, 160, 171, 172, 173, 178, 179, 199, 212, 213]] .= 3

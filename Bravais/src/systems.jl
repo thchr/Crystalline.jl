@@ -106,9 +106,9 @@ For primitive basis vectors, the crystal system can be further reduced into 5 Br
 in 2D and 14 in 3D (see [`@bravaistype`](@ref)).
 
 [^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
-         3.1.2.1 and 3.1.2.2. (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
+         3.1.2.1 and 3.1.2.2 (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
 
-[^ITA5]: T. Hahn, International Tables of Crystallography, Vol. A, 5th edition (2005).
+[^ITA5]: T. Hahn, International Tables of Crystallography, Vol. A, 5th ed. (2005).
 """
 function crystalsystem(Rs::DirectBasis{D}) where D
     if D == 1

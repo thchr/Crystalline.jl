@@ -1,6 +1,8 @@
-# Bravais types and basis systems
+# Bravais.jl
 
-## Bravais.jl
+Bravais types, basis systems, and transformations between conventional and primitive settings.
+
+## API
 
 ```@meta
 CurrentModule = Bravais
@@ -9,8 +11,11 @@ CurrentModule = Bravais
 ```@docs
 crystal
 crystalsystem
-directbasis
 bravaistype
+centering
+DirectBasis
+ReciprocalBasis
+directbasis
 reciprocalbasis
 primitivebasismatrix
 transform(::DirectBasis, ::AbstractMatrix{<:Real})

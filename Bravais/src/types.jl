@@ -1,14 +1,18 @@
 # --- DirectBasis and ReciprocalBasis for crystalline lattices ---
 """
     AbstractBasis <: StaticVector{D, SVector{D,Float64}}
+
+Abstract supertype of a `D`-dimensional basis in `D`-dimensional space.
 """
 abstract type AbstractBasis{D} <: StaticVector{D, SVector{D,Float64}} end
-for T in (:DirectBasis, :ReciprocalBasis)
+for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "reciprocal"))
     @eval begin
         @doc """
             $($T){D} <: AbstractBasis{D}
 
-        - `vecs::SVector{D, SVector{D,Float64}}`
+        A wrapper type over `D` distinct `D`-dimensional vectors (given as a
+        `SVector{D, SVector{D,Float64}}`), defining a lattice basis in $($(space_type))
+        space.
         """
         struct $T{D} <: AbstractBasis{D}
             vecs::SVector{D, SVector{D,Float64}}
