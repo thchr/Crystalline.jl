@@ -97,7 +97,8 @@ The setting choice for the primitive cell implied by the returned ``\mathbf{P}``
 widely adopted Cracknell-Davies-Miller-Love (CDML) convention.[^CDML]
 This convention is explicated e.g. in Table 2 of [^Aroyo] (or, alternatively, can be
 inferred from Tables 1.5.4.1 and 1.5.4.2 of [^ITB2]) and is followed e.g. on the Bilbao
-Crystallographic Server[^BCS] and in the CDML reference work on space group irreps.[^CDML]
+Crystallographic Server[^BCS], in the CDML reference work on space group irreps[^CDML], and
+in the C library `spglib`.[^spglib]
 
 Note that this setting choice is _not_ what is frequently referred to as the "ITA primitive
 setting", from which it differs for hP, hR, and oA Bravais types.
@@ -114,6 +115,11 @@ frequently and more ambiguously, as the crystallographic primitive setting.
           ``(\mathbf{P}^{-1})^{\text{T}}``.
 
 [^ITB2]: Hahn, International Tables of Crystallography, Vol. B, 2nd edition (2001).
+
+[^spglib]: Spglib documentation: [Transformation to the primitive setting]
+           (https://spglib.github.io/spglib/definition.html#transformation-to-the-primitive-cell).
+           Thus, Bravais.jl and [Spglib.jl](https://github.com/singularitti/Spglib.jl)
+           transform to identical primitive settings and are hence mutually compatible.
 """
 @inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
     D∉1:3 && _throw_invaliddim(D)
