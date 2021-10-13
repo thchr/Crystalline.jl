@@ -18,13 +18,9 @@ ReciprocalBasis
 directbasis
 reciprocalbasis
 primitivebasismatrix
-transform(::DirectBasis, ::AbstractMatrix{<:Real})
-transform(::ReciprocalBasis, ::AbstractMatrix{<:Real})
-primitivize(::Bravais.AbstractBasis, ::Integer)
-primitivize(::DirectBasis, ::Char)
-primitivize(::ReciprocalBasis, ::Char)
-conventionalize(::DirectBasis, ::Char)
-conventionalize(::ReciprocalBasis, ::Char)
+transform
+primitivize
+conventionalize
 ```
 
 ## Crystalline.jl extensions of Bravais.jl functions
