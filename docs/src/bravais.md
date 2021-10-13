@@ -15,6 +15,8 @@ bravaistype
 centering
 DirectBasis
 ReciprocalBasis
+DirectPoint
+ReciprocalPoint
 directbasis
 reciprocalbasis
 primitivebasismatrix

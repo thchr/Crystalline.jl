@@ -27,6 +27,8 @@ export crystal,
     reciprocalbasis,
     DirectBasis,
     ReciprocalBasis,
+    DirectPoint,
+    ReciprocalPoint,
     transform,
     primitivize,
     conventionalize
