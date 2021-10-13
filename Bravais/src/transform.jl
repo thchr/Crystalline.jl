@@ -346,7 +346,7 @@ conventionalize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
 Return the conventional direct basis `Rs` corresponding to the input primitive direct basis
 `Rs′`.
 """
-conventionalize(::DirectBasis{D}, ::Union{Char, <:Integer})
+conventionalize(::DirectBasis, ::Union{Char, <:Integer})
 
 @doc """
     conventionalize(Gs′::ReciprocalBasis, cntr_or_sgnum::Union{Char, <:Integer}) --> Gs::typeof(Gs′)
