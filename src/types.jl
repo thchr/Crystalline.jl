@@ -313,6 +313,8 @@ as ``\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r}`` but transforms reciprocal coordin
 [^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th edition (2016):
          Secs. 1.5.1.2 and 1.5.2.1.
 """
+transform(::AbstractVec, ::AbstractMatrix{<:Real})
+
 function transform(kv::KVec{D}, P::AbstractMatrix{<:Real}) where D
     # P maps an "original" reciprocal-space coefficient vector (k₁ k₂ k₃)ᵀ to a transformed
     # coefficient vector (k₁′ k₂′ k₃′)ᵀ = Pᵀ(k₁ k₂ k₃)ᵀ
@@ -351,7 +353,7 @@ function primitivize(v::AbstractVec{D}, cntr::Char) where D
 end
 
 """
-    conventionalize(v′::AbstractVec, cntr::Char)  -->  v::typeof(AbstractVec)
+    conventionalize(v′::AbstractVec, cntr::Char)  -->  v::typeof(v′)
 
 Transforms a primitive coordinate vector `v′` back to a standard conventional basis
 (specified by the centering type `cntr`), returning the conventional coordinate vector `v`.
