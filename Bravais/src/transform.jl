@@ -73,12 +73,14 @@ Return the transformation matrix `P` that transforms a conventional unit cell wi
 
 ## Transformations in direct and reciprocal space
 
+### Bases
+
 The returned transformation matrix ``\mathbf{P}`` transforms a direct-space conventional
 basis ``(\mathbf{a}\ \mathbf{b}\ \mathbf{c})`` to the direct-space primitive basis
 
 ```math
     (\mathbf{a}'\ \mathbf{b}'\ \mathbf{c}') =
-    (\mathbf{a}\ \mathbf{b}\ \mathbf{c})\mathbf{P}
+    (\mathbf{a}\ \mathbf{b}\ \mathbf{c})\mathbf{P}.
 ```
 
 Analogously, ``\mathbf{P}`` transforms a reciprocal-space conventional basis
@@ -86,10 +88,27 @@ Analogously, ``\mathbf{P}`` transforms a reciprocal-space conventional basis
 
 ```math
 (\mathbf{a}^{*\prime}\ \mathbf{b}^{*\prime}\ \mathbf{c}^{*\prime}) =
-(\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)(\mathbf{P}^{-1})^{\text{T}}
+(\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)(\mathbf{P}^{-1})^{\text{T}}.
 ```
-see also [`transform(::DirectBasis, ::AbstractMatrix)`](@ref) and
-[`transform(::ReciprocalBasis, ::AbstractMatrix)`](@ref)).
+
+see also [`transform(::DirectBasis, ::AbstractMatrix{<:Real})`](@ref) and
+[`transform(::ReciprocalBasis, ::AbstractMatrix{<:Real})`](@ref)).
+
+### Coordinates
+
+The coordinates of a point in either direct or reciprocal space, each referred to a basis,
+also transform under ``\mathbf{P}``. Concretely, direct- and reciprocal-space
+conventional points ``\mathbf{r} = (r_1, r_2, r_3)^{\text{T}}`` and
+``\mathbf{k} = (k_1, k_2, k_3)^{\text{T}}``, respectively, transform to a primitive setting
+under ``\mathbf{P}`` according to:
+
+```math
+\mathbf{r}' = \mathbf{P}^{-1}\mathbf{r},\\
+\mathbf{k}' = \mathbf{P}^{\text{T}}\mathbf{k}.
+```
+
+See also [`transform(::DirectPoint, ::AbstractMatrix{<:Real})`](@ref) and
+[`transform(::ReciprocalPoint, ::AbstractMatrix{<:Real})`](@ref)).
 
 ## Setting conventions
 
@@ -231,7 +250,7 @@ end
 @doc raw"""
     transform(r::DirectPoint, P::AbstractMatrix{<:Real})  -->  r′::typeof(r)
 
-Transform a point in direct space `r` ``= (r_1, r_2, r_3)^{\text{T}`` under the
+Transform a point in direct space `r` ``= (r_1, r_2, r_3)^{\text{T}}`` under the
 transformation matrix `P` ``= \mathbf{P}``, returning `r′` ``= (r_1', r_2', r_3')^{\text{T}}
 = \mathbf{P}^{-1}(r_1', r_2', r_3')^{\text{T}}``.
 """
@@ -242,7 +261,7 @@ end
 @doc raw"""
     transform(k::ReciprocalPoint, P::AbstractMatrix{<:Real})  -->  k′::typeof(k)
 
-Transform a point in reciprocal space `k` ``= (k_1, k_2, k_3)^{\text{T}`` under the
+Transform a point in reciprocal space `k` ``= (k_1, k_2, k_3)^{\text{T}}`` under the
 transformation matrix `P` ``= \mathbf{P}``, returning `k′` ``= (k_1', k_2', k_3')^{\text{T}}
 = \mathbf{P}^{\text{T}}(k_1', k_2', k_3')^{\text{T}}``.
 """

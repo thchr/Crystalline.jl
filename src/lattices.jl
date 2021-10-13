@@ -241,7 +241,7 @@ function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) w
     # 𝐤 has a primitive integer-coordinate vector 𝐤′=Pᵀ𝐤 (i.e. kᵢ∈ℕ does not imply kᵢ′∈ℕ).
     # However, since `flat` is derived consistent with the symmetries in a conventional
     # basis, the necessary restrictions will already have been imposed in the creation of
-    # `flat` so that the primivized version will have only integer coefficients (otherwise
+    # `flat` so that the primitivized version will have only integer coefficients (otherwise
     # the lattice would not be periodic in the primitive cell). I.e. we need not worry that
     # the conversion is impossible, so long that we transform to a meaningful basis.
     # The same issue of course isn't relevant for transforming in the reverse direction.
@@ -304,8 +304,7 @@ end
 Given `flat` referred to a primitive basis with centering `cntr`, compute the derived (but
 physically equivalent) lattice `flat′` referred to the associated conventional basis. 
 
-See also the complementary methods
-[`transform(::AbstractFourierLattice, ::AbstractMatrix{<:Real})`](@ref) and
+See also the complementary method
 [`primitivize(::AbstractFourierLattice, ::Char)`](@ref) for additional details.
 """
 function conventionalize(flat::AbstractFourierLattice{D}, cntr::Char) where D
