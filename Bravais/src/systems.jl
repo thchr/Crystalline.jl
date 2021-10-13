@@ -53,7 +53,7 @@ function crystal(a::Real,b::Real,γ::Real)
 end
 
 """
-    crystal(a)   -->  DirectBasis{1}
+    crystal(a)  -->  DirectBasis{1}
     
 Return a one-dimensional crystal with lattice period `a`.
 """

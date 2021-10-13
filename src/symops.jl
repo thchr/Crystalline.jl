@@ -652,17 +652,25 @@ end
 
 
 """
-    primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> SymOperation
+    primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> typeof(op)
 
-Transforms a symmetry operation `op` ``= \\{W|w\\}`` from a conventional cell to a primitive
-cell (specified by its centering character `cntr`), then denoted ``\\{W'|w'\\}``; i.e.
-performs a basis change `op′` ``≡ \\{W'|w'\\} = \\{P|p\\}⁻¹\\{W|w\\}\\{P|p\\}`` where ``P`` and ``p``
-are the basis change matrix and origin shifts, respectively, of the transformation.
+Return a symmetry operation `op′` ``≡ \\{W'|w'\\}`` in a primitive setting, transformed
+from an input symmetry operation `op` ``= \\{W|w\\}`` in a conventional setting.
+The operations ``\\{W'|w'\\}`` and ``\\{W|w\\}`` are related by a transformation
+``\\{P|p\\}`` via (cf. Section 1.5.2.3 of [^ITA6]):
+
+```math
+\\{W'|w'\\} = \\{P|p\\}⁻¹\\{W|w\\}\\{P|p\\}.
+```
+
+where ``P`` and ``p`` are the basis change matrix and origin shifts, respectively.
+The relevant transformation ``\\{P|p\\}`` is inferred from the centering type, as provided
+by `cntr` (see also [`Bravais.centering`](@ref)).
 
 By default, translation parts of `op′`, i.e. ``w'`` are reduced modulo 1 (`modw = true`); to
 disable this, set `modw = false`.
 
-For additional details, see ITA6 Sec. 1.5.2.3, p. 84.
+[^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016).
 """
 function primitivize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
@@ -674,6 +682,15 @@ function primitivize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     end
 end
 
+"""
+    conventionalize(op′::SymOperation, cntr::Char, modw::Bool=true) --> typeof(op)
+
+Return a symmetry operation `op` ``= \\{W|w\\}`` in a conventional setting, transformed
+from an input symmetry operation `op′` ``≡ \\{W'|w'\\}`` in a primitive setting.
+
+See [`primitivize(::SymOperation, ::Char, ::Bool)`](@ref) for description of the centering
+argument `cntr` and optional argument `modw`.
+"""
 function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where D
     if (D == 3 && cntr === 'P') || (D == 2 && cntr === 'p')
         # primitive basis: identity-transform, short circuit
@@ -685,13 +702,13 @@ function conventionalize(op::SymOperation{D}, cntr::Char, modw::Bool=true) where
 end
 
 @doc raw""" 
-    transform(op::SymOperation, P::Matrix{<:Real}, 
-              p::Union{Vector{<:Real}, Nothing}=nothing,
+    transform(op::SymOperation, P::AbstractMatrix{<:Real}, 
+              p::Union{AbstractVector{<:Real}, Nothing}=nothing,
               modw::Bool=true)                           --> SymOperation
 
 Transforms a `op` ``= \{\mathbf{W}|\mathbf{w}\}`` by a rotation matrix `P` and a translation
 vector `p` (can be `nothing` for zero-translations), producing a new symmetry operation 
-`op′` ``= \{\mathbf{W}'|\mathbf{w}'\}`` (see ITA6 Sec. 1.5.2.3):
+`op′` ``= \{\mathbf{W}'|\mathbf{w}'\}`` (cf. Section 1.5.2.3 of [^ITA6])
 
 ```math
 \{\mathbf{W}'|\mathbf{w}'\} = \{\mathbf{P}|\mathbf{p}\}^{-1}\{\mathbf{W}|\mathbf{w}\}
@@ -710,7 +727,10 @@ By default, the translation part of `op′`, i.e. ``\mathbf{w}'``, is reduced to
 ``[0,1)``, i.e. computed modulo 1. This can be disabled by setting `modw = false` (default,
 `modw = true`).
 
-See also [`Bravais.primitivize`](@ref) and [`Bravais.conventionalize`](@ref).
+See also [`Bravais.primitivize(::SymOperation, ::Char, ::Bool)`](@ref) and
+[`Bravais.conventionalize(::SymOperation, ::Char, ::Bool)`](@ref).
+
+[^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016).
 """
 function transform(op::SymOperation{D}, P::AbstractMatrix{<:Real}, 
                    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
