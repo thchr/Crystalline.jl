@@ -161,6 +161,7 @@ function all_centeringtranslations(cntr::Char, Dᵛ::Val{D}=Val(3)) where D
     end
 end
 
+# ---------------------------------------------------------------------------------------- #
 
 """
     reciprocalbasis(Rs)  -->  Gs::ReciprocalBasis{D}
@@ -194,6 +195,10 @@ function reciprocalbasis(Rs::Union{DirectBasis{D},
     return ReciprocalBasis{D}(vecs)
 end
 
+# TODO: Provide a utility to go from ReciprocalBasis -> DirectBasis. Maybe deprecate
+#       `reciprocalbasis` and have a more general function `dualbasis` instead?
+
+# ---------------------------------------------------------------------------------------- #
 
 @doc raw"""
     transform(Rs::DirectBasis, P::AbstractMatrix{<:Real})
@@ -218,86 +223,151 @@ transformation matrix `P` ``= \mathbf{P}``, returning
 (\mathbf{a}^*\ \mathbf{b}^*\ \mathbf{c}^*)(\mathbf{P}^{-1})^{\text{T}}``.
 """
 function transform(Gs::ReciprocalBasis{D}, P::AbstractMatrix{<:Real}) where D
-    # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of untransformed reciprocal
-    # vecs Gᵢ)
+    # Gm′ = Gm*(P⁻¹)ᵀ = Gm*(Pᵀ)⁻¹ (w/ Gm a matrix w/ columns of reciprocal vecs Gᵢ)
     Gm′ = stack(Gs)/P'
     return ReciprocalBasis{D}(ntuple(i->Gm′[:,i], Val(D)))
 end
 
+@doc raw"""
+    transform(r::DirectPoint, P::AbstractMatrix{<:Real})  -->  r′::typeof(r)
 
-""" 
-    primitivize(Vs::AbstractBasis, sgnum::Integer) --> Vs′::typeof(Vs)
-
-Return the primitive `AbstractBasis` `Vs′` associated with the input (a conventional basis
-`Vs` in dimension `D` in a crystal system consistent with space group number `sgnum`).
-The space group number is used to infer the associated centering type which determines the
-required transformation (see also [`centering(::Integer, ::Integer)`](@ref)).
-
-For centering types `'P'` and `'p'`, the conventional and primitive bases coincide.
+Transform a point in direct space `r` ``= (r_1, r_2, r_3)^{\text{T}`` under the
+transformation matrix `P` ``= \mathbf{P}``, returning `r′` ``= (r_1', r_2', r_3')^{\text{T}}
+= \mathbf{P}^{-1}(r_1', r_2', r_3')^{\text{T}}``.
 """
-function primitivize(Vs::AbstractBasis{D}, sgnum::Integer) where D
+function transform(r::DirectPoint{D}, P::AbstractMatrix{<:Real}) where D
+    return DirectPoint{D}(P\parent(r))
+end
+
+@doc raw"""
+    transform(k::ReciprocalPoint, P::AbstractMatrix{<:Real})  -->  k′::typeof(k)
+
+Transform a point in reciprocal space `k` ``= (k_1, k_2, k_3)^{\text{T}`` under the
+transformation matrix `P` ``= \mathbf{P}``, returning `k′` ``= (k_1', k_2', k_3')^{\text{T}}
+= \mathbf{P}^{\text{T}}(k_1', k_2', k_3')^{\text{T}}``.
+"""
+function transform(k::ReciprocalPoint{D}, P::AbstractMatrix{<:Real}) where D
+    return ReciprocalPoint{D}(P'*parent(k))
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+function primitivize(V::Union{AbstractBasis{D}, AbstractPoint{D}}, cntr::Char) where D
+    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
+        return V
+    else
+        V = primitivebasismatrix(cntr, Val(D))
+        return transform(Rs, V)
+    end
+end
+
+function primitivize(V::Union{AbstractBasis{D}, AbstractPoint{D}}, sgnum::Integer) where D
     cntr = centering(sgnum, D)
-    return primitivize(Vs, cntr)
+    return primitivize(V, cntr)
 end
 
-"""
-    primitivize(Rs::DirectBasis, cntr::Char) --> Rs′::DirectBasis
+@doc """ 
+    primitivize(V::Union{AbstractBasis, AbstractPoint}, 
+                cntr_or_sgnum::Union{Char, <:Integer})   -->  V′::typeof(V)
 
-Return the primitive direct basis `Rs′` associated with the input (a conventional direct
-basis `Rs` with centering type `cntr`).
-"""
-function primitivize(Rs::DirectBasis{D}, cntr::Char) where D
-    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Rs
-    else         
-        P = primitivebasismatrix(cntr, Val(D))
-        # Rm′ = Rm*P (w/ Rm a matrix w/ columns of conventional direct basis vecs Rᵢ)
-        return transform(Rs, P)
-    end  
-end
+Return the primitive basis or point `V′` associated with the input conventional
+`AbstractBasis` or `AbstractPoint` `V`.
 
+The assumed centering type is specified by `cntr_or_sgnum`, given either as a centering
+character (`::Char`) or inferred from a space group number (`::Integer`) and the
+dimensionality of `V` (see also [`centering(::Integer, ::Integer)`](@ref)).
 """
-    primitivize(Gs::ReciprocalBasis, cntr::Char) --> Gs′::ReciprocalBasis
+primitivize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
+
+@doc """
+    primitivize(Rs::DirectBasis, cntr_or_sgnum::Union{Char, <:Integer}) --> Rs′::typeof(Rs)
+
+Return the primitive direct basis `Rs′` corresponding to the input conventional direct basis
+`Rs`.
+"""
+primitivize(::DirectBasis, ::Union{Char, <:Integer})
+
+@doc """
+    primitivize(Gs::ReciprocalBasis, cntr_or_sgnum::Union{Char, <:Integer}) --> Gs′::typeof(Gs)
     
-Return the primitive reciprocal basis `Gs′` associated with the input (a conventional
-reciprocal basis `Gs` with centering type `cntr`).
+Return the primitive reciprocal basis `Gs′` corresponding to the input conventional
+reciprocal basis `Gs`.
 """
-function primitivize(Gs::ReciprocalBasis{D}, cntr::Char) where D
-    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Gs
-    else         
-        P = primitivebasismatrix(cntr, Val(D))        
-        return transform(Gs, P)
-    end
-end
+primitivize(::ReciprocalBasis, ::Union{Char, <:Integer})
 
-"""
-    conventionalize(Rs′::DirectBasis, cntr::Char) --> Rs::DirectBasis
+@doc """
+    primitivize(r::DirectPoint, cntr_or_sgnum::Union{Char, <:Integer}) --> r′::typeof(r)
 
-Return the conventional direct basis `Rs` associated with the input (a primitive direct
-basis `Rs′` with centering type `cntr`).
+Return the direct point `r′` with coordinates in a primitive basis, corresponding to
+the input point `r` with coordinates in a conventional basis. 
 """
-function conventionalize(Rs′::DirectBasis{D}, cntr::Char) where D
+primitivize(::DirectPoint, ::Union{Char, <:Integer})
+
+@doc """
+    primitivize(k::ReciprocalPoint, cntr_or_sgnum::Union{Char, <:Integer}) --> k′::typeof(k)
+
+Return the reciprocal point `k′` with coordinates in a primitive basis, corresponding to
+the input point `k` with coordinates in a conventional basis. 
+"""
+primitivize(::ReciprocalPoint, ::Union{Char, <:Integer})
+
+# ---------------------------------------------------------------------------------------- #
+
+function conventionalize(V′::Union{AbstractBasis{D}, AbstractPoint{D}}, cntr::Char) where D
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Rs′
-    else         
+        return V′
+    else
         P = primitivebasismatrix(cntr, Val(D))
-        # Rm = Rm′*P⁻¹ (w/ Rm′ a matrix w/ columns of primitive direct basis vecs Rᵢ′)
-        return transform(Rs′, inv(P)) 
-    end  
-end
-
-"""
-    conventionalize(Gs′::ReciprocalBasis, cntr::Char) --> Gs::ReciprocalBasis
-
-Return the conventional reciprocal basis `Gs` associated with the input (a primitive
-reciprocal basis `Gs′` with centering type `cntr`).
-"""
-function conventionalize(Gs′::ReciprocalBasis{D}, cntr::Char) where D
-    if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
-        return Gs′
-    else         
-        P = primitivebasismatrix(cntr, Val(D))        
-        return transform(Gs′, inv(P))
+        return transform(V′, inv(P))
     end
 end
+
+function conventionalize(V′::Union{AbstractBasis{D}, AbstractPoint{D}}, sgnum::Integer) where D
+    cntr = centering(sgnum, D)
+    return conventionalize(V′, cntr)
+end
+
+@doc """ 
+    conventionalize(V′::Union{AbstractBasis, AbstractPoint}, 
+                    cntr_or_sgnum::Union{Char, <:Integer})    -->  V::typeof(V′)
+
+Return the conventional basis or point `V` associated with the input primitive
+`AbstractBasis` or `AbstractPoint` `V′`.
+
+The assumed centering type is specified by `cntr_or_sgnum`, given either as a centering
+character (`::Char`) or inferred from a space group number (`::Integer`) and the
+dimensionality of `V′` (see also [`centering(::Integer, ::Integer)`](@ref)).
+"""
+conventionalize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
+
+@doc """
+    conventionalize(Rs′::DirectBasis, cntr_or_sgnum::Union{Char, <:Integer}) --> Rs::typeof(Rs′)
+
+Return the conventional direct basis `Rs` corresponding to the input primitive direct basis
+`Rs′`.
+"""
+conventionalize(::DirectBasis{D}, ::Union{Char, <:Integer})
+
+@doc """
+    conventionalize(Gs′::ReciprocalBasis, cntr_or_sgnum::Union{Char, <:Integer}) --> Gs::typeof(Gs′)
+
+Return the conventional reciprocal basis `Gs` corresponding to the input primitive
+reciprocal basis `Gs′`.
+"""
+conventionalize(::ReciprocalBasis, ::Union{Char, <:Integer})
+
+@doc """
+    conventionalize(r′::DirectPoint, cntr_or_sgnum::Union{Char, <:Integer}) --> r::typeof(r′)
+
+Return the direct point `r` with coordinates in a conventional basis, corresponding to the
+input point `r′` with coordinates in a primitive basis.
+"""
+conventionalize(::DirectPoint, ::Union{Char, <:Integer})
+
+@doc """
+    conventionalize(k′::ReciprocalPoint, cntr_or_sgnum::Union{Char, <:Integer}) --> k::typeof(k′)
+
+Return the reciprocal point `k` with coordinates in a conventional basis, corresponding to
+the input point `k′` with coordinates in a primitive basis. 
+"""
+conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
