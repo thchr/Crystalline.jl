@@ -83,7 +83,7 @@ Crystalline.jl is a research package in active development: breaking changes are
 
 If you find this package useful in your reseach, please cite our arXiv paper:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
 
 In addition, please cite any works explicitly referenced in documentation for individual methods that you use.
 
