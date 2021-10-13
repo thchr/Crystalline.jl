@@ -256,8 +256,8 @@ function primitivize(V::Union{AbstractBasis{D}, AbstractPoint{D}}, cntr::Char) w
     if cntr == 'P' || cntr == 'p' # the conventional and primitive bases coincide
         return V
     else
-        V = primitivebasismatrix(cntr, Val(D))
-        return transform(Rs, V)
+        P = primitivebasismatrix(cntr, Val(D))
+        return transform(V, P)
     end
 end
 
