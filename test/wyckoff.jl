@@ -12,7 +12,7 @@ using Crystalline: constant, free
                 g = SiteGroup(sg, wp)
                 @test g isa SiteGroup
 
-                qv = vec(wp)
+                qv = parent(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
                     qv′ = op*qv

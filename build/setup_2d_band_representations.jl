@@ -93,10 +93,10 @@ function reduce_orbits!(orbits::Vector{WyckPos{D}}, cntr::Char,
     orbits′ = primitivize.(orbits, cntr)
     i = 2 # start from second element
     while i ≤ length(orbits)
-        wp′ = vec(orbits′[i])
+        wp′ = parent(orbits′[i])
         was_removed = false
         for j in 1:i-1
-            δᵢⱼ = wp′ - vec(orbits′[j])
+            δᵢⱼ = wp′ - parent(orbits′[j])
             if (iszero(free(δᵢⱼ)) && 
                 all(x->abs(rem(x, 1.0, RoundNearest)) < DEFAULT_ATOL, constant(δᵢⱼ)))
                 # -> means it's equivalent to a previously "greenlit" orbit
@@ -122,7 +122,7 @@ function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckPos{D},
     while i ≤ length(ops) && i ≤ length(orbits)
         wpᵢ = orbits[i]
         opᵢ = ops[i]
-        if ops[i]*vec(wp) ≈ wpᵢ
+        if ops[i]*parent(wp) ≈ wpᵢ
             i += 1 # then ops[i] is indeed a "generator" of wpᵢ
         else
             deleteat!(ops, i)
@@ -158,7 +158,7 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
     # sum over all the (non-centering-equivalent) wyckoff positions/cosets in the orbit 
     χᴳₖ = zero(ComplexF64)
     for (wpα′, gα′) in zip(orbits, gαs)
-        tα′α′ = constant(vec(h*wpα′) - vec(wpα′)) # TODO: <-- explain why we only need constant part here?
+        tα′α′ = constant(parent(h*wpα′) - parent(wpα′)) # TODO: <-- explain why we only need constant part here?
         opᵗ   = SymOperation(-tα′α′)
 
         gα′⁻¹     = inv(gα′)

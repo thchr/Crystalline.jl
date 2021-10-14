@@ -7,17 +7,19 @@ struct WyckPos{D} <: AbstractVec{D}
     letter :: Char
     qv     :: RVec{D} # associated with a single representative
 end
-vec(wp::WyckPos)      = wp.qv
-free(wp::WyckPos)     = free(vec(wp))
-constant(wp::WyckPos) = constant(vec(wp))
+parent(wp::WyckPos)   = wp.qv
+free(wp::WyckPos)     = free(parent(wp))
+constant(wp::WyckPos) = constant(parent(wp))
 
 multiplicity(wp::WyckPos) = wp.mult
 label(wp::WyckPos) = string(multiplicity(wp), wp.letter)
-transform(wp::WyckPos, P::AbstractMatrix{<:Real}) = typeof(wp)(wp.mult, wp.letter, transform(vec(wp), P))
+function transform(wp::WyckPos, P::AbstractMatrix{<:Real})
+    return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
+end
 
 function show(io::IO, ::MIME"text/plain", wp::WyckPos)
     print(io, wp.mult, wp.letter, ": ")
-    show(io, MIME"text/plain"(), vec(wp))
+    show(io, MIME"text/plain"(), parent(wp))
 end
 
 # Site symmetry groups
@@ -49,7 +51,7 @@ wyck(g::SiteGroup) = g.wp
 
 function summary(io::IO, g::SiteGroup)
     print(io, typeof(g), " #", num(g), " at ", label(wyck(g)), " = ")
-    show(io, MIME"text/plain"(), vec(wyck(g)))
+    show(io, MIME"text/plain"(), parent(wyck(g)))
     print(io, " with ", length(g), " operations")
 end
 
@@ -115,7 +117,7 @@ function compose(op::SymOperation{D}, qv::RVec{D}) where D
     return RVec{D}(cnst′, free′)
 end
 function compose(op::SymOperation{D}, wp::WyckPos{D}) where D
-    WyckPos{D}(multiplicity(wp), wp.letter, compose(op, vec(wp)))
+    WyckPos{D}(multiplicity(wp), wp.letter, compose(op, parent(wp)))
 end
 
 (*)(op::SymOperation{D}, qv::RVec{D}) where D = compose(op, qv)
@@ -195,7 +197,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
     siteops  = Vector{SymOperation{D}}(undef, Nsite)
     cosets   = Vector{SymOperation{D}}(undef, Ncoset)
     orbitqvs = Vector{RVec{D}}(undef, Ncoset)
-    qv       = vec(wp)
+    qv       = parent(wp)
     
     # both cosets and site symmetry group contains the identity operation, and the orbit 
     # automatically contains qv; add them outside loop
@@ -312,7 +314,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     maximal = Int[]
     for (idx, g) in enumerate(sitegs)
         wp = wyck(g)
-        v  = vec(wp)
+        v  = parent(wp)
         N  = order(g)
 
         # if `wp` is "special" (i.e. has no "free" parameters), then it must
@@ -331,7 +333,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
             
             wp′_orbit = orbit(g′) # must check for all orbits of wp′ in general
             for wp′′ in wp′_orbit
-                v′ = vec(wp′′)
+                v′ = parent(wp′′)
                 if _can_intersect(v, v′) # `wp′` can "intersect" `wp` and is higher order
                     has_higher_sym_nearby = true
                     break

@@ -47,7 +47,7 @@ function _write_wyckpos_3d(sgnum::Integer)
     wps = crawl_wyckpos_3d(sgnum)
     open((@__DIR__)*"/../data/wyckpos/3d/"*string(sgnum)*".csv", "w+") do io
         for (idx, wp) in enumerate(wps)
-            qstr = strip(string(vec(wp)), ('[',']'))
+            qstr = strip(string(parent(wp)), ('[',']'))
             for repl in ('α'=>'x', 'β'=>'y', 'γ'=>'z', " "=>"")
                 qstr = replace(qstr, repl)
             end

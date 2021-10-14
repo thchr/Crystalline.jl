@@ -17,10 +17,10 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              IndexStyle, size, copy,   # ⤶
              iterate,
              string, isapprox, zero,
-             readuntil, vec, show, summary,
+             readuntil, show, summary,
              *, +, -, ==, ImmutableDict,
              isone, one,
-             convert
+             convert, parent
 import LinearAlgebra: inv
 
 
@@ -65,7 +65,7 @@ export SymOperation,                        # types
        israyrep, kvec,                      # ::LGIrrep
        isspecial, translations,
        dim, parts,                          # ::KVec & RVec
-       vec, irreplabels, klabels, kvecs,    # ::BandRep & ::BandRepSet 
+       irreplabels, klabels, kvecs,         # ::BandRep & ::BandRepSet 
        isspinful
 
 include("show.jl") # custom printing for structs defined in src/types.jl
@@ -88,7 +88,7 @@ export classes, is_abelian
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export get_wycks, WyckPos,
-       multiplicity, vec,
+       multiplicity,
        SiteGroup, orbit, cosets, wyck,
        findmaximal
 
