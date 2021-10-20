@@ -694,7 +694,7 @@ end
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct BandRep <: AbstractVector{Int}
-    wyckpos::String  # Wyckoff position that induces the BR
+    wyckpos::String  # Wyckoff position that induces the BR (TODO: type as `::WyckPos` instead of `::String`)
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
     dim::Int         # Dimension (i.e. # of bands) in band rep

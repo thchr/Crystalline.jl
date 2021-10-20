@@ -21,12 +21,12 @@ Returns the filepath of the saved .jld2 files.
 """
 function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}}}) where D
 
-    savepath = (@__DIR__)*"/../data/lgirreps/"*string(D)*"d"
-    filename_lgs    = savepath*"/littlegroups_data"
-    filename_irreps = savepath*"/irreps_data"
+    savepath = (@__DIR__)*"/../data/irreps/lgs/"*string(D)*"d"
+    filename_lgs    = joinpath(savepath, "littlegroups_data.jld2")
+    filename_irreps = joinpath(savepath, "irreps_data.jld2")
     
-    JLD2.jldopen(filename_lgs*".jld2", "w") do littlegroups_file
-    JLD2.jldopen(filename_irreps*".jld2", "w") do irreps_file
+    JLD2.jldopen(filename_lgs, "w") do littlegroups_file
+    JLD2.jldopen(filename_irreps, "w") do irreps_file
 
     for lgirsd in LGIRS # fixed sgnum: lgirsd has structure lgirsd[klab][iridx]
         sgnum = num(first(lgirsd["Γ"]))
@@ -124,7 +124,7 @@ LGIRS_3D = parselittlegroupirreps()
 # ... ISOTROPY is missing several irreps; we bring those in below, obtained from manual
 # transcription of irreps from Bilbao; script below defines `LGIRS_add` which stores these
 # manual additions (a Dict with `sgnum` keys)
-include(joinpath((@__DIR__), "..", "data/lgirreps/manual_lgirrep_additions.jl"))
+include(joinpath((@__DIR__), "..", "data/irreps/lgs/manual_lgirrep_additions.jl"))
 for (sgnum, lgirsd_add) in LGIRS_add # merge Bilbao additions with ISOTROPY irreps
     merge!(LGIRS_3D[sgnum], lgirsd_add)
 end

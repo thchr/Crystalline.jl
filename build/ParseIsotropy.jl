@@ -44,7 +44,7 @@ parseisoir(T::Type{Complex}) = parseisoir(ComplexF64)   # as input rather than F
 
 function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
     datatag = if T <: Real; "PIR"; elseif T <: Complex; "CIR"; end   
-    io = open((@__DIR__)*"/../data/ISOTROPY/"*datatag*"_data.txt","r") # open file for reading
+    io = open((@__DIR__)*"/../data/misc/ISOTROPY/"*datatag*"_data.txt","r")
 
     irreps = Vector{Vector{SGIrrep3D{T}}}()
     while !eof(io)

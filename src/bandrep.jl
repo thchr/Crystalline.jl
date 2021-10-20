@@ -113,7 +113,8 @@ function bandreps(sgnum::Integer, D::Integer=3;
     D ∉ (1,2,3) && _throw_invaliddim(D)
     paths_str = allpaths ? "allpaths" : "maxpaths"
     brtype_str = timereversal ? "elementaryTR" : "elementary"
-    filename = (@__DIR__)*"/../data/bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
+    filename = joinpath(DATA_DIR, 
+                        "bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv")
     open(filename) do io
         BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
     end 

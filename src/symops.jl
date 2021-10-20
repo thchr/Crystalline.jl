@@ -20,12 +20,12 @@ end
     read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
 
 Obtains the symmetry operations in xyzt format for a given space group number `sgnum` by
-reading from .csv files in `data/sgops/`; see `spacegroup` for additional details.
+reading from .csv files in `data/operations/sgs/`; see `spacegroup` for additional details.
 """
 function read_sgops_xyzt(sgnum::Integer, D::Integer)
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
-    filepath = (@__DIR__)*"/../data/sgops/"*string(D)*"d/"*string(sgnum)*".csv"
+    filepath = joinpath(DATA_DIR, "operations/sgs/"*string(D)*"d/"*string(sgnum)*".csv")
 
     return readlines(filepath)
 end
@@ -33,7 +33,7 @@ end
 function read_sggens_xyzt(sgnum::Integer, D::Integer)
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
-    filepath = (@__DIR__)*"/../data/generators/sgs/"*string(D)*"d/"*string(sgnum)*".csv"
+    filepath = joinpath(DATA_DIR, "generators/sgs/"*string(D)*"d/"*string(sgnum)*".csv")
 
     return readlines(filepath)
 end

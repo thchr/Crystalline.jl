@@ -164,7 +164,7 @@ end
 
 
 function __crawl_and_write_3d_pgirreps()
-    savepath = (@__DIR__)*"/../data/pgirreps/3d/"
+    savepath = (@__DIR__)*"/../data/irreps/pgs/3d/"
 
 
     # we only save the point group irreps.
@@ -180,8 +180,9 @@ function __crawl_and_write_3d_pgirreps()
 
             # ==== save irreps ====
             # we do not save the point group operations anew; they are already stored in 
-            # "data/pgops/..."; note that we explicitly checked the sorting and equivalence 
-            # of operations when pgirs was crawled above (cf. flag `consistency_checks=true`)
+            # "data/operations/pgs/..."; note that we explicitly checked the sorting and
+            # equivalence of operations when pgirs was crawled above (cf. flag
+            # `consistency_checks=true`)
             unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
             irreps_file[unmangled_pgiuc*"/matrices"]  = matrices
             irreps_file[unmangled_pgiuc*"/realities"] = Integer.(realities)

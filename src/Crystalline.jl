@@ -130,14 +130,14 @@ export bandreps, matrix, classification, basisdim
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
 # - optional code-loading, using Requires.
-const DATA_DIR = dirname(@__DIR__)*"/data"
+const DATA_DIR = joinpath(dirname(@__DIR__), "data")
 function __init__()
     # Open LGIrrep and LittleGroup data files for read access on package load (this saves
     # us a lot of time, compared to doing `jldopen` each time we need to e.g. call 
     # `get_lgirreps`, where the time for opening/closing would otherwise dominate)
-    global LGIRREPS_JLDFILES = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/lgirreps/$(D)d/irreps_data.jld2", "r")       for D in (1,2,3))...)
-    global LGS_JLDFILES      = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/lgirreps/$(D)d/littlegroups_data.jld2", "r") for D in (1,2,3))...)
-    global PGIRREPS_JLDFILE  = JLD2.jldopen(DATA_DIR*"/pgirreps/3d/irreps_data.jld2", "r") # only has 3D data; no need for Dict
+    global LGIRREPS_JLDFILES = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/irreps_data.jld2", "r")       for D in (1,2,3))...)
+    global LGS_JLDFILES      = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/littlegroups_data.jld2", "r") for D in (1,2,3))...)
+    global PGIRREPS_JLDFILE  = JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r") # only has 3D data; no need for Dict
     # ensure we close files on exit
     atexit(() -> foreach(jldfile -> close(jldfile), values(LGIRREPS_JLDFILES)))
     atexit(() -> foreach(jldfile -> close(jldfile), values(LGS_JLDFILES)))

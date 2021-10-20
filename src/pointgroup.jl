@@ -79,7 +79,7 @@ function read_pgops_xyzt(iuclab::String, D::Integer)
     @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
     @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
-    filepath = (@__DIR__)*"/../data/pgops/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
+    filepath = joinpath(DATA_DIR, "operations/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
 
     return readlines(filepath)
 end
@@ -88,7 +88,7 @@ function read_pggens_xyzt(iuclab::String, D::Integer)
     @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
     @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
-    filepath = (@__DIR__)*"/../data/generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv"
+    filepath = joinpath(DATA_DIR, "generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
 
     return readlines(filepath)
 end

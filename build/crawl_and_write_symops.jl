@@ -44,11 +44,11 @@ function _stripnum(s)
 end
  
 # ---------------------------------------------------------------------------------------- #
-## Use crawling functions & write information to `/data/`
+## Use crawling functions & write information to `/data/operations/sgs/3d/`
 
 for sgnum in 1:230
     sgops_str = crawl_sgops_xyzt(sgnum)
-    filename = (@__DIR__)*"/../data/sgops/3d/"*string(sgnum)*".csv"
+    filename = (@__DIR__)*"/../data/operations/sgs/3d/"*string(sgnum)*".csv"
     open(filename; write=true, create=true, truncate=true) do io
         foreach(str -> write(io, str, '\n'), sgops_str)
     end 

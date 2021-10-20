@@ -127,7 +127,7 @@ const CORNERCASES_SUBSUPER_NORMAL_SGS = Crystalline.ImmutableDict(
 )
 
 # Transformation matrices from CDML to ITA settings
-include((@__DIR__)*"/../data/transformation_matrices_CDML2ITA.jl") # ⇒ defines TRANSFORMS_CDML2ITA::ImmutableDict 
+include(joinpath(DATA_DIR, "misc/transformation_matrices_CDML2ITA.jl")) # ⇒ defines TRANSFORMS_CDML2ITA::ImmutableDict 
 
 
 # --- FUNCTIONS ---
@@ -278,7 +278,7 @@ function find_holosymmetric_parent(G::SpaceGroup{D}) where D
 
         if !haskey(CORNERCASES_SUBSUPER_NORMAL_SGS, sgnum)
             # Naïve attempt to find a holosymmetric supergroup; this fails in 21 cases:
-            # see data/cornercases_normal_subsupergroup_pairs_with_transformations.jl.
+            # see data/misc/cornercases_normal_subsupergroup_pairs_with_transformations.jl.
             # Basically, this naïve approach assumes that the crystal setting between 
             # G and its supergroup G⁰ agrees: it does not in general.
             for sgnum₀ in HOLOSYMMETRIC_SGNUMS[D]
@@ -309,8 +309,8 @@ function find_holosymmetric_parent(G::SpaceGroup{D}) where D
             # choice of setting: usually, the distinction is ignored.).
             # We manually found the appropriate normal and holosymmetric supergroup by using
             # Bilbao's MINSUP program, along with the appropriate transformation matrix; see
-            # data/cornercases_normal_subsupergroup_pairs_with_transformations.jl and the
-            # constant Tuple `CORNERCASES_SUBSUPER_NORMAL_SGS`.
+            # data/misc/cornercases_normal_subsupergroup_pairs_with_transformations.jl and
+            # the constant Tuple `CORNERCASES_SUBSUPER_NORMAL_SGS`.
             # So far only checked for 3D.
             sgnum₀, P₀, p₀ = CORNERCASES_SUBSUPER_NORMAL_SGS[sgnum]
 
@@ -560,7 +560,7 @@ For convenience we later write the results of this function to constants
 """
 function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     # prepare for loading csv files into ImmutableDict
-    baseloadpath = (@__DIR__)*"/../data/CDML_RepresentationDomainSpecialKPoints_"
+    baseloadpath = (@__DIR__)*"/../data/misc/CDML_RepresentationDomainSpecialKPoints_"
     kwargs = (header=["kᴮ_num", "kᴮ", "R", "kᴬ"], comment="#", delim=", ",
               ignoreemptylines=true, types=[Int64, String, Int64, String])
 

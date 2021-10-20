@@ -82,7 +82,7 @@ julia> wps = get_wycks(16, 2)
       [Z. Kristallogr. **221**, 15-27 (2006)](https://doi.org/0.1524/zkri.2006.221.1.15)
 """
 function get_wycks(sgnum::Integer, ::Val{D}=Val(3)) where D
-    strarr = open((@__DIR__)*"/../data/wyckpos/$(D)d/"*string(sgnum)*".csv") do io
+    strarr = open(joinpath(DATA_DIR, "wyckpos/$(D)d/"*string(sgnum)*".csv")) do io
         DelimitedFiles.readdlm(io, '|', String, '\n')
     end
     mults   = parse.(Int, @view strarr[:,1])

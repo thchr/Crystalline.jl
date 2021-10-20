@@ -119,18 +119,3 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
 
     return Ps_list, τs_list, realities_list, cdmls_list
 end
-
-
-# old attempt at trying to have the data files open all the time, whenever the 
-# module is called, and then closed afterwards. Ultimately, this only worked 
-# rather sporadically and seemed quite buggy (though it was faster, since
-# we didn't have to open the file every time we wanted to read from it (which,
-# apparently, is quite expensive in JLD and JLD2))
-# we want to keep the irrep files open whenever Crystalline is brought into play
-# otherwise, we have to pay a large price to locate it etc.
-#= 
-   const IRREPS_DATA_FILE_3D = JLD2.jldopen((@__DIR__)*"/../data/lgirreps/3d/irreps_data.jld2", "r")
-   atexit(()->close(IRREPS_DATA_FILE_3D))
-   const LGS_DATA_FILE_3D = JLD2.jldopen((@__DIR__)* "/../data/lgirreps/3d/littlegroups_data.jld2", "r")
-   atexit(()->close(LGS_DATA_FILE_3D))
-=#
