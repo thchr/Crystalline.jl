@@ -57,12 +57,12 @@ function angles(Rs::AbstractBasis{D}) where D
 end
 
 """
-    stack(Vs::AbstractBasis{D}) where D
+    stack(Vs::AbstractBasis)
 
 Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e. the matrix whose
 columns are the basis vectors in `Vs`. 
 """
-stack(Vs::AbstractBasis{D}) where D = reduce(hcat, parent(Vs))
+stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
 # TODO: At some point, this should hopefully no longer be necessary to do manually (and
 # `stack` may end up exported by Base): https://github.com/JuliaLang/julia/issues/21672
 
