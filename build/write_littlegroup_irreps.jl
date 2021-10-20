@@ -114,8 +114,8 @@ include("setup_2d_littlegroup_irreps.jl") # defines the variable LGIRS_2D′
 # initialization of Crystalline - before writing new content to them; to that end, we simply
 # close the files below (make sure you don't have Crystalline loaded in another session
 # though..!))
-foreach(jldfile -> close(jldfile), values(Crystalline.LGIRREPS_JLDFILES))
-foreach(jldfile -> close(jldfile), values(Crystalline.LGS_JLDFILES))
+foreach(jldfile -> close(jldfile[]), Crystalline.LGIRREPS_JLDFILES)
+foreach(jldfile -> close(jldfile[]), Crystalline.LGS_JLDFILES)
 
 # 3D (from ISOTROPY)
 include(joinpath((@__DIR__), "ParseIsotropy.jl")) # load the ParseIsotropy module

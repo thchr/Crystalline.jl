@@ -169,7 +169,7 @@ end
 # --- POINT GROUP IRREPS ---
 # loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
 function _load_pgirreps_data(iuclab::String)
-    jldgroup = PGIRREPS_JLDFILE[unmangle_pgiuclab(iuclab)] 
+    jldgroup = PGIRREPS_JLDFILE[][unmangle_pgiuclab(iuclab)] 
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]

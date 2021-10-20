@@ -130,18 +130,33 @@ export bandreps, matrix, classification, basisdim
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
 # - optional code-loading, using Requires.
+
+# store the opened jldfiles in `Ref{..}`s for type-stability's sake (need `Ref` since we
+# need to mutate them in `__init__` but cannot use `global const` in a function, cf.
+# https://github.com/JuliaLang/julia/issues/13817)
+const LGIRREPS_JLDFILES = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
+const LGS_JLDFILES      = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
+const PGIRREPS_JLDFILE  = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
+
 const DATA_DIR = joinpath(dirname(@__DIR__), "data")
+
 function __init__()
-    # Open LGIrrep and LittleGroup data files for read access on package load (this saves
-    # us a lot of time, compared to doing `jldopen` each time we need to e.g. call 
-    # `get_lgirreps`, where the time for opening/closing would otherwise dominate)
-    global LGIRREPS_JLDFILES = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/irreps_data.jld2", "r")       for D in (1,2,3))...)
-    global LGS_JLDFILES      = ImmutableDict((D=>JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/littlegroups_data.jld2", "r") for D in (1,2,3))...)
-    global PGIRREPS_JLDFILE  = JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r") # only has 3D data; no need for Dict
+    # open `LGIrrep` and `LittleGroup` data files for read access on package load (this
+    # saves a lot of time compared to `jldopen`ing each time we call e.g. `get_lgirreps`,
+    # where the time for opening/closing otherwise dominates)
+    for D in (1,2,3)
+        global LGIRREPS_JLDFILES[D][] =
+            JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/irreps_data.jld2", "r")
+        global LGS_JLDFILES[D][] =
+            JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/littlegroups_data.jld2", "r")
+    end
+    global PGIRREPS_JLDFILE[] = # only has 3D data; no need for tuple over dimensions
+            JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r")
+
     # ensure we close files on exit
-    atexit(() -> foreach(jldfile -> close(jldfile), values(LGIRREPS_JLDFILES)))
-    atexit(() -> foreach(jldfile -> close(jldfile), values(LGS_JLDFILES)))
-    atexit(() -> close(PGIRREPS_JLDFILE))
+    atexit(() -> foreach(jldfile -> close(jldfile[]), LGIRREPS_JLDFILES))
+    atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
+    atexit(() -> close(PGIRREPS_JLDFILE[]))
 
     # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
     @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
