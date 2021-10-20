@@ -12,7 +12,7 @@ const ORIGIN_MARKER_OPTS = (marker="o", markerfacecolor="white", markeredgecolor
 
 function plot(Rs::AbstractBasis{D}, 
               cntr::SVector{D, <:Real}=zeros(SVector{D, Float64}),
-              ax=plt.figure().gca(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
+              ax=plt.axes(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
 
     Rs′ = Rs .+ Ref(cntr) # basis vectors translated by cntr
     
@@ -46,7 +46,7 @@ function plot(Rs::AbstractBasis{D},
     ax.set_xlabel("x"); ax.set_ylabel("y")
     # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474); 
     # FIXME: may raise an error in later matplotlib releases
-    ax.set_aspect("equal", adjustable="box")
+    # ax.set_aspect("equal", adjustable="box")
     return ax
 end
 
@@ -101,7 +101,7 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
     else
         fig.clf()
     end
-    ax = fig.gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
+    ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
 
     if D == 2
     # convert to a cartesian coordinate system rather than direct basis of Ri
@@ -247,10 +247,10 @@ end
 
 # ::KVec ----------------------------------------------------------------------------------
 
-# Plotting a single `KVec`
-function plot(kv::KVec, 
-              ax=plt.figure().gca(projection = dim(kv)==3 ? (using3D(); "3d") : "rectilinear"))   
-    D = dim(kv)
+# Plotting a single `KVec` or `RVec`
+function plot(kv::AbstractVec{D}, 
+              ax=plt.axes(projection = D==3 ? (using3D(); "3d") : "rectilinear")) where D
+
     freeαβγ = freeparams(kv)
     nαβγ = count(freeαβγ)
     nαβγ == 3 && return ax # general point/volume (nothing to plot)
@@ -285,12 +285,11 @@ function plot(kv::KVec,
     return ax
 end
 
-# Plotting a vector of `KVec`s
-function plot(kvs::AbstractVector{KVec})
-    D = dim(first(kvs))
-    ax = plt.figure().gca(projection= D==3 ? (using3D(); "3d") : "rectilinear")
-    for kv in kvs
-        plot(kv, ax)
+# Plotting a vector of `KVec`s or `RVec`s
+function plot(vs::AbstractVector{<:AbstractVec{D}}) where D
+    ax = plt.axes(projection= D==3 ? (using3D(); "3d") : "rectilinear")
+    for v in vs
+        plot(v, ax)
     end
     return ax
 end
