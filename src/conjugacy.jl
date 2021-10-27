@@ -6,8 +6,8 @@ Return the conjugacy classes of a group ``G`` defined by symmetry operations `op
 
 ## Definitions
 Two elements ``a`` and ``b`` in ``G`` are considered conjugate if there exists a ``g ∈ G``
-such that ``gag^{-1} = b``. This defines an equivalence relation ``\\tilde``, i.e., we say
-that ``a \\tilde b`` if ``a`` and ``b`` are conjugate.
+such that ``gag^{-1} = b``. This defines an equivalence relation ``\\sim``, i.e., we say
+that ``a \\sim b`` if ``a`` and ``b`` are conjugate.
 The conjugacy classes of ``G`` are the distinct equivalence classes that can be identified
 under this equivalence relation, i.e. the grouping of ``G`` into subsets that are equivalent
 under conjugacy.
