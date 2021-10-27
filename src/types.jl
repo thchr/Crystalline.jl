@@ -54,14 +54,31 @@ rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for t
 translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly needed for type-stability    (returns an SVector{D,...})
 
 dim(::SymOperation{D}) where D = D
-function (==)(op1::SymOperation, op2::SymOperation)
-    if dim(op1) == dim(op2) && op1.rotation == op2.rotation && translation(op1) == translation(op2)
-        return true
-    else
-        return false
-    end
+function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
+    return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
-isapprox(op1::SymOperation, op2::SymOperation; kwargs...)= (dim(op1) == dim(op2) && isapprox(matrix(op1), matrix(op2); kwargs...))
+function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
+            cntr::Char = D == 3 ? 'P' : 'p', modw::Bool=true;
+            kwargs...) where D
+
+    # check rotation part 
+    isapprox(rotation(op1), rotation(op2); kwargs...) || return false
+
+    # check translation part
+    if (D == 3 && cntr != 'P') || (D == 2 && cntr != 'p') # 1D is always primitive
+        P = primitivebasismatrix(cntr, Val(D))
+        t1 = transform_translation(op1, P, nothing, modw)
+        t2 = transform_translation(op2, P, nothing, modw)
+    else
+        t1 = translation(op1)
+        t2 = translation(op2)
+        if modw
+            t1 = reduce_translation_to_unitrange(t1)
+            t2 = reduce_translation_to_unitrange(t2)
+        end
+    end
+    return isapprox(t1, t2; kwargs...)
+end
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
 one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),
@@ -271,27 +288,35 @@ function (==)(v1::AbstractVec, v2::AbstractVec)
 end
 
 """
-    isapprox(kv1::KVec, kv2::KVec[, cntr::Char]; kwargs...) --> Bool
+    isapprox(v1::AbstractVec, v2::AbstractVec[, cntr::Char]; kwargs...) --> Bool
                                                             
-Compute approximate equality of two `KVec`s `k1` and `k2` modulo any primitive reciprocal
-lattice vectors. To ensure that primitive reciprocal lattice vectors are used, the centering
-type `cntr` (see [`Bravais.centering`](@ref)) must be given (the dimensionality is inferred
+Compute approximate equality of two `AbstractVec`s `v1` and `v2` modulo any primitive
+lattice vectors. If `v1` and `v2` are in the conventional setting of a primitive lattice,
+the centering type `cntr` (see [`Bravais.centering`](@ref)) must be given to ensure that 
+the relevant (primitive) lattice vectors are referenced (the dimensionality is inferred
 from `kv1` and `kv2`).
+
 Optionally, keyword arguments (e.g., `atol` and `rtol`) can be provided, to be forwarded
 to `Base.isapprox`.
 
 If `cntr` is not provided, the comparison will not account for equivalence by primitive
-reciprocal lattice vectors.
+lattice vectors.
 """
-function isapprox(kv1::KVec{D}, kv2::KVec{D}, cntr::Char; kwargs...) where D
-    k₀1, kabc1 = parts(kv1); k₀2, kabc2 = parts(kv2)  # ... unpacking
+function isapprox(v1::T, v2::T, cntr::Char = D == 3 ? 'P' : 'p';
+                  kwargs...) where T<:AbstractVec{D} where D
+    v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
 
-    # check if k₀ ≈ k₀′ differ by a _primitive_ 𝐆 vector
-    diff = primitivebasismatrix(cntr, Val(D))' * (k₀1 .- k₀2)
-    kbool = all(el -> isapprox(el, round(el); kwargs...), diff) 
-    # check if kabc1 ≈ kabc2; no need to check for difference by a 
-    # 𝐆 vector, since kabc is in interior of BZ
-    abcbool = isapprox(kabc1, kabc2; kwargs...)
+    # check if v₀ ≈ v₀′ differ by a _primitive_ lattice vector
+    δ₀ = v₀1 - v₀2
+    if (D == 3 && cntr != 'P') || (D == 2 && cntr != 'p') # 1D is always primitive
+        P = primitivebasismatrix(cntr, Val(D))
+        δ₀ = T === KVec{D} ? P' * δ₀ :
+             T === RVec{D} ? P \ δ₀  : error("`isapprox` is not implemented for types $T")
+    end
+    kbool = all(x -> isapprox(x, round(x); kwargs...), δ₀)
+    # check if `vabc1 ≈ vabc2`; no need to check for difference by a lattice vector, since
+    # `vabc1` and `vabc2` are in the interior of the BZ
+    abcbool = isapprox(vabc1, vabc2; kwargs...)
 
     return kbool && abcbool
 end

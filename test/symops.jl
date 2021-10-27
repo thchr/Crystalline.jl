@@ -84,6 +84,20 @@ using Crystalline, Test
         cartRs_from_pRs = Crystalline.cartesianize(psg, pRs)
 
         @test all(isapprox.(cartRs_from_cRs, cartRs_from_pRs, atol=1e-12))
+
+        # `isapprox` with centering
+        op  = S"-y+2/3,x-y+1/3,z+1/3" # {3₀₀₁⁺|⅔,⅓,⅓} (in a rhombohedral system)
+        op′ = op * SymOperation{3}(Bravais.centeringtranslation('R',Val(3)))
+        @test isapprox(op, op′, 'R', true)
+        @test !isapprox(op, op′, 'P', true)
+
+        # `isapprox` with `modw = false`
+        op = S"x,-y,z"
+        op′ = S"x-3,-y+10,z-5"
+        @test !isapprox(op, op′, 'I', false)
+        @test !isapprox(op, op′, 'P', false)
+        @test isapprox(op, op′, 'P', true)
+        @test isapprox(op, op′, 'I', true)
     end
 
     @testset "Groups created from generators" begin # (`generate` default sorts by `seitz`)

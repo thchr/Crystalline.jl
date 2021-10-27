@@ -978,7 +978,7 @@ function isnormal(opsᴳ::AbstractVector{SymOperation{D}},
         for h in opsᴴ
             # check if ghg⁻¹ ∉ G
             h′ = g*h*g⁻¹
-            if !isapproxin(h′, opsᴴ, atol=Crystalline.DEFAULT_ATOL)
+            if !isapproxin(h′, opsᴴ; atol=Crystalline.DEFAULT_ATOL)
                 if verbose
                     println("\nNormality-check failure:\n",
                             "Found h′ = ", seitz(h′), "\n",
@@ -1016,6 +1016,7 @@ function generate(gens::AbstractVector{SymOperation{D}};
     else
         collect(gens)
     end
+    unique!(ops)
     
     while true
         Nₒₚ = length(ops)
@@ -1023,7 +1024,7 @@ function generate(gens::AbstractVector{SymOperation{D}};
         for opᵢ in (@view ops[OneTo(Nₒₚ)]) 
             for opⱼ in (@view ops[OneTo(Nₒₚ)])
                 opᵢⱼ = compose(opᵢ, opⱼ, modτ)
-                # fixme: there are some _really_ strange allocations going on here, related
+                # FIXME: there are some _really_ strange allocations going on here, related
                 #        to the interplay between the `∉` and `push!`ing operations here; no 
                 #        clue why this happens... some sort of stack/heap conflict?
                 if !isapproxin(opᵢⱼ, ops; atol=DEFAULT_ATOL)
