@@ -118,15 +118,15 @@ using Crystalline, Test
         @test sort(generate(gens), by=xyzt) ≈ sort(sg, by=xyzt)
 
         # generators do not specify a finite group under "non-modulo" composition
-        @test_throws OverflowError (generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50))
+        @test_throws OverflowError generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50)
     end
 
     @testset "Generators" begin
         for (Dᵛ, gtype) in ((Val(1), SpaceGroup{1}), (Val(2), SpaceGroup{2}), (Val(3), SpaceGroup{3}))
             D = typeof(Dᵛ).parameters[1]
             for sgnum in 1:MAX_SGNUM[D]
-                ops1 = sort(spacegroup(sgnum, Dᵛ), by=xyzt)
-                ops2 = sort(generate(generators(sgnum, gtype)), by=xyzt)
+                ops1 = sort!(operations(spacegroup(sgnum, Dᵛ)), by=xyzt)
+                ops2 = sort!(operations(generate(generators(sgnum, gtype))), by=xyzt)
                 @test ops1 ≈ ops2
             end
         end

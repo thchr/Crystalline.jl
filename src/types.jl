@@ -58,14 +58,14 @@ function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
 function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
-            cntr::Char = D == 3 ? 'P' : 'p', modw::Bool=true;
+            cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
             kwargs...) where D
 
     # check rotation part 
     isapprox(rotation(op1), rotation(op2); kwargs...) || return false
 
     # check translation part
-    if (D == 3 && cntr != 'P') || (D == 2 && cntr != 'p') # 1D is always primitive
+    if cntr !== nothing
         P = primitivebasismatrix(cntr, Val(D))
         t1 = transform_translation(op1, P, nothing, modw)
         t2 = transform_translation(op2, P, nothing, modw)
@@ -275,50 +275,55 @@ function zero(::Type{T}) where T<:AbstractVec{D} where D
 end
 zero(v::AbstractVec) = zero(typeof(v))
 
-# `isapprox` without considerations of lattice-vectors
-function isapprox(v1::AbstractVec, v2::AbstractVec; kwargs...)
-    cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
-       
-    return isapprox(cnst1, cnst2; kwargs...) && isapprox(free1, free2; kwargs...)
-end
-function (==)(v1::AbstractVec, v2::AbstractVec)
+function (==)(v1::T, v2::T) where T<:AbstractVec
     cnst1, free1 = parts(v1); cnst2, free2 = parts(v2)  # ... unpacking
        
     return cnst1 == cnst2 && free1 == free2
 end
 
 """
-    isapprox(v1::AbstractVec, v2::AbstractVec[, cntr::Char]; kwargs...) --> Bool
+    isapprox(v1::AbstractVec, v2::AbstractVec[, cntr::Char, modw::Bool]; kwargs...) --> Bool
                                                             
-Compute approximate equality of two `AbstractVec`s `v1` and `v2` modulo any primitive
-lattice vectors. If `v1` and `v2` are in the conventional setting of a primitive lattice,
-the centering type `cntr` (see [`Bravais.centering`](@ref)) must be given to ensure that 
-the relevant (primitive) lattice vectors are referenced (the dimensionality is inferred
-from `kv1` and `kv2`).
+Compute approximate equality of two `AbstractVec`s `v1` and `v2`, possibly modulo lattice
+vectors.
 
-Optionally, keyword arguments (e.g., `atol` and `rtol`) can be provided, to be forwarded
-to `Base.isapprox`.
+If `v1` and `v2` are in the conventional setting of a non-primitive lattice, the centering
+type `cntr` (see [`Bravais.centering`](@ref)) should be given to ensure that the relevant
+(primitive) lattice vectors are used in the comparison.
 
-If `cntr` is not provided, the comparison will not account for equivalence by primitive
-lattice vectors.
+## Optional arguments
+
+- `cntr`: if not provided, the comparison will not account for equivalence by primitive
+  lattice vectors, only equivalence by lattice vectors in the basis of `v1` and `v2`.
+- `modw`: whether vectors that differ by multiples of a lattice vector are considered
+  identical.
+- `kwargs...`: optional keyword arguments (e.g., `atol` and `rtol`) to be forwarded to
+  `Base.isapprox`.
 """
-function isapprox(v1::T, v2::T, cntr::Char = D == 3 ? 'P' : 'p';
+function isapprox(v1::T, v2::T, cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
 
-    # check if v₀ ≈ v₀′ differ by a _primitive_ lattice vector
-    δ₀ = v₀1 - v₀2
-    if (D == 3 && cntr != 'P') || (D == 2 && cntr != 'p') # 1D is always primitive
+    # check if v₀ ≈ v₀′ (possibly modulo a primitive lattice vector if `modw=true`)
+    if cntr !== nothing
         P = primitivebasismatrix(cntr, Val(D))
-        δ₀ = T === KVec{D} ? P' * δ₀ :
-             T === RVec{D} ? P \ δ₀  : error("`isapprox` is not implemented for types $T")
+        v₀1 = T <: KVec ? P' * v₀1 :
+              T <: RVec ? P  \ v₀1 : error("`isapprox` is not implemented for types $T")
+        v₀2 = T <: KVec ? P' * v₀2 :
+              T <: RVec ? P  \ v₀2 : error("`isapprox` is not implemented for types $T")
     end
-    kbool = all(x -> isapprox(x, round(x); kwargs...), δ₀)
+    if modw # allow differing by a primitive lattice vector
+        δ₀ = v₀1 - v₀2
+        all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false
+    else
+        isapprox(v₀1, v₀2; kwargs...) || return false
+    end
+
     # check if `vabc1 ≈ vabc2`; no need to check for difference by a lattice vector, since
     # `vabc1` and `vabc2` are in the interior of the BZ
     abcbool = isapprox(vabc1, vabc2; kwargs...)
 
-    return kbool && abcbool
+    return abcbool
 end
 
 

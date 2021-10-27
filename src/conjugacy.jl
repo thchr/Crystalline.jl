@@ -21,7 +21,7 @@ system, or if `ops` is already reduced to a primitive setting, `cntr` should be 
 
 A single-argument calls to `classes` with `SpaceGroup` or `LittleGroup` types will
 assume that `ops` is provided in a conventional setting, i.e., will forward the method call
-to `classes(ops, centering(ops, dim(ops))`. To avoid this behavior (if `ops` was already
+to `classes(ops, centering(ops, dim(ops)))`. To avoid this behavior (if `ops` was already
 reduced to a primitive setting prior to calling `classes`), `cntr` should be provided
 explicitly as `nothing`.
 """
@@ -59,7 +59,7 @@ function classes(
             # special treatment for cases where we have a space or little group that
             # is not in a primitive setting (but a conventional setting) and might
             # additionally not include "copies" of trivial centering translations among
-            # `ops`; to account for this case, we just create a translated copies of `b`
+            # `ops`; to account for this case, we just create translated copies of `b`
             # over all possible centers and check those against `ops` as well until
             # convergence (TODO: there's probably a much cleaner/more performant way of
             # doing this)
@@ -87,7 +87,7 @@ classes(sg_or_lg::Union{SpaceGroup, LittleGroup}) = classes(sg_or_lg, centering(
 
 # adds `b` to `class` and index of `b` in `ops` to `classified`
 function add_to_class!(classified, class, b, ops)
-    i′ = findfirst(Base.Fix1(≈, b), ops)
+    i′ = findfirst(op -> isapprox(op, b, nothing, false), ops)
     if i′ !== nothing
         # `b` might not exist in `ops` if `ops` refers to a group of reduced symmetry
         # operations (i.e. without centering translation copies) that nevertheless is

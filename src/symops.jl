@@ -952,8 +952,9 @@ function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
 end
 
 """
-    isnormal(opsᴳ::T, opsᴴ::T′; verbose::Bool=false) where T⁽′⁾<:AbstractVector{SymOperation},
-                                                    --> Bool
+    isnormal(opsᴳ::AbstractVector{<:SymOperation},
+             opsᴴ::AbstractVector{<:SymOperation};
+             verbose::Bool=false)                    --> Bool
 
 Determine whether the operations in group ``H`` are normal in the group ``G`` (each with 
 operations `opsᴳ` and `opsᴴ`), in the sense that 
@@ -965,10 +966,9 @@ ghg⁻¹ ∈ H, ∀ g∈G, ∀ h∈H
 Returns a Boolean answer (`true` if normal, `false` if not).
 
 ## Note 
-This compares space groups rather than space group types, i.e. the 
-comparison assumes a matching setting choice between ``H`` and ``G``. To compare space 
-group types with different conventional settings, they must first be transformed
-to a shared setting.
+This compares space groups rather than space group types, i.e. the comparison assumes a
+matching setting choice between ``H`` and ``G``. To compare space group types with
+different conventional settings, they must first be transformed to a shared setting.
 """
 function isnormal(opsᴳ::AbstractVector{SymOperation{D}},
                   opsᴴ::AbstractVector{SymOperation{D}};
@@ -978,7 +978,7 @@ function isnormal(opsᴳ::AbstractVector{SymOperation{D}},
         for h in opsᴴ
             # check if ghg⁻¹ ∉ G
             h′ = g*h*g⁻¹
-            if !isapproxin(h′, opsᴴ; atol=Crystalline.DEFAULT_ATOL)
+            if !isapproxin(h′, opsᴴ, nothing; atol=Crystalline.DEFAULT_ATOL)
                 if verbose
                     println("\nNormality-check failure:\n",
                             "Found h′ = ", seitz(h′), "\n",
@@ -1008,8 +1008,9 @@ Generate a group from a finite set of generators `gens`. Returns a `GenericGroup
   `Nmax` are generated, the method throws an overflow error.
 """
 function generate(gens::AbstractVector{SymOperation{D}};
-                  modτ::Bool=true,
-                  Nmax::Integer=256) where D
+                  cntr::Union{Nothing,Char}=nothing,
+                  modτ::Bool = true,
+                  Nmax::Integer = 256) where D
     ops = if modτ
         [SymOperation{D}(op.rotation,
                          reduce_translation_to_unitrange(translation(op))) for op in gens]
@@ -1027,7 +1028,7 @@ function generate(gens::AbstractVector{SymOperation{D}};
                 # FIXME: there are some _really_ strange allocations going on here, related
                 #        to the interplay between the `∉` and `push!`ing operations here; no 
                 #        clue why this happens... some sort of stack/heap conflict?
-                if !isapproxin(opᵢⱼ, ops; atol=DEFAULT_ATOL)
+                if !isapproxin(opᵢⱼ, ops, cntr, modτ; atol=DEFAULT_ATOL)
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
                     length(ops) > Nmax && return _throw_overflowed_generation()

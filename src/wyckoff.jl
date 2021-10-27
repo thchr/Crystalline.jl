@@ -216,7 +216,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
 
         # Check whether difference between qv and qv′ is a lattice vector: if so, `op` is 
         # isomorphic to a site symmetry operation; if not, to a coset operation.
-        # We check this in the original lattice basis, i.e. do not force  conversion to a
+        # We check this in the original lattice basis, i.e. do not force conversion to a
         # primitive basis. This is consistent with e.g. Bilbao and makes good sense.
         # The caller is of course free to do this themselves (via their choice of basis for
         # the specified `sg` and `wp`).
@@ -232,7 +232,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
 
             # reduce generated Wyckoff representative to coordinate range q′ᵢ∈[0,1)
             qv′′ = RVec(reduce_translation_to_unitrange(constant(qv′)), free(qv′))
-            if any(≈(qv′′), (@view orbitqvs[OneTo(icoset)]))
+            if any(qv->isapprox(qv, qv′′, nothing, false), (@view orbitqvs[OneTo(icoset)]))
                 # ⇒ already included a coset op that maps to this qv′′; don't include twice
                 continue
             end

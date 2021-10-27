@@ -16,8 +16,7 @@ using Crystalline: constant, free
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
                     qv′ = op*qv
-                    @test isapprox(constant(qv), constant(qv′))
-                    @test isapprox(free(qv),     free(qv′))
+                    @test isapprox(qv, qv′, nothing, false)
                 end
 
                 # test that all the constant parts of the positions in the Wyckoff orbit
@@ -29,11 +28,7 @@ using Crystalline: constant, free
 
                 # test that `g` and `cosets(g)` furnishes a left-coset decomposition of `sg`
                 ops = [opʰ*opᵍ for opʰ in cosets(g) for opᵍ in g];
-                @test sort!(seitz.(ops)) == sort!(seitz.(sg))
-                # (the above test is analogous to checking `Set(ops) == Set(sg)`, but the
-                #  `==`-check is not robust due to rounding errors here: unfortunately,
-                #  there isn't currently a Base method for checking approximate equality
-                #  of `Set`s)
+                @test sort!(ops, by=xyzt) ≈ sort(sg, by=xyzt)
             end
         end
     end
