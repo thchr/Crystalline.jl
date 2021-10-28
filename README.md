@@ -8,7 +8,7 @@ This package provides access e.g. to the symmetry operations of crystalline poin
 
 ## Installation
 
-The package is registered in the General registry and can be installed from the `pkg>` prompt (accessed by typing `]` at the Julia REPL) by executing:
+The package is registered in the General registry and can be installed via Julia's package manager from the `pkg>` prompt (accessed by typing `]` at the Julia REPL):
 ```julia
 pkg> add Crystalline
 ```
@@ -38,8 +38,9 @@ SpaceGroup{3} #16 (P222) with 4 operations:
  2₀₁₀
  2₁₀₀
 
-# load a dictionary of small irreps and their little groups for space group #16, indexed by their k-point labels; then inspect the small irreps at the A point
-julia> lgirs = get_lgirreps(16, Val(3));
+# load a dictionary of small irreps and their little groups for space group #16,
+# indexed by their k-point labels; then inspect the small irreps at the A point
+julia> lgirs = get_lgirreps(16, Val(3))
 julia> lgirs["A"]
 LGIrrep{3}: #16 (P222) at A = [α, 0.0, 0.5]
 A₁ ─┬─────────────────────────────────────────────
@@ -57,7 +58,7 @@ A₂ ─┬───────────────────────
     │     -1.0
     └─────────────────────────────────────────────
 
-# compute the character table for the small irreps at the Γ point
+# construct the character table for the small irreps at the Γ point
 julia> CharacterTable(lgirs["Γ"])
 CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┬────────────────
@@ -70,20 +71,20 @@ CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┴────────────────
 ```
 
-Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), physically real irreps (`realify`), transformation between conventional and primitive settings (`primitivize` and `conventionalize`), and Bravais lattice utilities and conventions.
+Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), conjugacy classes (`classes`), group generators (`generators`), physically real irreps (`realify`), and Bravais lattice utilities and conventions (accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais)).
 For a full description of the public API, see the [documentation][docs-dev-url].
 
-## Limitations
+### Current limitations
 At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
 
 ## API stability
-Crystalline.jl is a research package in active development: breaking changes are likely (but we will strive to follow semantic versioning).
+Crystalline.jl is a research package in active development: breaking changes are likely (but will respect semantic versioning).
 
 ## Citation
 
 If you find this package useful in your reseach, please cite our arXiv paper:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267)
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267).
 
 In addition, please cite any works explicitly referenced in documentation for individual methods that you use.
 
