@@ -6,7 +6,7 @@ if !isdefined(Main, :LGIRS′)
     LGIRS′ = parselittlegroupirreps() # parsed explicitly from ISOTROPY's data (see ParseIsotropy)
 end
 if !isdefined(Main, :LGIRS)
-    LGIRS  = get_lgirreps.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files
+    LGIRS  = lgirreps.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files
 end
 
 @testset "Test equivalence of parsed and loaded LGIrreps" begin

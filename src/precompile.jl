@@ -4,13 +4,13 @@
 #               D = 3
 #               for D in 3:-1:2
 #                   spacegroup(MAX_SGNUM[D], Val(D))
-#                   get_lgirreps(MAX_SGNUM[D], Val(D))
+#                   lgirreps(MAX_SGNUM[D], Val(D))
 #                   directbasis(MAX_SGNUM[D], Val(D))
-#                   get_wycks(MAX_SGNUM[D], Val(D))
+#                   wyckoffs(MAX_SGNUM[D], Val(D))
 #                   pointgroup(PGS_IUCs[D][end], Val(D))
 #                   bandreps(MAX_SGNUM[D], D)
-#                   CharacterTable(get_lgirreps(MAX_SGNUM[D], Val(D))["Γ"])
-#                   MultTable(primitivize(get_littlegroups(MAX_SGNUM[D], Val(D))["Γ"]))
+#                   CharacterTable(lgirreps(MAX_SGNUM[D], Val(D))["Γ"])
+#                   MultTable(primitivize(littlegroups(MAX_SGNUM[D], Val(D))["Γ"]))
 #                   conventionalize(primitivize(spacegroup(MAX_SGNUM[D], Val(D)))[end], centering(MAX_SGNUM[D], D))
 #               end
 #               KVec("0,0,1/2"); KVec("0,1/2")
@@ -20,7 +20,7 @@
 #   julia> SnoopCompile.write("src/precompile.jl", pcs[end][end][end])
 #
 # I then manually removed several of the methods that "ping" the on disk (e.g., 
-# `spacegroup`, `get_lgirreps`, `bandreps`, `get_littlegroups`) since they seem to
+# `spacegroup`, `lgirreps`, `bandreps`, `littlegroups`) since they seem to
 # invalidate themselves on package load (they all depend on some global state via the
 # currently non-relocatable files they load data from; maybe they need to be Artifacts to 
 # not do that?). In addition, I manually removed several other precompile statements that

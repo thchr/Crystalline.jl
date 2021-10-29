@@ -21,15 +21,15 @@ struct SiteIrrep{D} <: AbstractIrrep{D}
 end
 
 """
-    get_siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
+    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
 
 Return the site symmetry irreps associated with the provided `SiteGroup`, derived from a
 search over isomorphic point groups.
 """
-function get_siteirreps(siteg::SiteGroup{D}) where D
+function siteirreps(siteg::SiteGroup{D}) where D
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
     pglab = label(parent_pg)
-    pgirs = get_pgirreps(pglab, Val(D))
+    pgirs = pgirreps(pglab, Val(D))
     
     # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
     # .jld files apparently cache accessed content; so if we modify it, we mess with the
@@ -78,7 +78,7 @@ end
 reduce_dict_of_vectors(d::Dict{<:Any, <:Vector}) = reduce_dict_of_vectors(identity, d)
 
 """
-    reduce_orbits!(orbits::Vector{WyckPos}, cntr::Char, conv_or_prim::Bool=true])
+    reduce_orbits!(orbits::Vector{WyckoffPosition}, cntr::Char, conv_or_prim::Bool=true])
 
 Update `orbits` in-place to contain only those Wyckoff positions that are not equivalent
 in a primitive basis (as determined by the centering type `cntr`). Returns the updated
@@ -87,7 +87,7 @@ in a primitive basis (as determined by the centering type `cntr`). Returns the u
 If `conv_or_prim = true` (default), the Wyckoff positions are returned in the original,
 conventional basis; if `conv_or_prim = false`, they are returned in a primitive basis.
 """
-function reduce_orbits!(orbits::Vector{WyckPos{D}}, cntr::Char,
+function reduce_orbits!(orbits::Vector{WyckoffPosition{D}}, cntr::Char,
             conv_or_prim::Bool=true) where D
 
     orbits′ = primitivize.(orbits, cntr)
@@ -115,8 +115,8 @@ end
 # TODO: This is probably pretty fragile and depends on an implicit shared iteration order of
 #       cosets and orbits; it also assumes that wp is the first position in the `orbits`
 #       vector. Seems to be sufficient for now though...
-function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckPos{D}, 
-            orbits::Vector{WyckPos{D}}) where D
+function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckoffPosition{D}, 
+            orbits::Vector{WyckoffPosition{D}}) where D
     wp ≈ first(orbits) || error("implementation depends on a shared iteration order; sorry...")
     i = 1
     while i ≤ length(ops) && i ≤ length(orbits)
@@ -213,7 +213,7 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
                        allpaths::Bool=false, timereversal::Bool=true) where D
 
     # get all the little group irreps that we want to subduce onto
-    lgirsd = get_lgirreps(sgnum, Val(D))
+    lgirsd = lgirreps(sgnum, Val(D))
     allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && (lgirsd = realify(lgirsd))
 
@@ -221,12 +221,12 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
     irdims = reduce_dict_of_vectors(irdim, lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
-    wps    = get_wycks(sgnum, Dᵛ)
+    wps    = wyckoffs(sgnum, Dᵛ)
     sg     = spacegroup(sgnum, Dᵛ)
     sitegs = findmaximal(SiteGroup.(Ref(sg), wps))
     brs    = BandRep[]
     for siteg in sitegs
-        siteirs = get_siteirreps(siteg)
+        siteirs = siteirreps(siteg)
         timereversal && (siteirs = realify(siteirs))
         append!(brs, calc_bandrep.(siteirs, Ref(lgirsd); irlabs=irlabs, irdims=irdims))
     end

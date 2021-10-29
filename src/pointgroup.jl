@@ -179,8 +179,8 @@ end
 
 # 3D
 """
-    get_pgirreps(iuclab::String, ::Val{D}=Val(3)) where D ∈ (1,2,3)
-    get_pgirreps(iuclab::String, D)
+    pgirreps(iuclab::String, ::Val{D}=Val(3)) where D ∈ (1,2,3)
+    pgirreps(iuclab::String, D)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
 as a vector of `PGIrrep{D}`s.
@@ -202,7 +202,7 @@ functionality in an explicit fashion, please cite the original reference [^3].
 [^3]: Elcoro et al., 
       [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
 """
-function get_pgirreps(iuclab::String, ::Val{3}=Val(3))
+function pgirreps(iuclab::String, ::Val{3}=Val(3))
     pg = pointgroup(iuclab, Val(3)) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
@@ -210,7 +210,7 @@ function get_pgirreps(iuclab::String, ::Val{3}=Val(3))
     return PGIrrep{3}.(cdmls, Ref(pg), matrices, Reality.(realities))
 end
 # 2D
-function get_pgirreps(iuclab::String, ::Val{2})
+function pgirreps(iuclab::String, ::Val{2})
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -224,7 +224,7 @@ function get_pgirreps(iuclab::String, ::Val{2})
     return PGIrrep{2}.(cdmls, Ref(pg), matrices, Reality.(realities))
 end
 # 1D
-function get_pgirreps(iuclab::String, ::Val{1})
+function pgirreps(iuclab::String, ::Val{1})
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
@@ -240,13 +240,13 @@ function get_pgirreps(iuclab::String, ::Val{1})
     end
     return PGIrrep{1}.(cdmls, Ref(pg), matrices, REAL)
 end
-get_pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D) # if D ∉ (1,2,3)
-get_pgirreps(iuclab::String, D::Integer)  = get_pgirreps(iuclab, Val(D))
-function get_pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
+pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D) # if D ∉ (1,2,3)
+pgirreps(iuclab::String, D::Integer)  = pgirreps(iuclab, Val(D))
+function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    return get_pgirreps(iuc, Dᵛ)
+    return pgirreps(iuc, Dᵛ)
 end
-get_pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = get_pgirreps(pgnum, Val(D), setting)
+pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = pgirreps(pgnum, Val(D), setting)
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -294,7 +294,7 @@ pointgroup(g) == operations(pg) == operations(pg′)[Iᵖ²ᵍ]
 ## Example
 ```jl
 sgnum = 141
-wp    = get_wycks(sgnum, Val(3))[end] # 4a Wyckoff position
+wp    = wyckoffs(sgnum, Val(3))[end] # 4a Wyckoff position
 sg    = spacegroup(sgnum, Val(3))
 siteg = SiteGroup(sg, wp)
 pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(siteg)

@@ -22,7 +22,7 @@ The result is computed using the reduction formula [see e.g. Eq. (15) of
 ## Example
 Consider the two compatible **k**-vectors Γ (a point) and Σ (a line) in space group 207:
 ```jl
-lgirsd  = get_lgirreps(207, Val(3));
+lgirsd  = lgirreps(207, Val(3));
 Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
 Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
 ```

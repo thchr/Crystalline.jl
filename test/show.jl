@@ -181,7 +181,7 @@ str = """
        m₁₀
        {m₀₁|0,1}"""
 sg = spacegroup(17,Val(2))
-wps = get_wycks(17, Val(2))
+wps = wyckoffs(17, Val(2))
 test_tp_show(SiteGroup(sg, wps[end-1]), str)
 
 # -------------------------------
@@ -241,7 +241,7 @@ LGIrrep{3}: #16 (P222) at Γ = [0.0, 0.0, 0.0]
     ├─ 2₀₀₁: ─────────────────────────── (-x,-y,z)
     │     -1.0
     └─────────────────────────────────────────────"""
-test_tp_show(get_lgirreps(16)["Γ"], str)
+test_tp_show(lgirreps(16)["Γ"], str)
 
 str = """
 Γ₅ ─┬─────────────────────────────────────────────
@@ -277,7 +277,7 @@ str = """
     │     ⎡ 0.0+0.0im  1.0+0.0im ⎤
     │     ⎣ 1.0+0.0im  0.0+0.0im ⎦
     └─────────────────────────────────────────────"""
-test_tp_show(get_lgirreps(122)["Γ"][end], str)
+test_tp_show(lgirreps(122)["Γ"][end], str)
 
 str = """
 Γ₆ ─┬─────────────────────────────────────────────
@@ -299,7 +299,7 @@ str = """
     ├─ 6₀₀₁⁻: ───────────────────────── (y,-x+y,z)
     │     1.0exp(0.3333333333333333iπ)
     └─────────────────────────────────────────────"""
-test_tp_show(get_lgirreps(168)["Γ"][end], str)
+test_tp_show(lgirreps(168)["Γ"][end], str)
 
 # -------------------------------
 # PGIrrep
@@ -330,7 +330,7 @@ str = """
       │     ⎡ 0.5+0.866im  0.0+0.0im ⎤
       │     ⎣ 0.0+0.0im    0.5-0.866im ⎦
       └─────────────────────────────────────────────"""
-pgirs = get_pgirreps("6")
+pgirs = pgirreps("6")
 pgirs′ = realify(pgirs)
 test_tp_show(realify(pgirs)[end], str)
 @test summary(pgirs) == "6-element Vector{PGIrrep{3}}"
@@ -385,7 +385,7 @@ CharacterTable{3}: #230 (Ia-3d at P = [0.5, 0.5, 0.5])
    {m₀₋₁₁|¼,¼,¼} │      0       0     0
 ─────────────────┴──────────────────────
 """
-test_tp_show(CharacterTable(get_lgirreps(230)["P"]), str)
+test_tp_show(CharacterTable(lgirreps(230)["P"]), str)
 
 # -------------------------------
 # BandRepSet and BandRep

@@ -88,7 +88,7 @@ for (sgnum, (klabs, kvs)) in PLANE2KVEC
     pgs  = _find_isomorphic_parent_pointgroup.(lgs) # find the parent point group 
 
     pglabs    = label.(pgs) # labels of the parent point groups
-    pgirs_vec = get_pgirreps.(pglabs, Val(2))
+    pgirs_vec = pgirreps.(pglabs, Val(2))
     
     LGIRSD_2D[sgnum] = Dict{String, Vector{LGIrrep{2}}}()
     for (klab, kvec, lg, pgirs) in zip(klabs, kvs, lgs, pgirs_vec)

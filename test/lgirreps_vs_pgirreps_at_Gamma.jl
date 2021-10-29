@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRS) # load complex little groups, if not already loaded
-    LGIRS = get_lgirreps.(1:MAX_SGNUM[3], Val(3))
+    LGIRS = lgirreps.(1:MAX_SGNUM[3], Val(3))
 end
 
 # this file tests the consistency between little group irreps at the Γ point and the 
@@ -16,7 +16,7 @@ for lgirsd in LGIRS
     sgnum  = num(lg)
     pg     = Crystalline.find_parent_pointgroup(lg)
 
-    pgirs = get_pgirreps(label(pg), Val(3))
+    pgirs = pgirreps(label(pg), Val(3))
 
     # the little group irreps at Γ should equal the irreps of the associated point group 
     # (isogonal point group or little cogroup) of that space group because Γ implies k=0,

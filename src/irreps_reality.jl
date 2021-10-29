@@ -218,11 +218,11 @@ end
     realify(pgirs::AbstractVector{T}) where T<:AbstractIrrep --> Vector{T}
 
 Return physically real irreps (coreps) from a set of conventional irreps (as produced by
-e.g. [`get_pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
+e.g. [`pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
 
 ## Example
 ```jl-doctest
-julia> pgirs = get_pgirreps("4", Val(3));
+julia> pgirs = pgirreps("4", Val(3));
 julia> CharacterTable(pgirs)
 CharacterTable{3}: #9 (4)
 ───────┬────────────────────

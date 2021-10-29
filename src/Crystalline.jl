@@ -87,7 +87,7 @@ include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
-export get_wycks, WyckPos,
+export wyckoffs, WyckoffPos,
        multiplicity,
        SiteGroup, orbit, cosets, wyck,
        findmaximal
@@ -96,7 +96,7 @@ include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue
 export find_representation
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export pointgroup, get_pgirreps,
+export pointgroup, pgirreps,
        PGS_IUCs, find_isomorphic_parent_pointgroup
 
 include("irreps_reality.jl")
@@ -114,7 +114,7 @@ export ΦnotΩ_kvecs
 =#
 
 include("littlegroup_irreps.jl")
-export get_lgirreps, get_littlegroups
+export lgirreps, littlegroups
 
 include("lattices.jl")
 export ModulatedFourierLattice,
@@ -126,6 +126,9 @@ export subduction_count
 
 include("bandrep.jl")
 export bandreps, matrix, classification, basisdim
+
+include("deprecations.jl")
+export get_littlegroups, get_lgirreps, get_pgirreps, get_siteirreps, WyckPos
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
@@ -142,7 +145,7 @@ const DATA_DIR = joinpath(dirname(@__DIR__), "data")
 
 function __init__()
     # open `LGIrrep` and `LittleGroup` data files for read access on package load (this
-    # saves a lot of time compared to `jldopen`ing each time we call e.g. `get_lgirreps`,
+    # saves a lot of time compared to `jldopen`ing each time we call e.g. `lgirreps`,
     # where the time for opening/closing otherwise dominates)
     for D in (1,2,3)
         global LGIRREPS_JLDFILES[D][] =

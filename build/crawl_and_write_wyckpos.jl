@@ -12,7 +12,7 @@ wyck_3d_url(sgnum) = WYCK_URL_BASE_3D*string(sgnum)
     crawl_wyckpos_3d(sgnum::Integer)
 
 Obtains the 3D Wyckoff positions for a given space group number `sgnum` by crawling the
-Bilbao Crystallographic Server; returns a vector of `WyckPos{3}`.
+Bilbao Crystallographic Server; returns a vector of `WyckoffPosition{3}`.
 """
 function crawl_wyckpos_3d(sgnum::Integer)
     htmlraw = crawl_wyckpos_3d_html(sgnum)
@@ -20,7 +20,7 @@ function crawl_wyckpos_3d(sgnum::Integer)
     wycks_html = children.(children(children(children(last(children(htmlraw.root)))[3])[5][1]))
     
     Nwyck = length(wycks_html)-1
-    wycks = Vector{WyckPos{3}}(undef, Nwyck)
+    wycks = Vector{WyckoffPosition{3}}(undef, Nwyck)
 
     for (i,el) in enumerate(@view wycks_html[2:end])
         letter, mult_str, sitesym_str, qv_str, _ = getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
@@ -28,7 +28,7 @@ function crawl_wyckpos_3d(sgnum::Integer)
         qv = RVec{3}(qv_str)
         mult = parse(Int, mult_str) 
 
-        wycks[i] = WyckPos{3}(mult, only(letter), qv)
+        wycks[i] = WyckoffPosition{3}(mult, only(letter), qv)
     end
     return wycks
 end

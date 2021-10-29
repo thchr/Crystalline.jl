@@ -11,7 +11,7 @@ using Crystalline, Test
             for pgiuc in Crystalline.PGS_IUCs[D]
                 pg = pointgroup(pgiuc, Dᵛ)
                 conj_classes = classes(pg)
-                pgirs = get_pgirreps(pgiuc, Dᵛ)
+                pgirs = pgirreps(pgiuc, Dᵛ)
                 @test length(pgirs) == length(conj_classes)
             end
         end
@@ -21,7 +21,7 @@ using Crystalline, Test
         for Dᵛ in (Val(1), Val(2), Val(3))
             D = typeof(Dᵛ).parameters[1]
             for sgnum in 1:MAX_SGNUM[D]
-                lgirsd = get_lgirreps(sgnum, Dᵛ)
+                lgirsd = lgirreps(sgnum, Dᵛ)
                 for (klab, lgirs) in lgirsd
                     lg = group(first(lgirs))
                     includes_ray_reps = any(lgir->Crystalline.israyrep(lgir)[1], lgirs)
@@ -53,7 +53,7 @@ end
             sgᵖ = primitivize(sgᶜ)      # primitive setting
             @test length(classes(sgᶜ)) == length(classes(sgᵖ, nothing))
             # little groups
-            lgsᶜ = get_littlegroups(sgnum, Dᵛ)
+            lgsᶜ = littlegroups(sgnum, Dᵛ)
             for lgᶜ in values(lgsᶜ)
                 lgᵖ = primitivize(lgᶜ)
                 @test length(classes(lgᶜ)) == length(classes(lgᵖ, nothing))
@@ -81,7 +81,7 @@ end # @testset "Conjugacy classes"
             for pgiuc in Crystalline.PGS_IUCs[D]
                 pg = pointgroup(pgiuc, Dᵛ)
                 if is_abelian(pg)
-                    pgirs = get_pgirreps(pgiuc, Dᵛ)
+                    pgirs = pgirreps(pgiuc, Dᵛ)
                     @test all(pgir -> Crystalline.irdim(pgir) == 1, pgirs)
                 end
             end
@@ -92,7 +92,7 @@ end # @testset "Conjugacy classes"
         for Dᵛ in (Val(1), Val(2), Val(3))
             D = typeof(Dᵛ).parameters[1]
             for sgnum in 1:MAX_SGNUM[D]
-                lgirsd = get_lgirreps(sgnum, Dᵛ)
+                lgirsd = lgirreps(sgnum, Dᵛ)
                 for (klab, lgirs) in lgirsd
                     lg = group(first(lgirs))
                     if is_abelian(lg)

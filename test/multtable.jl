@@ -1,7 +1,7 @@
 using Crystalline, Test
 
 if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+    LGIRSDIM = Tuple(lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
 end
 
 @testset "Multiplication tables" begin
@@ -95,7 +95,7 @@ end # @testset "Complex LGIrreps"
 @testset "Complex PGIrreps" begin
     for D in 1:3
         for pgiuc in PGS_IUCs[D]
-            pgirs = get_pgirreps(pgiuc, D)
+            pgirs = pgirreps(pgiuc, D)
             pg = group(first(pgirs))
             for pgir in pgirs
                 mt = MultTable(operations(pg))

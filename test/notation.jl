@@ -4,7 +4,7 @@ using Crystalline, Test
     @testset "Mulliken notation" begin
         for D in 1:3
             for pglab in PGS_IUCs[D]
-                pgirs′ = get_pgirreps(pglab, Val(D))
+                pgirs′ = pgirreps(pglab, Val(D))
                 g      = group(first(pgirs′))
 
                 # check both "ordinary" irreps and physically real irreps (coreps)

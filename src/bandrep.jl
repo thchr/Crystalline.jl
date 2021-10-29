@@ -282,7 +282,7 @@ the required little groups. The benefit here is that the resulting operator sort
 the returned little group is identical ISOTROPY's, so we can rely on that later on.
 
 Returns a `Vector{<:LittleGroup}` with ordering identical to that of the k-point labels in 
-`BRS`. Note that this is different from the return type of `get_littlegroups` which returns
+`BRS`. Note that this is different from the return type of `littlegroups` which returns
 an unordered `Dict`.
 
 ## Note 1
@@ -297,7 +297,7 @@ An error is thrown if a referenced little group cannot be found (currently, this
 for certain k-points in ``Φ-Ω``, see src/special_representation_domain_kpoints.jl)
 """
 function matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3)) where D
-    lgs = get_littlegroups(num(BRS), Val(D)) # TODO: generalize to D≠3
+    lgs = littlegroups(num(BRS), Val(D)) # TODO: generalize to D≠3
 
     klabs_in_brs = klabels(BRS) # find all k-point labels in BandRepSet
     if !issubset(klabs_in_brs, keys(lgs))
@@ -309,7 +309,7 @@ end
 
 
 function matching_lgirreps(BRS::BandRepSet)
-    lgirsd = get_lgirreps(num(BRS), Val(3))
+    lgirsd = lgirreps(num(BRS), Val(3))
     # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
     if BRS.timeinvar 
         for (klab, lgirs) in keys(lgirsd)

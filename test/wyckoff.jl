@@ -7,7 +7,7 @@ using Crystalline: constant, free
         Dᵛ = Val(D)
         for sgnum in 1:MAX_SGNUM[D]
             sg  = spacegroup(sgnum, Dᵛ)
-            wps = get_wycks(sgnum, Dᵛ)
+            wps = wyckoffs(sgnum, Dᵛ)
             for wp in wps
                 g = SiteGroup(sg, wp)
                 @test g isa SiteGroup
@@ -37,7 +37,7 @@ end
 @testset "Maximal Wyckoff positions" begin
     for sgnum in 1:MAX_SGNUM[3]
         sg  = spacegroup(sgnum, Val(3))
-        wps = get_wycks(sgnum, Val(3))
+        wps = wyckoffs(sgnum, Val(3))
         sitegs = SiteGroup.(Ref(sg), wps)
 
         max_sitegs = findmaximal(sitegs)

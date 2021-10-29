@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+    LGIRSDIM = Tuple(lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
 end
 
 @testset "CharacterTable and orthogonality theorems" begin
@@ -26,7 +26,7 @@ end
     @testset "Point group irreps" begin
         for D in 1:3
             for pgiuc in PGS_IUCs[D]
-                pgirs = get_pgirreps(pgiuc, Val(D))
+                pgirs = pgirreps(pgiuc, Val(D))
                 ct = CharacterTable(pgirs)
                 χs = characters(ct) # matrix of characters; each row is a different representation
                 Nₒₚ = length(operations(ct))
@@ -41,7 +41,7 @@ end
     end
 
     @testset "Indexing" begin
-        pgirs = get_pgirreps("m-3m", Val(3))
+        pgirs = pgirreps("m-3m", Val(3))
         ct = CharacterTable(pgirs)
         χs = characters(ct)
 

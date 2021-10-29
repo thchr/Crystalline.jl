@@ -9,12 +9,12 @@ Point group irreps are obtained from the Bilbao Crystallographic Server's [Repre
 If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).
 
 ## Point group irreps
-Irreps for the crystallographic point groups are accessible via [`get_pgirreps`](@ref), with the point group specified either by IUC label and dimensionality.
+Irreps for the crystallographic point groups are accessible via [`pgirreps`](@ref), with the point group specified either by IUC label and dimensionality.
 As an example, we may load the irreps of the 6mm (C₆ᵥ in Schoenflies notation; see also [`schoenflies(::PointGroup)`](@ref)) point group in 3D.
 ```@example pgirs
 using Crystalline
 
-pgirs = get_pgirreps("6mm", Val(3))
+pgirs = pgirreps("6mm", Val(3))
 ```
 Frequently, the character table of the associated irreps is more informative than the irrep matrices themselves. We can construct this table using [`CharacterTable`](@ref):
 ```@example pgirs
@@ -27,12 +27,12 @@ Associated Muliken (or "spectroscopist's") notation can be obtained via `mullike
 
 
 ## Small little group irreps
-Little group irreps are accessible via [`get_lgirreps`](@ref) and provided with CDML [^1] labels (courtesy of ISOTROPY).
+Little group irreps are accessible via [`lgirreps`](@ref) and provided with CDML [^1] labels (courtesy of ISOTROPY).
 As an example, we can obtain the irreps of space group 183 (P6mm; the trivial 3D extension of plane group 17, which in turn is the space group extension of point group 6mm from above) by:
 ```@example lgirs
 using Crystalline
 
-lgirsd = get_lgirreps(183, Val(3))
+lgirsd = lgirreps(183, Val(3))
 ```
 which returns a dictionary of `LGIrrep`s, indexed by k-labels given as `String`s, corresponding to different little groups.
 In general, we include all the little groups included in ISOTROPY; unfortunately, there is no strict guarantee that this includes a full listing of all inequivalent irreps (although it is typically true). The listing typically contains both special points, lines, and planes (and also always the general point).
@@ -48,7 +48,7 @@ CharacterTable(lgirs)
 We currently do not provide access to "full" space group irreps, although they can in principle be built readily from small irreps.
 
 ## Site symmetry irreps
-To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`get_pgirreps`)[@ref].
+To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`pgirreps`)[@ref].
 
 ## Time-reversal symmetry and "physically real" irreps
 Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default. 
@@ -58,7 +58,7 @@ As an example, the Γ₃, Γ₄, Γ₅, and Γ₆ irreps of point group 6 (C₆)
 ```@example realirs
 using Crystalline
 
-pgirs = get_pgirreps("6", Val(3))
+pgirs = pgirreps("6", Val(3))
 CharacterTable(pgirs)
 ```
 When time-reversal symmetry is incorporated, the irreps stick together pairwise and have real characters:

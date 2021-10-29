@@ -2,22 +2,22 @@
 # STRUCTS
 
 # Wyckoff positions
-struct WyckPos{D} <: AbstractVec{D}
+struct WyckoffPosition{D} <: AbstractVec{D}
     mult   :: Int
     letter :: Char
     qv     :: RVec{D} # associated with a single representative
 end
-parent(wp::WyckPos)   = wp.qv
-free(wp::WyckPos)     = free(parent(wp))
-constant(wp::WyckPos) = constant(parent(wp))
+parent(wp::WyckoffPosition)   = wp.qv
+free(wp::WyckoffPosition)     = free(parent(wp))
+constant(wp::WyckoffPosition) = constant(parent(wp))
 
-multiplicity(wp::WyckPos) = wp.mult
-label(wp::WyckPos) = string(multiplicity(wp), wp.letter)
-function transform(wp::WyckPos, P::AbstractMatrix{<:Real})
+multiplicity(wp::WyckoffPosition) = wp.mult
+label(wp::WyckoffPosition) = string(multiplicity(wp), wp.letter)
+function transform(wp::WyckoffPosition, P::AbstractMatrix{<:Real})
     return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
 end
 
-function show(io::IO, ::MIME"text/plain", wp::WyckPos)
+function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
     print(io, wp.mult, wp.letter, ": ")
     show(io, MIME"text/plain"(), parent(wp))
 end
@@ -25,7 +25,7 @@ end
 # Site symmetry groups
 struct SiteGroup{D} <: AbstractGroup{D}
     num::Int
-    wp::WyckPos{D}
+    wp::WyckoffPosition{D}
     operations::Vector{SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
@@ -37,8 +37,8 @@ $(TYPEDSIGNATURES)
 Return the cosets of a `SiteGroup` `g`.
 
 The cosets generate the orbit of the Wyckoff position `wyck(g)` (see 
-[`orbit(::SiteGroup, ::WyckPos)`](@ref)) and furnish a left-coset decomposition of the
-underlying space group, jointly with the operations in `g` itself.
+[`orbit(::SiteGroup, ::WyckoffPosition)`](@ref)) and furnish a left-coset decomposition of
+the underlying space group, jointly with the operations in `g` itself.
 """
 cosets(g::SiteGroup) = g.cosets
 
@@ -62,15 +62,15 @@ end
 $(TYPEDSIGNATURES)
 
 Return the Wyckoff positions of space group `sgnum` in dimension `D` as a 
-`Vector{WyckPos{D}`.
+`Vector{WyckoffPosition{D}`.
 
 The positions are given in the conventional basis setting, following the conventions of the
 Bilbao Crystallographic Server (from which the underlying data is sourced [^1]).
 
 ## Example
 ```jldoctest
-julia> wps = get_wycks(16, 2)
-4-element Vector{WyckPos{2}}:
+julia> wps = wyckoffs(16, 2)
+4-element Vector{WyckoffPosition{2}}:
  6d: [α, β]
  3c: [0.5, 0.0]
  2b: [0.3333333333333333, 0.6666666666666666]
@@ -81,7 +81,7 @@ julia> wps = get_wycks(16, 2)
 [^1]: Aroyo, *et al.*,
       [Z. Kristallogr. **221**, 15-27 (2006)](https://doi.org/0.1524/zkri.2006.221.1.15)
 """
-function get_wycks(sgnum::Integer, ::Val{D}=Val(3)) where D
+function wyckoffs(sgnum::Integer, ::Val{D}=Val(3)) where D
     strarr = open(joinpath(DATA_DIR, "wyckpos/$(D)d/"*string(sgnum)*".csv")) do io
         DelimitedFiles.readdlm(io, '|', String, '\n')
     end
@@ -89,9 +89,9 @@ function get_wycks(sgnum::Integer, ::Val{D}=Val(3)) where D
     letters = only.(@view strarr[:,2])
     qvs     = RVec{D}.(@view strarr[:,3])
 
-    return WyckPos{D}.(mults, letters, qvs)
+    return WyckoffPosition{D}.(mults, letters, qvs)
 end
-get_wycks(sgnum::Integer, D::Integer) = get_wycks(sgnum, Val(D))
+wyckoffs(sgnum::Integer, D::Integer) = wyckoffs(sgnum, Val(D))
 
 # ---------------------------------------------------------------------------------------- #
 # METHODS
@@ -116,12 +116,12 @@ function compose(op::SymOperation{D}, qv::RVec{D}) where D
 
     return RVec{D}(cnst′, free′)
 end
-function compose(op::SymOperation{D}, wp::WyckPos{D}) where D
-    WyckPos{D}(multiplicity(wp), wp.letter, compose(op, parent(wp)))
+function compose(op::SymOperation{D}, wp::WyckoffPosition{D}) where D
+    WyckoffPosition{D}(multiplicity(wp), wp.letter, compose(op, parent(wp)))
 end
 
 (*)(op::SymOperation{D}, qv::RVec{D}) where D = compose(op, qv)
-(*)(op::SymOperation{D}, wp::WyckPos{D}) where D = compose(op, wp)
+(*)(op::SymOperation{D}, wp::WyckoffPosition{D}) where D = compose(op, wp)
 
 
 """
@@ -138,8 +138,8 @@ invariant, such that `all(op -> wp == op*wp, g) == true`.
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
 which e.g. generate the orbit of the Wyckoff position (see
-[`orbit(::SiteGroup, ::WyckPos)`](@ref)) and define a left-coset decomposition of `sg`
-jointly with the elements in `g`.
+[`orbit(::SiteGroup, ::WyckoffPosition)`](@ref)) and define a left-coset decomposition of
+`sg` jointly with the elements in `g`.
 
 ## Example
 ```jldoctest sitegroup
@@ -147,7 +147,7 @@ julia> sgnum = 16;
 
 julia> D = 2;
 
-julia> wp = get_wycks(sgnum, D)[3] # pick a Wyckoff position
+julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
 2b: [0.3333333333333333, 0.6666666666666666]
 
 julia> sg = spacegroup(sgnum, D);
@@ -186,7 +186,7 @@ true
 Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
 in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
 """
-function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
+function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     Nsg  = order(sg)
     Ncoset = multiplicity(wp)
     Nsite, check = divrem(Nsg, Ncoset)
@@ -206,7 +206,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
 
     isite = icoset = 1
     for op in sg
-        icoset == Ncoset && isite == Nsite && break # stop if all necessary representatives found
+        icoset == Ncoset && isite == Nsite && break # stop if all representatives found
         isone(op) && continue # already added identity outside loop; avoid adding twice
 
         W, w = unpack(op) # rotation and translation
@@ -237,7 +237,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
                 continue
             end
             
-            # shift operation so generated `WyckPos`s has coordinates q′ᵢ∈[0,1)
+            # shift operation so generated `WyckoffPosition`s has coordinates q′ᵢ∈[0,1)
             w′ = w - (constant(qv′) - constant(qv′′))
 
             # add coset operation and new Wyckoff position to orbit
@@ -253,7 +253,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckPos{D}) where D
     end
     return SiteGroup{D}(num(sg), wp, siteops, cosets)
 end
-function SiteGroup(sgnum::Integer, wp::WyckPos{D}) where D
+function SiteGroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
     sg = spacegroup(sgnum, Val(D))
     return SiteGroup(sg, wp)
 end
@@ -263,7 +263,7 @@ function MultTable(g::SiteGroup)
     MultTable(operations(g); modτ=false)
 end
 
-function orbit(g::SiteGroup{D}, wp::WyckPos{D}) where D
+function orbit(g::SiteGroup{D}, wp::WyckoffPosition{D}) where D
     qv′s = cosets(g) .* Ref(wp)  # TODO: Remove this method; superfluous input `wp`
 end
 function orbit(g::SiteGroup{D}) where D
@@ -294,7 +294,7 @@ julia> sgnum = 5;
 
 julia> D = 2;
 
-julia> wps = get_wycks(sgnum, Val(D));
+julia> wps = wyckoffs(sgnum, Val(D));
 
 julia> sg  = spacegroup(sgnum, Val(D));
 

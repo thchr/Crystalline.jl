@@ -27,7 +27,7 @@ HOLOSYMMETRIC_SGNUMS = (
     192, 193, 194, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230)
 )
 
-# Holosymmetric point group labels (get corresponding pointgroups from with get_pgsops(...))
+# Holosymmetric point group labels (get corresponding point groups from `pointgroup(...)`)
 # ordered in ascending point group order (number of operators).
 # For 3D, we used Table 2 of J. Appl. Cryst. (2018). 51, 1481–1491 (https://doi.org/10.1107/S1600576718012724)
 # For 2D and 1D, the cases can be inferred from case-by-case enumeration.
@@ -399,7 +399,7 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     cntr = centering(G)
     
     # load the KVecs in Ω from the ISOTROPY dataset
-    lgs = get_littlegroups(num(G), Val(D))
+    lgs = littlegroups(num(G), Val(D))
     # We are only interested in mapping kvs from the basic domain Ω; but ISOTROPY already 
     # includes some of the ZA points that are in Φ-Ω, so we strip these already here (and
     # so find these points anew effectively). Also, there is no point in trying to map the

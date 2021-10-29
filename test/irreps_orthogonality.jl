@@ -1,7 +1,7 @@
 using Crystalline, Test, LinearAlgebra
 
 if !isdefined(Main, :LGIRSDIM)
-    LGIRSDIM = Tuple(get_lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
+    LGIRSDIM = Tuple(lgirreps.(1:MAX_SGNUM[D], Val(D)) for D in 1:3)
 end
 #foreach(LGIRS->Crystalline.add_ΦnotΩ_lgirs!.(LGIRS), LGIRSDIM)
 αβγs = Crystalline.TEST_αβγs # to evaluate line/plane irreps at non-special points

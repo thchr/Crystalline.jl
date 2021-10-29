@@ -51,7 +51,7 @@ end
 @testset "2ⁿᵈ orthogonality theorem" begin
 for D in 1:3
     for pgiuc in PGS_IUCs[D]
-        pgirs′ = get_pgirreps(pgiuc, Val(D))
+        pgirs′ = pgirreps(pgiuc, Val(D))
         Nₒₚ = order(first(pgirs′))
         # check both "ordinary" irreps and "physically real" irreps (coreps)
         for irtype in (identity, realify)
@@ -80,7 +80,7 @@ end # @testset "2ⁿᵈ orthogonality theorem"
     αβγ = nothing
     for D in 1:3
         for pgiuc in PGS_IUCs[D]
-            pgirs = get_pgirreps(pgiuc, Val(D))
+            pgirs = pgirreps(pgiuc, Val(D))
             Nₒₚ = order(first(pgirs))
             for (a, pgir⁽ᵃ⁾) in enumerate(pgirs) 
                 D⁽ᵃ⁾   = pgir⁽ᵃ⁾(αβγ)      # vector of irreps in (a)

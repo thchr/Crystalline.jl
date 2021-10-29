@@ -40,7 +40,7 @@ SpaceGroup{3} #16 (P222) with 4 operations:
 
 # load a dictionary of small irreps and their little groups for space group #16,
 # indexed by their k-point labels; then inspect the small irreps at the A point
-julia> lgirs = get_lgirreps(16, Val(3))
+julia> lgirs = lgirreps(16, Val(3))
 julia> lgirs["A"]
 LGIrrep{3}: #16 (P222) at A = [α, 0.0, 0.5]
 A₁ ─┬─────────────────────────────────────────────
@@ -71,7 +71,7 @@ CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┴────────────────
 ```
 
-Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`get_pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`get_wycks`), conjugacy classes (`classes`), group generators (`generators`), physically real irreps (`realify`), and Bravais lattice utilities and conventions (accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais)).
+Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), group generators (`generators`), physically real irreps (`realify`), and Bravais lattice utilities and conventions (accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais)).
 For a full description of the public API, see the [documentation][docs-dev-url].
 
 ### Current limitations

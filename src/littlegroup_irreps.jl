@@ -1,11 +1,11 @@
 # Little group operations loading
 """
-    get_littegroups(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3)) 
+    littlegroups(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3)) 
                                                         -> Dict{String, LittleGroup{D}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little groups
 (`LittleGroups{D}`s) at high-symmetry k-points, lines, and planes (see also
-[`get_lgirreps`](@ref)).
+[`lgirreps`](@ref)).
 
 Returns a `Dict` with little group **k**-point labels as keys and vectors of
 `LittleGroup{D}`s as values.
@@ -17,15 +17,15 @@ Unlike `spacegroup`, "centering"-copies of symmetry operations are not included 
 returned `LittleGroup`s; as an example, space group 110 (body-centered, with centering
 symbol 'I') has a centering translation `[1/2,1/2,1/2]` in the conventional setting:
 the symmetry operations returned by `spacegroup` thus includes e.g. both `{1|0}` and 
-`{1|½,½,½}` while the symmetry operations returned by `get_littlegroups` only include
+`{1|½,½,½}` while the symmetry operations returned by `littlegroups` only include
 `{1|0}` (and so on).
 
 Currently, only `D = 3` is supported.
 
 ## References
-The underlying data is sourced from the ISOTROPY dataset: see also [`get_lgirreps`](@ref).
+The underlying data is sourced from the ISOTROPY dataset: see also [`lgirreps`](@ref).
 """
-function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
+function littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JLD2.JLDFile=LGS_JLDFILES[D][]) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
 
@@ -39,12 +39,12 @@ function get_littlegroups(sgnum::Integer, ::Val{D}=Val(3),
     return lgs
 end
 # convenience functions without Val(D) usage; avoid internally
-get_littlegroups(sgnum::Integer, D::Integer) = get_littlegroups(sgnum, Val(D))
+littlegroups(sgnum::Integer, D::Integer) = littlegroups(sgnum, Val(D))
 
 #------------------------------------------------------------------------------------------
 # LGIrrep loading
 """
-    get_lgirreps(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3))
+    lgirreps(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3))
                                                     -> Dict{String, Vector{LGIrrep{D}}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little group
@@ -77,12 +77,12 @@ domain but still resides in the representation domain (i.e. **k**-points with po
 'A', 'B', etc. labels, such as 'ZA'). In such cases, the missing irreps may instead have
 been manually sourced from the Bilbao Crystallographic Database.
 """
-function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
+function lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
                       lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D][],
                       irs_jldfile::JLD2.JLDFile=LGIRREPS_JLDFILES[D][]) where D
     D ∉ (1,2,3) && _throw_invaliddim(D)
   
-    lgs = get_littlegroups(sgnum, Dᵛ, lgs_jldfile)
+    lgs = littlegroups(sgnum, Dᵛ, lgs_jldfile)
 
     Ps_list, τs_list, realities_list, cdmls_list = _load_lgirreps_data(sgnum, irs_jldfile)
 
@@ -95,7 +95,7 @@ function get_lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
     
     return lgirsd
 end
-get_lgirreps(sgnum::Integer, D::Integer) = get_lgirreps(sgnum, Val(D))
+lgirreps(sgnum::Integer, D::Integer) = lgirreps(sgnum, Val(D))
 
 
 # ===== utility functions (loads raw data from the harddisk) =====
