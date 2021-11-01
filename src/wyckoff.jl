@@ -36,9 +36,9 @@ $(TYPEDSIGNATURES)
 
 Return the cosets of a `SiteGroup` `g`.
 
-The cosets generate the orbit of the Wyckoff position `wyck(g)` (see 
-[`orbit(::SiteGroup, ::WyckoffPosition)`](@ref)) and furnish a left-coset decomposition of
-the underlying space group, jointly with the operations in `g` itself.
+The cosets generate the orbit of the Wyckoff position `wyck(g)` (see
+[`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
+group, jointly with the operations in `g` itself.
 """
 cosets(g::SiteGroup) = g.cosets
 
@@ -137,9 +137,8 @@ invariant, such that `all(op -> wp == op*wp, g) == true`.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
-which e.g. generate the orbit of the Wyckoff position (see
-[`orbit(::SiteGroup, ::WyckoffPosition)`](@ref)) and define a left-coset decomposition of
-`sg` jointly with the elements in `g`.
+which e.g. generate the orbit of the Wyckoff position (see [`orbit(::SiteGroup)`](@ref)) and
+define a left-coset decomposition of `sg` jointly with the elements in `g`.
 
 ## Example
 ```jldoctest sitegroup
@@ -247,7 +246,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
             # TODO: For certain Wyckoff positions in space groups 151:154 (8 in total), the
             #       above calculation of w′ lead to very small (~1e-16) negative values for
             #       the new representatives generated from these coset operations, i.e.
-            #       `orbit(g, wp)` can contain Wyckoff positions with negative coordinates,
+            #       `orbit(g)` can contain Wyckoff positions with negative coordinates,
             #       differing from zero by ~1e-16.
         end        
     end
@@ -263,13 +262,23 @@ function MultTable(g::SiteGroup)
     MultTable(operations(g); modτ=false)
 end
 
-function orbit(g::SiteGroup{D}, wp::WyckoffPosition{D}) where D
-    qv′s = cosets(g) .* Ref(wp)  # TODO: Remove this method; superfluous input `wp`
-end
-function orbit(g::SiteGroup{D}) where D
+"""
+    orbit(g::SiteGroup)  -->  Vector{WyckoffPosition}
+
+Compute the orbit of the Wyckoff position associated with the site symmetry group `g`.
+
+## Extended help
+
+The orbit of a Wyckoff position ``\\mathbf{r}`` in a space group ``G`` is defined as the
+set of inequivalent points in the unit cell that can be obtained by applying the elements of
+``G`` to ``\\mathbf{r}``.
+Equivalently, every element of the orbit of ``\\mathbf{r}`` can be written as the
+composition of a coset representative of the Wyckoff position's site group in ``G`` with
+``\\mathbf{r}``.
+"""
+function orbit(g::SiteGroup)
     qv′s = cosets(g) .* Ref(wyck(g))
 end
-
 
 
 """
