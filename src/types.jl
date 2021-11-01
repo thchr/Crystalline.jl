@@ -717,9 +717,32 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
     tag = "#"*string(num(g))*" ("*label(g)*")"
     return CharacterTable{D}(operations(g), label.(irs), table, tag)
 end
+
+# TODO: Settle on an API & docs for `classcharacters` vs. `characters` and export relevant
+#       functionality; add tests of ClassCharacterTable
+struct ClassCharacterTable{D} <: AbstractCharacterTable
+    classes_ops::Vector{Vector{SymOperation{D}}}
+    irlabs::Vector{String}
+    table::Matrix{ComplexF64} # irreps along columns & class-representative along rows
+    tag::String
+end
+classes(ct::ClassCharacterTable) = ct.classes_ops
+operations(ct::ClassCharacterTable) = first.(classes(ct)) # representative operations
+
+function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
+                          αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
     g = group(first(irs))
+    classes_ops = classes(g)
+    classes_idx = [findfirst(==(first(class_ops)), g)::Int for class_ops in classes_ops]
+    table = Array{ComplexF64}(undef, length(classes_ops), length(irs))
+    for j in 1:length(irs)
+        ir = irs[j](αβγ)
+        for (i,idx) in enumerate(classes_idx)
+            table[i,j] = tr(ir[idx])
+        end
+    end
     tag = "#"*string(num(g))*" ("*label(g)*")"
-    return CharacterTable{D}(operations(first(irs)), label.(irs), table, tag)
+    return ClassCharacterTable{D}(classes_ops, label.(irs), table, tag)
 end
 
 # ---------------------------------------------------------------------------------------- #

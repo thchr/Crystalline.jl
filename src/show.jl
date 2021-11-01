@@ -279,19 +279,44 @@ end
 
 
 # --- CharacterTable ---
+function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars = matrix(ct)
     chars_formatted = _stringify_characters.(chars, digits=6)
 
+    ops = operations(ct)
     println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
     pretty_table(io,
         chars_formatted;
         # row/column names
-        row_names = seitz.(operations(ct)),     # seitz labels
+        row_names = seitz.(ops),                # seitz labels
         header = formatirreplabel.(labels(ct)), # irrep labels
         tf = tf_unicode,
         vlines = [1,], hlines = [:begin, 1, :end]
         )
+
+    if ct isa ClassCharacterTable
+        _print_class_representatives(io, ct)
+    end
 end
+
+function _print_class_representatives(io::IO, ct::ClassCharacterTable)
+    maxlen = maximum(length∘seitz∘first, classes(ct))
+    print(io, "Class representatives:")
+    for class in classes(ct)
+        print(io, "\n ")
+        for (i, op) in enumerate(class)#
+            op_str = seitz(op)
+            if i == 1
+                printstyled(io, op_str; bold=true)
+                length(class) ≠ 1 && print(io, " "^(maxlen-length(op_str)), " : ")
+            else
+                printstyled(io, op_str; color=:light_black)
+                i ≠ length(class) && printstyled(io, ", "; color=:light_black)
+            end
+        end
+    end
+end
+
 function _stringify_characters(c::Number; digits=6)
     c′ = round(c, digits=digits)
     cr, ci = reim(c′)
