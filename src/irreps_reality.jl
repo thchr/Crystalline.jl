@@ -223,7 +223,7 @@ e.g. [`pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
 ## Example
 ```jl-doctest
 julia> pgirs = pgirreps("4", Val(3));
-julia> CharacterTable(pgirs)
+julia> characters(pgirs)
 CharacterTable{3}: #9 (4)
 ───────┬────────────────────
        │ Γ₁  Γ₂    Γ₃    Γ₄ 
@@ -234,7 +234,7 @@ CharacterTable{3}: #9 (4)
  4₀₀₁⁻ │  1  -1  -1im   1im
 ───────┴────────────────────
 
-julia> CharacterTable(realify(pgirs))
+julia> characters(realify(pgirs))
 CharacterTable{3}: #9 (4)
 ───────┬──────────────
        │ Γ₁  Γ₂  Γ₃Γ₄ 

@@ -667,13 +667,23 @@ end
 # CharacterTable
 # ---------------------------------------------------------------------------------------- #
 
+abstract type AbstractCharacterTable <: AbstractMatrix{ComplexF64} end
+
+@propagate_inbounds getindex(ct::AbstractCharacterTable, i::Int) = matrix(ct)[i]
+size(ct::AbstractCharacterTable) = size(matrix(ct))
+IndexStyle(::Type{<:AbstractCharacterTable}) = IndexLinear()
+
+labels(ct::AbstractCharacterTable) = ct.irlabs
+matrix(ct::AbstractCharacterTable) = ct.table
+tag(ct::AbstractCharacterTable) = ct.tag
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct CharacterTable{D} <: AbstractMatrix{ComplexF64}
+struct CharacterTable{D} <: AbstractCharacterTable
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
-    chartable::Matrix{ComplexF64} # Stored as irreps-along-columns & operations-along-rows
+    table::Matrix{ComplexF64} # irreps along columns & operations along rows
     # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
     #       translations and kvec as well; then we could print a result that doesn't  
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
@@ -681,35 +691,32 @@ struct CharacterTable{D} <: AbstractMatrix{ComplexF64}
 end
 function CharacterTable{D}(ops::AbstractVector{SymOperation{D}},
             irlabs::AbstractVector{String},
-            chartable::AbstractMatrix{<:Real}) where D
-    return CharacterTable{D}(ops, irlabs, chartable, "")
+            table::AbstractMatrix{<:Real}) where D
+    return CharacterTable{D}(ops, irlabs, table, "")
 end
-
 operations(ct::CharacterTable) = ct.ops
-labels(ct::CharacterTable) = ct.irlabs
-characters(ct::CharacterTable) = ct.chartable # TODO: maybe remove this? Redudant cf. `getindex`
-tag(ct::CharacterTable) = ct.tag
-
-@propagate_inbounds getindex(ct::CharacterTable, i::Int) = characters(ct)[i]
-size(ct::CharacterTable) = size(ct.chartable)
-IndexStyle(::Type{<:CharacterTable}) = IndexLinear()
 
 """
-    CharacterTable(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)
+    characters(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)
 
-Returns a `CharacterTable` associated with vector of `AbstractIrrep`s `irs`. 
+Compute the character table associated with vector of `AbstractIrrep`s `irs`, returning a
+`CharacterTable`.
 
 Optionally, an `αβγ::AbstractVector{<:Real}` variable can be passed to evaluate the irrep
 (and associated characters) with concrete free parameters (e.g., for `LGIrrep`s, a concrete
 k-vector sampled from a "line-irrep"). Defaults to `nothing`, indicating it being either 
 irrelevant (e.g., for `PGIrrep`s) or all free parameters implicitly set to zero.
 """
-function CharacterTable(irs::AbstractVector{<:AbstractIrrep{D}},
-                        αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
-    table = Array{ComplexF64}(undef, order(first(irs)), length(irs))
-    for (i,col) in enumerate(eachcol(table))
-        col .= characters(irs[i], αβγ)
+function characters(irs::AbstractVector{<:AbstractIrrep{D}},
+                    αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
+    g = group(first(irs))
+    table = Array{ComplexF64}(undef, length(g), length(irs))
+    for (j,col) in enumerate(eachcol(table))
+        col .= characters(irs[j], αβγ)
     end
+    tag = "#"*string(num(g))*" ("*label(g)*")"
+    return CharacterTable{D}(operations(g), label.(irs), table, tag)
+end
     g = group(first(irs))
     tag = "#"*string(num(g))*" ("*label(g)*")"
     return CharacterTable{D}(operations(first(irs)), label.(irs), table, tag)

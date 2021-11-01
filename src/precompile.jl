@@ -9,7 +9,7 @@
 #                   wyckoffs(MAX_SGNUM[D], Val(D))
 #                   pointgroup(PGS_IUCs[D][end], Val(D))
 #                   bandreps(MAX_SGNUM[D], D)
-#                   CharacterTable(lgirreps(MAX_SGNUM[D], Val(D))["Γ"])
+#                   characters(lgirreps(MAX_SGNUM[D], Val(D))["Γ"])
 #                   MultTable(primitivize(littlegroups(MAX_SGNUM[D], Val(D))["Γ"]))
 #                   conventionalize(primitivize(spacegroup(MAX_SGNUM[D], Val(D)))[end], centering(MAX_SGNUM[D], D))
 #               end
@@ -31,8 +31,7 @@ function _precompile_()
     ccall(:jl_generating_output, Cint, ()) == 1 || return nothing    
     
     Base.precompile(Tuple{typeof(seitz),SymOperation{3}})   # time: 0.9289543
-    Base.precompile(Tuple{Type{CharacterTable},Vector{LGIrrep{3}}})   # time: 0.5580262
-    Base.precompile(Tuple{Type{CharacterTable},Vector{LGIrrep{2}}})   # time: 0.1106631
-    Base.precompile(Tuple{typeof(directbasis),Int64,Val{3}})   # time: 0.1496442
+    Base.precompile(Tuple{typeof(characters),Vector{LGIrrep{3}}})   # time: 0.5580262
+    Base.precompile(Tuple{typeof(characters),Vector{LGIrrep{2}}})   # time: 0.1106631
     Base.precompile(Tuple{Type{SymOperation},String})   # time: 0.1149793
 end

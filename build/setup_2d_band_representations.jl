@@ -179,7 +179,7 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
 
     # characters of induced site representation and little group irreps
     site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
-    lgirs_χm = CharacterTable(lgirs).chartable
+    lgirs_χm = matrix(characters(lgirs))
     # little group irrep multiplicities, after subduction
     m  = lgirs_χm\site_χs
     m′ = round.(Int, real.(m)) # truncate to integers

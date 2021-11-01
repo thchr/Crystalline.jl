@@ -279,8 +279,7 @@ end
 
 
 # --- CharacterTable ---
-function show(io::IO, ::MIME"text/plain", ct::CharacterTable)
-    chars = characters(ct)
+    chars = matrix(ct)
     chars_formatted = _stringify_characters.(chars, digits=6)
 
     println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags

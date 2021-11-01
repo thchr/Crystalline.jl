@@ -9,8 +9,8 @@ end
     for LGIRS in LGIRSDIM # ... D in 1:3
         for lgirsd in LGIRS
             for lgirs in values(lgirsd)
-                ct = CharacterTable(lgirs)
-                χs = characters(ct) # matrix of characters; each row is a different representation
+                ct = characters(lgirs)
+                χs = matrix(ct) # each column is a different representation
                 Nₒₚ = length(operations(ct))
 
                 # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
@@ -27,8 +27,8 @@ end
         for D in 1:3
             for pgiuc in PGS_IUCs[D]
                 pgirs = pgirreps(pgiuc, Val(D))
-                ct = CharacterTable(pgirs)
-                χs = characters(ct) # matrix of characters; each row is a different representation
+                ct = characters(pgirs)
+                χs = matrix(ct) # each column is a different representation
                 Nₒₚ = length(operations(ct))
 
                 # 1ˢᵗ orthogonality theorem:    ∑ᵢ|χᵢ⁽ᵃ⁾|² = Nₒₚ⁽ᵃ⁾
@@ -42,8 +42,8 @@ end
 
     @testset "Indexing" begin
         pgirs = pgirreps("m-3m", Val(3))
-        ct = CharacterTable(pgirs)
-        χs = characters(ct)
+        ct = characters(pgirs)
+        χs = matrix(ct)
 
         @test ct[3] == χs[3]
         @test ct[:,3] == χs[:,3]

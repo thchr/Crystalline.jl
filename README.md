@@ -59,7 +59,7 @@ A₂ ─┬───────────────────────
     └─────────────────────────────────────────────
 
 # construct the character table for the small irreps at the Γ point
-julia> CharacterTable(lgirs["Γ"])
+julia> characters(lgirs["Γ"])
 CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 

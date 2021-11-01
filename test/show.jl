@@ -352,7 +352,7 @@ CharacterTable{3}: #21 (6)
  6₀₀₁⁺ │  1  -1    -1     1
 ───────┴────────────────────
 """
-test_tp_show(CharacterTable(pgirs′), str)
+test_tp_show(characters(pgirs′), str)
 
 str = """
 CharacterTable{3}: #230 (Ia-3d at P = [0.5, 0.5, 0.5])
@@ -385,7 +385,7 @@ CharacterTable{3}: #230 (Ia-3d at P = [0.5, 0.5, 0.5])
    {m₀₋₁₁|¼,¼,¼} │      0       0     0
 ─────────────────┴──────────────────────
 """
-test_tp_show(CharacterTable(lgirreps(230)["P"]), str)
+test_tp_show(characters(lgirreps(230)["P"]), str)
 
 # -------------------------------
 # BandRepSet and BandRep

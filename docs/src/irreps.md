@@ -16,9 +16,9 @@ using Crystalline
 
 pgirs = pgirreps("6mm", Val(3))
 ```
-Frequently, the character table of the associated irreps is more informative than the irrep matrices themselves. We can construct this table using [`CharacterTable`](@ref):
+Frequently, the character table of the associated irreps is more informative than the irrep matrices themselves. We can construct this table using [`characters`](@ref), which returns a `CharacterTable`:
 ```@example pgirs
-CharacterTable(pgirs)
+characters(pgirs)
 ```
 
 ### Notation 
@@ -37,11 +37,11 @@ lgirsd = lgirreps(183, Val(3))
 which returns a dictionary of `LGIrrep`s, indexed by k-labels given as `String`s, corresponding to different little groups.
 In general, we include all the little groups included in ISOTROPY; unfortunately, there is no strict guarantee that this includes a full listing of all inequivalent irreps (although it is typically true). The listing typically contains both special points, lines, and planes (and also always the general point).
 
-We can inspect the irreps of any particular point point accessing it via its label.
-As before, we can construct associated character tables:
+We can inspect the small irreps of any particular **k**-point, accessing it via its canonical label.
+As before, it is most instructive to inspects the associated character tables:
 ```@example lgirs
 lgirs = lgirsd["Γ"] # small irreps at the Γ point
-CharacterTable(lgirs)
+characters(lgirs)
 ```
 
 ## Space group irreps
@@ -59,12 +59,12 @@ As an example, the Γ₃, Γ₄, Γ₅, and Γ₆ irreps of point group 6 (C₆)
 using Crystalline
 
 pgirs = pgirreps("6", Val(3))
-CharacterTable(pgirs)
+characters(pgirs)
 ```
 When time-reversal symmetry is incorporated, the irreps stick together pairwise and have real characters:
 ```@example realirs
 pgirs′ = realify(pgirs)
-CharacterTable(pgirs′)
+characters(pgirs′)
 ```
 
 To inspect the reality type of a given irrep, see [`reality`](@ref).
