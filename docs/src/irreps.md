@@ -45,10 +45,23 @@ characters(lgirs)
 ```
 
 ## Space group irreps
-We currently do not provide access to "full" space group irreps, although they can in principle be built readily from small irreps.
+We currently do not provide access to "full" space group irreps. They can, however, be readily built by induction from small irreps. Specifically, every small irrep $D_{\mathbf{k}}^\alpha$ associated with the little group $G_{\mathbf{k}}$, induces a space group irrep, sometimes denoted ${}^*D_{\mathbf{k}}^{\alpha}$ or $D^{\alpha}_{\mathbf{k}}\uparrow G$, in the full space group $G$:[^Inui]
+
+```math
+    [{}^*D_{\mathbf{k}}^{\alpha}(g)]_{ij}
+    =
+    \begin{cases}
+    D_{\mathbf{k}}^{\alpha}(h_i^{-1}gh_j) & \text{if }h_i^{-1}gh_j \in G_{\mathbf{k}}\\
+    \boldsymbol{0}_{d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}} & \text{otherwise}
+    \end{cases},
+```
+
+where $d_{\mathbf{k}}^{\alpha}$ is the dimension of the small irrep $D^{\alpha}_{\mathbf{k}}$, $\boldsymbol{0}_{d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}}$ is a $d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}$ zero matrix, and $h_i$ and $h_j$ iterate over the (left) coset representatives of $G_{\mathbf{k}}$ in $G$ (of which there are $|\mathrm{star}\{\mathbf{k}\}|$, i.e., the order of the star of $\mathbf{k}$). The induced irrep ${}^*D_{\mathbf{k}}^{\alpha}$ is consequently a $d_{\mathbf{k}}^{\alpha}|\mathrm{star}\{\mathbf{k}\}|\times d_{\mathbf{k}}^{\alpha}|\mathrm{star}\{\mathbf{k}\}|$ matrix.
+
+[^Inui]: Inui, Tanabe, & Onodera, *Group Theory and its Applications in Physics*, Springer (1990). Section 11.9.
 
 ## Site symmetry irreps
-To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`pgirreps`)[@ref].
+To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`pgirreps`](@ref).
 
 ## Time-reversal symmetry and "physically real" irreps
 Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default. 
