@@ -18,4 +18,4 @@
 @deprecate kvec(lgir::LGIrrep)       position
 @deprecate wyck(g::SiteGroup)        position
 @deprecate wyck(wp::WyckoffPosition) position
-@deprecate position(BR::BandRep)     position
+@deprecate wyck(BR::BandRep)         position
