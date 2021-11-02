@@ -20,5 +20,8 @@
 @deprecate wyck(wp::WyckoffPosition) position
 @deprecate wyck(BR::BandRep)         position
 
-@deprecate kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) orbit
-@deprecate kstar(lgir::LGIrrep)                                               orbit
+@deprecate(
+    kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D,
+    orbit
+    )
+@deprecate kstar(lgir::LGIrrep) orbit
