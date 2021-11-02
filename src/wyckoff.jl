@@ -96,31 +96,9 @@ wyckoffs(sgnum::Integer, D::Integer) = wyckoffs(sgnum, Val(D))
 # ---------------------------------------------------------------------------------------- #
 # METHODS
 
-"""
-    compose(op::SymOperation, qv::RVec) --> RVec
-
-Return the composition of `op` ``= \\{W|w\\}`` with a real-space vector `qv::RVec`.
-
-The operation is taken to act directly, i.e. returns ``\\{W|w\\}```qv` ``= W```qv```+w``
-rather than ``\\{W|w\\}^{-1}```qv` ``= W^{-1}```qv` ``- W^{-1}w``, which can instead be
-obtained from `compose(inv(op), qv)`.
-
-Can also be called via the multipliication operator, i.e. `op * qv = compose(op, qv)`.
-"""
-function compose(op::SymOperation{D}, qv::RVec{D}) where D
-    cnst, free = parts(qv)
-    W, w       = unpack(op)
-
-    cnst′ = W*cnst + w
-    free′ = W*free
-
-    return RVec{D}(cnst′, free′)
-end
 function compose(op::SymOperation{D}, wp::WyckoffPosition{D}) where D
     WyckoffPosition{D}(multiplicity(wp), wp.letter, compose(op, parent(wp)))
 end
-
-(*)(op::SymOperation{D}, qv::RVec{D}) where D = compose(op, qv)
 (*)(op::SymOperation{D}, wp::WyckoffPosition{D}) where D = compose(op, wp)
 
 
@@ -279,7 +257,6 @@ composition of a coset representative of the Wyckoff position's site group in ``
 function orbit(g::SiteGroup)
     qv′s = cosets(g) .* Ref(wyck(g))
 end
-
 
 """
     findmaximal(sitegs::AbstractVector{<:SiteGroup})

@@ -621,22 +621,22 @@ end
 kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
 
 @doc raw"""
-    compose(op::SymOperation, kv::KVec, checkabc::Bool=true) --> KVec
+    compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
 
-Return the composition (or action) of `op` on a reciprocal-space vector `kv`. Can also be
-called as `op * kv`.
+Return the composition `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a reciprocal-space vector `kv`
+``= \mathbf{k}``.
 
-`op` and `kv` are assumed to be specified in the direct lattice and reciprocal lattice 
-bases, respectively (this is the default behavior in Crystalline). As a result, `op` acts
-on `kv` via the transpose of its matrix form, i.e. the `kv` vector is multiplied by 
-`transpose(rotation(op))`. 
-That is, for a given reciprocal vector ``\mathbf{k}`` (i.e. `kv`) and operation ``g`` (i.e.
-`op`) with rotation part ``\mathbf{R}`` (i.e. `rotation(op)`), we define
+The operation is taken to act directly, returning
 ```math
-\mathbf{k}' ≡ g\mathbf{k} = \mathbf{R}^{\text{T}}\mathbf{k}
+    \mathbf{k}' = \{\mathbf{W}|\mathbf{w}\}\mathbf{k} = \mathbf{W}^{\text{T}}\mathbf{k}.
 ```
-The action of ``g`` on ``\mathbf{k}`` is invariant under any translation parts of ``g``,
-i.e. translations do not act in reciprocal space.
+Note the transposition of ``\mathbf{W}``, arising as a result of the implicit real-space
+basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis specification of
+``\mathbf{k}``.
+Note also that the composition of ``\{\mathbf{W}|\mathbf{w}\}`` with ``\mathbf{k}`` is
+invariant under ``\mathbf{w}``, i.e., translations do not act in reciprocal space.
+
+## Extended help
 
 If `checkabc = false`, the free part of `KVec` is not transformed (can be improve 
 performance in situations when `kabc` is zero, and several transformations are requested).
@@ -647,9 +647,31 @@ performance in situations when `kabc` is zero, and several transformations are r
     kabc′ = checkabc ? rotation(op)'*kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
-(*)(op::SymOperation{D}, kv::KVec{D}) where D = compose(op, kv)
 
+@doc raw"""
+    compose(op::SymOperation, rv::RVec)  -->  RVec
 
+Return the composition of `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a real-space vector `rv`
+``= \mathbf{r}``.
+
+The operation is taken to act directly, returning
+```math
+    \mathbf{r}' = \{\mathbf{W}|\mathbf{w}\}\mathbf{r} = \mathbf{W}\mathbf{r} + \mathbf{w}.
+```
+The corresponding inverse action ``\{\mathbf{W}|\mathbf{w}\}^{-1}\mathbf{r} = 
+\mathbf{W}^{-1}\mathbf{r} - \mathbf{W}^{-1}\mathbf{w}`` can be obtained via 
+`compose(inv(op), qv)`.
+"""
+function compose(op::SymOperation{D}, rv::RVec{D}) where D
+    cnst, free = parts(rv)
+    W, w       = unpack(op)
+
+    cnst′ = W*cnst + w
+    free′ = W*free
+
+    return RVec{D}(cnst′, free′)
+end
+(*)(op::SymOperation{D}, v::AbstractVec{D}) where D = compose(op, v)
 
 """
     primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> typeof(op)

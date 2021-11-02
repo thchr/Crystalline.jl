@@ -154,7 +154,6 @@ end
 (v::AbstractVec)(::Nothing) = constant(v)
 (v::AbstractVec)()          = v(nothing)
 
-
 # parsing `AbstractVec`s from string format
 function _strip_split(str::AbstractString)
     str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
