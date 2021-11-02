@@ -660,7 +660,7 @@ The operation is taken to act directly, returning
 ```
 The corresponding inverse action ``\{\mathbf{W}|\mathbf{w}\}^{-1}\mathbf{r} = 
 \mathbf{W}^{-1}\mathbf{r} - \mathbf{W}^{-1}\mathbf{w}`` can be obtained via 
-`compose(inv(op), qv)`.
+`compose(inv(op), rv)`.
 """
 function compose(op::SymOperation{D}, rv::RVec{D}) where D
     cnst, free = parts(rv)

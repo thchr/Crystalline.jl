@@ -23,12 +23,12 @@ function crawl_wyckpos_3d(sgnum::Integer)
     wycks = Vector{WyckoffPosition{3}}(undef, Nwyck)
 
     for (i,el) in enumerate(@view wycks_html[2:end])
-        letter, mult_str, sitesym_str, qv_str, _ = getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
+        letter, mult_str, sitesym_str, rv_str, _ = getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
 
-        qv = RVec{3}(qv_str)
+        rv = RVec{3}(rv_str)
         mult = parse(Int, mult_str) 
 
-        wycks[i] = WyckoffPosition{3}(mult, only(letter), qv)
+        wycks[i] = WyckoffPosition{3}(mult, only(letter), rv)
     end
     return wycks
 end

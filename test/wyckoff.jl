@@ -12,11 +12,11 @@ using Crystalline: constant, free
                 g = SiteGroup(sg, wp)
                 @test g isa SiteGroup
 
-                qv = parent(wp)
+                rv = parent(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
-                    qv′ = op*qv
-                    @test isapprox(qv, qv′, nothing, false)
+                    rv′ = op*rv
+                    @test isapprox(rv, rv′, nothing, false)
                 end
 
                 # test that all the constant parts of the positions in the Wyckoff orbit

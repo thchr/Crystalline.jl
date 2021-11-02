@@ -37,9 +37,9 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         # inserting g⁻¹g inside a dot product of a KVec and an RVec should do nothing (if
         # g doesn't have a translation part; that would shift the RVec also...)
         kv = KVec{3}(".4+α,0.3-γ,-.1+β")
-        qv = RVec{3}(".7-γ,0.6+α,.2-α")
+        rv = RVec{3}(".7-γ,0.6+α,.2-α")
         op = SymOperation{3}("-z,-x,-y") # {-3₁₁₁⁺|½,½,½}
-        @test dot((inv(op)*kv)(αβγ), (op*qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # g⁻¹g
-        @test dot((op*kv)(αβγ), (inv(op)*qv)(αβγ)) ≈ dot(kv(αβγ), qv(αβγ))  # gg⁻¹
+        @test dot((inv(op)*kv)(αβγ), (op*rv)(αβγ)) ≈ dot(kv(αβγ), rv(αβγ))  # g⁻¹g
+        @test dot((op*kv)(αβγ), (inv(op)*rv)(αβγ)) ≈ dot(kv(αβγ), rv(αβγ))  # gg⁻¹
     end
 end

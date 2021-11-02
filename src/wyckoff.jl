@@ -5,9 +5,9 @@
 struct WyckoffPosition{D} <: AbstractVec{D}
     mult   :: Int
     letter :: Char
-    qv     :: RVec{D} # associated with a single representative
+    rv     :: RVec{D} # associated with a single representative
 end
-parent(wp::WyckoffPosition)   = wp.qv
+parent(wp::WyckoffPosition)   = wp.rv
 free(wp::WyckoffPosition)     = free(parent(wp))
 constant(wp::WyckoffPosition) = constant(parent(wp))
 
@@ -87,9 +87,9 @@ function wyckoffs(sgnum::Integer, ::Val{D}=Val(3)) where D
     end
     mults   = parse.(Int, @view strarr[:,1])
     letters = only.(@view strarr[:,2])
-    qvs     = RVec{D}.(@view strarr[:,3])
+    rvs     = RVec{D}.(@view strarr[:,3])
 
-    return WyckoffPosition{D}.(mults, letters, qvs)
+    return WyckoffPosition{D}.(mults, letters, rvs)
 end
 wyckoffs(sgnum::Integer, D::Integer) = wyckoffs(sgnum, Val(D))
 
@@ -173,13 +173,13 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
 
     siteops  = Vector{SymOperation{D}}(undef, Nsite)
     cosets   = Vector{SymOperation{D}}(undef, Ncoset)
-    orbitqvs = Vector{RVec{D}}(undef, Ncoset)
-    qv       = parent(wp)
+    orbitrvs = Vector{RVec{D}}(undef, Ncoset)
+    rv       = parent(wp)
     
     # both cosets and site symmetry group contains the identity operation, and the orbit 
-    # automatically contains qv; add them outside loop
+    # automatically contains rv; add them outside loop
     siteops[1]  = cosets[1] = one(SymOperation{D})
-    orbitqvs[1] = qv
+    orbitrvs[1] = rv
 
     isite = icoset = 1
     for op in sg
@@ -187,11 +187,11 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
         isone(op) && continue # already added identity outside loop; avoid adding twice
 
         W, w = unpack(op) # rotation and translation
-        qv′  = op * qv
-        Δ    = qv′ - qv
+        rv′  = op * rv
+        Δ    = rv′ - rv
         Δcnst, Δfree = parts(Δ)
 
-        # Check whether difference between qv and qv′ is a lattice vector: if so, `op` is 
+        # Check whether difference between rv and rv′ is a lattice vector: if so, `op` is 
         # isomorphic to a site symmetry operation; if not, to a coset operation.
         # We check this in the original lattice basis, i.e. do not force conversion to a
         # primitive basis. This is consistent with e.g. Bilbao and makes good sense.
@@ -208,18 +208,18 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
             icoset == Ncoset && continue # we only need `Ncoset` representatives in total
 
             # reduce generated Wyckoff representative to coordinate range q′ᵢ∈[0,1)
-            qv′′ = RVec(reduce_translation_to_unitrange(constant(qv′)), free(qv′))
-            if any(qv->isapprox(qv, qv′′, nothing, false), (@view orbitqvs[OneTo(icoset)]))
-                # ⇒ already included a coset op that maps to this qv′′; don't include twice
+            rv′′ = RVec(reduce_translation_to_unitrange(constant(rv′)), free(rv′))
+            if any(rv->isapprox(rv, rv′′, nothing, false), (@view orbitrvs[OneTo(icoset)]))
+                # ⇒ already included a coset op that maps to this rv′′; don't include twice
                 continue
             end
             
             # shift operation so generated `WyckoffPosition`s has coordinates q′ᵢ∈[0,1)
-            w′ = w - (constant(qv′) - constant(qv′′))
+            w′ = w - (constant(rv′) - constant(rv′′))
 
             # add coset operation and new Wyckoff position to orbit
             cosets[icoset+=1] = SymOperation{D}(W, w′)
-            orbitqvs[icoset]  = qv′′
+            orbitrvs[icoset]  = rv′′
             
             # TODO: For certain Wyckoff positions in space groups 151:154 (8 in total), the
             #       above calculation of w′ lead to very small (~1e-16) negative values for
@@ -255,7 +255,7 @@ composition of a coset representative of the Wyckoff position's site group in ``
 ``\\mathbf{r}``.
 """
 function orbit(g::SiteGroup)
-    qv′s = cosets(g) .* Ref(wyck(g))
+    rv′s = cosets(g) .* Ref(wyck(g))
 end
 
 """
