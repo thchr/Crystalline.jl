@@ -120,7 +120,7 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntu
         end
         skip && continue
         
-        neworb = orbit(W⁻¹ᵀs, G) # compute orbit assoc with G-vector
+        neworb = _orbit(W⁻¹ᵀs, G) # compute orbit assoc with G-vector
         # the symmetry transformation may introduce round-off errors, but we know that 
         # the indices must be integers; fix that here, and check its validity as well
         neworb′ = [round.(Int64,G′) for G′ in neworb] 
@@ -181,15 +181,12 @@ end
 
 
 @doc """
-    orbit(Ws, x)
+    _orbit(Ws, x)
 
 Computes the orbit of a direct-space point `x` under a set of point-group operations `Ws`,
 i.e. computes the set ``{gx | g∈G}`` where `g` denotes elements of the group
 `G` composed of all operations in `Ws` (possibly iterated, to ensure
 full coverage).
-
-At the moment, we only consider _point group_ operations; i.e. there are 
-no nonsymmorphic `Ws` parts. 
 
 It is important that `Ws` and `x` are given in the same basis. 
 
@@ -198,7 +195,7 @@ to a new set of basis vectors (x̂')ᵀ=x̂ᵀP; e.g., when going from a direct 
 representation to a Cartesian one, the basis change matrix is P = [R₁ R₂ R₃],
 with Rᵢ inserted as column vectors]
 """
-function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<:Real})
+function _orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<:Real})
     fx = float.(x)
     xorbit = [fx]
     for W in Ws
@@ -214,7 +211,6 @@ function orbit(Ws::AbstractVector{<:AbstractMatrix{<:Real}}, x::AbstractVector{<
     end
     return sort!(xorbit) # convenient to sort it before returning, for future comparisons
 end
-
 
 function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) where D
     # The orbits consist of G-vector specified as a coordinate vector 𝐤≡(k₁,k₂,k₃)ᵀ, referred

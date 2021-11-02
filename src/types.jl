@@ -281,50 +281,76 @@ function (==)(v1::T, v2::T) where T<:AbstractVec
 end
 
 """
-    isapprox(v1::AbstractVec, v2::AbstractVec[, cntr::Char, modw::Bool]; kwargs...) --> Bool
+    isapprox(v1::T, v2::T[, cntr::Char, modw::Bool]; kwargs...) --> Bool
                                                             
-Compute approximate equality of two `AbstractVec`s `v1` and `v2`, possibly modulo lattice
-vectors.
+Compute approximate equality of two vector quantities `v1` and `v2` of type,
+`T = Union{<:AbstractVec, <:AbstractPoint}`. 
 
-If `v1` and `v2` are in the conventional setting of a non-primitive lattice, the centering
-type `cntr` (see [`Bravais.centering`](@ref)) should be given to ensure that the relevant
-(primitive) lattice vectors are used in the comparison.
+If `modw = true`, equivalence is considered modulo lattice vectors. If `v1` and `v2` are
+in the conventional setting of a non-primitive lattice, the centering type `cntr`
+(see [`Bravais.centering`](@ref)) should be given to ensure that the relevant (primitive)
+lattice vectors are used in the comparison.
 
 ## Optional arguments
 
 - `cntr`: if not provided, the comparison will not account for equivalence by primitive
   lattice vectors, only equivalence by lattice vectors in the basis of `v1` and `v2`.
+  `cntr` may also be provided as a `D`×`D` `AbstractMatrix` to give the relevant
+  transformation matrix directly.
 - `modw`: whether vectors that differ by multiples of a lattice vector are considered
-  identical.
+  equivalent.
 - `kwargs...`: optional keyword arguments (e.g., `atol` and `rtol`) to be forwarded to
   `Base.isapprox`.
 """
-function isapprox(v1::T, v2::T, cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
+function isapprox(v1::T, v2::T,
+                  cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
+                  modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
 
-    # check if v₀ ≈ v₀′ (possibly modulo a primitive lattice vector if `modw=true`)
-    if cntr !== nothing
-        P = primitivebasismatrix(cntr, Val(D))
-        v₀1 = T <: KVec ? P' * v₀1 :
-              T <: RVec ? P  \ v₀1 : error("`isapprox` is not implemented for types $T")
-        v₀2 = T <: KVec ? P' * v₀2 :
-              T <: RVec ? P  \ v₀2 : error("`isapprox` is not implemented for types $T")
-    end
-    if modw # allow differing by a primitive lattice vector
+    if modw # equivalence modulo a primitive lattice vector
         δ₀ = v₀1 - v₀2
+        if cntr !== nothing
+            P = if cntr isa Char
+                primitivebasismatrix(cntr, Val(D))
+            else # AbstractMatrix{<:Real}
+                convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
+            end
+            δ₀ = T <: KVec ? P' * δ₀ :
+                 T <: RVec ? P  \ δ₀ :
+                 error("`isapprox` is not implemented for type $T")
+        end
         all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false
-    else
+    else # ordinary equivalence
         isapprox(v₀1, v₀2; kwargs...) || return false
     end
 
     # check if `vabc1 ≈ vabc2`; no need to check for difference by a lattice vector, since
     # `vabc1` and `vabc2` are in the interior of the BZ
-    abcbool = isapprox(vabc1, vabc2; kwargs...)
-
-    return abcbool
+    return isapprox(vabc1, vabc2; kwargs...)
 end
 
+function isapprox(v1::T, v2::T,
+                  cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
+                  modw::Bool=true;
+                  kwargs...) where T<:AbstractPoint{D} where D
+    if modw # equivalence modulo a primitive lattice vector
+        δ = v1 - v2
+        if cntr !== nothing
+            P = if cntr isa Char
+                primitivebasismatrix(cntr, Val(D))
+            else # AbstractMatrix{<:Real}
+                convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
+            end
+            δ = T <: ReciprocalPoint ? P' * δ :
+                T <: DirectPoint     ? P  \ δ :
+                error("`isapprox` is not implemented for type $T")
+        end
+        return all(x -> isapprox(x, round(x); kwargs...), δ)
+    else # ordinary equivalence
+        return isapprox(v1, v2; kwargs...)
+    end
+end
 
 # Note that the _coefficients_ of a general 𝐤- or 𝐫-vector transforms differently than the
 # reciprocal or direct _basis_, which transforms from non-primed to primed variants. See
