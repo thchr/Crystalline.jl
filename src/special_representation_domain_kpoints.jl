@@ -419,8 +419,8 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
             # it is not a "new" k-vector. We do not have to compare to _all_ kv′∈Ω (i.e. to all
             # kvs), because they must have inequivalent stars to kv in the first place and also
             # cannot be mapped to them by a point group operation of the arithmetic/isogonal point group
-            kvstar = kstar(G, kv)
-            if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), kvstar)
+            kstar = orbit(G, kv, cntr)
+            if any(kv′ -> isapprox(newkv, kv′, cntr), kstar)
                 continue # jump out of loop if newkv is equivalent to any star{kv′}
             end
     
@@ -429,9 +429,9 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
             # star): this can e.g. happen if R₁ and R₂ maps to the same KVec, which is a real
             # possibility. We check against the k-star of the new k-vectors just added.
             newkv_bool_vs_ΦnotΩ = true
-            for newkv′ in newkvs[kidx]
-                newkv′star = kstar(G, newkv′) # k-star of previously added new k-vector
-                if any(kvˢᵗᵃʳ->isapprox(newkv, kvˢᵗᵃʳ, cntr), newkv′star)
+            for kv′ in newkvs[kidx]
+                k′star = orbit(G, kv′, cntr) # k-star of previously added new k-vector
+                if any(kv′′ -> isapprox(newkv, kv′′, cntr), k′star)
                     newkv_bool_vs_ΦnotΩ = false
                     continue
                 end

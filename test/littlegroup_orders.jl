@@ -19,7 +19,7 @@ end
                 kv = position(first(lgirs))    
                 for lgir in lgirs            
                     # number of k-vectors in the star of k
-                    order_kstar = length(kstar(sgops, kv, cntr)) 
+                    order_kstar = length(orbit(sgops, kv, cntr)) 
                     # number of operations in the little group of k
                     order_pointgroupofk = length(pointgroup(operations(lgir)))
 

@@ -61,7 +61,7 @@ export SymOperation,                        # types
        getindex, rotation, translation, 
        issymmorph,
        num, order, operations,              # ::AbstractGroup
-       kstar, klabel, characters,           # ::AbstractIrrep
+       klabel, characters,                  # ::AbstractIrrep
        label, reality, group,
        israyrep,                            # ::LGIrrep
        isspecial, translations,
@@ -76,7 +76,7 @@ export schoenflies, iuc, centering, seitz, mulliken
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,
-       issymmorph, littlegroup, kstar,
+       issymmorph, littlegroup, orbit,
        pointgroup,
        cartesianize,
        reduce_ops,
@@ -89,7 +89,7 @@ export classes, is_abelian
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, orbit, cosets,
+       SiteGroup, cosets,
        findmaximal
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
@@ -128,7 +128,7 @@ include("bandrep.jl")
 export bandreps, matrix, classification, basisdim
 
 include("deprecations.jl")
-export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck
+export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them

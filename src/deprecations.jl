@@ -19,3 +19,6 @@
 @deprecate wyck(g::SiteGroup)        position
 @deprecate wyck(wp::WyckoffPosition) position
 @deprecate wyck(BR::BandRep)         position
+
+@deprecate kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) orbit
+@deprecate kstar(lgir::LGIrrep)                                               orbit

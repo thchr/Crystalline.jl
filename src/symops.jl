@@ -591,18 +591,44 @@ function littlegroup(sg::SpaceGroup, kv::KVec)
     return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
 
-function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D
+
+"""
+    orbit(g::AbstractVector{<:SymOperation}, kv::KVec, cntr::Char)  -->  Vector{KVec{D}}
+    orbit(lg::LittleGroup)
+    orbit(lgir::LGIrrep)
+
+Return the orbit of of the reciprocal-space vector `kv` under the action of the group
+`g`, also known as the star of **k**.
+
+The orbit of `kv` in `g` is the set of inequivalent **k**-points obtained by composition
+of all the symmetry operations of `g` with `kv`. Two reciprocal vectors ``\\mathbf{k}``
+and ``\\mathbf{k}'`` are equivalent if they differ by a primitive reciprocal lattice vector.
+
+If `kv` and `g` are specified in a conventional basis but refer to a non-primitive
+lattice, the centering type `cntr` must be provided to ensure that only equivalence by
+primitive (not conventional) reciprocal lattice vectors are considered.
+By default, `orbit(g, kv)` assumes a primitive setting while `orbit(lg)` and `orbit(lgir)`
+assume a conventional setting and infer the necessary centering type.
+"""
+function orbit(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, 
+               cntr::Union{Nothing,Char}=nothing) where D
     # we refer to kv by its parts (k₀, kabc) in the comments below
     kstar = [kv] 
     checkabc = !iszero(free(kv))
-    for op in (@view ops[2:end])
+    if cntr !== nothing
+        Pᵀ = primitivebasismatrix(cntr, Val(D))'
+    end
+    for op in g
+
         k₀′, kabc′ = parts(compose(op, kv, checkabc))
 
         newkbool = true
         for kv′′ in kstar
             k₀′′, kabc′′ = parts(kv′′)
-            diff = k₀′ .- k₀′′
-            diff = primitivebasismatrix(cntr, Val(D))'*diff
+            diff = k₀′ - k₀′′
+            if cntr !== nothing
+                diff = Pᵀ*diff
+            end
             kbool = all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), diff)    # check if k₀ and k₀′ differ by a _primitive_ G-vector
             abcbool = checkabc ? isapprox(kabc′, kabc′′, atol=DEFAULT_ATOL) : true # check if kabc == kabc′ (no need to check for difference by G-vectors, since kabc ∈ interior of BZ)
 
@@ -618,7 +644,7 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) wh
     end
     return kstar
 end
-kstar(sg::SpaceGroup, kv::KVec) = kstar(sg, kv, centering(sg))
+orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
 
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec

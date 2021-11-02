@@ -32,7 +32,7 @@ order(sgir::SGIrrep3D) = sgir.order
 iuc(sgir::SGIrrep3D) = sgir.sglabel
 operations(sgir::SGIrrep3D) = sgir.ops
 isspecial(sgir::SGIrrep3D) = sgir.special
-kstar(sgir::SGIrrep3D) = sgir.pmkstar
+orbit(sgir::SGIrrep3D) = sgir.pmkstar
 irdim(sgir::SGIrrep3D) = sgir.irdim
 dim(sgir::SGIrrep3D) = 3
 
@@ -242,13 +242,13 @@ end
 reprecision_data(z::T) where T<:Complex = complex(reprecision_data(real(z)), reprecision_data(imag(z)))
 
 function littlegroupirrep(ir::SGIrrep3D{<:Complex})
-    lgidx, lgops = littlegroup(operations(ir), kstar(ir)[1], centering(num(ir),3))
+    lgidx, lgops = littlegroup(operations(ir), orbit(ir)[1], centering(num(ir),3))
     lgirdim′ = irdim(ir)/ir.knum; lgirdim = div(irdim(ir), ir.knum)
     @assert lgirdim′ == lgirdim "The dimension of the little group irrep must be an integer, equaling "*
                                 "the dimension of the space group irrep divided by the number of vectors "*
                                 "in star{𝐤}"
 
-    kv = kstar(ir)[1] # representative element of the k-star; the k-vector of assoc. w/ this little group   
+    kv = orbit(ir)[1] # representative element of the k-star; the k-vector of assoc. w/ this little group   
     if !is_erroneous_lgir(num(ir), label(ir), 3)
         # broadcasting to get all the [1:lgirdim, 1:lgirdim] blocks of every irrep assoc. w/ the lgidx list
         lgirmatrices = getindex.((@view ir()[lgidx]), Ref(Base.OneTo(lgirdim)), Ref(Base.OneTo(lgirdim))) 

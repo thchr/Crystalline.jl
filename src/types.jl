@@ -462,6 +462,8 @@ LittleGroup(num::Int64, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where
 position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup) = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(position(lg))
+orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
+                               centering(num(lg), dim(lg)))
 
 # ---------------------------------------------------------------------------------------- #
 # Reality <: Enum{Int8}:    1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
@@ -580,7 +582,7 @@ end
 position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
-kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), position(lgir),
+orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
 function (lgir::LGIrrep)(αβγ::Union{Vector{<:Real},Nothing}=nothing)

@@ -55,7 +55,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     # ║   There can then only be type 'x' degeneracy (between 𝐤 and -𝐤)
     # ║   but TR will not change the degeneracy at 𝐤 itself. Cornwall
     # ║   refers to this as "Case (1)" on p. 151.
-    if !isapproxin(-kv, kstar(sgops, kv, cntr), cntr, true; atol=DEFAULT_ATOL)
+    if !isapproxin(-kv, orbit(sg, kv, cntr), cntr, true; atol=DEFAULT_ATOL)
         corep_idxs = [[i] for i in OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
         verbose && println(klabel(lg), "ᵢ ∀i (type x) ⇒  no additional degeneracy (star{k} ∌ -k)")
 
@@ -398,7 +398,7 @@ function calc_reality(lgir::LGIrrep{D},
 
     pgops = pointgroup(sgops) # point group assoc. w/ space group
     g₀ = length(pgops) # order of pgops (denoted h, or macroscopic order, in Bradley & Cracknell)
-    Mk = length(kstar(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
+    Mk = length(orbit(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
     normalization = convert(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
     
     # s = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
