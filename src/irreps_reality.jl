@@ -55,7 +55,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     # ║   There can then only be type 'x' degeneracy (between 𝐤 and -𝐤)
     # ║   but TR will not change the degeneracy at 𝐤 itself. Cornwall
     # ║   refers to this as "Case (1)" on p. 151.
-    if !isapproxin(-kv, orbit(sg, kv, cntr), cntr, true; atol=DEFAULT_ATOL)
+    if !isapproxin(-kv, orbit(sgops, kv, cntr), cntr, true; atol=DEFAULT_ATOL)
         corep_idxs = [[i] for i in OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
         verbose && println(klabel(lg), "ᵢ ∀i (type x) ⇒  no additional degeneracy (star{k} ∌ -k)")
 
