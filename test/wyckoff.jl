@@ -21,7 +21,7 @@ using Crystalline: constant, free
 
                 # test that all the constant parts of the positions in the Wyckoff orbit
                 # all have coordinates in [0,1)
-                wpreps = orbit(g, wp) # wyckoff position representatives
+                wpreps = orbit(g) # wyckoff position representatives
                 @test all(wpreps) do wp
                     all(xyz->xyz≥(-neg_error_tol) && xyz<1, constant(wp))
                 end
