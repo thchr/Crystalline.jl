@@ -294,4 +294,4 @@ function plot(vs::AbstractVector{<:AbstractVec{D}}) where D
     return ax
 end
 # Plotting a `LittleGroup`
-plot(lgs::AbstractVector{<:LittleGroup}) = plot(kvec.(lgs))
+plot(lgs::AbstractVector{<:LittleGroup}) = plot(position.(lgs))

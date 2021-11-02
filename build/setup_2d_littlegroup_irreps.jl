@@ -91,7 +91,7 @@ for (sgnum, (klabs, kvs)) in PLANE2KVEC
     pgirs_vec = pgirreps.(pglabs, Val(2))
     
     LGIRSD_2D[sgnum] = Dict{String, Vector{LGIrrep{2}}}()
-    for (klab, kvec, lg, pgirs) in zip(klabs, kvs, lgs, pgirs_vec)
+    for (klab, lg, pgirs) in zip(klabs, lgs, pgirs_vec)
         # regarding cdml labels: in 3D some CDML labels can have a ± superscript; in 2D, 
         # however, the labelling scheme is just numbers; taking `last(label(pgir))` picks
         # out this number ('₁', '₂', etc.)

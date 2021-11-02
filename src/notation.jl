@@ -17,8 +17,7 @@ Return the IUC (International Union of Crystallography) notation for space group
 Crystallography.
 
 The notation is sometimes also known as the
-[Hermann-Mauguin notation](https://en.wikipedia.org/wiki/Hermann–Mauguin_notation)
-and is also accessible by the alias `hermannmauguin(sgnum, D)`. 
+[Hermann-Mauguin notation](https://en.wikipedia.org/wiki/Hermann–Mauguin_notation).
 """
 @inline function iuc(sgnum::Integer, D::Integer=3)
     if D==3
@@ -35,7 +34,6 @@ and is also accessible by the alias `hermannmauguin(sgnum, D)`.
     end
 end
 @inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
-const hermannmauguin = iuc # alias
 
 """ 
     centering(sg_or_lg::Union{SpaceGroup, LittleGroup}) --> Char

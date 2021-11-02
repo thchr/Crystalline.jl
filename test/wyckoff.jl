@@ -41,7 +41,7 @@ end
         sitegs = SiteGroup.(Ref(sg), wps)
 
         max_sitegs = findmaximal(sitegs)
-        max_wps    = wyck.(max_sitegs)
+        max_wps    = position.(max_sitegs)
 
         # the band representations should include all maximal wyckoff positions; 
         # check consistency against that

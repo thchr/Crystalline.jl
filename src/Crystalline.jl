@@ -20,7 +20,8 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              readuntil, show, summary,
              *, +, -, ==, ImmutableDict,
              isone, one,
-             convert, parent
+             convert, parent,
+             position                  # cf. https://github.com/JuliaLang/julia/issues/33799
 import LinearAlgebra: inv
 
 
@@ -62,17 +63,16 @@ export SymOperation,                        # types
        num, order, operations,              # ::AbstractGroup
        kstar, klabel, characters,           # ::AbstractIrrep
        label, reality, group,
-       israyrep, kvec,                      # ::LGIrrep
+       israyrep,                            # ::LGIrrep
        isspecial, translations,
        dim, parts,                          # ::KVec & RVec
-       irreplabels, klabels, kvecs,         # ::BandRep & ::BandRepSet 
+       irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
 include("show.jl") # custom printing for structs defined in src/types.jl
 
 include("notation.jl")
-export schoenflies, hermannmauguin, iuc,
-       centering, seitz, mulliken
+export schoenflies, iuc, centering, seitz, mulliken
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,
@@ -87,9 +87,9 @@ include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
 
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
-export wyckoffs, WyckoffPos,
+export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, orbit, cosets, wyck,
+       SiteGroup, orbit, cosets,
        findmaximal
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
@@ -128,7 +128,7 @@ include("bandrep.jl")
 export bandreps, matrix, classification, basisdim
 
 include("deprecations.jl")
-export get_littlegroups, get_lgirreps, get_pgirreps, get_siteirreps, WyckPos
+export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them

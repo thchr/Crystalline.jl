@@ -98,7 +98,7 @@ TODO: This method should eventually be merged with the equivalently named method
       PhotonicBandConnectivity/src/connectivity.jl, which handles everything more correctly,
       but currently has a slightly incompatible API.
 """
-function is_compatible_kvec(kv::KVec, kv′::KVec)
+function is_compatible_kvec(kv::KVec{D}, kv′::KVec{D}) where D
     isspecial(kv) || throw(DomainError(kv, "must be special"))
     isspecial(kv′) && return false
 
@@ -114,7 +114,7 @@ function compatibility_matrix(BRS::BandRepSet)
         for (jᴴ, Dᴴⱼ) in enumerate(lgirs_out)    # sub groups
             # we ought to only check this on a per-kvec basis instead of 
             # on a per-lgir basis to avoid redunant checks, but can't be asked...
-            compat_bool  = is_compatible_kvec(kvec(Dᴳᵢ), kvec(Dᴴⱼ))
+            compat_bool  = is_compatible_kvec(position(Dᴳᵢ), position(Dᴴⱼ))
             # TODO: Get associated (αβγ, G) "matching" values that makes kvⱼ and kvᵢ and 
             #       compatible; use to get correct lgirs at their "intersection".
             if compat_bool

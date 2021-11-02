@@ -2,7 +2,6 @@
 @deprecate get_lgirreps     lgirreps
 @deprecate get_pgirreps     pgirreps
 @deprecate get_wycks        wyckoffs
-@deprecate get_siteirreps   siteirreps
 @deprecate WyckPos          WyckoffPosition
 
 @deprecate(
@@ -14,3 +13,9 @@
     CharacterTable(irs::AbstractVector{<:AbstractIrrep}),
     characters(irs)
 )
+
+@deprecate kvec(lg::LittleGroup)     position
+@deprecate kvec(lgir::LGIrrep)       position
+@deprecate wyck(g::SiteGroup)        position
+@deprecate wyck(wp::WyckoffPosition) position
+@deprecate position(BR::BandRep)     position

@@ -161,7 +161,7 @@ function prettyprint_group_header(io::IO, plg::AbstractGroup)
     print(io, "#", num(plg), " (", iuc(plg), ")")
     if plg isa LittleGroup
         print(io, " at " , klabel(plg), " = ")
-        show(io, MIME"text/plain"(), kvec(plg))
+        show(io, MIME"text/plain"(), position(plg))
     end
     println(io)
 end
@@ -209,7 +209,7 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
 end
 function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
     # unpack
-    k₀, kabc = parts(kvec(group(lgir)))
+    k₀, kabc = parts(position(group(lgir)))
     P = lgir.matrices[i]
     τ = lgir.translations[i]
 
@@ -396,7 +396,7 @@ function symvec2string(irvec::AbstractVector{<:Real}, irlabs::Vector{String};
     return String(take!(io))
 end
 
-summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), " at ", wyck(BR), ")")
+summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), " at ", position(BR), ")")
 function show(io::IO, ::MIME"text/plain", BR::BandRep)
     summary(io, BR)
     print(io, ":\n ")
@@ -425,7 +425,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         matrix(BRS; includedim=true);
         # row/column names
         row_names = vcat(irreplabels(BRS), "μ"),
-        header = (wyck.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
+        header = (position.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],

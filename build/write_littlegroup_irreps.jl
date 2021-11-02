@@ -40,7 +40,7 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
         for (kidx, (klab, lgirs)) in enumerate(lgirsd) # lgirs is a vector of LGIrreps, all at the same 𝐤-point
             lgir = first(lgirs) # 𝐤-info is the same for each LGIrrep in vector lgirs
             klab_list[kidx] = klab
-            kstr_list[kidx] = filter(!isspace, chop(string(kvec(lgir)); head=1, tail=1))
+            kstr_list[kidx] = filter(!isspace, chop(string(position(lgir)); head=1, tail=1))
             opsidx_list[kidx] = map(y->findfirst(==(y), sgops), operations(lgir))
         end
     

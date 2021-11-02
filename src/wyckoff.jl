@@ -29,14 +29,14 @@ struct SiteGroup{D} <: AbstractGroup{D}
     operations::Vector{SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
-label(g::SiteGroup) = iuc(num(g), dim(g))*" at "*string(wyck(g))
+label(g::SiteGroup) = iuc(num(g), dim(g))*" at "*string(position(g))
 
 """
 $(TYPEDSIGNATURES)
 
 Return the cosets of a `SiteGroup` `g`.
 
-The cosets generate the orbit of the Wyckoff position `wyck(g)` (see
+The cosets generate the orbit of the Wyckoff position `position(g)` (see
 [`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
 group, jointly with the operations in `g` itself.
 """
@@ -47,11 +47,11 @@ $(TYPEDSIGNATURES)
 
 Return the Wyckoff position associated with a `SiteGroup`.
 """
-wyck(g::SiteGroup) = g.wp
+position(g::SiteGroup) = g.wp
 
 function summary(io::IO, g::SiteGroup)
-    print(io, typeof(g), " #", num(g), " at ", label(wyck(g)), " = ")
-    show(io, MIME"text/plain"(), parent(wyck(g)))
+    print(io, typeof(g), " #", num(g), " at ", label(position(g)), " = ")
+    show(io, MIME"text/plain"(), parent(position(g)))
     print(io, " with ", length(g), " operations")
 end
 
@@ -255,7 +255,7 @@ composition of a coset representative of the Wyckoff position's site group in ``
 ``\\mathbf{r}``.
 """
 function orbit(g::SiteGroup)
-    rv′s = cosets(g) .* Ref(wyck(g))
+    rv′s = cosets(g) .* Ref(position(g))
 end
 
 """
@@ -299,7 +299,7 @@ SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
 function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     maximal = Int[]
     for (idx, g) in enumerate(sitegs)
-        wp = wyck(g)
+        wp = position(g)
         v  = parent(wp)
         N  = order(g)
 

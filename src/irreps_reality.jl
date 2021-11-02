@@ -29,7 +29,7 @@ corep for each `LGIrrep` (default: `false`).
 function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     Nirr = length(lgirs)
     lg = group(first(lgirs))
-    kv = kvec(lg) # must be the same for all irreps in list
+    kv = position(lg) # must be the same for all irreps in list
     αβγ    = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[OneTo(D)]
     kv_αβγ = kv(αβγ)
     sgnum = num(lg)
@@ -375,7 +375,7 @@ function calc_reality(lgir::LGIrrep{D},
                       αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
     iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
     lgops = operations(lgir)
-    kv = kvec(lgir)
+    kv = position(lgir)
     kv₋ = -kv
     cntr = centering(num(lgir), D)
     χs = characters(lgir, αβγ)

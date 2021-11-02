@@ -478,7 +478,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
     Ds = ir(αβγ)
     ops = operations(ir)
     if ir isa LGIrrep
-        k = kvec(ir)(αβγ)
+        k = position(ir)(αβγ)
     end
     N = length(ops)
 
@@ -608,7 +608,7 @@ function kstar(ops::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) wh
 
             if kbool && abcbool # ⇒ we've already seen this KVec for (mod 𝐆) - we can skip it and go to next operator
                 newkbool = false
-                break # no need to check the rest of the kvecs currently in kstar; already found a match
+                break # no need to check the rest of the k-vectors currently in k-star; already found a match
             end
         end
 
@@ -835,7 +835,7 @@ primitivize(sg::T, modw::Bool=true) where T<:SpaceGroup = T(num(sg), reduce_ops(
 function primitivize(lg::T, modw::Bool=true) where T<:LittleGroup 
     cntr = centering(lg)
     # transform both k-point and operations
-    kv′  = primitivize(kvec(lg), cntr)
+    kv′  = primitivize(position(lg), cntr)
     ops′ = reduce_ops(operations(lg), cntr, false, modw)
     return T(num(lg), kv′, klabel(lg), ops′)
 end

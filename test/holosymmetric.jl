@@ -101,13 +101,13 @@ end
     for sgnum in Base.OneTo(MAX_SGNUM[D])
         Crystalline.is_holosymmetric(sgnum, D) && continue # only check holosymmetric sgs
 
-        # look for new kvecs (and mapping) in CDML data; if nothing is there, return an empty 
-        # array of Crystalline.KVecMapping
+        # look for new k-vectors (and mapping) in CDML data; if nothing is there, return an
+        # empty array of Crystalline.KVecMapping
         arith_partner_sgnum = Crystalline.find_arithmetic_partner(sgnum, D)
         kvmaps_CDML = get(Crystalline.ΦNOTΩ_KVECS_AND_MAPS, arith_partner_sgnum, Crystalline.KVecMapping[])
         newklabs_CDML = [getfield.(kvmaps_CDML, :kᴮlab)...]
 
-        # look for new kvecs using our own search implementation
+        # look for new k-vectors using our own search implementation
         _, _, _, newklabs = Crystalline.find_new_kvecs(sgnum, D)
         newklabs = collect(Iterators.flatten(newklabs)) # flatten array of array structure
         newklabs .= rstrip.(newklabs, '′') # strip "′" from newklabs

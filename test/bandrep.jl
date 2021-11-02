@@ -28,11 +28,11 @@ for (sgnum, lgirsd) in enumerate(LGIRS)
 
         # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
         kidx_BRS = findfirst(==(klab), klabs_BRS)
-        @test BRS.kvs[kidx_BRS] == kvec(first(lgirsd[klab]))
-        if debug && BRS.kvs[kidx_BRS] ≠ kvec(first(lgirsd[klab]))
+        @test BRS.kvs[kidx_BRS] == position(first(lgirsd[klab]))
+        if debug && BRS.kvs[kidx_BRS] ≠ position(first(lgirsd[klab]))
             println("Different definitions of k-point labels in space group ", sgnum)
             println("   BRS, ", klab, ": ",string(BRS.kvs[kidx_BRS]))
-            println("   ISO, ", klab, ": ",string(kvec(first(lgirsd[klab]))), "\n")
+            println("   ISO, ", klab, ": ",string(position(first(lgirsd[klab]))), "\n")
         end
 
     end
@@ -66,7 +66,7 @@ for (sgnum, lgirsd) in enumerate(LGIRS)
 
         # test that ISOTROPY's labelling & representation of k-vectors agree with BCD
         kidx_BRS = findfirst(==(klab), klabs_BRS)
-        @test BRS.kvs[kidx_BRS] == kvec(first(lgirsd[klab]))
+        @test BRS.kvs[kidx_BRS] == position(first(lgirsd[klab]))
     end
 end
 end

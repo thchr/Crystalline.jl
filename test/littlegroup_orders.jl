@@ -16,7 +16,7 @@ end
             order_macroscopic = length(pointgroup(sgops))
             
             for lgirs in values(lgirsd)
-                kv = kvec(first(lgirs))    
+                kv = position(first(lgirs))    
                 for lgir in lgirs            
                     # number of k-vectors in the star of k
                     order_kstar = length(kstar(sgops, kv, cntr)) 
@@ -64,7 +64,7 @@ end
             sg  = spacegroup(sgnum, Val(D))
             sg  = SpaceGroup{D}(sgnum, reduce_ops(sg))
             for (klab, lg) in lgs
-                kv  = kvec(lg)
+                kv  = position(lg)
                 lg′ = littlegroup(sg, kv)
 
                 # we compare the primitive little groups; otherwise there can be spurious

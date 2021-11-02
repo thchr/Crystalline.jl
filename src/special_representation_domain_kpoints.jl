@@ -406,7 +406,7 @@ function find_new_kvecs(G::SpaceGroup{D}) where D
     # general point (also denoted Ω by us) to a new point, since it can be obtained by 
     # parameter variation; so we filter that out as well.
     filter!(klablg_pair-> length(first(klablg_pair)) == 1 && first(klablg_pair) != "Ω", lgs)
-    kvs = kvec.(values(lgs))
+    kvs = position.(values(lgs))
     klabs = klabel.(values(lgs))
     Nk = length(lgs)    
 

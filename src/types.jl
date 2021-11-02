@@ -457,11 +457,11 @@ struct LittleGroup{D} <: AbstractGroup{D}
     klab::String
     operations::Vector{SymOperation{D}}
 end
-LittleGroup(num::Int64, kv::KVec, klab::String, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
-LittleGroup(num::Int64, kv::KVec, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
-kvec(lg::LittleGroup) = lg.kv
+LittleGroup(num::Int64, kv::KVec{D}, klab::String, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
+LittleGroup(num::Int64, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
+position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
-label(lg::LittleGroup)  = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(kvec(lg))
+label(lg::LittleGroup) = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(position(lg))
 
 # ---------------------------------------------------------------------------------------- #
 # Reality <: Enum{Int8}:    1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
@@ -558,7 +558,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
-    g::LittleGroup{D} # contains sgnum, kvec, klab, and operations that define the little group
+    g::LittleGroup{D} # contains sgnum, kv, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
     translations::Vector{Vector{Float64}}
     reality::Reality
@@ -577,16 +577,17 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     translations = [zeros(Float64,D) for _=OneTo(order(lg))]
     return LGIrrep{D}(cdml, lg, matrices, translations, reality)
 end
-kvec(lgir::LGIrrep)  = kvec(group(lgir))
-isspecial(lgir::LGIrrep)  = isspecial(kvec(lgir))
+position(lgir::LGIrrep) = position(group(lgir))
+isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
-kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), 
-                             kvec(lgir), centering(num(lgir), dim(lgir)))
+kstar(lgir::LGIrrep) = kstar(spacegroup(num(lgir), dim(lgir)), position(lgir),
+                             centering(num(lgir), dim(lgir)))
+
 function (lgir::LGIrrep)(αβγ::Union{Vector{<:Real},Nothing}=nothing)
     P = lgir.matrices
     τ = lgir.translations
     if !iszero(τ)
-        k = kvec(lgir)(αβγ)
+        k = position(lgir)(αβγ)
         P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
         for (i,τ′) in enumerate(τ)
             if !iszero(τ′) && !iszero(k)
@@ -623,7 +624,7 @@ function (lgir::LGIrrep)(αβγ::Union{Vector{<:Real},Nothing}=nothing)
     #=
     lg = group(lgir)
     if !issymmorph(lg)
-        k = kvec(lgir)(αβγ)
+        k = position(lgir)(αβγ)
         for (i,op) in enumerate(lg)
             P[i] .* cis(-4π*dot(k, translation(op)))
         end
@@ -644,7 +645,7 @@ The function returns a boolean (true => ray representation) and the
 coefficient matrix αᵢⱼ.
 """
 function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
-    k = kvec(lgir)(αβγ)
+    k = position(lgir)(αβγ)
     lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
     Nₒₚ = length(lg)
     α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
@@ -684,7 +685,7 @@ struct CharacterTable{D} <: AbstractCharacterTable
     irlabs::Vector{String}
     table::Matrix{ComplexF64} # irreps along columns & operations along rows
     # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
-    #       translations and kvec as well; then we could print a result that doesn't  
+    #       translations and k-vector as well; then we could print a result that doesn't  
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
     tag::String
 end
@@ -763,9 +764,9 @@ struct BandRep <: AbstractVector{Int}
                            # entries correspond to an element in the band representation
     irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
-wyck(BR::BandRep)    = BR.wyckpos
-sitesym(BR::BandRep) = BR.sitesym
-label(BR::BandRep)   = BR.label
+position(BR::BandRep)    = BR.wyckpos
+sitesym(BR::BandRep)     = BR.sitesym
+label(BR::BandRep)       = BR.label
 irreplabels(BR::BandRep) = BR.irlabs
 
 """
@@ -800,7 +801,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 struct BandRepSet <: AbstractVector{BandRep}
     sgnum::Int              # space group number, sequential
     bandreps::Vector{BandRep}
-    kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric?
+    kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
@@ -809,7 +810,6 @@ struct BandRepSet <: AbstractVector{BandRep}
 end
 num(BRS::BandRepSet)         = BRS.sgnum
 klabels(BRS::BandRepSet)     = BRS.klabs
-kvecs(BRS::BandRepSet)       = BRS.kvs
 hasnonmax(BRS::BandRepSet)   = BRS.allpaths
 irreplabels(BRS::BandRepSet) = BRS.irlabs
 isspinful(BRS::BandRepSet)   = BRS.spinful

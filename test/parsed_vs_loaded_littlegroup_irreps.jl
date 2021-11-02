@@ -42,7 +42,7 @@ end
                 # test that labels agree
                 @test label(lgir) == label(lgir′)
                 # test that little groups agree
-                @test isapprox(kvec(lgir), kvec(lgir′))
+                @test position(lgir) ≈ position(lgir′)
                 @test all(operations(lgir) .== operations(lgir′))
                 # test that irreps agree
                 for αβγ in (nothing, Crystalline.TEST_αβγ)

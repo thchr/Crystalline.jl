@@ -17,20 +17,21 @@ Bilbao Crystallographic Server; returns a vector of `WyckoffPosition{3}`.
 function crawl_wyckpos_3d(sgnum::Integer)
     htmlraw = crawl_wyckpos_3d_html(sgnum)
 
-    wycks_html = children.(children(children(children(last(children(htmlraw.root)))[3])[5][1]))
+    wps_html = children.(children(children(children(last(children(htmlraw.root)))[3])[5][1]))
     
-    Nwyck = length(wycks_html)-1
-    wycks = Vector{WyckoffPosition{3}}(undef, Nwyck)
+    N_wps = length(wps_html)-1
+    wps = Vector{WyckoffPosition{3}}(undef, N_wps)
 
-    for (i,el) in enumerate(@view wycks_html[2:end])
-        letter, mult_str, sitesym_str, rv_str, _ = getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
+    for (i,el) in enumerate(@view wps_html[2:end])
+        letter, mult_str, sitesym_str, rv_str, _ = 
+                                getfield.(first.(getfield.(el, Ref(:children))), Ref(:text))
 
         rv = RVec{3}(rv_str)
         mult = parse(Int, mult_str) 
 
-        wycks[i] = WyckoffPosition{3}(mult, only(letter), rv)
+        wps[i] = WyckoffPosition{3}(mult, only(letter), rv)
     end
-    return wycks
+    return wps
 end
 
 function crawl_wyckpos_3d_html(sgnum::Integer)

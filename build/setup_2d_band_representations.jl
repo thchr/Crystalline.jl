@@ -2,7 +2,7 @@ using LinearAlgebra
 using Crystalline
 using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
                    _mulliken, DEFAULT_ATOL, formatirreplabel
-import Crystalline: mulliken, realify
+import Crystalline: mulliken, realify, group
 using StaticArrays
 
 # The implementation here follows Elcoro et al., Phys. Rev. B 97, 035139 (2018)
@@ -19,6 +19,8 @@ struct SiteIrrep{D} <: AbstractIrrep{D}
     iscorep  :: Bool
     pglab    :: String
 end
+group(siteir::SiteIrrep) = siteir.g
+position(siteir::SiteIrrep) = position(group(siteir))
 
 """
     siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
@@ -144,7 +146,7 @@ a `SymOperation` `h`.
 function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D
 
     siteg  = group(siteir)
-    wp     = wyck(siteg)   
+    wp     = position(siteg)   
     kv′    = constant(h*kv) # <-- TODO: Why only constant part?
     χs     = characters(siteir)
 
@@ -175,7 +177,7 @@ end
 
 function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) where D
     lg = group(first(lgirs))
-    kv = kvec(lg)
+    kv = position(lg)
 
     # characters of induced site representation and little group irreps
     site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
@@ -199,7 +201,7 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
     
     irdims_Γmask = [irlab[1]=='Γ' for irlab in irlabs] .* irdims # masked w/ Γ-irreps only
     brdim   = dot(irvec, irdims_Γmask)
-    wycklab = label(wyck(group(siteir)))
+    wycklab = label(position(group(siteir)))
     spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
     decomposable = false # NB: placeholder, because we don't know the true answer presently
 
@@ -234,7 +236,7 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
     # TODO: There's potentially some kind of bad implicit dependence/overreliance on fixed
     #       on iteration order of `Dict`s here and related methods; probably OK, but unwise
     klabs  = collect(keys(lgirsd))
-    kvs    = kvec.(first.(values(lgirsd)))
+    kvs    = position.(first.(values(lgirsd)))
     spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
     decomposable = false # NB: placeholder, because we don't know the true answer presently
 
