@@ -25,10 +25,10 @@ for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "recipro
     end
     @eval $T{D}(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(SVector{D}(Vs))
     @eval $T(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, NTuple{D,<:Real}}) where D = $T{D}(SVector{D, Float64}.(Vs))
-    @eval $T(Vs::NTuple{D, NTuple{D, <:Real}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, <:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T(Vs::NTuple{D, <:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
+    @eval $T{D}(Vs::NTuple{D, NTuple{D, Real}}) where D = $T{D}(SVector{D, Float64}.(Vs))
+    @eval $T(Vs::NTuple{D, NTuple{D, Real}}) where D = $T{D}(Vs)
+    @eval $T{D}(Vs::NTuple{D, AbstractVector{<:Real}}) where D = $T{D}(Vs...)
+    @eval $T(Vs::NTuple{D, AbstractVector{<:Real}}) where D = $T{D}(Vs...)
     @eval $T{D}(Vs::AbstractVector{<:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
     @eval $T(Vs::AbstractVector{<:AbstractVector{<:Real}}) = $T(Vs...)
     @eval $T{D}(Vs::AbstractVector{<:Real}...) where D = $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
@@ -71,25 +71,36 @@ stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
 
 abstract type AbstractPoint{D, T} <: StaticVector{D, T} end
 
+parent(p::AbstractPoint) = p.v
+
+@propagate_inbounds getindex(v::AbstractPoint, i::Int) = parent(v)[i]
+size(::AbstractPoint{D}) where D = (D,)
+IndexStyle(::Type{<:AbstractPoint}) = IndexLinear()
+
 for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
                                 (:DirectBasis, :ReciprocalBasis),
                                 ("direct", "reciprocal"))
     @eval begin
         @doc """
-            $($PT){D} <: AbstractBasis{D}
+            $($PT){D} <: AbstractPoint{D}
 
         A wrapper type over an `SVector{D, Float64}`, defining a single point in
         `D`-dimensional $($space_type) space. 
         
-        The coordinates of a $($PT) are generally considered specified relative to an
+        The coordinates of a $($PT) are generally assumed specified relative to an
         associated $($BT).
         """
         struct $PT{D} <: AbstractPoint{D, Float64}
-            v::SVector{D}
+            v::SVector{D, Float64}
             $PT{D}(v::SVector{D, Float64}) where {D} = new{D}(v)
-            $PT(v::SVector{D, Float64}) where {D}    = new{D}(v)
+            $PT(v::SVector{D, Float64}) where {D} = new{D}(v)
         end
+        @eval function convert(::Type{$PT{D}}, v::AbstractVector{<:Real}) where D
+            $PT{D}(convert(SVector{D, Float64}, v))
+        end
+        @eval convert(::Type{$PT{D}}, v::$PT{D}) where D = v
+        @eval $PT{D}(v::NTuple{D, Real}) where D = $PT{D}(convert(SVector{D, Float64}, v))
+        @eval $PT(v::NTuple{D, Real}) where D = $PT{D}(v)
+        @eval $PT(vᵢ::Real...) = $PT(vᵢ)
     end
 end
-
-parent(p::AbstractPoint) = p.v
