@@ -31,6 +31,17 @@ end
     end
 end
 
+@testset "Schoenflies notation: space vs. point group" begin
+    for sgnum in 1:MAX_SGNUM[3]
+        sg = spacegroup(sgnum, Val(3))
+        pg = Crystalline.find_parent_pointgroup(sg)
+        sglab = schoenflies(sgnum)
+        pglab = schoenflies(pg)
+        println(sgnum)
+        @test pglab == sglab[1:lastindex(pglab)]
+    end
+end
+
 @testset "Generators" begin
     for (Dᵛ, gtype) in ((Val(1), PointGroup{1}), (Val(2), PointGroup{2}), (Val(3), PointGroup{3}))
         D = typeof(Dᵛ).parameters[1]

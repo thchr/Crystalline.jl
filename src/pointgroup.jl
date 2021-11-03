@@ -6,17 +6,17 @@
 const PGS_NUM2IUC = (
     (["1"], ["m"]),                                           # 1D
     (["1"], ["2"], ["m"], ["mm2"], ["4"], ["4mm"], ["3"],     # 2D
-     ["3m1", "31m"],       # C3v setting variations
+     ["3m1", "31m"],       # C₃ᵥ setting variations
      ["6"], ["6mm"]),
     (["1"], ["-1"], ["2"], ["m"], ["2/m"], ["222"], ["mm2"],  # 3D
      ["mmm"], ["4"], ["-4"], ["4/m"], ["422"], ["4mm"], 
-     ["-42m", "-4m2"],     # D2d setting variations
+     ["-42m", "-4m2"],     # D₂d setting variations
      ["4/mmm"], ["3"], ["-3"],
-     ["312", "321"],       # D3 setting variations  (hexagonal axes)
-     ["3m1", "31m"],       # C3v setting variations (hexagonal axes)
-     ["-31m", "-3m1"],     # D3d setting variations (hexagonal axes)
+     ["312", "321"],       # D₃ setting variations  (hexagonal axes)
+     ["3m1", "31m"],       # C₃ᵥ setting variations (hexagonal axes)
+     ["-31m", "-3m1"],     # D₃d setting variations (hexagonal axes)
      ["6"], ["-6"], ["6/m"], ["622"], ["6mm"], 
-     ["-62m", "-6m2"],     # D3h setting variations
+     ["-62m", "-6m2"],     # D₃ₕ setting variations
      ["6/mmm"], ["23"], ["m-3"], ["432"], ["-43m"], ["m-3m"])
 )
 # a flat tuple-listing of all the iuc labels in PGS_NUM2IUC; sliced across dimensions
@@ -25,25 +25,25 @@ const PGS_IUCs = map(x->collect(Iterators.flatten(x)), PGS_NUM2IUC)
 const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PGS_NUM2IUC[D])
                            for lab in PGS_IUCs[D]]...) for D in (1,2,3)]...)
 # The IUC notation for point groups can be mapped to the Schoenflies notation, but the 
-# mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C3v but 
+# mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C₃ᵥ but 
 # correspond to different axis orientations. 
 # When there is a choice of either hexagonal vs. rhombohedral or unique axes b vs unique
 # axes a/c we choose hexagonal and unique axes b, respectively.
 const IUC2SCHOENFLIES_PGS = ImmutableDict(
-    "1"     => "C1",   "-1"   => "Ci",
-    "2"     => "C2",   "m"    => "Cs",   "2/m"  => "C2h",  # unique axes b setting
-    "222"   => "D2",   "mm2"  => "C2v",  "mmm"  => "D2h",  "4"    => "C4",
-    "-4"    => "S4",   "4/m"  => "C4h",  "422"  => "D4",   "4mm"  => "C4v",
-    "-42m"  => "D2d",  "-4m2" => "D2d",  # D2d setting variations
-    "4/mmm" => "D4h",  "3"    => "C3",   "-3"   => "C3i",
-    "312"   => "D3",   "321"  => "D3",   # D3 setting variations  (hexagonal axes)
-    "3m1"   => "C3v",  "31m"  => "C3v",  # C3v setting variations (hexagonal axes)
-    "-31m"  => "D3d",  "-3m1" => "D3d",  # D3d setting variations (hexagonal axes)
-    "6"     => "C6",   "-6"   => "C3h",  "6/m"  => "C6h",  "622"  => "D6",
-    "6mm"   => "C6v",
-    "-62m"  => "D3h",  "-6m2" => "D3h",  # D3h setting variations
-    "6/mmm" => "D6h",  "23"   => "T",
-    "m-3"   => "Th",   "432"  => "O",    "-43m" => "Td",   "m-3m" => "Oh"
+    "1"     => "C₁",   "-1"   => "Cᵢ",
+    "2"     => "C₂",   "m"    => "Cₛ",   "2/m"  => "C₂ₕ",  # unique axes b setting
+    "222"   => "D₂",   "mm2"  => "C₂ᵥ",  "mmm"  => "D₂ₕ",  "4"    => "C₄",
+    "-4"    => "S₄",   "4/m"  => "C₄ₕ",  "422"  => "D₄",   "4mm"  => "C₄ᵥ",
+    "-42m"  => "D₂d",  "-4m2" => "D₂d",  # D₂d setting variations
+    "4/mmm" => "D₄ₕ",  "3"    => "C₃",   "-3"   => "C₃ᵢ",
+    "312"   => "D₃",   "321"  => "D₃",   # D₃ setting variations  (hexagonal axes)
+    "3m1"   => "C₃ᵥ",  "31m"  => "C₃ᵥ",  # C₃ᵥ setting variations (hexagonal axes)
+    "-31m"  => "D₃d",  "-3m1" => "D₃d",  # D₃d setting variations (hexagonal axes)
+    "6"     => "C₆",   "-6"   => "C₃ₕ",  "6/m"  => "C₆ₕ",  "622"  => "D₆",
+    "6mm"   => "C₆ᵥ",
+    "-62m"  => "D₃ₕ",  "-6m2" => "D₃ₕ",  # D₃ₕ setting variations
+    "6/mmm" => "D₆ₕ",  "23"   => "T",
+    "m-3"   => "Tₕ",   "432"  => "O",    "-43m" => "Td",   "m-3m" => "Oₕ"
 )
 
 const PGS_ORDERs = ImmutableDict(
@@ -51,14 +51,14 @@ const PGS_ORDERs = ImmutableDict(
     "2"     =>  2,  "m"    =>  2,  "2/m"  => 4,  # unique axes b setting
     "222"   =>  4,  "mm2"  =>  4,  "mmm"  => 8,  "4"    => 4,
     "-4"    =>  4,  "4/m"  =>  8,  "422"  => 8,  "4mm"  => 8,
-    "-42m"  =>  8,  "-4m2" =>  8,  # D2d setting variations
+    "-42m"  =>  8,  "-4m2" =>  8,  # D₂d setting variations
     "4/mmm" => 16,  "3"    =>  3,  "-3"   => 6,
-    "312"   =>  6,  "321"  =>  6,  # D3 setting variations  (hexagonal axes)
-    "3m1"   =>  6,  "31m"  =>  6,  # C3v setting variations (hexagonal axes)
-    "-31m"  => 12,  "-3m1" => 12,  # D3d setting variations (hexagonal axes)
+    "312"   =>  6,  "321"  =>  6,  # D₃ setting variations  (hexagonal axes)
+    "3m1"   =>  6,  "31m"  =>  6,  # C₃ᵥ setting variations (hexagonal axes)
+    "-31m"  => 12,  "-3m1" => 12,  # D₃d setting variations (hexagonal axes)
     "6"     =>  6,  "-6"   =>  6,  "6/m"  => 12,  "622"  => 12,
     "6mm"   => 12,
-    "-62m"  => 12,  "-6m2" => 12,  # D3h setting variations
+    "-62m"  => 12,  "-6m2" => 12,  # D₃ₕ setting variations
     "6/mmm" => 24,  "23"   => 12,
     "m-3"   => 24,  "432"  => 24,  "-43m" => 24,  "m-3m" => 48
 )
