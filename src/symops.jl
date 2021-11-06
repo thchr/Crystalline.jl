@@ -615,19 +615,22 @@ assumed.
 """
 function orbit(g::AbstractVector{SymOperation{D}},
                v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
-               cntr::Union{Nothing, Char}=nothing) where D
+               P::Union{Nothing, AbstractMatrix{<:Real}} = nothing) where D
     vs = [v]
-    cntr !== nothing && (cntr = primitivebasismatrix(cntr, Val(D)))
     for op in g
         v′ = op*v
-        if !isapproxin(v′, vs, cntr, #=modw=#true)
+        if !isapproxin(v′, vs, P, #=modw=#true)
             push!(vs, v′)
         end
     end
     return vs
 end
+function orbit(g::AbstractVector{SymOperation{D}},
+               v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
+               cntr::Char) where D
+    return orbit(g, v, primitivebasismatrix(cntr, Val(D)))
+end
 orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
-
 
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
@@ -885,7 +888,7 @@ cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(
 Search for an operator `op′` in `ops` which is equivalent, modulo differences
 by *primitive* lattice translations `Δw`, to `op`. Return the index of `op′` in 
 `ops`, as well as the primitive translation difference `Δw`. If no match is found
-returns `(nothing, nothing)`.
+returns `nothing`.
 
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
@@ -910,7 +913,7 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
             end
         end
     end
-    return nothing, nothing # didn't find any match
+    return nothing # didn't find any match
 end
 
 

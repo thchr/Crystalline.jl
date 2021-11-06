@@ -1,5 +1,5 @@
 """
-    realify(lgirs::AbstractVector{<:LGIrrep}, verbose::Bool=false)
+    realify(lgirs::AbstractVector{<:LGIrrep}; verbose::Bool=false)
                                                         --> AbstractVector{<:LGIrrep}
 
 From `lgirs`, a vector of `LGIrrep`s, determine the associated (gray) co-representations,
@@ -26,18 +26,18 @@ Cornwell's book also does a good job of explicating this, as does Inui (p. 296-2
 - `verbose::Bool`: if set to `true`, prints details about mapping from small irrep to small
 corep for each `LGIrrep` (default: `false`).
 """
-function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
+function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
     Nirr = length(lgirs)
     lg = group(first(lgirs))
     kv = position(lg) # must be the same for all irreps in list
-    αβγ    = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[OneTo(D)]
+    αβγ = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[OneTo(D)]
     kv_αβγ = kv(αβγ)
     sgnum = num(lg)
     lgops = operations(lg)
     Nops = order(lg) # order of little group (= number of operations)
 
     cntr = centering(sgnum, D)
-    sgops = operations(spacegroup(sgnum, D))
+    sgops = operations(spacegroup(sgnum, Val(D)))
 
     verbose && print(klabel(lg), " │ ")
 
@@ -55,8 +55,9 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
     # ║   There can then only be type 'x' degeneracy (between 𝐤 and -𝐤)
     # ║   but TR will not change the degeneracy at 𝐤 itself. Cornwall
     # ║   refers to this as "Case (1)" on p. 151.
+    corep_idxs = Vector{Vector{Int}}() # define outside `if-else` to help inference
     if !isapproxin(-kv, orbit(sgops, kv, cntr), cntr, true; atol=DEFAULT_ATOL)
-        corep_idxs = [[i] for i in OneTo(Nirr)] # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
+        append!(corep_idxs, ([i] for i in OneTo(Nirr))) # TR ∉ M(k) ⇒ smalls irrep (... small co-reps) not modified by TR
         verbose && println(klabel(lg), "ᵢ ∀i (type x) ⇒  no additional degeneracy (star{k} ∌ -k)")
 
     else
@@ -77,8 +78,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
 
         # -𝐤 is part of star{𝐤}; we infer reality of irrep from ISOTROPY's data (could also 
         # be done using `calc_reality(...)`) ⇒ deduce new small irreps (... small co-reps)
-        corep_idxs = Vector{Vector{Int64}}()
-        skiplist = Vector{Int64}()
+        skiplist = Vector{Int}()
         for (i, lgir) in enumerate(lgirs)
             i ∈ skiplist && continue # already matched to this irrep previously; i.e. already included now
             _check_not_corep(lgir)
@@ -96,7 +96,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                 push!(corep_idxs, [i, i])
                 if verbose
                     println(formatirreplabel(label(lgir)^2), 
-                            " (pseudo-real) ⇒  doubles degeneracy"); 
+                            " (pseudo-real) ⇒  doubles degeneracy")
                 end
 
             elseif reality(lgir) == COMPLEX
@@ -139,10 +139,11 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
                                 χⱼ_g₋⁻¹gg₋ = χⱼ[n]
                             else           # 𝐤 not equivalent to -𝐤, i.e. 𝐤 ≠ -𝐤 + 𝐆, but -𝐤 is in the star of 𝐤 (Cornwall's case (2))
                                 g₋⁻¹gg₋ = compose(compose(inv(g₋), lgops[n], false), g₋, false)
-                                n′, Δw = findequiv(g₋⁻¹gg₋, lgops, cntr)
-                                if n′ === nothing || Δw === nothing
+                                n′Δw = findequiv(g₋⁻¹gg₋, lgops, cntr)
+                                if n′Δw === nothing
                                     error("unexpectedly did not find little group element matching g₋⁻¹gg₋")
                                 end
+                                n′, Δw = n′Δw
                                 χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
                             end
                             
@@ -170,11 +171,10 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}, verbose::Bool=false) where D
             end
         end
     end
-
     Ncoreps = length(corep_idxs)
 
     # New small co-rep labels (composite)
-    newlabs = Tuple(join(label(lgirs[i]) for i in corep_idxs[i′]) for i′ in OneTo(Ncoreps))
+    newlabs = [join(label(lgirs[i]) for i in corep_idxs[i′]) for i′ in OneTo(Ncoreps)]
 
     # Build a vector of "new" small irreps (small co-reps), following B&C p. 616 & Inui p.
     # 298-299. For pseudo-real and complex co-reps, we set a flag `iscorep = true`, to
@@ -388,7 +388,9 @@ function calc_reality(lgir::LGIrrep{D},
             # find the equivalent of `op²` in `lgops`; this may differ by a number of 
             # primitive lattice vectors `w_op²`; the difference must be included when 
             # we calculate the trace of the irrep 𝐃: the irrep matrix 𝐃 is ∝exp(2πi𝐤⋅𝐭)
-            idx_of_op²_in_lgops, Δw_op² = findequiv(op², lgops, cntr)
+            tmp = findequiv(op², lgops, cntr)
+            tmp === nothing && error("unexpectedly could not find matching operator of op²")
+            idx_of_op²_in_lgops, Δw_op² = tmp
             ϕ_op² = cis(2π*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cis(x) = exp(ix)]
             χ_op² = ϕ_op²*χs[idx_of_op²_in_lgops] # χ(op²)
 
