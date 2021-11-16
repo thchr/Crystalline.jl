@@ -958,29 +958,20 @@ conventional settings, they must first be transformed to a shared setting.
 """
 function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                     opsᴴ::AbstractVector{SymOperation{D}}) where D
-    ΔW = Matrix{Float64}(undef, D, D) # work matrices
-    Δw = Vector{Float64}(undef, D)
+
+    length(opsᴳ) < length(opsᴴ) && return false # fast-path early return
     for h in opsᴴ
         found = false
         for g in opsᴳ
-            ΔW .= rotation(h) .- rotation(g)
-            Δw .= translation(h) .- translation(g)
-
-            @inbounds @simd for i in SOneTo(D) # consider two operations identical if they differ by a near-integer translation
-                rΔwᵢ = round(Δw[i])
-                if isapprox(Δw[i], rΔwᵢ, atol=DEFAULT_ATOL)
-                    Δw[i] = zero(Float64)
-                end
-            end
-            
-            if norm(ΔW) < DEFAULT_ATOL && norm(Δw) < DEFAULT_ATOL
+            # consider two operations identical if they differ by an integer translation         
+            Δw = translation(h) - translation(g)
+            if isapprox(rotation(h), rotation(g), atol=DEFAULT_ATOL) &&
+               isapprox(Δw, round.(Δw), atol=DEFAULT_ATOL)
                 found = true
                 continue
             end
         end
-        if !found
-            return false
-        end
+        found || return false
     end
     return true
 end
