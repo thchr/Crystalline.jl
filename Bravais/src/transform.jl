@@ -183,10 +183,11 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-    reciprocalbasis(Rs)  -->  Gs::ReciprocalBasis{D}
+    reciprocalbasis(Rs)  -->  ::ReciprocalBasis{D}
     
-Return the reciprocal basis `Gs` of a direct basis `Rs` in `D` dimensions, provided as a
-`DirectBasis{D}` or a `D`-dimensional `NTuple` or `StaticVector` of `AbstractVector`s.
+Return the reciprocal basis of a direct basis `Rs` in `D` dimensions, provided as a
+`DirectBasis{D}`, a `D`-dimensional `NTuple`, or a `StaticVector` of `AbstractVector`s
+(or, type-unstably, as any iterable of `AbstractVector`s).
 """
 function reciprocalbasis(Rs::Union{DirectBasis{D}, 
                                    NTuple{D, <:AbstractVector{<:Real}},
@@ -213,6 +214,7 @@ function reciprocalbasis(Rs::Union{DirectBasis{D},
 
     return ReciprocalBasis{D}(vecs)
 end
+reciprocalbasis(Rs) = reciprocalbasis(tuple(Rs...)) # type-unstable convenience accesor
 
 # TODO: Provide a utility to go from ReciprocalBasis -> DirectBasis. Maybe deprecate
 #       `reciprocalbasis` and have a more general function `dualbasis` instead?

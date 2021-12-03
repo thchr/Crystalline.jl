@@ -11,6 +11,7 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
             end
         end
     end
+    @test reciprocalbasis(([1,0.1], [0.1, 1])) == reciprocalbasis([[1, 0.1], [0.1, 1]])
 
     @testset "Primitive bases" begin
         for D in 1:3
