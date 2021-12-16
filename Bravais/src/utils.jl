@@ -49,7 +49,7 @@ end
 end
 @noinline function _throw_invalid_sgnum(sgnum::Integer, D::Integer)
     throw(DomainError(sgnum,
-        "sgnum must be between 1 and $((2, 17, 230)[D]) in dimension $D"))
+        "group number must be between 1 and $((2, 17, 230)[D]) in dimension $D"))
 end
 
 @inline function boundscheck_sgnum(sgnum::Integer, D::Integer)

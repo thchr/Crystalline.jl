@@ -97,3 +97,102 @@ const FRIEZEGROUP_IUCs = ( # 7 frieze groups
 #       "Z₄×Z₄" = [51]
 #       "Z₆×Z₆" = [75]
 # cf. Tables S18 and S20 of https://doi.org/10.1038/s41467-017-00133-2
+
+## --------------------------------------------------------------------------------------- #31
+
+struct SubperiodicGroup{D,P} <: AbstractGroup{D}
+    num::Int
+    operations::Vector{SymOperation{D}}
+end
+
+function _throw_subperiodic_domain(D::Integer, P::Integer)
+    throw(DomainError((D, P), "invalid dimension and periodicity for subperiodic group"))
+end
+
+@noinline function _throw_subperiodic_num(num::Integer, D::Integer, P::Integer)
+    maxnum, sub  = (D==3 && P==2) ? (80, "layer") :
+                   (D==3 && P==1) ? (75, "rod") :
+                   (D==2 && P==1) ? (7, "frieze") : error("unreachable reached")
+
+    throw(DomainError(num,
+        "group number must be between 1 and $maxnum for $sub groups (D=$D, P=$P)"))
+end
+
+"""
+    read_sgops_xyzt(num::Integer, dim::Integer=3)
+
+Obtains the symmetry operations in xyzt format for a given subperiodic group with number
+`num`, dimensionality `D`, and periodicity `P` by reading from .csv files in 
+`data/operations/subperiodic/`; see [`subperiodicgroup`](@ref) for additional details.
+"""
+function read_subperiodic_ops_xyzt(num::Integer, D::Integer, P::Integer)
+    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
+
+    kind = subperiodic_kind(D, P)
+    filepath = joinpath(DATA_DIR, "operations/subperiodic/"*kind*"/"*string(num)*".csv")
+
+    return readlines(filepath)
+end
+
+function read_subperiodic_gens_xyzt(num::Integer, D::Integer, P::Integer)
+    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
+
+    kind = subperiodic_kind(D, P)
+    filepath = joinpath(DATA_DIR, "generators/subperiodic/"*kind*"/"*string(num)*".csv")
+
+    return readlines(filepath)
+end
+
+@inline function subperiodic_kind(D, P)
+    if D == 3 && P == 2
+        return "layer"
+    elseif D == 3 && P == 1
+        return "rod"
+    elseif D == 2 && P == 1
+        return "frieze"
+    else
+        _throw_subperiodic_domain(D, P)
+    end
+end
+
+function _check_valid_subperiodic_num_and_dim(num::Integer, D::Integer, P::Integer)
+    if D == 3 && P == 2     # layer groups
+        num > 80 && _throw_subperiodic_num(num, D, P)
+    elseif D == 3 && P == 1 # rod groups
+        num > 75  && _throw_subperiodic_num(num, D, P)
+    elseif D == 2 && P == 1 # frieze groups
+        num > 7   && _throw_subperiodic_num(num, D, P)
+    else
+        _throw_subperiodic_domain(D,P)
+    end
+    num < 1 && throw(DomainError(num, "group number must be a positive integer"))
+    return nothing
+end
+
+# TODO: Doc-string
+@inline function subperiodicgroup(num::Integer, 
+                                  ::Val{D}=Val(3), ::Val{P}=Val(2)) where {D,P}
+    ops_str = read_subperiodic_ops_xyzt(num, D, P)
+    ops = SymOperation{D}.(ops_str)
+
+    return SubperiodicGroup{D,P}(num, ops)
+end
+
+# TODO: Doc-string
+function generators(num::Integer, ::Type{SubperiodicGroup{D,P}}) where {D,P}
+    ops_str = read_subperiodic_gens_xyzt(num, D, P)
+
+    return SymOperation{D}.(ops_str)
+end
+
+function Crystalline.label(g::SubperiodicGroup{D,P}) where {D,P}
+    if D == 3 && P == 2
+        return LAYERGROUP_IUCs[num(g)]
+    elseif D == 3 && P == 2
+        return RODGROUP_IUCs[num(g)]
+    elseif D == 2 && P == 1
+        return FRIEZEGROUP_IUCs[num(g)]
+    else
+        _throw_subperiodic_domain(D, P)
+    end
+end

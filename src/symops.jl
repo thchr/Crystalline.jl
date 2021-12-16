@@ -17,10 +17,11 @@ macro S_str(s)
 end
 
 """
-    read_sgops_xyzt(sgnum::Integer, dim::Integer=3)
+    read_sgops_xyzt(sgnum::Integer, D::Integer=3)
 
-Obtains the symmetry operations in xyzt format for a given space group number `sgnum` by
-reading from .csv files in `data/operations/sgs/`; see `spacegroup` for additional details.
+Obtains the symmetry operations in xyzt format for a given space group number `sgnum` and
+dimensionality `D` by reading from .csv files in `data/operations/sgs/`; see
+[`spacegroup`](@ref) for additional details.
 """
 function read_sgops_xyzt(sgnum::Integer, D::Integer)
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
@@ -48,12 +49,12 @@ function _check_valid_sgnum_and_dim(sgnum::Integer, D::Integer)
     else
         _throw_invaliddim(D)
     end
-    sgnum < 1 && throw(DomainError(sgnum, "sgnum must be a positive integer"))
+    sgnum < 1 && throw(DomainError(sgnum, "group number must be a positive integer"))
     return nothing
 end
 
 """
-    generators(sgnum::Integer, ::Val{D}=Val(3))
+    spacegroup(sgnum::Integer, ::Val{D}=Val(3))
     spacegroup(sgnum::Integer, D::Integer)          --> SpaceGroup{D}
 
 Return the space group symmetry operations for a given space group number `sgnum` and 

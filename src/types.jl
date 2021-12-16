@@ -430,16 +430,19 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
+# Interface: must have fields `operations`, `num` and dimensionality `D`.
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
 dim(::AbstractGroup{D}) where D = D
-order(g::AbstractGroup) = length(g)
 
 # define the AbstractArray interface for AbstractGroup
 @propagate_inbounds getindex(g::AbstractGroup, i::Int) = operations(g)[i]    # allows direct indexing into an op::SymOperation like op[1,2] to get matrix(op)[1,2]
 @propagate_inbounds setindex!(g::AbstractGroup, op::SymOperation, i::Int) = (operations(g)[i] .= op)
 size(g::AbstractGroup) = size(operations(g))
 IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
+
+# common `AbstractGroup` utilities
+order(g::AbstractGroup) = length(g)
 
 # --- Generic group ---
 """
