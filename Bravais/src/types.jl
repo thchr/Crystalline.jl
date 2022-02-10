@@ -16,25 +16,25 @@ for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "recipro
         """
         struct $T{D} <: AbstractBasis{D, Float64}
             vs::SVector{D, SVector{D, Float64}}
-            $T{D}(vs::SVector{D, SVector{D, Float64}}) where D = new{D}(vs)
-            $T(vs::SVector{D, SVector{D, Float64}}) where D    = new{D}(vs)
+            # ambiguity-resolving methods relative to StaticArrays's methods
+            $T{D}(vs::StaticVector{D}) where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
+            $T{D}(vs::NTuple{D})       where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
+            $T{D}(vs::AbstractVector)  where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
+            # special-casing for D=1 (e.g., to make `$T([1.0])` work)
+            $T{1}(vs::StaticVector{1,<:Real}) = new{1}(SVector((convert(SVector{1, Float64}, vs),)))
+            $T{1}(vs::NTuple{1,Real})         = new{1}(SVector((convert(SVector{1, Float64}, vs),)))
+            $T{1}(vs::AbstractVector{<:Real}) = new{D}(SVector((convert(SVector{1, Float64}, vs),)))
         end
     end
-    @eval function convert(::Type{$T{D}}, Vs::StaticVector{D, <:StaticVector{D, <:Real}}) where D
-        $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
+    @eval function convert(::Type{$T{D}}, vs::StaticVector{D, <:StaticVector{D, <:Real}}) where D
+        $T{D}(convert(SVector{D, SVector{D, Float64}}, vs))
     end
-    @eval $T{D}(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(SVector{D}(Vs))
-    @eval $T(Vs::NTuple{D, SVector{D, Float64}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, NTuple{D, Real}}) where D = $T{D}(SVector{D, Float64}.(Vs))
-    @eval $T(Vs::NTuple{D, NTuple{D, Real}}) where D = $T{D}(Vs)
-    @eval $T{D}(Vs::NTuple{D, AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T(Vs::NTuple{D, AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T{D}(Vs::AbstractVector{<:AbstractVector{<:Real}}) where D = $T{D}(Vs...)
-    @eval $T(Vs::AbstractVector{<:AbstractVector{<:Real}}) = $T(Vs...)
-    @eval $T{D}(Vs::AbstractVector{<:Real}...) where D = $T{D}(convert(SVector{D, SVector{D, Float64}}, Vs))
-    @eval $T(Vs::AbstractVector{<:Real}...) = $T{length(Vs)}(Vs...)
-    @eval $T{D}(Vs::StaticVector{D, <:Real}...) where D = $T{D}(Vs) # resolve ambiguities w/
-    @eval $T(Vs::StaticVector{D, <:Real}...) where D = $T{D}(Vs)    # `::StaticArray` methods
+    @eval $T(vs::StaticVector{D})    where D = $T{D}(vs) # resolve more ambiguities, both
+    @eval $T(vs::StaticVector{D}...) where D = $T{D}(vs) # internally and with StaticArrays,
+    @eval $T(vs::NTuple{D})          where D = $T{D}(vs) # and make most reasonable accessor
+    @eval $T(vs::NTuple{D}...)       where D = $T{D}(vs) # patterns functional
+    @eval $T(vs::AbstractVector)             = $T{length(vs)}(vs) # [type-unstable]
+    @eval $T(vs::AbstractVector...)          = $T{length(vs)}(promote(vs...))
 end
 
 parent(Vs::AbstractBasis) = Vs.vs
@@ -44,17 +44,14 @@ size(::AbstractBasis{D}) where D = (D,)
 IndexStyle(::Type{<:AbstractBasis}) = IndexLinear()
 
 _angle(rA, rB) = acos(dot(rA, rB) / (norm(rA) * norm(rB)))
-function angles(Rs::AbstractBasis{D}) where D
-    D == 1 && return nothing
+angles(Rs::AbstractBasis{2}) = _angle(Rs[1], Rs[2])
+function angles(Rs::AbstractBasis{3})
+    α = _angle(Rs[2], Rs[3])
+    β = _angle(Rs[3], Rs[1])
     γ = _angle(Rs[1], Rs[2])
-    D == 2 && return γ
-    if D == 3
-        α = _angle(Rs[2], Rs[3])
-        β = _angle(Rs[3], Rs[1])
-        return α, β, γ
-    end
-    _throw_invaliddim(D)
+    return α, β, γ
 end
+angles(::AbstractBasis{D}) where D = _throw_invaliddim(D)
 
 """
     stack(Vs::AbstractBasis)
@@ -92,15 +89,17 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
         """
         struct $PT{D} <: AbstractPoint{D, Float64}
             v::SVector{D, Float64}
-            $PT{D}(v::SVector{D, Float64}) where {D} = new{D}(v)
-            $PT(v::SVector{D, Float64}) where {D} = new{D}(v)
+            # ambiguity-resolving methods relative to StaticArray's
+            $PT{D}(v::StaticVector{D, <:Real}) where D = new{D}(convert(SVector{D, Float64}, v))
+            $PT{D}(v::NTuple{D, Real}) where D         = new{D}(convert(SVector{D, Float64}, v))
+            $PT{D}(v::AbstractVector{<:Real}) where D  = new{D}(convert(SVector{D, Float64}, v))
         end
         @eval function convert(::Type{$PT{D}}, v::AbstractVector{<:Real}) where D
             $PT{D}(convert(SVector{D, Float64}, v))
         end
-        @eval convert(::Type{$PT{D}}, v::$PT{D}) where D = v
-        @eval $PT{D}(v::NTuple{D, Real}) where D = $PT{D}(convert(SVector{D, Float64}, v))
-        @eval $PT(v::NTuple{D, Real}) where D = $PT{D}(v)
-        @eval $PT(vᵢ::Real...) = $PT(vᵢ)
+        @eval $PT(v::StaticVector{D}) where D = $PT{D}(v) # resolve internal/StaticArrays
+        @eval $PT(v::NTuple{D, Real}) where D = $PT{D}(v) # ambiguities & add accessors
+        @eval $PT(v::AbstractVector) = $PT{length(v)}(v)
+        @eval $PT(v::Real...) = $PT{length(v)}(v)
     end
 end
