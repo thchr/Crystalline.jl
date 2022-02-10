@@ -14,11 +14,11 @@
     characters(irs)
 )
 
-@deprecate kvec(lg::LittleGroup)     position
-@deprecate kvec(lgir::LGIrrep)       position
-@deprecate wyck(g::SiteGroup)        position
-@deprecate wyck(wp::WyckoffPosition) position
-@deprecate wyck(BR::BandRep)         position
+@deprecate kvec(lg::LittleGroup)     position(lg)
+@deprecate kvec(lgir::LGIrrep)       position(lgir)
+@deprecate wyck(g::SiteGroup)        position(g)
+@deprecate wyck(wp::WyckoffPosition) position(wp)
+@deprecate wyck(BR::BandRep)         position(BR)
 
 @deprecate(
     kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D,

@@ -37,7 +37,6 @@ end
         pg = Crystalline.find_parent_pointgroup(sg)
         sglab = schoenflies(sgnum)
         pglab = schoenflies(pg)
-        println(sgnum)
         @test pglab == sglab[1:lastindex(pglab)]
     end
 end

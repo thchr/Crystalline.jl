@@ -280,7 +280,7 @@ for (sgnum, lgirsd) in LGIRSD_2D
         if klabel(g) != klab
             error("Tabulation error: mismatched k-label $(klabel(g)) and dict-index $(klab)")
         end
-        if reality.(lgirs) != calc_reality.(lgirs, Ref(sg), Ref(Crystalline.TEST_αβγ[1:2]))
+        if reality.(lgirs) != calc_reality.(lgirs, Ref(sg), Ref(Crystalline.TEST_αβγs[2]))
             error("Tabulation error: reality type")
         end
     end

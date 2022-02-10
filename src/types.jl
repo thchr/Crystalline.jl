@@ -531,8 +531,8 @@ Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `m
 `irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
-(ir::AbstractIrrep)(αβγ=nothing) = ir.matrices
-group(ir::AbstractIrrep, αβγ=nothing) = ir.g
+(ir::AbstractIrrep)(αβγ=nothing) = deepcopy(ir.matrices)
+group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices    
 reality(ir::AbstractIrrep) = ir.reality
@@ -597,16 +597,15 @@ struct LGIrrep{D} <: AbstractIrrep{D}
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
-                    translations::Vector{Vector{Float64}},
+                    translations::Union{Vector{Vector{Float64}}, Nothing},
                     reality::Reality) where D
+
+    translations = if translations === nothing # sentinel value for all-zero translations
+        [zeros(Float64, D) for _=OneTo(order(lg))]
+    else
+        translations
+    end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
-end
-function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
-                    matrices::Vector{Matrix{ComplexF64}}, 
-                    translations_sentinel::Nothing, # sentinel value for all-zero translations
-                    reality::Reality) where D
-    translations = [zeros(Float64,D) for _=OneTo(order(lg))]
-    return LGIrrep{D}(cdml, lg, matrices, translations, reality)
 end
 position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
@@ -614,7 +613,7 @@ issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
-function (lgir::LGIrrep)(αβγ::Union{Vector{<:Real},Nothing}=nothing)
+function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
     P = lgir.matrices
     τ = lgir.translations
     if !iszero(τ)

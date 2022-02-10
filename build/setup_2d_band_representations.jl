@@ -19,7 +19,6 @@ struct SiteIrrep{D} <: AbstractIrrep{D}
     iscorep  :: Bool
     pglab    :: String
 end
-group(siteir::SiteIrrep) = siteir.g
 position(siteir::SiteIrrep) = position(group(siteir))
 
 """
