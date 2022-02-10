@@ -30,7 +30,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
     Nirr = length(lgirs)
     lg = group(first(lgirs))
     kv = position(lg) # must be the same for all irreps in list
-    αβγ = D == length(TEST_αβγ) ? TEST_αβγ : TEST_αβγ[OneTo(D)]
+    αβγ = SVector{D}(TEST_αβγs[D])
     kv_αβγ = kv(αβγ)
     sgnum = num(lg)
     lgops = operations(lg)
@@ -144,7 +144,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
                                     error("unexpectedly did not find little group element matching g₋⁻¹gg₋")
                                 end
                                 n′, Δw = n′Δw
-                                χⱼ_g₋⁻¹gg₋ = cis(2π*dot(kv_αβγ, Δw)) .* χⱼ[n′] # cis(x) = exp(ix)
+                                χⱼ_g₋⁻¹gg₋ = cispi(2*dot(kv_αβγ, Δw)) .* χⱼ[n′]
                             end
                             
                             match = isapprox(θχᵢ[n], χⱼ_g₋⁻¹gg₋; atol=DEFAULT_ATOL)
@@ -391,7 +391,7 @@ function calc_reality(lgir::LGIrrep{D},
             tmp = findequiv(op², lgops, cntr)
             tmp === nothing && error("unexpectedly could not find matching operator of op²")
             idx_of_op²_in_lgops, Δw_op² = tmp
-            ϕ_op² = cis(2π*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cis(x) = exp(ix)]
+            ϕ_op² = cispi(2*dot(kv_αβγ, Δw_op²)) # phase accumulated by "trivial" lattice translation parts [cispi(x) = exp(iπx)]
             χ_op² = ϕ_op²*χs[idx_of_op²_in_lgops] # χ(op²)
 
             s += χ_op²
