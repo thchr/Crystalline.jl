@@ -67,6 +67,9 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     end
     (abs(imag(s)) > DEFAULT_ATOL) && error("unexpected finite imaginary part")
     nᴳᴴᵢⱼ_float = real(s)/order(Dᴴⱼ)
+    # account for the fact that the orthogonality relations are changed for coreps; seems
+    # only the subgroup is important to include here - not exactly sure why
+    nᴳᴴᵢⱼ_float /= corep_orthogonality_factor(Dᴴⱼ)
     nᴳᴴᵢⱼ = round(Int64, nᴳᴴᵢⱼ_float)
     abs(nᴳᴴᵢⱼ - nᴳᴴᵢⱼ_float) > DEFAULT_ATOL && error("unexpected non-integral compatibility count")
     

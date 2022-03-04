@@ -17,10 +17,10 @@ that the resulting "paired irrep" (i.e. the co-representation) should be doubled
 itself (`PSEUDOREAL` reality) or its complex conjugate (`COMPLEX` reality).
 
 ### Background
-For background, see p. 650-652 (and 622-626 for point groups) in Bradley & Cracknell's book.
-Their discussion is for magnetic groups (the "realified" irreps are really correspond to
-co-representations of "gray" magnetic groups). 
-Cornwell's book also does a good job of explicating this, as does Inui (p. 296-299).
+For background, see p. 650-652 (and p. 622-626 for point groups) in Bradley & Cracknell's
+book. Their discussion is for magnetic groups (the "realified" irreps are, in fact, simply
+co-representations of the "gray" magnetic groups). 
+Cornwell's book also explicates this at some length as does Inui et al. (p. 296-299).
 
 ### Keyword arguments
 - `verbose::Bool`: if set to `true`, prints details about mapping from small irrep to small
