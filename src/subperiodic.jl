@@ -218,6 +218,38 @@ end
 #       This problem is discussed in e.g. ITE1 Section 1.2.6; one option is to indicate the
 #       direction of periodicity with a subscript (e.g., ₐ for x-direction; but that doesn't
 #       work too well with unicode that doesn't have {b,c}-subscripts.
+"""
+    subperiodicgroup(num::Integer, ::Val{D}=Val(3), ::Val{P}=Val(2))
+    subperiodicgroup(num::Integer, D::Integer, P::Integer)
+                                                            --> ::SubPeriodicGroup{D,P}
+
+Return the operations of the subperiodic group `num` of embedding dimension `D` and
+periodicity dimension `P` as a `SubPeriodicGroup{D,P}`.
+
+The setting choices are those of the International Tables for Crystallography, Volume E.
+
+Allowed combinations of `D` and `P` and their associated group names are:
+
+- `D = 3`, `P = 2`: Layer groups (`num` = 1, …, 80).
+- `D = 3`, `P = 1`: Rod groups (`num` = 1, …, 75).
+- `D = 2`, `P = 1`: Frieze groups (`num` = 1, …, 7).
+
+## Example
+
+```jldoctest
+julia> subperiodicgroup(7, Val(2), Val(1))
+SubperiodicGroup{2, 1} #7 (𝓅2mg) with 4 operations:
+1
+2
+{m₁₀|½,0}
+{m₀₁|½,0}
+```
+
+## Data sources
+
+The symmetry operations returned by this function were originally retrieved from the [Bilbao
+Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
+"""
 @inline function subperiodicgroup(num::Integer, 
                                   ::Val{D}=Val(3), ::Val{P}=Val(2)) where {D,P}
     ops_str = read_subperiodic_ops_xyzt(num, D, P)
@@ -225,15 +257,37 @@ end
 
     return SubperiodicGroup{D,P}(num, ops)
 end
+subperiodicgroup(num::Integer, D::Integer, P::Integer) = subperiodicgroup(num, Val(D), Val(P))
 
-# TODO: Doc-string
+"""
+    generators(num::Integer, ::Type{SubperiodicGroup{D,P}})  -->  ::Vector{SymOperation{D}}
+
+Return a canonical set of generators for the subperiodic group `num` of embedding dimension
+`D` and periodicity dimension `P`. See also [`subperiodicgroup`](@ref).
+
+See also [`generators(::Integer, ::Type{SpaceGroup{D}})`](@ref) and information therein.
+
+## Example
+
+```jldoctest
+julia> generators(7, SubperiodicGroup{2, 1})
+2-element Vector{SymOperation{2}}:
+ 2
+ {m₁₀|½,0}
+```
+
+## Data sources
+
+The generators returned by this function were originally retrieved from the [Bilbao
+Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
+"""
 function generators(num::Integer, ::Type{SubperiodicGroup{D,P}}) where {D,P}
     ops_str = read_subperiodic_gens_xyzt(num, D, P)
 
     return SymOperation{D}.(ops_str)
 end
 
-function Crystalline.label(g::SubperiodicGroup{D,P}) where {D,P}
+function label(g::SubperiodicGroup{D,P}) where {D,P}
     if D == 3 && P == 2
         return LAYERGROUP_IUCs[num(g)]
     elseif D == 3 && P == 1
@@ -244,6 +298,8 @@ function Crystalline.label(g::SubperiodicGroup{D,P}) where {D,P}
         _throw_subperiodic_domain(D, P)
     end
 end
+
+centering(g::SubperiodicGroup) = first(label(g))
 
 # ---------------------------------------------------------------------------------------- #
 

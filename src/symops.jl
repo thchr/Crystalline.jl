@@ -76,10 +76,12 @@ which are:
 
 See also [`directbasis`](@ref).
 
-## Citing
+## Data sources
 
-Please cite the original data sources if used in published work ([Aroyo et al., Z.
-Kristallogr. Cryst. Mater. **221**, 15 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
+The symmetry operations returned by this function were originally retrieved from the [Bilbao
+Crystallographic Server, SPACEGROUP GENPOS](https://www.cryst.ehu.es/cryst/get_gen.html).
+The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
+(2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
 """
 @inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
     ops_str = read_sgops_xyzt(sgnum, D)
