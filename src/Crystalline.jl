@@ -62,6 +62,7 @@ export SymOperation,                        # types
        issymmorph,
        num, order, operations,              # ::AbstractGroup
        klabel, characters,                  # ::AbstractIrrep
+       classcharacters,
        label, reality, group,
        israyrep,                            # ::LGIrrep
        isspecial, translations,

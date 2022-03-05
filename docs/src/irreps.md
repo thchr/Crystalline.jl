@@ -21,6 +21,11 @@ Frequently, the character table of the associated irreps is more informative tha
 characters(pgirs)
 ```
 
+The characters are functions of the conjugacy class (i.e., the characters of operations in the same conjugacy class are equal). Thus, a more compact representation of the character table can be achieved by a class-resolved table, achievable via [`classcharacters`](@ref):
+```@example pgirs
+classcharacters(pgirs)
+```
+
 ### Notation 
 The default point group irrep labeling follows the Bilbao Crystallographic Server's labeling, which in turn follows the 1963 labelling of Koster, Dimmock, Wheeler, & Statz [^2] (which is also followed e.g. by CDML [^1] labeling as well as Bradley and Cracknell's book).
 Associated Muliken (or "spectroscopist's") notation can be obtained via `mulliken`.

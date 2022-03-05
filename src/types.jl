@@ -732,9 +732,11 @@ operations(ct::CharacterTable) = ct.ops
 Compute the character table associated with vector of `AbstractIrrep`s `irs`, returning a
 `CharacterTable`.
 
+## Optional arguments
+
 Optionally, an `αβγ::AbstractVector{<:Real}` variable can be passed to evaluate the irrep
 (and associated characters) with concrete free parameters (e.g., for `LGIrrep`s, a concrete
-k-vector sampled from a "line-irrep"). Defaults to `nothing`, indicating it being either 
+**k**-vector sampled from a "line-irrep"). Defaults to `nothing`, indicating it being either 
 irrelevant (e.g., for `PGIrrep`s) or all free parameters implicitly set to zero.
 """
 function characters(irs::AbstractVector{<:AbstractIrrep{D}},
@@ -748,8 +750,6 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
     return CharacterTable{D}(operations(g), label.(irs), table, tag)
 end
 
-# TODO: Settle on an API & docs for `classcharacters` vs. `characters` and export relevant
-#       functionality; add tests of ClassCharacterTable
 struct ClassCharacterTable{D} <: AbstractCharacterTable
     classes_ops::Vector{Vector{SymOperation{D}}}
     irlabs::Vector{String}
@@ -759,6 +759,25 @@ end
 classes(ct::ClassCharacterTable) = ct.classes_ops
 operations(ct::ClassCharacterTable) = first.(classes(ct)) # representative operations
 
+"""
+    classcharacters(irs::AbstractVector{<:AbstractIrrep}, αβγ=nothing)
+
+Compute the character table associated with the conjugacy classes of a vector of
+`AbstractIrrep`s `irs`, returning a `ClassCharacterTable`.
+
+Since characters depend only on the conjugacy class (this is not true for ray, or
+projective, irreps), the class-specific characters often more succintly communicate the same
+information as the characters for each operation (as returned by [`characters`](@ref)).
+
+See also: [`classes`](@ref).
+
+## Optional arguments
+
+Optionally, an `αβγ::AbstractVector{<:Real}` variable can be passed to evaluate the irrep
+(and associated characters) with concrete free parameters (e.g., for `LGIrrep`s, a concrete
+**k**-vector sampled from a "line-irrep"). Defaults to `nothing`, indicating it being either 
+irrelevant (e.g., for `PGIrrep`s) or all free parameters implicitly set to zero.
+"""
 function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
                           αβγ::Union{AbstractVector{<:Real}, Nothing}=nothing) where D
     g = group(first(irs))
