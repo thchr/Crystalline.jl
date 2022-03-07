@@ -475,7 +475,7 @@ struct PointGroup{D} <: AbstractGroup{D}
 end
 label(pg::PointGroup) = pg.label
 iuc(pg::PointGroup) = label(pg)
-centering(pg:PointGroup) = nothing
+centering(pg::PointGroup) = nothing
 
 # --- Little group ---
 """
