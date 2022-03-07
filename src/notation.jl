@@ -36,11 +36,13 @@ end
 @inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
 
 """ 
-    centering(sg_or_lg::Union{SpaceGroup, LittleGroup}) --> Char
+    centering(g::AbstractGroup) --> Char
 
-Return the conventional centering type of a `SpaceGroup` or `LittleGroup`.
+Return the conventional centering type of a group. 
+
+For groups without lattice structure (e.g., point groups), return `nothing`.
 """
-centering(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = centering(num(sg), D)
+centering(sg_or_lg::Union{SpaceGroup{D},LittleGroup{D}}) where D = centering(num(sg_or_lg), D)
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]

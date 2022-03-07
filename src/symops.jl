@@ -92,27 +92,28 @@ end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
 """
-    generators(sgnum::Integer, T::Type{SpaceGroup{D}})       -->  Vector{SymOperation{D}}
-    generators(pgiuc::String, T::PointGroup{D}})
-    generators(pgnum::Integer, T::PointGroup{D}}, setting::Integer=1)
+    generators(num::Integer, T::Type{AbstractGroup{D}}[, optargs])
+    generators(pgiuc::String, T::PointGroup{D}})              -->  Vector{SymOperation{D}}
 
 Return the generators of the group type `T` which may be a `SpaceGroup{D}` or a 
 `PointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group is
 determined by inputting as the first argument:
 
-- `SpaceGroup{D}`: the space group number `sgnum::Integer` (see also [`spacegroup`](@ref)).
-- `PointGroup{D}`: the point group IUC label `pgiuc::String` (see also [`pointgroup(::String)`).
-  Alternatively, by the canonical point group number `pgnum::Integer`, possibly
-  supplemented by an integer-valued setting choice `setting::Integer` (see also
-  [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
+- `SpaceGroup{D}`: the space group number `num::Integer`.
+- `PointGroup{D}`: the point group IUC label `pgiuc::String` (see also
+  [`pointgroup(::String)`) or the canonical point group number `num::Integer`, which can
+  optionally be supplemented by an integer-valued setting choice `setting::Integer` (see
+  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
+- `SubperiodicGroup{D}`: the subperiodic group number `num::Integer`.
 
-Setting choices match those in [`spacegroup`](@ref) and [`pointgroup`](@ref).
+Setting choices match those in [`spacegroup`](@ref), [`pointgroup`](@ref), and
+[`subperiodicgroup`](@ref).
 
 Iterated composition of the returned symmetry operations will generate all operations of the
 associated space or point group (see [`generate`](@ref)).
-Specifically, `generate(generators(sgnum, `SpaceGroup{D}))` and `spacegroup(sgnum, D)`
-return identical operations (albeit generally differently sorted); similarly so for point
-groups.
+As an example, `generate(generators(num, `SpaceGroup{D}))` and `spacegroup(num, D)` return
+identical operations (with different sorting typically); and similarly so for point and
+subperiodic groups.
 
 ## Example
 
@@ -134,16 +135,25 @@ julia> generators("2/m", PointGroup{3})
  -1
 ```
 
+Generators of the Frieze group 𝓅2mg:
+```jldoctest
+julia> generators(7, SubperiodicGroup{2, 1})
+2-element Vector{SymOperation{2}}:
+ 2
+ {m₁₀|½,0}
+```
+
 ## Citing
 
 Please cite the original data sources if used in published work:
 
-- Space groups generators:
+- Space groups:
   [Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
   (2006)](https://doi.org/10.1524/zkri.2006.221.1.15);
-- Point group generators: Bilbao Crystallographic Server's
-  [2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html)).
-
+- Point group: Bilbao Crystallographic Server's
+  [2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html);
+- Subperiodic groups: Bilbao Crystallographic Server's
+  [SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
 
 ## Extended help
 
@@ -160,7 +170,7 @@ The motivation for this is to expose as similar generators as possible for simil
 systems (see e.g. Section 8.3.5 of the International Tables of Crystallography, Vol. A,
 Ed. 5 (ITA) for further background).
 
-Note also that, contrary to conventions in ITA, the identity operation is included among the
+Note also that, contrary to conventions in ITA, the identity operation is excluded among the
 returned generators (except in space group 1) since it composes trivially and adds no
 additional context.
 """
@@ -294,7 +304,7 @@ end
 
 Return whether a given space group `sg` is symmorphic (`true`) or nonsymmorphic (`false`).
 """
-function issymmorph(g::Union{SpaceGroup, LittleGroup})
+function issymmorph(g::AbstractGroup)
     all(op->issymmorph(op, centering(g)), operations(g))
 end
 issymmorph(::PointGroup) = true

@@ -135,6 +135,17 @@ const LINE2FRIEZE_NUM = (1 #= p1 ⇒ 𝓅1 =#, 3 #= p1m ⇒ 𝓅1m1 =#)
 # ---------------------------------------------------------------------------------------- #
 # GROUP ELEMENTS
 
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+
+A subperiodic group of embedding dimension `D` and periodicity dimension `P`. 
+
+Fields: 
+- `operations`: the `SymOperation`s of the finite factor group ``G/T``, where ``G`` is the
+subperiodic group and ``T`` is the translation group of the associated lattice.
+- `num`: the canonical number of the group, following the International Tables for
+Crystallography, Volume E.
+"""
 struct SubperiodicGroup{D,P} <: AbstractGroup{D}
     num::Int
     operations::Vector{SymOperation{D}}
@@ -221,10 +232,10 @@ end
 """
     subperiodicgroup(num::Integer, ::Val{D}=Val(3), ::Val{P}=Val(2))
     subperiodicgroup(num::Integer, D::Integer, P::Integer)
-                                                            --> ::SubPeriodicGroup{D,P}
+                                                            --> ::SubperiodicGroup{D,P}
 
 Return the operations of the subperiodic group `num` of embedding dimension `D` and
-periodicity dimension `P` as a `SubPeriodicGroup{D,P}`.
+periodicity dimension `P` as a `SubperiodicGroup{D,P}`.
 
 The setting choices are those of the International Tables for Crystallography, Volume E.
 

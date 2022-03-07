@@ -1,6 +1,6 @@
 # Groups
 All groups in Crystalline are concrete instances of the abstract supertype [`AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
-Crystalline currently supports four group types: [`SpaceGroup`](@ref), [`LittleGroup`](@ref), [`PointGroup`](@ref), and [`SiteGroup`](@ref).
+Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`LittleGroup`](@ref), [`PointGroup`](@ref), [`SubperiodicGroup`](@ref) and [`SiteGroup`](@ref).
 
 ## Space groups
 
@@ -26,11 +26,11 @@ sg .* permutedims(sg) # equivalent to `reshape(kron(sg, sg), (length(sg), length
 ```
 
 ### Symmorphic vs. nonsymorphic space groups
-To determine whether a space group is symmorphic or not, use [`issymmorph`](@ref) taking either a `SpaceGroup`, a `LittleGroup`, or a space group identified by its number and dimensionality (in the latter case, using tabulated look-up).
+To determine whether a space group is symmorphic or not, use [`issymmorph`](@ref) taking either a `SpaceGroup`, `LittleGroup`, or `SubperiodicGroup` (or a `SpaceGroup` identified by its number and dimensionality; in this case, using tabulated look-up).
 To test whether a given `SymOperation` is symmorphic in a given centering setting, use [`issymmorph(::SymOperation, ::Char)`](@ref)
 
 ## Group generators
-Generators of `SpaceGroup`s and `PointGroup`s are accessible via [`generators`](@ref), e.g.:
+Generators of `SpaceGroup`s, `PointGroup`s, and `SubperiodicGroup`s are accessible via [`generators`](@ref), e.g.:
 ```@example spacegroup
 ops = generators(sgnum, SpaceGroup{D})
 ```

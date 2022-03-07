@@ -83,7 +83,7 @@ function classes(
     end
     return conj_classes
 end
-classes(sg_or_lg::Union{SpaceGroup, LittleGroup}) = classes(sg_or_lg, centering(sg_or_lg))
+classes(g::AbstractGroup) = classes(g, centering(g))
 
 # adds `b` to `class` and index of `b` in `ops` to `classified`
 function add_to_class!(classified, class, b, ops)
@@ -104,12 +104,14 @@ end
 """
     is_abelian(ops::AbstractVector{SymOperation}, [cntr::Union{Char, Nothing}])  -->  Bool
 
-Return the group ``G`` with elements `ops` is Abelian, that is, whether all its elements 
-mutually commute in the sense that ``g = hgh^{-1}`` for all ``g,h ∈ G``.
+Return the whether the group composed of the elements `ops` is Abelian.
+
+A group ``G`` is Abelian if all its elements commute mutually, i.e., if
+``g = hgh^{-1}`` for all ``g,h ∈ G``.
 
 See discussion of the setting argument `cntr` in [`classes`](@ref).
 """
 function is_abelian(ops::AbstractVector{SymOperation{D}}, cntr::Union{Char, Nothing}=nothing) where D
     return length(classes(ops, cntr)) == length(ops)
 end
-is_abelian(sg_or_lg::Union{SpaceGroup, LittleGroup}) = is_abelian(sg_or_lg, centering(sg_or_lg))
+is_abelian(g::AbstractGroup) = is_abelian(g, centering(g))

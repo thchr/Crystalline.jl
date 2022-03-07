@@ -132,7 +132,7 @@ include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
 include("subperiodic.jl")
-export SubPeriodicGroup, subperiodicgroup
+export SubperiodicGroup, subperiodicgroup
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
