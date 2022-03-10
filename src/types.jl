@@ -747,7 +747,7 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
     for (j,col) in enumerate(eachcol(table))
         col .= characters(irs[j], αβγ)
     end
-    tag = "#"*string(num(g))*" ("*label(g)*")"
+    tag = "⋕"*string(num(g))*" ("*label(g)*")"
     return CharacterTable{D}(operations(g), label.(irs), table, tag)
 end
 
@@ -791,7 +791,7 @@ function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
             table[i,j] = tr(ir[idx])
         end
     end
-    tag = "#"*string(num(g))*" ("*label(g)*")"
+    tag = "⋕"*string(num(g))*" ("*label(g)*")"
     return ClassCharacterTable{D}(classes_ops, label.(irs), table, tag)
 end
 

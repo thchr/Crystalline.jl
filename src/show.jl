@@ -410,7 +410,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     Nᵉᵇʳ = length(BRS)
 
     # print a "title" line and the irrep labels
-    println(io, "BandRepSet (#", num(BRS), "): ",
+    println(io, "BandRepSet (⋕", num(BRS), "): ",
                 length(BRS), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(BRS) ? "½" : "1", " ",
