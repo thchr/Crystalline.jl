@@ -373,7 +373,7 @@ see detailed description in `modulate`. An in-place variant is provided as `norm
 """
 normscale(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
 @doc """
-    normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D --> ModulatedFourierLattice
+    normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis, Nothing} = nothing) --> ModulatedFourierLattice
 
 In-place equivalent of `normscale`: changes `flat`.
 """
