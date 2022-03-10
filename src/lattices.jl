@@ -401,6 +401,19 @@ function normscale!(flat::ModulatedFourierLattice, expon::Real)
     return flat
 end
 
+function normscale!(flat::ModulatedFourierLattice, Gs::ReciprocalBasis{D}, expon::Real) where D
+    if !iszero(expon)
+        orbits = getorbits(flat)
+        @inbounds for i in eachindex(orbits)
+            rescale_factor = norm(dot(Gs, first(orbits[i])))^expon
+            rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
+            flat.orbitcoefs[i] ./= rescale_factor
+        end
+    end
+    return flat
+end
+
+
 # -----------------------------------------------------------------------------------------
 # The utilities and methods below are mostly used for plotting (see src/pyplotting.jl).
 # We keep them here since they do not depend on PyPlot and have more general utility in 
