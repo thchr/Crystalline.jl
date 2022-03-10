@@ -377,7 +377,7 @@ normscale(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBas
 
 In-place equivalent of `normscale`: changes `flat`.
 """
-function normscale!(flat::ModulatedFourierLattice,  expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
+function normscale!(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
     if !iszero(expon)
         orbits = getorbits(flat)
         if isnothing(Gs)
