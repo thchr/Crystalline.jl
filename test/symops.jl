@@ -2,7 +2,7 @@ using Crystalline, Test
 
 @testset "Symmetry operations" begin
     @testset "Basics" begin
-        # Space group #1
+        # Space group ⋕1
         sg = spacegroup(1, Val(3))
         @test order(sg) == 1
         @test dim(sg) == 3
@@ -10,7 +10,7 @@ using Crystalline, Test
         @test matrix(op) == [1.0 0.0 0.0 0.0; 0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0]
         @test xyzt(op) == "x,y,z"
 
-        # Space group #146
+        # Space group ⋕146
         sg = spacegroup(146, Val(3))
         @test order(sg) == 9
         @test dim(sg) == 3
@@ -18,7 +18,7 @@ using Crystalline, Test
         @test matrix(op) ≈ [-1.0  1.0  0.0  1/3; -1.0  0.0  0.0  2/3; 0.0  0.0  1.0  2/3]
         @test xyzt(op) == "-x+y+1/3,-x+2/3,z+2/3"
 
-        # Plane group #7
+        # Plane group ⋕7
         sg = spacegroup(7, 2) # keep as 2 (rather than Val(2)) intentionally, to test...
         @test order(sg) == 4
         @test dim(sg) == 2

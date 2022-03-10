@@ -30,19 +30,19 @@ julia> S"x,-y,-z"
  │ 0 -1  0 ┆ 0 │
  └ 0  0 -1 ╵ 0 ┘
 
-# load the `SymOperation`s of the 3D space group #16 in a conventional setting
+# load the `SymOperation`s of the 3D space group ⋕16 in a conventional setting
 julia> sg = spacegroup(16, Val(3))
-SpaceGroup{3} #16 (P222) with 4 operations:
+SpaceGroup{3} ⋕16 (P222) with 4 operations:
  1
  2₀₀₁
  2₀₁₀
  2₁₀₀
 
-# load a dictionary of small irreps and their little groups for space group #16,
+# load a dictionary of small irreps and their little groups for space group ⋕16,
 # indexed by their k-point labels; then inspect the small irreps at the A point
 julia> lgirs = lgirreps(16, Val(3))
 julia> lgirs["A"]
-LGIrrep{3}: #16 (P222) at A = [α, 0.0, 0.5]
+LGIrrep{3}: ⋕16 (P222) at A = [α, 0.0, 0.5]
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1.0
@@ -60,7 +60,7 @@ A₂ ─┬───────────────────────
 
 # construct the character table for the small irreps at the Γ point
 julia> characters(lgirs["Γ"])
-CharacterTable{3}: #16 (P222 at Γ = [0.0, 0.0, 0.0])
+CharacterTable{3}: ⋕16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
 ──────┼────────────────

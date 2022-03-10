@@ -135,7 +135,7 @@ end
 # AbstractGroup
 # -------------------------------
 str = """
-      PointGroup{3} #21 (6) with 6 operations:
+      PointGroup{3} ⋕21 (6) with 6 operations:
        1
        3₀₀₁⁺
        3₀₀₁⁻
@@ -145,7 +145,7 @@ str = """
 test_tp_show(pointgroup("6", Val(3)), str)
 
 str = """
-      SpaceGroup{3} #213 (P4₁32) with 24 operations:
+      SpaceGroup{3} ⋕213 (P4₁32) with 24 operations:
        1
        {2₀₀₁|½,0,½}
        {2₀₁₀|0,½,½}
@@ -173,7 +173,7 @@ str = """
 test_tp_show(spacegroup(213, Val(3)), str)
 
 str = """
-      SiteGroup{2} #17 at 2b = [0.333333, 0.666667] with 6 operations:
+      SiteGroup{2} ⋕17 at 2b = [0.333333, 0.666667] with 6 operations:
        1
        {3⁺|1,1}
        {3⁻|0,1}
@@ -188,7 +188,7 @@ test_tp_show(SiteGroup(sg, wps[end-1]), str)
 # LGIrrep
 # -------------------------------
 str = """
-LGIrrep{3}: #16 (P222) at Γ = [0.0, 0.0, 0.0]
+LGIrrep{3}: ⋕16 (P222) at Γ = [0.0, 0.0, 0.0]
 Γ₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1.0
@@ -340,7 +340,7 @@ test_tp_show(realify(pgirs)[end], str)
 # CharacterTable
 # -------------------------------
 str = """
-CharacterTable{3}: #21 (6)
+CharacterTable{3}: ⋕21 (6)
 ───────┬────────────────────
        │ Γ₁  Γ₂  Γ₃Γ₅  Γ₄Γ₆
 ───────┼────────────────────
@@ -355,7 +355,7 @@ CharacterTable{3}: #21 (6)
 test_tp_show(characters(pgirs′), str)
 
 str = """
-CharacterTable{3}: #230 (Ia-3d at P = [0.5, 0.5, 0.5])
+CharacterTable{3}: ⋕230 (Ia-3d at P = [0.5, 0.5, 0.5])
 ─────────────────┬──────────────────────
                  │     P₁      P₂    P₃
 ─────────────────┼──────────────────────
@@ -392,7 +392,7 @@ test_tp_show(characters(lgirreps(230)["P"]), str)
 # -------------------------------
 brs = bandreps(42, 3)
 str = """
-BandRepSet (#42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
+BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
 ────┬────────────────────────
     │ 4a  4a  4a  4a  8b  8b
     │ A₁  A₂  B₁  B₂  A   B

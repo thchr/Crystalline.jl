@@ -48,7 +48,7 @@ const FRIEZEGROUP_IUCs = ( # 7 frieze groups
 # ASSOCIATIONS BETWEEN LAYER, ROD, & FRIEZE GROUPS VS. SPACE, PLANE, & LINE GROUPS
 # By indexing into the following arrays, one obtains the "parent" group number, associated
 # with the index' group number. As an example, `PLANE2SPACE_NUM[16] = 168`, meaning that the
-# 2D plane group #16 has a parent in the 3D space group #168.
+# 2D plane group ⋕16 has a parent in the 3D space group ⋕168.
 
 # Manual comparison to Bilbao's listings, and consulting Litvin's book's Table 30 (which
 # doesn't fully give the correct 1-to-1 matches, because the conventions changed later on)
@@ -249,7 +249,7 @@ Allowed combinations of `D` and `P` and their associated group names are:
 
 ```jldoctest
 julia> subperiodicgroup(7, Val(2), Val(1))
-SubperiodicGroup{2, 1} #7 (𝓅2mg) with 4 operations:
+SubperiodicGroup{2, 1} ⋕7 (𝓅2mg) with 4 operations:
 1
 2
 {m₁₀|½,0}

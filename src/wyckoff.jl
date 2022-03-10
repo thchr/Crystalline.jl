@@ -50,7 +50,7 @@ Return the Wyckoff position associated with a `SiteGroup`.
 position(g::SiteGroup) = g.wp
 
 function summary(io::IO, g::SiteGroup)
-    print(io, typeof(g), " #", num(g), " at ", label(position(g)), " = ")
+    print(io, typeof(g), " ⋕", num(g), " at ", label(position(g)), " = ")
     show(io, MIME"text/plain"(), parent(position(g)))
     print(io, " with ", length(g), " operations")
 end
@@ -130,7 +130,7 @@ julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
 julia> sg = spacegroup(sgnum, D);
 
 julia> g  = SiteGroup(sg, wp)
-SiteGroup{2} #16 at 2b = [0.333333, 0.666667] with 3 operations:
+SiteGroup{2} ⋕16 at 2b = [0.333333, 0.666667] with 3 operations:
  1
  {3⁺|1,1}
  {3⁻|0,1}
@@ -291,7 +291,7 @@ julia> sitegs = SiteGroup.(Ref(sg), wps)
  SiteGroup{2}[1, m₁₀]
 
 julia> only(findmaximal(sitegs))
-SiteGroup{2} #5 at 2a = [0.0, β] with 2 operations:
+SiteGroup{2} ⋕5 at 2a = [0.0, β] with 2 operations:
  1
  m₁₀
 ```

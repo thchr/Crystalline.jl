@@ -111,7 +111,7 @@ show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 function summary(io::IO, g::T) where T<:AbstractGroup 
     print(io, T)
     if !(T <: GenericGroup)
-        print(io, " #", num(g), " (", label(g), ")")
+        print(io, " ⋕", num(g), " (", label(g), ")")
     end
     print(io, " with ", order(g), " operations")
 end
@@ -158,7 +158,7 @@ end
 
 # ... utilities to print PGIrreps and LGIrreps
 function prettyprint_group_header(io::IO, plg::AbstractGroup)
-    print(io, "#", num(plg), " (", iuc(plg), ")")
+    print(io, "⋕", num(plg), " (", iuc(plg), ")")
     if plg isa LittleGroup
         print(io, " at " , klabel(plg), " = ")
         show(io, MIME"text/plain"(), position(plg))
