@@ -366,14 +366,14 @@ function modulate(flat::AbstractFourierLattice{D},
 end
 
 @doc """ 
-    normscale(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+    normscale(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D --> ModulatedFourierLattice
 
-Applies subsequent norm-rescaling via `expon`; see detailed description 
-in `modulate`. An in-place variant is provided as `normscale!`.
+Applies subsequent norm-rescaling via `expon`; Passing in `Gs` as a ReciprocalBasis enforces norm scaling in a Cartesian basis- otherwise norms are computed in the reciprocal lattice basis.
+see detailed description in `modulate`. An in-place variant is provided as `normscale!`.
 """
-normscale(flat::ModulatedFourierLattice, expon::Real) = normscale!(deepcopy(flat), expon)
+normscale(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
 @doc """
-    normscale!(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+    normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D --> ModulatedFourierLattice
 
 In-place equivalent of `normscale`: changes `flat`.
 """
