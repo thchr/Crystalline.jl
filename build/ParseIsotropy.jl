@@ -11,15 +11,15 @@ const BYTES_PER_KVEC  = 16*BYTES_PER_KCHAR;
 
 # --- 3D Space group irrep struct ---
 struct SGIrrep3D{T} <: AbstractIrrep{3} where T
-    iridx::Int64    # sequential index assigned to ir by Stokes et al
+    iridx::Int      # sequential index assigned to ir by Stokes et al
     cdml::String    # CDML label of irrep (including 𝐤-point label)
-    irdim::Int64    # dimensionality of irrep (i.e. size)
-    sgnum::Int64    # space group number
+    irdim::Int      # dimensionality of irrep (i.e. size)
+    sgnum::Int      # space group number
     sglabel::String # Hermann-Mauguin label of space group
     reality::Reality # real, pseudo-real, or complex
-    order::Int64    # number of operations
-    knum::Int64     # number of 𝐤-vecs in star
-    pmknum::Int64   # number of ±𝐤-vecs in star
+    order::Int      # number of operations
+    knum::Int       # number of 𝐤-vecs in star
+    pmknum::Int     # number of ±𝐤-vecs in star
     special::Bool   # whether star{𝐤} describes high-symmetry points
     pmkstar::Vector{KVec{3}}     # star{𝐤} for Complex, star{±𝐤} for Real
     ops::Vector{SymOperation{3}} # every symmetry operation in space group
@@ -49,8 +49,8 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
     irreps = Vector{Vector{SGIrrep3D{T}}}()
     while !eof(io)
         # --- READ BASIC INFO, LIKE SG & IR #, NAMES, DIMENSIONALITY, ORDER ---
-        irnum = parse(Int64, String(read(io, 5))) # read IR# (next 5 characters)
-        sgnum = parse(Int64, String(read(io, 4))) # read SG# (next 4 characters)
+        irnum = parse(Int, String(read(io, 5))) # read IR# (next 5 characters)
+        sgnum = parse(Int, String(read(io, 4))) # read SG# (next 4 characters)
         # read SGlabel, IRlabel, 
         skip(io, 2)
         sglabel = filter(!isequal(' '), readuntil(io, "\""))
@@ -157,7 +157,7 @@ end
 Parses a string `s` with spaces interpreted as delimiters, split-
 ting at every contiguious block of spaces and returning a vector
 of the split elements, with elements parsed as type `T`.
-E.g. `parsespaced(Int64, "  1  2  5") = [1, 2, 5]`
+E.g. `parsespaced(Int, "  1  2  5") = [1, 2, 5]`
 """
 @inline function parsespaced(T::Type{<:Number}, s::AbstractString) 
     spacesplit=split(s, r"\s+", keepempty=false)
@@ -170,7 +170,7 @@ E.g. `parsespaced(Int64, "  1  2  5") = [1, 2, 5]`
     end 
     return parse.(T, spacesplit)
 end
-@inline parsespaced(s::AbstractString) = parsespaced(Int64, s)
+@inline parsespaced(s::AbstractString) = parsespaced(Int, s)
 
 
 
@@ -264,7 +264,7 @@ end
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     lgirsd = Dict{String, Vector{LGIrrep{3}}}()
-    curklab = nothing; accidx = Int64[]
+    curklab = nothing; accidx = Int[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
         if curklab == klabel(ir)
             push!(accidx, idx)

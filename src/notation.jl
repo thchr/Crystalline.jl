@@ -224,9 +224,9 @@ function seitz(op::SymOperation{D}) where D
         throw(DomainError(D, "dimension different from 1, 2, or 3 is not supported"))
     end
 
-    detW′ = det(W); detW = round(Int64, detW′) # det, then trunc & check
+    detW′ = det(W); detW = round(Int, detW′) # det, then trunc & check
     isapprox(detW′, detW, atol=DEFAULT_ATOL) || throw(DomainError(detW′, "det W must be an integer for a SymOperation {W|w}"))
-    trW′  = tr(W);  trW  = round(Int64, trW′)   # tr, then trunc & check
+    trW′  = tr(W);  trW  = round(Int, trW′)   # tr, then trunc & check
     isapprox(trW′,  trW,  atol=DEFAULT_ATOL) || throw(DomainError(trW′,  "tr W must be an integer for a SymOperation {W|w}"))
 
     io_pgop = IOBuffer()
@@ -371,7 +371,7 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
     end
     norm = minimum(Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
     u′ = u′/norm # normalize
-    u  = round.(Int64, u′) # convert from float to integer and check validity of conversion
+    u  = round.(Int, u′) # convert from float to integer and check validity of conversion
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
         throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))
     end

@@ -110,9 +110,9 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntu
     reviter = Iterators.product(reverse((:).(.-idxmax, idxmax))...)
 
     # --- compute orbits ---
-    orbits = Vector{Vector{SVector{D,Int64}}}() # vector to store orbits of G-vectors (in G-basis)
+    orbits = Vector{Vector{SVector{D,Int}}}() # vector to store orbits of G-vectors (in G-basis)
     for rG in reviter  
-        G = SVector{D,Int64}(reverse(rG)) # fix order and convert to SVector{D,Int64} from Tuple
+        G = SVector{D,Int}(reverse(rG)) # fix order and convert to SVector{D,Int} from Tuple
 
         skip = false # if G already contained in an orbit; go to next G
         for orb in orbits
@@ -123,7 +123,7 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntu
         neworb = _orbit(W⁻¹ᵀs, G) # compute orbit assoc with G-vector
         # the symmetry transformation may introduce round-off errors, but we know that 
         # the indices must be integers; fix that here, and check its validity as well
-        neworb′ = [round.(Int64,G′) for G′ in neworb] 
+        neworb′ = [round.(Int,G′) for G′ in neworb] 
         if norm(neworb′ .- neworb) > DEFAULT_ATOL; 
             error("The G-combinations and their symmetry-transforms must be integers"); 
         end
@@ -132,7 +132,7 @@ function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntu
 
     # --- restrictions on orbit coeffs. due to nonsymmorphic elements in space group ---
     orbitcoefs = Vector{Vector{ComplexF64}}()
-    deleteidx = Vector{Int64}()
+    deleteidx = Vector{Int}()
     for (o,orb) in enumerate(orbits)
         start = true; prevspan = []
         for (W⁻¹ᵀ, w) in zip(W⁻¹ᵀs, ws)

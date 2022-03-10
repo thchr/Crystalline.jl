@@ -103,7 +103,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct MultTable{D} <: AbstractMatrix{SymOperation{D}}
     operations::Vector{SymOperation{D}}
-    table::Matrix{Int64} # Cayley table: indexes into `operations`
+    table::Matrix{Int} # Cayley table: indexes into `operations`
 end
 @propagate_inbounds function getindex(mt::MultTable, i::Int)
     mtidx = mt.table[i]
@@ -459,7 +459,7 @@ label(::GenericGroup) = ""
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct SpaceGroup{D} <: AbstractGroup{D}
-    num::Int64
+    num::Int
     operations::Vector{SymOperation{D}}
 end
 label(sg::SpaceGroup) = iuc(sg)
@@ -469,7 +469,7 @@ label(sg::SpaceGroup) = iuc(sg)
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct PointGroup{D} <: AbstractGroup{D}
-    num::Int64
+    num::Int
     label::String
     operations::Vector{SymOperation{D}}
 end
@@ -482,13 +482,13 @@ centering(pg::PointGroup) = nothing
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct LittleGroup{D} <: AbstractGroup{D}
-    num::Int64
+    num::Int
     kv::KVec{D}
     klab::String
     operations::Vector{SymOperation{D}}
 end
-LittleGroup(num::Int64, kv::KVec{D}, klab::String, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
-LittleGroup(num::Int64, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
+LittleGroup(num::Integer, kv::KVec{D}, klab::AbstractString, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
+LittleGroup(num::Integer, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
 position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup) = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(position(lg))

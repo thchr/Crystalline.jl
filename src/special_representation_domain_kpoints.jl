@@ -167,7 +167,7 @@ function _find_holosymmetric_sgnums(D::Integer)
 
     # determine whether each space group is a holosymmetric space group
     # then accumulate the `sgnum`s of the holosymmetric space groups
-    holosymmetric_sgnums = Vector{Int64}()
+    holosymmetric_sgnums = Vector{Int}()
     for (sgnum,bt) in enumerate(bravaistypes)
         pg = sort(pointgroup(spacegroup(sgnum,D)), by=xyzt)
         if length(pg) == length(maxpointgroups[bt])
@@ -343,7 +343,7 @@ the rotation parts of G.
 
 See `_find_arithmetic_partner` which this method is a mnemonization interface to.
 """
-find_arithmetic_partner(sgnum::Integer, D::Integer=3)::Int64 = ARITH_PARTNER_GROUPS[D][sgnum]
+find_arithmetic_partner(sgnum::Integer, D::Integer=3)::Int = ARITH_PARTNER_GROUPS[D][sgnum]
 
 
 """
@@ -362,9 +362,9 @@ function find_map_from_Ω_to_ΦnotΩ(G::SpaceGroup)
         P = operations(find_holosymmetric_superpointgroup(G)) # holosymmetric supergroup of G (::Vector{SymOperation{D}})
         F = pointgroup(G)                                     # (isogonal) point group of G   (::Vector{SymOperation{D}})
 
-        index::Int64 = length(P)/length(F) # index of F in P = 2^"number of needed maps"
+        index::Int = length(P)/length(F) # index of F in P = 2^"number of needed maps"
         if index == 1; println(num(G)); return nothing; end
-        N::Int64 = log2(index)
+        N::Int = log2(index)
         Rs = Vector{SymOperation{dim(G)}}(undef, N)
         matchidx = 0
         # Find N coset representatives
@@ -562,9 +562,9 @@ function _ΦnotΩ_kvecs_and_maps_imdict(;verbose::Bool=false)
     # prepare for loading csv files into ImmutableDict
     baseloadpath = (@__DIR__)*"/../data/misc/CDML_RepresentationDomainSpecialKPoints_"
     kwargs = (header=["kᴮ_num", "kᴮ", "R", "kᴬ"], comment="#", delim=", ",
-              ignoreemptylines=true, types=[Int64, String, Int64, String])
+              ignoreemptylines=true, types=[Int, String, Int, String])
 
-    d = Base.ImmutableDict{Int64, NTuple{N, KVecMapping} where N}()
+    d = Base.ImmutableDict{Int, NTuple{N, KVecMapping} where N}()
     for loadtype in ["MonoOrthTetraCubic", "TriHex"]
         # load crystal-specific variables
         loadpath = baseloadpath*loadtype*".csv"

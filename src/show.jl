@@ -36,7 +36,7 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
             # entry that is more than two characters long (namely, -1) in its rotation parts
             sep = repeat(' ', 1 + (j ≠ 1 || firstcol_hasnegative) - _has_negative_sign_and_isnonzero(c))
             if isinteger(c)
-                cᴵ = convert(Int64, matrix(op)[i,j])
+                cᴵ = convert(Int, matrix(op)[i,j])
                 printstyled(io, sep, cᴵ, color=:light_black)
             else
                 # just use the same sep even if the symop is specified in a nonstandard basis (e.g.
@@ -500,7 +500,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
     cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+μ_maxdigs+3 # required cols for irrep labels & band reps
     if cols_requi > cols_avail
-        cols_toomany    = ceil(Int64, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
+        cols_toomany    = ceil(Int, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
         cols_midpoint   = div(cols_requi-cols_irstart,2)+cols_irstart
         cols_skipmin    = cols_midpoint - cols_toomany
         cols_skipmax    = cols_midpoint + cols_toomany

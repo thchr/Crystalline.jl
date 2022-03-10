@@ -96,7 +96,7 @@ end
     # check that the new k-vecs from find_new_kvecs(...) agree with those of CDML 
     # for the case of nonholosymmetric sgs [TEST_BROKEN]
     verbose_debug = false # toggle to inspect disagreements between CDML and find_new_kvecs
-    if verbose_debug; more, fewer = Int64[], Int64[]; end
+    if verbose_debug; more, fewer = Int[], Int[]; end
 
     for sgnum in Base.OneTo(MAX_SGNUM[D])
         Crystalline.is_holosymmetric(sgnum, D) && continue # only check holosymmetric sgs

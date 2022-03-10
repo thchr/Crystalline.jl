@@ -932,7 +932,7 @@ end
 
 """
     _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
-                                                    --> (Bool, Vector{Int64})
+                                                    --> (Bool, Vector{Int})
 
 Determine whether the group ``H`` (with operators `opsᴴ`) is a subgroup
 of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
@@ -942,13 +942,13 @@ The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                        opsᴴ::AbstractVector{SymOperation{D}}) where D
-    idxsᴳ²ᴴ = Vector{Int64}(undef, length(opsᴴ))
+    idxsᴳ²ᴴ = Vector{Int}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
         idxᴳ = findfirst(==(opᴴ), opsᴳ)
         if idxᴳ !== nothing
             idxsᴳ²ᴴ[idxᴴ] = idxᴳ
         else
-            return false, Int64[]
+            return false, Int[]
         end
     end
     return true, idxsᴳ²ᴴ

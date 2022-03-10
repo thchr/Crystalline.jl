@@ -1,7 +1,7 @@
 using Crystalline
 
 @doc raw"""
-    subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int64
+    subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int
 
 For two groups ``G`` and ``H``, where ``H`` is a subgroup of ``G``, i.e. ``H<G``, with
 associated irreducible representations `Dᴳᵢ` = ``D^G_i(g)`` and `Dᴴⱼ` = ``D^H_j(g)`` over
@@ -70,7 +70,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     # account for the fact that the orthogonality relations are changed for coreps; seems
     # only the subgroup is important to include here - not exactly sure why
     nᴳᴴᵢⱼ_float /= corep_orthogonality_factor(Dᴴⱼ)
-    nᴳᴴᵢⱼ = round(Int64, nᴳᴴᵢⱼ_float)
+    nᴳᴴᵢⱼ = round(Int, nᴳᴴᵢⱼ_float)
     abs(nᴳᴴᵢⱼ - nᴳᴴᵢⱼ_float) > DEFAULT_ATOL && error("unexpected non-integral compatibility count")
     
     return nᴳᴴᵢⱼ
@@ -82,7 +82,7 @@ $(TYPEDSIGNATURES)
 function find_compatible(kv::KVec{D}, kvs′::Vector{KVec{D}}) where D
     isspecial(kv) || throw(DomainError(kv, "input kv must be a special k-point"))
 
-    compat_idxs = Vector{Int64}()
+    compat_idxs = Vector{Int}()
     @inbounds for (idx′, kv′) in enumerate(kvs′)
         isspecial(kv′) && continue # must be a line/plane/general point to match a special point kv
         is_compatible(kv, kv′) && push!(compat_idxs, idx′) 

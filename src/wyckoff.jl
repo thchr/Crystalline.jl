@@ -84,10 +84,10 @@ julia> wps = wyckoffs(16, 2)
 function wyckoffs(sgnum::Integer, ::Val{D}=Val(3)) where D
     strarr = open(joinpath(DATA_DIR, "wyckpos/$(D)d/"*string(sgnum)*".csv")) do io
         DelimitedFiles.readdlm(io, '|', String, '\n')
-    end
-    mults   = parse.(Int, @view strarr[:,1])
-    letters = only.(@view strarr[:,2])
-    rvs     = RVec{D}.(@view strarr[:,3])
+    end::Matrix{String}
+    mults   = parse.(Int, @view strarr[:,1])::Vector{Int}
+    letters = only.(@view strarr[:,2])::Vector{Char}
+    rvs     = RVec{D}.((@view strarr[:,3]))::Vector{RVec{D}}
 
     return WyckoffPosition{D}.(mults, letters, rvs)
 end
