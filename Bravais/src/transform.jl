@@ -141,7 +141,7 @@ frequently and more ambiguously, as the crystallographic primitive setting.
            transform to identical primitive settings and are hence mutually compatible.
 """
 @inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
-    D∉1:3 && _throw_invaliddim(D)
+    D∉1:3 && _throw_invalid_dim(D)
     return PRIMITIVE_BASIS_MATRICES[D][cntr]
 end
 
@@ -153,17 +153,19 @@ end
         elseif cntr == 'R'; return SVector((2,1,1)./3)
         elseif cntr == 'A'; return SVector((0,1,1)./2)
         elseif cntr == 'C'; return SVector((1,1,0)./2)
-        else;               _throw_invalidcntr(cntr)
+        else;               _throw_invalid_cntr(cntr, 3)
         end
     elseif D == 2
         if     cntr == 'p'; return zeros(SVector{2})
         elseif cntr == 'c'; return SVector((1,1)./2)
-        else;               _throw_invalidcntr(cntr)
+        else;               _throw_invalid_cntr(cntr, 2)
         end
     elseif D == 1
-        return zeros(SVector{1})
+        if     cntr == 'p'; return zeros(SVector{1})
+        else;               _throw_invalid_cntr(cntr, 1)
+        end
     else 
-        _throw_invaliddim(D)
+        _throw_invalid_dim(D)
     end
 end
 

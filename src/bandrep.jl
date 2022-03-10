@@ -110,7 +110,7 @@ please reference the original research papers noted there if used in published w
 function bandreps(sgnum::Integer, D::Integer=3;
                   allpaths::Bool=false, spinful::Bool=false,
                   timereversal::Bool=true)
-    D ∉ (1,2,3) && _throw_invaliddim(D)
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
     paths_str = allpaths ? "allpaths" : "maxpaths"
     brtype_str = timereversal ? "elementaryTR" : "elementary"
     filename = joinpath(DATA_DIR, 
@@ -213,7 +213,7 @@ end
 isspinful(br::AbstractVector{T} where T<:AbstractString) = any(x->occursin(r"\\bar|ˢ", x), br)
 
 function split_paren(str::AbstractString)
-    openpar = findfirst(==('('), str) # index of the opening parenthesis
+    openpar = something(findfirst(==('('), str)) # index of the opening parenthesis
     before_paren = SubString(str, firstindex(str), prevind(str, openpar))
     inside_paren = SubString(str, nextind(str, openpar), prevind(str, lastindex(str)))
     return before_paren, inside_paren
@@ -259,7 +259,7 @@ function matching_lgirreps(BRS::BandRepSet)
     lgirsd = lgirreps(num(BRS), Val(3))
     # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
     if BRS.timeinvar 
-        for (klab, lgirs) in keys(lgirsd)
+        for (klab, lgirs) in lgirsd
             lgirsd[klab] = realify(lgirs)
         end
     end

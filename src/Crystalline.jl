@@ -32,9 +32,8 @@ using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
 # include vendored SmithNormalForm.jl package from ../.vendor/
 include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")
 using .SmithNormalForm
-export smith # export, so that loading Crystalline effectively also provides SmithNormalForm
-import .SmithNormalForm: Smith # TODO: remove explicit import when we update SmithNormalForm
-export Smith
+import .SmithNormalForm: smith, Smith # TODO: remove explicit import when we update SmithNormalForm
+export smith, Smith # export, so that loading Crystalline effectively also provides SmithNormalForm
 
 @reexport using Bravais
 import Bravais: primitivize, conventionalize, transform, centering

@@ -4,7 +4,7 @@
     throw(DomainError(D, "dimensions D≠3 not yet supported"))
 @noinline _throw_2d_not_yet_implemented(D::Integer) =
     throw(DomainError(D, "dimensions D=2 not yet supported"))
-@noinline _throw_invaliddim(D::Integer) =
+@noinline _throw_invalid_dim(D::Integer) =
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
 @noinline _throw_invalid_sgnum(sgnum::Integer, D::Integer) =
     throw(DomainError(sgnum, "sgnum must be between 1 and $(MAX_SGNUM[D]) in dimension $(D)"))

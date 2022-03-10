@@ -27,7 +27,7 @@ The underlying data is sourced from the ISOTROPY dataset: see also [`lgirreps`](
 """
 function littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JLD2.JLDFile=LGS_JLDFILES[D][]) where D
-    D ∉ (1,2,3) && _throw_invaliddim(D)
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
 
     sgops_str, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, jldfile)
 
@@ -80,7 +80,7 @@ been manually sourced from the Bilbao Crystallographic Database.
 function lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
                       lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D][],
                       irs_jldfile::JLD2.JLDFile=LGIRREPS_JLDFILES[D][]) where D
-    D ∉ (1,2,3) && _throw_invaliddim(D)
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
   
     lgs = littlegroups(sgnum, Dᵛ, lgs_jldfile)
 

@@ -30,7 +30,7 @@ The notation is sometimes also known as the
         @boundscheck (sgnum ∈ 1:2) || _throw_invalid_sgnum(sgnum, 1)
         return @inbounds SGS_IUC_NOTATION[1][sgnum]
     else
-        _throw_invaliddim(D)
+        _throw_invalid_dim(D)
     end
 end
 @inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
@@ -548,7 +548,7 @@ end
 # Note that the convention's choices not terribly specific when it comes to cornercases,
 # such as for B-type labels with 3 indices or E-type labels with 1/2 indices
 function mulliken(ir::Union{PGIrrep{D}, LGIrrep{D}}) where D
-    D ∈ (1,2,3) || _throw_invaliddim(D)
+    D ∈ (1,2,3) || _throw_invalid_dim(D)
     if ir isa LGIrrep && !issymmorphic(num(ir), D)
         error("notation not defined for `LGIrrep`s of nonsymmorphic space groups")
     end

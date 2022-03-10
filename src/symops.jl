@@ -47,7 +47,7 @@ function _check_valid_sgnum_and_dim(sgnum::Integer, D::Integer)
     elseif D == 1
         sgnum > 2   && _throw_invalid_sgnum(sgnum, D)
     else
-        _throw_invaliddim(D)
+        _throw_invalid_dim(D)
     end
     sgnum < 1 && throw(DomainError(sgnum, "group number must be a positive integer"))
     return nothing
@@ -212,6 +212,7 @@ const IDX2XYZ = ('x', 'y', 'z')
         # rotation/inversion/reflection part
         firstidx = nextidx = firstindex(s)
         while (idx = findnext(c -> c ∈ chars, s, nextidx)) !== nothing
+            idx = something(idx)
             c = s[idx]
             j = c=='x' ? 1 : (c=='y' ? 2 : 3)
             
@@ -464,7 +465,7 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
                    modτ::Bool=true) where D
     havewarned = false
     N = length(ops)
-    table = Matrix{Int64}(undef, N,N)
+    table = Matrix{Int}(undef, N,N)
     for (row,oprow) in enumerate(ops)
         for (col,opcol) in enumerate(ops)
             op′ = compose(oprow, opcol, modτ)

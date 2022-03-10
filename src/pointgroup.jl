@@ -68,7 +68,12 @@ const PGS_ORDERs = ImmutableDict(
 
 # --- Notation ---
 function pointgroup_iuc2num(iuclab::String, D::Integer)
-    return get(PGS_IUC2NUM[D], iuclab, nothing)
+    pgnum = get(PGS_IUC2NUM[D], iuclab, nothing)
+    if pgnum === nothing
+        throw(DomainError(iuclab, "invalid point group IUC label"))
+    else
+        return pgnum
+    end
 end
 schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
 
@@ -76,7 +81,7 @@ schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
 unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
 
 function read_pgops_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
+    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
     @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
     filepath = joinpath(DATA_DIR, "operations/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
@@ -85,7 +90,7 @@ function read_pgops_xyzt(iuclab::String, D::Integer)
 end
 
 function read_pggens_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
+    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
     @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
 
     filepath = joinpath(DATA_DIR, "generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
@@ -108,7 +113,7 @@ end
 @inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
 
 @inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
-    @boundscheck D ∉ (1,2,3) && _throw_invaliddim(D)
+    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
     @boundscheck 1 ≤ pgnum ≤ length(PGS_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PGS_NUM2IUC"))
     iucs = @inbounds PGS_NUM2IUC[D][pgnum]
     @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PGS_NUM2IUC[pgnum]"))
@@ -142,7 +147,7 @@ function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
     return SymOperation{D}.(ops_str)
 end
 function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
+    iuclab = pointgroup_num2iuc(pgnum, Val(D), setting)
     ops_str = read_pgops_xyzt(iuclab, D)
 
     return SymOperation{3}.(ops_str)
@@ -240,7 +245,7 @@ function pgirreps(iuclab::String, ::Val{1})
     end
     return PGIrrep{1}.(cdmls, Ref(pg), matrices, REAL)
 end
-pgirreps(iuclab::String, ::Val{D}) where D = _throw_invaliddim(D) # if D ∉ (1,2,3)
+pgirreps(iuclab::String, ::Val{D}) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
 pgirreps(iuclab::String, D::Integer)  = pgirreps(iuclab, Val(D))
 function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)

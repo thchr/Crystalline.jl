@@ -30,7 +30,7 @@ end
 
 # === frequent error messages ===
 # Note: there are some copied/overlapping definitions w/ Crystalline here
-@noinline function _throw_invalidcntr(cntr::AbstractChar, D::Integer)
+@noinline function _throw_invalid_cntr(cntr::AbstractChar, D::Integer)
     if D == 3
         throw(DomainError(cntr,
             "centering abbreviation must be either P, I, F, R, A, or C in dimension 3"))
@@ -44,7 +44,7 @@ end
         _throw_invalid_dim(D)
     end
 end
-@noinline function _throw_invaliddim(D::Integer)
+@noinline function _throw_invalid_dim(D::Integer)
     throw(DomainError(D, "dimension must be 1, 2, or 3"))
 end
 @noinline function _throw_invalid_sgnum(sgnum::Integer, D::Integer)
@@ -60,6 +60,6 @@ end
     elseif D == 1 && 
         sgnum ∈ 1:2   || _throw_invalid_sgnum(sgnum, 1)
     else
-        _throw_invaliddim(D)
+        _throw_invalid_dim(D)
     end
 end

@@ -276,7 +276,7 @@ function directbasis(sgnum::Integer, Dᵛ::Val{D}=Val(3);
         return crystal(a,b,c,α,β,γ)
 
     else 
-        _throw_invaliddim(D)
+        _throw_invalid_dim(D)
     end
 end
 function directbasis(sgnum::Integer, D::Integer;

@@ -51,7 +51,7 @@ function angles(Rs::AbstractBasis{3})
     γ = _angle(Rs[1], Rs[2])
     return α, β, γ
 end
-angles(::AbstractBasis{D}) where D = _throw_invaliddim(D)
+angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
 
 """
     stack(Vs::AbstractBasis)

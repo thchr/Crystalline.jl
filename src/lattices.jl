@@ -86,7 +86,7 @@ end
 function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntuple(i->2, D)) where D
     # check validity of inputs
     (sgnum < 1)             && throw(DomainError(sgnum, "sgnum must be greater than 1"))
-    D ∉ (1,2,3)             && _throw_invaliddim(D)
+    D ∉ (1,2,3)             && _throw_invalid_dim(D)
     D ≠ length(idxmax)      && throw(DomainError((D, idxmax), "D must equal length(idxmax): got (D = $D) ≠ (length(idxmax) = $(length(idxmax)))"))
     (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
 
