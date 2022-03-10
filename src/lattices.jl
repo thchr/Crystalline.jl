@@ -371,7 +371,7 @@ end
 Applies subsequent norm-rescaling via `expon`; Passing in `Gs` as a ReciprocalBasis enforces norm scaling in a Cartesian basis- otherwise norms are computed in the reciprocal lattice basis.
 see detailed description in `modulate`. An in-place variant is provided as `normscale!`.
 """
-normscale(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
+normscale(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
 @doc """
     normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D --> ModulatedFourierLattice
 
