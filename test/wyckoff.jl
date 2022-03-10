@@ -49,4 +49,8 @@ end
         @test sort(unique(max_wps_brs_str)) == sort(label.(max_wps))
     end
 
+    # type-stability
+    @test (@inferred Vector{WyckoffPosition{1}} wyckoffs(1, Val(1))) isa Vector{WyckoffPosition{1}}
+    @test (@inferred Vector{WyckoffPosition{2}} wyckoffs(1, Val(2))) isa Vector{WyckoffPosition{2}}
+    @test (@inferred Vector{WyckoffPosition{3}} wyckoffs(1, Val(3))) isa Vector{WyckoffPosition{3}}
 end
