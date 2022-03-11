@@ -342,7 +342,7 @@ of a [`ModulatedFourierLattice`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
-                  expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, nothing}) where D
+                  expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing) where D
     if isnothing(modulation)
         Ncoefs = length(getcoefs(flat))
         mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
