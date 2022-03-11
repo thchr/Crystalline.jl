@@ -387,7 +387,7 @@ In-place equivalent of [`normscale`](@ref): mutates `flat`.
 """
 function normscale!(flat::ModulatedFourierLattice{D}, expon::Real,
                     Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
-    n₀ = isnothing(Gs) ? 1.0 : sum(norm, Gs)./D
+    n₀ = isnothing(Gs) ? 1.0 : sum(norm, Gs) / D
     if !iszero(expon)
         orbits = getorbits(flat)
         @inbounds for i in eachindex(orbits)
