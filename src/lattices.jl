@@ -401,7 +401,6 @@ function normscale!(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{Rec
     return flat
 end
 
-
 # -----------------------------------------------------------------------------------------
 # The utilities and methods below are mostly used for plotting (see src/pyplotting.jl).
 # We keep them here since they do not depend on PyPlot and have more general utility in 
