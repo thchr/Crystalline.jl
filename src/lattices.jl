@@ -316,7 +316,7 @@ end
 @doc """
     modulate(flat::UnityFourierLattice{D},
     modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
-    expon::Union{Nothing, Real}=nothing)
+    expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing)
                             --> ModulatedFourierLattice{D}
 
 Derive a concrete, modulated Fourier lattice from `flat`, a UnityFourierLattice 
@@ -333,14 +333,16 @@ by |G|^`expon`; producing a more "localized" and "smooth" lattice boundary
 when `expon > 0` (reverse for `expon < 0`). This basically amounts to a 
 continuous "simplifying" operation on the lattice (it is not necessarily a 
 smoothing operation; it simply suppresses "high-frequency" components).
-If `expon = nothing`, no rescaling is performed. 
+If `expon = nothing`, no rescaling is performed. Rescaling can be done in the
+reciprocal lattice basis or the cartesian basis by providing nothing or a 
+ReciprocalBasis for Gs, respectively. 
 
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
 of a [`ModulatedFourierLattice`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
-                  expon::Union{Nothing, Real}=nothing) where D
+                  expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing) where D
     if isnothing(modulation)
         Ncoefs = length(getcoefs(flat))
         mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
@@ -355,7 +357,12 @@ function modulate(flat::AbstractFourierLattice{D},
     if !isnothing(expon) && !iszero(expon) 
         @inbounds for i in 2:length(orbits) # leaves the constant term untouched 
                                             # (there will _always_ be a constant term)...
-            modulation[i] /= (norm(first(orbits[i])))^expon
+            n = if isnothing(Gs)
+                norm(first(orbits[i]))^expon
+            else
+                norm(dot(Gs, first(orbits[i])))
+            end      
+            modulation[i] /= n^expon
         end
     end
 
@@ -366,34 +373,27 @@ function modulate(flat::AbstractFourierLattice{D},
 end
 
 @doc """ 
-    normscale(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+    normscale(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis, Nothing} = nothing)  --> ModulatedFourierLattice
 
-Applies subsequent norm-rescaling via `expon`; see detailed description 
-in `modulate`. An in-place variant is provided as `normscale!`.
+Applies subsequent norm-rescaling via `expon`; Passing in `Gs` as a ReciprocalBasis enforces norm scaling in a Cartesian basis- otherwise norms are computed in the reciprocal lattice basis.
+see detailed description in `modulate`. An in-place variant is provided as `normscale!`.
 """
-normscale(flat::ModulatedFourierLattice, expon::Real) = normscale!(deepcopy(flat), expon)
+normscale(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
 @doc """
-    normscale!(flat::ModulatedFourierLattice, expon::Real) --> ModulatedFourierLattice
+    normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis, Nothing} = nothing) --> ModulatedFourierLattice
 
 In-place equivalent of `normscale`: changes `flat`.
 """
-function normscale!(flat::ModulatedFourierLattice, expon::Real)
+function normscale!(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
     if !iszero(expon)
         orbits = getorbits(flat)
         @inbounds for i in eachindex(orbits)
-            # FIXME/TODO: This is not a great way to do this, because it is not guaranteed
-            #             to actually "normalize" groupings of G-vectors by the same amount
-            #             even if they have the same cartesian length. This is because the
-            #             coordinate system is not Cartesian here, so to do this properly,
-            #             we would need to give the reciprocal lattice vectors instead. An
-            #             example of where this is not good is for hexagonal systems, where
-            #             e.g. [-1, 0, 0] and [-1, 1, 0] can represent reciprocal vectors of
-            #             equal length - but our approach below would say they differ by √2.
-            #             It's not a game-breaker, because we always use `normscale!` in
-            #             combination with `modulate`, and the net product of this
-            #             inconsistency is just that `normscale!` also applies a modulation
-            #             (but one that preserves the symmetry of `flat`).
-            rescale_factor = norm(first(orbits[i]))^expon
+            n = if isnothing(Gs)
+                norm(first(orbits[i]))^expon
+            else
+                norm(dot(Gs, first(orbits[i])))
+            end
+            rescale_factor = n^expon
             rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
             flat.orbitcoefs[i] ./= rescale_factor
         end
