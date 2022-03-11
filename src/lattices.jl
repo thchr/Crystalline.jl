@@ -316,7 +316,7 @@ end
 @doc """
     modulate(flat::UnityFourierLattice{D},
     modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
-    expon::Union{Nothing, Real}=nothing)
+    expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing)
                             --> ModulatedFourierLattice{D}
 
 Derive a concrete, modulated Fourier lattice from `flat`, a UnityFourierLattice 
@@ -333,7 +333,9 @@ by |G|^`expon`; producing a more "localized" and "smooth" lattice boundary
 when `expon > 0` (reverse for `expon < 0`). This basically amounts to a 
 continuous "simplifying" operation on the lattice (it is not necessarily a 
 smoothing operation; it simply suppresses "high-frequency" components).
-If `expon = nothing`, no rescaling is performed. 
+If `expon = nothing`, no rescaling is performed. Rescaling can be done in the
+reciprocal lattice basis or the cartesian basis by providing nothing or a 
+ReciprocalBasis for Gs, respectively. 
 
 The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
 of a [`ModulatedFourierLattice`](@ref).
