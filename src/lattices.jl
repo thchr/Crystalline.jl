@@ -340,7 +340,7 @@ of a [`ModulatedFourierLattice`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
-                  expon::Union{Nothing, Real}=nothing) where D
+                  expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, nothing}) where D
     if isnothing(modulation)
         Ncoefs = length(getcoefs(flat))
         mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
@@ -355,7 +355,12 @@ function modulate(flat::AbstractFourierLattice{D},
     if !isnothing(expon) && !iszero(expon) 
         @inbounds for i in 2:length(orbits) # leaves the constant term untouched 
                                             # (there will _always_ be a constant term)...
-            modulation[i] /= (norm(first(orbits[i])))^expon
+            n = if isnothing(Gs)
+                norm(first(orbits[i]))^expon
+            else
+                norm(dot(Gs, first(orbits[i])))
+            end      
+            modulation[i] /= n^expon
         end
     end
 
@@ -380,18 +385,15 @@ In-place equivalent of `normscale`: changes `flat`.
 function normscale!(flat::ModulatedFourierLattice,  expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
     if !iszero(expon) 
         orbits = getorbits(flat)
-        if isnothing(Gs)
-            @inbounds for i in eachindex(orbits)
-                rescale_factor = norm(first(orbits[i]))^expon
-                rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
-                flat.orbitcoefs[i] ./= rescale_factor
+        @inbounds for i in eachindex(orbits)
+            n = if isnothing(Gs)
+                norm(first(orbits[i]))^expon
+            else
+                norm(dot(Gs, first(orbits[i])))
             end
-        else
-            @inbounds for i in eachindex(orbits)
-                rescale_factor = norm(dot(Gs, first(orbits[i])))^expon
-                rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
-                flat.orbitcoefs[i] ./= rescale_factor
-            end
+            rescale_factor = n^expon
+            rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
+            flat.orbitcoefs[i] ./= rescale_factor
         end
     end
     return flat
