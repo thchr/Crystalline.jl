@@ -319,8 +319,8 @@ end
     expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing)
                             --> ModulatedFourierLattice{D}
 
-Derive a concrete, modulated Fourier lattice from `flat`, a UnityFourierLattice 
-struct (that contains the _interrelations_ between orbit coefficients), by 
+Derive a concrete, modulated Fourier lattice from a `UnityFourierLattice` `flat`
+(containing the _interrelations_ between orbit coefficients), by 
 multiplying the "normalized" orbit coefficients by a `modulation`, a _complex_
 modulating vector (in general, should be complex; otherwise restores unintended
 symmetry to the lattice). Distinct `modulation` vectors produce distinct 
@@ -329,62 +329,64 @@ a random complex vector is used.
 
 An exponent `expon` can be provided, which introduces a penalty term to short-
 wavelength features (i.e. high-|G| orbits) by dividing the orbit coefficients
-by |G|^`expon`; producing a more "localized" and "smooth" lattice boundary
+by |G|^`expon`; producing a "simpler" and "smoother" lattice boundary
 when `expon > 0` (reverse for `expon < 0`). This basically amounts to a 
 continuous "simplifying" operation on the lattice (it is not necessarily a 
 smoothing operation; it simply suppresses "high-frequency" components).
-If `expon = nothing`, no rescaling is performed. Rescaling can be done in the
-reciprocal lattice basis or the cartesian basis by providing nothing or a 
-ReciprocalBasis for Gs, respectively. 
-
-The `normscale(!)` methods exists to perform subsequent `expon` norm-rescaling 
-of a [`ModulatedFourierLattice`](@ref).
+If `expon = nothing`, no rescaling is performed. If `Gs` is provided as `nothing`,
+the orbit norm is computed in the reciprocal lattice basis (and, so, may not strictly
+speaking be a norm if the lattice basis is not cartesian); to account for the basis
+explicitly, `Gs` must be provided as a [`ReciprocalBasis`](@ref), see also
+[`normscale`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
                   modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
-                  expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing) where D
+                  expon::Union{Nothing, Real}=nothing,
+                  Gs::Union{ReciprocalBasis{D}, Nothing}=nothing) where D
     if isnothing(modulation)
         Ncoefs = length(getcoefs(flat))
         mod_r, mod_ϕ = rand(Float64, Ncoefs), 2π.*rand(Float64, Ncoefs)
         modulation = mod_r .* cis.(mod_ϕ) # ≡ reⁱᵠ (pick modulus and phase uniformly random)
     end
-    orbits = getorbits(flat); orbitcoefs = getcoefs(flat); # unpacking ...
+    orbits = getorbits(flat); orbitcoefs = getcoefs(flat) # unpacking ...
     
-    # `expon ≠ 0` is provided, we will interpret it as a penalty term on 
-    # short-wavelength orbits (i.e., high |𝐆|) by dividing the orbit 
-    # coefficients by |𝐆|ᵉˣᵖᴼⁿ; this produces more "localized" and "smooth"
-    # lattice boundaries for `expon > 0` (reverse for `expon < 0`).
-    if !isnothing(expon) && !iszero(expon) 
-        @inbounds for i in 2:length(orbits) # leaves the constant term untouched 
-                                            # (there will _always_ be a constant term)...
-            n = if isnothing(Gs)
-                norm(first(orbits[i]))^expon
-            else
-                norm(dot(Gs, first(orbits[i])))
-            end      
-            modulation[i] /= n^expon
-        end
+    # multiply the orbit coefficients by the overall `modulation` vector
+    modulated_orbitcoefs = orbitcoefs.*modulation
+    flat′ = ModulatedFourierLattice{D}(orbits, modulated_orbitcoefs)
+
+    if !isnothing(expon) && !iszero(expon)
+        # `expon ≠ 0`: interpret as a penalty term on short-wavelength orbits (high |𝐆|)
+        # by dividing the orbit coefficients by |𝐆|^`expon`; producing smoother lattice
+        # boundaries and simpler features for `expon > 0` (reverse for `expon < 0`)
+        normscale!(flat′, expon, Gs)
     end
 
-    # scale the orbit coefficients by the overall `modulation` vector
-    modulated_orbitcoefs = orbitcoefs.*modulation
-
-    return ModulatedFourierLattice{D}(orbits, modulated_orbitcoefs)
+    return flat′
 end
 
 @doc """ 
-    normscale(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis, Nothing} = nothing)  --> ModulatedFourierLattice
+    normscale(flat::ModulatedFourierLattice, expon::Real, 
+              Gs::Union{ReciprocalBasis, Nothing} = nothing)  --> ModulatedFourierLattice
 
-Applies subsequent norm-rescaling via `expon`; Passing in `Gs` as a ReciprocalBasis enforces norm scaling in a Cartesian basis- otherwise norms are computed in the reciprocal lattice basis.
-see detailed description in `modulate`. An in-place variant is provided as `normscale!`.
+Applies inverse-orbit norm rescaling of expansion coefficients with a norm exponent `expon`.
+If `Gs` is nothing, the orbit norm is computed in the lattice basis (and, so, is not
+strictly a norm); by providing `Gs` as [`ReciprocalBasis`](@ref), the norm is evaluated
+correctly in cartesian setting. See further discussion in [`modulate`](@ref).
+
+An in-place equivalent is provided in [`normscale!`](@ref).
 """
-normscale(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D = normscale!(deepcopy(flat), expon, Gs)
+function normscale(flat::ModulatedFourierLattice{D}, expon::Real,
+                   Gs::Union{ReciprocalBasis{D}, Nothing} = nothing)  where D
+    return normscale!(deepcopy(flat), expon, Gs)
+end
 @doc """
-    normscale!(flat::ModulatedFourierLattice, expon::Real, Gs::Union{ReciprocalBasis, Nothing} = nothing) --> ModulatedFourierLattice
+    normscale!(flat::ModulatedFourierLattice, expon::Real,
+               Gs::Union{ReciprocalBasis, Nothing} = nothing) --> ModulatedFourierLattice
 
-In-place equivalent of `normscale`: changes `flat`.
+In-place equivalent of [`normscale`](@ref): mutates `flat`.
 """
-function normscale!(flat::ModulatedFourierLattice{D}, expon::Real, Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
+function normscale!(flat::ModulatedFourierLattice{D}, expon::Real,
+                    Gs::Union{ReciprocalBasis{D}, Nothing} = nothing) where D
     if !iszero(expon)
         orbits = getorbits(flat)
         @inbounds for i in eachindex(orbits)
