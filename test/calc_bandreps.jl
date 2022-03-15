@@ -3,9 +3,17 @@ using Crystalline
 using Crystalline: dlm2struct
 
 @testset "calc_bandreps" begin
-# ---------------------------------------------------------------------------------------- #
+irvec(br::BandRep) = br.irvec
+
 # load .csv-style data from .jl file
 include("calc_bandreps_csvdata.jl") # defines `reference_csv::Dict`
+
+# defines `is_exceptional_br` to check if a BR induced by a maximal Wyckoff position is an
+# "exceptional" BR, i.e., is in fact not an elementary BR (EBR)
+include("ebr_exceptions.jl")
+
+# ---------------------------------------------------------------------------------------- #
+
 
 # create `BandRepSet`s from `reference_csv` and `calc_bandreps`
 key_T = @NamedTuple{sgnum::Int, timereversal::Bool, allpaths::Bool}
@@ -39,21 +47,25 @@ end
     end
 end
 
-# TODO: Increase maximum 3D sgnum to 230 and add list of exceptions for "exceptional" band
-#       representations induced by maximal wyckoff positions
+# TODO: Still some discrepancies here, even with the ebr_exceptions accounted for. Determine
+#       why these discrepancies exist...
 @testset "3D: Checking Wyckoff Position Sets" begin
-    for sgnum in 1:83 # TODO: Why fails on 84 and 87?
+    for sgnum in 1:230
         for timereversal in (false, true)
             for allpaths in (true,)
                 brsᶜ = calc_bandreps(sgnum, Val(3); timereversal, allpaths)
                 brsʳ = bandreps(sgnum, 3; timereversal, allpaths)
+                
+                # remove "exceptional" BRs that are not in fact elementary, i.e. not EBRS
+                # (needed to compare with output of `bandreps` which only contains EBRs)
+                filter!(br -> !is_exceptional_br(sgnum, br; timereversal), brsᶜ.bandreps)
 
                 println(sgnum, " | tr = ", timereversal, " | allpaths = ", allpaths)
                 # wyckoff labels
                 @test unique!(sort!(wyck.(brsᶜ))) == unique!(sort!(wyck.(brsʳ)))
 
                 # dimensions
-                @test sort!(dim.(brsᶜ)) == sort!(dim.(brsʳ))  # fails
+                @test sort!(dim.(brsᶜ)) == sort!(dim.(brsʳ))
 
                 if allpaths # too many differences between ISOTROPY's and Bilbao's inclusion
                             # "non-special" k-points; don't bother comparing
@@ -72,7 +84,7 @@ end
                 
                 key = (; sgnum, timereversal, allpaths)
                 brsʳ = reference_brs[key] # reference version
-                brsᶜ = calc_brs[key]          # calculated version
+                brsᶜ = calc_brs[key]      # calculated version
                 # check dimensions             
                 @test sort!(dim.(brsʳ)) == sort!(dim.(brsᶜ))
 
@@ -90,7 +102,6 @@ end
     end
 end
 
-irvec(br::BandRep) = br.irvec
 @testset "2D: Checking irvecs against verified csv files" begin
     for sgnum in (16, 17)
         for timereversal in (false, true)
@@ -134,12 +145,9 @@ end
             for irlabᶜ in irlabsᶜ
                 append!(irlabs_permᶜ²ʳ, findfirst(==(irlabᶜ), irlabsʳ))
             end
-            println(irlabsʳ[irlabs_permᶜ²ʳ])
-            println(irlabsᶜ)
-            
-            println(irvecsᶜ[1][irlabs_permᶜ²ʳ])
+
             for irvecʳ in irvecsʳ
-                @test findfirst(==(irvecʳ[irlabs_permᶜ²ʳ]), irvecsᶜ) != nothing
+                @test findfirst(==(irvecʳ[irlabs_permᶜ²ʳ]), irvecsᶜ) !== nothing
             end
         end
     end
@@ -147,10 +155,14 @@ end
 
 
 @testset "3D: Checking irvecs in 3D" begin
-    for sgnum in 1:87
+    for sgnum in 1:230
         for timereversal in (false, true)
             brsᶜ = calc_bandreps(sgnum, Val(3); allpaths = false, timereversal)
             brsʳ = bandreps(sgnum, 3; allpaths = false, timereversal)
+
+            # remove "exceptional" BRs that are not in fact elementary, i.e. not EBRS
+            # (needed to compare with output of `bandreps` which only contains EBRs)
+            filter!(br -> !is_exceptional_br(sgnum, br; timereversal), brsᶜ.bandreps)
 
             # TODO: Too loose; see comments in analogous 2D check
             for irvecᶜ in irvec.(brsᶜ)
