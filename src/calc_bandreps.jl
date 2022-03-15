@@ -51,7 +51,7 @@ function realify!(lgirsd::Dict{String, <:Vector{<:LGIrrep}})
     for (klab, lgirs) in lgirsd
         lgirsd[klab] = realify(lgirs)
     end
-    return lgirs
+    return lgirsd
 end
 
 """
@@ -126,7 +126,7 @@ function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckoffPosition{D},
     while i ≤ length(ops) && i ≤ length(orbits)
         wpᵢ = orbits[i]
         opᵢ = ops[i]
-        if ops[i]*parent(wp) ≈ wpᵢ
+        if ops[i]*parent(wp) ≈ parent(wpᵢ)
             i += 1 # then ops[i] is indeed a "generator" of wpᵢ
         else
             deleteat!(ops, i)
