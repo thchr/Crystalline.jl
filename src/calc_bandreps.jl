@@ -181,6 +181,7 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
     # characters of induced site representation and little group irreps
     site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
     lgirs_χm = matrix(characters(lgirs))
+
     # little group irrep multiplicities, after subduction
     m  = lgirs_χm\site_χs
     m′ = round.(Int, real.(m)) # truncate to integers
@@ -209,7 +210,7 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
 end
 
 # ---------------------------------------------------------------------------------------- #
-# TODO: Doc-string
+"Returns BandRepSet corresponding to spacegroup sgnum in dimension Dᵛ"
 function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
                        allpaths::Bool=false, timereversal::Bool=true) where D
 

@@ -127,6 +127,9 @@ export subduction_count
 include("bandrep.jl")
 export bandreps, matrix, classification, basisdim
 
+include("calc_bandreps.jl")
+export calc_bandreps, induce_bandrep, SiteIrrep, siteirreps
+
 include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
