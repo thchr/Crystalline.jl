@@ -37,7 +37,6 @@ function is_exceptional_br(sgnum::Integer, br::BandRep; timereversal::Bool=true)
     br_siteirlab = replace(br.label, "↑G"=>"")
     br_siteirlab ∈ except_siteirlabs || return false # didn't match
     
-    #println(br.wyckpos, ", ", br_sitesym_schoenflies, ", ", br_siteirlab, ":\t✓")
     return true
 end
 
@@ -53,6 +52,5 @@ function is_exceptional_tr_br(sgnum::Integer, br::BandRep)
     br_siteirlab = replace(br.label, "↑G"=>"")
     br_siteirlab == "E" || return false
 
-    #println(br.wyckpos, ", ", br_sitesym_schoenflies, ", ", br_siteirlab, ":\t✓ᵀᴿ")
     return true
 end
