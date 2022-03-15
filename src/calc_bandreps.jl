@@ -22,7 +22,7 @@ end
 position(siteir::SiteIrrep) = position(group(siteir))
 
 """
-    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
+    siteirreps(sitegroup::SiteGroup) --> ::Vector{SiteIrrep}
 
 Return the site symmetry irreps associated with the provided `SiteGroup`, derived from a
 search over isomorphic point groups.
@@ -47,8 +47,11 @@ mulliken(siteir::SiteIrrep) = _mulliken(pglabel(siteir), label(siteir), iscorep(
 # ---------------------------------------------------------------------------------------- #
 # Misc utility functions 
 
-function realify(lgirsd::Dict{<:Any, <:Vector{<:LGIrrep}})
-    return Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd)
+function realify!(lgirsd::Dict{String, <:Vector{<:LGIrrep}})
+    for (klab, lgirs) in lgirsd
+        lgirsd[klab] = realify(lgirs)
+    end
+    return lgirs
 end
 
 """
@@ -137,7 +140,7 @@ end
 # Bandrep related functions: induction/subduction
 
 """
-    induced_band_representation(siteir, h, kv)
+    induce_bandrep(siteir::SiteIrrep, h::SymOperation, kv::KVec)
 
 Return the band representation induced by the provided `SiteIrrep` evaluated at `kv` and for
 a `SymOperation` `h`.
@@ -210,14 +213,35 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
 end
 
 # ---------------------------------------------------------------------------------------- #
-"Returns BandRepSet corresponding to spacegroup sgnum in dimension Dᵛ"
-function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
-                       allpaths::Bool=false, timereversal::Bool=true) where D
+"
+    calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
+                  timereversal::Bool=true,
+                  allpaths::Bool=false)
+
+Compute the band representations of space group `sgnum` in dimension `D`, returning a
+`BandRepSet`.
+
+## Keyword arguments
+- `timereversal` (default, `true`): whether the irreps used to induce the band
+  representations are assumed to be time-reversal invariant (i.e., are coreps, see 
+  [`realify`](@ref)).
+- `allpaths` (default, `false`): whether the band representations are projected to all
+  distinct **k**-points returned by `lgirreps` (`allpaths = false`), including high-symmetry
+  **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
+  just to high-symmetry points.
+
+## implementation
+The implementation is based on Elcoro et al., [Phys. Rev. B 97, 035139
+(2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
+"
+function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
+                       timereversal::Bool=true,
+                       allpaths::Bool=false) where D
 
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
     allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
-    timereversal && (lgirsd = realify(lgirsd))
+    timereversal && realify!(lgirsd)
 
     irlabs = reduce_dict_of_vectors(formatirreplabel∘label, lgirsd)
     irdims = reduce_dict_of_vectors(irdim, lgirsd)
