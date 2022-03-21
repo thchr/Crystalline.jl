@@ -1057,12 +1057,13 @@ function generate(gens::AbstractVector{SymOperation{D}};
         collect(gens)
     end
     unique!(ops)
+    Ngens = length(ops)
     
     while true
         Nₒₚ = length(ops)
         # fixme: there's probably a more efficient way to do this?
-        for opᵢ in (@view ops[OneTo(Nₒₚ)]) 
-            for opⱼ in (@view ops[OneTo(Nₒₚ)])
+        for opᵢ in (@view ops[OneTo(Nₒₚ)])
+            for opⱼ in (@view ops[OneTo(Ngens)]) # every op can be written as products w/ original generators
                 opᵢⱼ = compose(opᵢ, opⱼ, modτ)
                 # FIXME: there are some _really_ strange allocations going on here, related
                 #        to the interplay between the `∉` and `push!`ing operations here; no 
