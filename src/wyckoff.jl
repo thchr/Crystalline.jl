@@ -1,61 +1,4 @@
 # ---------------------------------------------------------------------------------------- #
-# STRUCTS
-
-# Wyckoff positions
-struct WyckoffPosition{D} <: AbstractVec{D}
-    mult   :: Int
-    letter :: Char
-    rv     :: RVec{D} # associated with a single representative
-end
-parent(wp::WyckoffPosition)   = wp.rv
-free(wp::WyckoffPosition)     = free(parent(wp))
-constant(wp::WyckoffPosition) = constant(parent(wp))
-
-multiplicity(wp::WyckoffPosition) = wp.mult
-label(wp::WyckoffPosition) = string(multiplicity(wp), wp.letter)
-function transform(wp::WyckoffPosition, P::AbstractMatrix{<:Real})
-    return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
-end
-
-function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
-    print(io, wp.mult, wp.letter, ": ")
-    show(io, MIME"text/plain"(), parent(wp))
-end
-
-# Site symmetry groups
-struct SiteGroup{D} <: AbstractGroup{D}
-    num::Int
-    wp::WyckoffPosition{D}
-    operations::Vector{SymOperation{D}}
-    cosets::Vector{SymOperation{D}}
-end
-label(g::SiteGroup) = iuc(num(g), dim(g))*" at "*string(position(g))
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the cosets of a `SiteGroup` `g`.
-
-The cosets generate the orbit of the Wyckoff position `position(g)` (see
-[`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
-group, jointly with the operations in `g` itself.
-"""
-cosets(g::SiteGroup) = g.cosets
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the Wyckoff position associated with a `SiteGroup`.
-"""
-position(g::SiteGroup) = g.wp
-
-function summary(io::IO, g::SiteGroup)
-    print(io, typeof(g), " ⋕", num(g), " at ", label(position(g)), " = ")
-    show(io, MIME"text/plain"(), parent(position(g)))
-    print(io, " with ", length(g), " operations")
-end
-
-# ---------------------------------------------------------------------------------------- #
 # CONSTRUCTORS/GETTERS FOR WYCKPOS
 
 """
@@ -125,12 +68,12 @@ julia> sgnum = 16;
 julia> D = 2;
 
 julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
-2b: [0.3333333333333333, 0.6666666666666666]
+2b: [1/3, 2/3]
 
 julia> sg = spacegroup(sgnum, D);
 
 julia> g  = SiteGroup(sg, wp)
-SiteGroup{2} ⋕16 at 2b = [0.333333, 0.666667] with 3 operations:
+SiteGroup{2} ⋕16 at 2b = [1/3, 2/3] with 3 operations:
  1
  {3⁺|1,1}
  {3⁻|0,1}
@@ -291,7 +234,7 @@ julia> sitegs = SiteGroup.(Ref(sg), wps)
  SiteGroup{2}[1, m₁₀]
 
 julia> only(findmaximal(sitegs))
-SiteGroup{2} ⋕5 at 2a = [0.0, β] with 2 operations:
+SiteGroup{2} ⋕5 at 2a = [0, β] with 2 operations:
  1
  m₁₀
 ```

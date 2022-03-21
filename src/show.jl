@@ -74,7 +74,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     if isspecial(v)
         for i in eachindex(cnst) 
             coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
-            print(io, coord)
+            prettyprint_scalar(io, coord)
             # prepare for next coordinate/termination
             i == length(cnst) ? print(io, ']') : print(io, ", ")
         end
@@ -83,7 +83,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
             # constant/fixed parts
             if !iszero(cnst[i]) || iszero(@view free[i,:]) # don't print zero, if it adds unto anything nonzero
                 coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
-                print(io, coord)
+                prettyprint_scalar(io, coord)
             end
             # free-parameter parts
             for j in eachindex(cnst) 
@@ -93,7 +93,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
                         print(io, sgn)
                     end
                     if abs(free[i,j]) != oneunit(eltype(free)) # don't print prefactors of 1
-                        print(io, abs(free[i,j]))
+                        prettyprint_scalar(io, abs(free[i,j]))
                     end
                     print(io, j==1 ? 'α' : (j == 2 ? 'β' : 'γ'))
                 end
@@ -107,32 +107,77 @@ end
 # print arrays of `AbstractVec`s compactly
 show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 
-# --- AbstractGroup ---
-function summary(io::IO, g::T) where T<:AbstractGroup 
-    print(io, T)
-    if !(T <: GenericGroup)
-        print(io, " ⋕", num(g), " (", label(g), ")")
+function prettyprint_scalar(io, v::Real)
+    if isinteger(v)
+        print(io, Int(v))
+    else
+        # print ±1/2, ±1/3, ±2/3, ±1/4, ±3/4 as fracs / and everything else as decimal
+        av = abs(v)
+        s = v < 0 ? "-" : ""
+        if isapprox(av, 1/2, atol=DEFAULT_ATOL)
+            print(io, s, "1/2")
+        elseif isapprox(av, 1/3, atol=DEFAULT_ATOL)
+            print(io, s, "1/3")
+        elseif isapprox(av, 2/3, atol=DEFAULT_ATOL)
+            print(io, s, "2/3")
+        elseif isapprox(av, 1/4, atol=DEFAULT_ATOL)
+            print(io, s, "1/4")
+        elseif isapprox(av, 3/4, atol=DEFAULT_ATOL)
+            print(io, s, "3/4")
+        else
+            print(io, v)
+        end
     end
+end
+
+function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
+    print(io, wp.mult, wp.letter, ": ") # TODO: This is `=` elsewhere; change?
+    show(io, MIME"text/plain"(), parent(wp))
+end
+
+# --- AbstractGroup ---
+function summary(io::IO, g::AbstractGroup)
+    print(io, typeof(g))
+    _print_group_descriptor(io, g; prefix=" ")
     print(io, " with ", order(g), " operations")
 end
-function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
+function show(io::IO, ::MIME"text/plain", g::AbstractGroup)
     if !haskey(io, :compact)
         io = IOContext(io, :compact => true)
     end
     summary(io, g)
     println(io, ':')
-    for (i,op) in enumerate(g)
+    for (i, op) in enumerate(g)
         print(io, ' ')
         show(io, MIME"text/plain"(), op)
         if i < order(g); println(io); end
     end
 end
-function show(io::IO, g::T) where T<:AbstractGroup
-    print(io, T, '[')
+function show(io::IO, g::AbstractGroup)
+    print(io, '[')
     join(io, g, ", ")
     print(io, ']')
 end
+function show(io::IO, g::Union{LittleGroup, SiteGroup})
+    print(io, '[')
+    join(io, g, ", ")
+    print(io, ']')
+    printstyled(io, " (", position(g), ")", color=:light_black)
+end
 
+function _print_group_descriptor(io::IO, g::AbstractGroup; prefix::AbstractString="")
+    print(io, prefix)
+    g isa GenericGroup && return nothing
+    print(io, "⋕", num(g), " (", label(g), ")")
+    if position(g) !== nothing
+        print(io, " at ")
+        print(io, fullpositionlabel(g))
+    end
+    return nothing
+end
+function _group_descriptor(g; prefix::AbstractString="")
+    return sprint( (io, _g) -> _print_group_descriptor(io, _g; prefix), g)
+end
 
 # --- LGIrrep & PGIrrep ---
 function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})

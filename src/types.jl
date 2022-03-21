@@ -114,7 +114,7 @@ IndexStyle(::Type{<:MultTable}) = IndexLinear()
 
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractVec: KVec & RVec
+# AbstractVec: KVec & RVec & WyckoffPosition
 # ---------------------------------------------------------------------------------------- #
 
 # 𝐤-vectors (or, equivalently, 𝐫-vectors) are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -132,6 +132,8 @@ free(v::AbstractVec)      = v.free
 parts(v::AbstractVec)     = (constant(v), free(v))
 dim(::AbstractVec{D}) where D = D
 isspecial(v::AbstractVec) = iszero(free(v))
+parent(v::AbstractVec)    = v # fall-back for non-wrapped `AbstracVec`s
+
 """
 $(TYPEDSIGNATURES)
 
@@ -228,7 +230,7 @@ for T in (:KVec, :RVec)
     ## Example
     ```jldoctest
     julia> $($T)("0.25,α,0")
-    [0.25, α, 0.0]
+    [1/4, α, 0]
     ```
     """
     function $T{D}(str::AbstractString) where D
@@ -425,8 +427,29 @@ function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
 end
 
 
+# --- Wyckoff positions ---
+struct WyckoffPosition{D} <: AbstractVec{D}
+    mult   :: Int
+    letter :: Char
+    v      :: RVec{D} # associated with a single representative
+end
+parent(wp::WyckoffPosition)   = wp.v
+free(wp::WyckoffPosition)     = free(parent(wp))
+constant(wp::WyckoffPosition) = constant(parent(wp))
+
+multiplicity(wp::WyckoffPosition) = wp.mult
+label(wp::WyckoffPosition) = string(multiplicity(wp), wp.letter)
+function transform(wp::WyckoffPosition, P::AbstractMatrix{<:Real})
+    return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
+end
+
+# ---- ReciprocalPosition/Wingten position ---
+# TODO: Wrap all high-symmetry k-points in a structure with a label and a `KVec`, similarly
+# to `WyckoffPosition`s? Maybe kind of awful for dispatch purposes, unless we introduce a
+# new abstract type between `AbstractVec` and `KVec`/`RVec`...
+
 # ---------------------------------------------------------------------------------------- #
-# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup
+# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup
 # ---------------------------------------------------------------------------------------- #
 
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
@@ -443,6 +466,9 @@ IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
 
 # common `AbstractGroup` utilities
 order(g::AbstractGroup) = length(g)
+
+# fall-back for groups without an associated position notion (for dispatch)
+position(g::AbstractGroup) = nothing
 
 # --- Generic group ---
 """
@@ -491,9 +517,52 @@ LittleGroup(num::Integer, kv::KVec{D}, klab::AbstractString, ops::AbstractVector
 LittleGroup(num::Integer, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
 position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
-label(lg::LittleGroup) = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(position(lg))
+label(lg::LittleGroup) = iuc(num(lg), dim(lg))
 orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
                                centering(num(lg), dim(lg)))
+
+# --- Site symmetry group ---
+struct SiteGroup{D} <: AbstractGroup{D}
+    num::Int
+    wp::WyckoffPosition{D}
+    operations::Vector{SymOperation{D}}
+    cosets::Vector{SymOperation{D}}
+end
+label(g::SiteGroup) = iuc(num(g), dim(g))
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the cosets of a `SiteGroup` `g`.
+
+The cosets generate the orbit of the Wyckoff position `position(g)` (see
+[`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
+group, jointly with the operations in `g` itself.
+"""
+cosets(g::SiteGroup) = g.cosets
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the Wyckoff position associated with a `SiteGroup`.
+"""
+position(g::SiteGroup) = g.wp
+
+
+# --- "position labels" of LittleGroup and SiteGroups ---
+positionlabel(g::LittleGroup)   = klabel(g)
+positionlabel(g::SiteGroup)     = label(position(g))
+positionlabel(g::AbstractGroup) = ""
+
+function fullpositionlabel(g::AbstractGroup) # print position label L & coords C as "L = C"
+    if position(g) !== nothing
+        return string(positionlabel(g), " = ", parent(position(g)))
+    else
+        return ""
+    end
+end
+
+# TODO: drop `klabel` and use `position` label exclusively?
 
 # ---------------------------------------------------------------------------------------- #
 # Reality <: Enum{Int8}:    1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
@@ -747,8 +816,8 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
     for (j,col) in enumerate(eachcol(table))
         col .= characters(irs[j], αβγ)
     end
-    tag = "⋕"*string(num(g))*" ("*label(g)*")"
-    return CharacterTable{D}(operations(g), label.(irs), table, tag)
+    
+    return CharacterTable{D}(operations(g), label.(irs), table, _group_descriptor(g))
 end
 
 struct ClassCharacterTable{D} <: AbstractCharacterTable
@@ -791,8 +860,7 @@ function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
             table[i,j] = tr(ir[idx])
         end
     end
-    tag = "⋕"*string(num(g))*" ("*label(g)*")"
-    return ClassCharacterTable{D}(classes_ops, label.(irs), table, tag)
+    return ClassCharacterTable{D}(classes_ops, label.(irs), table, _group_descriptor(g))
 end
 
 # ---------------------------------------------------------------------------------------- #

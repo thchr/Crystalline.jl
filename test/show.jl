@@ -125,8 +125,8 @@ test_tp_show(MultTable(spacegroup(13)), str)
 # KVec
 # -------------------------------
 for v in (KVec, RVec)
-    test_tp_show(v("0,0,.5+u"), "[0.0, 0.0, 0.5+α]")
-    test_tp_show(v("1/2+α,β+α,1/4"), "[0.5+α, α+β, 0.25]")
+    test_tp_show(v("0,0,.5+u"), "[0, 0, 1/2+α]")
+    test_tp_show(v("1/2+α,β+α,1/4"), "[1/2+α, α+β, 1/4]")
     test_tp_show(v("β,-α"), "[β, -α]")
     @test repr(MIME"text/plain"(), v("y,γ,u")) == repr(MIME"text/plain"(), v("β,w,x"))
 end
@@ -173,7 +173,7 @@ str = """
 test_tp_show(spacegroup(213, Val(3)), str)
 
 str = """
-      SiteGroup{2} ⋕17 at 2b = [0.333333, 0.666667] with 6 operations:
+      SiteGroup{2} ⋕17 (p6mm) at 2b = [1/3, 2/3] with 6 operations:
        1
        {3⁺|1,1}
        {3⁻|0,1}
@@ -188,7 +188,7 @@ test_tp_show(SiteGroup(sg, wps[end-1]), str)
 # LGIrrep
 # -------------------------------
 str = """
-LGIrrep{3}: ⋕16 (P222) at Γ = [0.0, 0.0, 0.0]
+LGIrrep{3}: ⋕16 (P222) at Γ = [0, 0, 0]
 Γ₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1.0
@@ -355,7 +355,7 @@ CharacterTable{3}: ⋕21 (6)
 test_tp_show(characters(pgirs′), str)
 
 str = """
-CharacterTable{3}: ⋕230 (Ia-3d at P = [0.5, 0.5, 0.5])
+CharacterTable{3}: ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2]
 ─────────────────┬──────────────────────
                  │     P₁      P₂    P₃
 ─────────────────┼──────────────────────
