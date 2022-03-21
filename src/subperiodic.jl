@@ -250,10 +250,10 @@ Allowed combinations of `D` and `P` and their associated group names are:
 ```jldoctest
 julia> subperiodicgroup(7, Val(2), Val(1))
 SubperiodicGroup{2, 1} ⋕7 (𝓅2mg) with 4 operations:
-1
-2
-{m₁₀|½,0}
-{m₀₁|½,0}
+ 1
+ 2
+ {m₁₀|½,0}
+ {m₀₁|½,0}
 ```
 
 ## Data sources

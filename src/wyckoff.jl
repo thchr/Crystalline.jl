@@ -15,9 +15,9 @@ Bilbao Crystallographic Server (from which the underlying data is sourced [^1]).
 julia> wps = wyckoffs(16, 2)
 4-element Vector{WyckoffPosition{2}}:
  6d: [α, β]
- 3c: [0.5, 0.0]
- 2b: [0.3333333333333333, 0.6666666666666666]
- 1a: [0.0, 0.0]
+ 3c: [1/2, 0]
+ 2b: [1/3, 2/3]
+ 1a: [0, 0]
 ```
 
 ## References
@@ -73,7 +73,7 @@ julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
 julia> sg = spacegroup(sgnum, D);
 
 julia> g  = SiteGroup(sg, wp)
-SiteGroup{2} ⋕16 at 2b = [1/3, 2/3] with 3 operations:
+SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
  1
  {3⁺|1,1}
  {3⁻|0,1}
@@ -230,11 +230,11 @@ julia> sg  = spacegroup(sgnum, Val(D));
 
 julia> sitegs = SiteGroup.(Ref(sg), wps)
 2-element Vector{SiteGroup{2}}:
- SiteGroup{2}[1]
- SiteGroup{2}[1, m₁₀]
+ [1] (4b: [α, β])
+ [1, m₁₀] (2a: [0, β])
 
 julia> only(findmaximal(sitegs))
-SiteGroup{2} ⋕5 at 2a = [0, β] with 2 operations:
+SiteGroup{2} ⋕5 (c1m1) at 2a = [0, β] with 2 operations:
  1
  m₁₀
 ```
