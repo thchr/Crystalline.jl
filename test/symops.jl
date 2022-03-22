@@ -103,19 +103,20 @@ using Crystalline, Test
     @testset "Groups created from generators" begin # (`generate` default sorts by `seitz`)
         # generate plane group (17) p6mm from 6⁺ and m₁₀
         gens = SymOperation.(["x-y,x", "-x+y,y"]) 
-        @test Set(generate(gens)) == Set(spacegroup(17,2))
+        sg = spacegroup(17, Val(2))
+        @test sort!(generate(gens)) == sort!(sg)
 
         # generate site symmetry group of Wyckoff position 2b in p6mm
         ops  = SymOperation.(
                 ["x,y","-y+1,x-y+1", "-x+y,-x+1",    # {1|0}, {3⁺|1.0,1.0}, {3⁻|0,1.0}, 
                 "-y+1,-x+1", "-x+y,y", "x,x-y+1"])   # {m₁₁|1.0,1.0}, {m₁₀|0}, {m₀₁|0,1.0}
         gens = ops[[2,6]]
-        @test Set(generate(gens, modτ=false)) == Set(ops)
+        @test sort!(generate(gens, modτ=false), by=xyzt) == sort!(ops, by=xyzt)
 
         # generate space group with nonsymmorphic operations
-        sg = spacegroup(180) # P6₂22
-        gens = sg[[6,8]]     # {6₀₀₁⁺|0,0,⅓}, 2₁₀₀
-        @test sort(generate(gens), by=xyzt) ≈ sort(sg, by=xyzt)
+        sg = spacegroup(180, Val(3)) # P6₂22
+        gens = sg[[6,8]]             # {6₀₀₁⁺|0,0,⅓}, 2₁₀₀
+        @test sort!(generate(gens)) ≈ sort!(sg)
 
         # generators do not specify a finite group under "non-modulo" composition
         @test_throws OverflowError generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50)
@@ -125,8 +126,8 @@ using Crystalline, Test
         for (Dᵛ, gtype) in ((Val(1), SpaceGroup{1}), (Val(2), SpaceGroup{2}), (Val(3), SpaceGroup{3}))
             D = typeof(Dᵛ).parameters[1]
             for sgnum in 1:MAX_SGNUM[D]
-                ops1 = sort!(operations(spacegroup(sgnum, Dᵛ)), by=xyzt)
-                ops2 = sort!(operations(generate(generators(sgnum, gtype))), by=xyzt)
+                ops1 = sort!(spacegroup(sgnum, Dᵛ))
+                ops2 = sort!(generate(generators(sgnum, gtype)))
                 @test ops1 ≈ ops2
             end
         end

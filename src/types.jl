@@ -470,6 +470,9 @@ order(g::AbstractGroup) = length(g)
 # fall-back for groups without an associated position notion (for dispatch)
 position(g::AbstractGroup) = nothing
 
+# sorting
+sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
+
 # --- Generic group ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
