@@ -1,0 +1,199 @@
+using Test
+using Crystalline
+using Crystalline: dlm2struct
+
+@testset "calc_bandreps" begin
+irvec(br::BandRep) = br.irvec
+
+# load .csv-style data from .jl file
+include("calc_bandreps_csvdata.jl") # defines `reference_csv::Dict`
+
+# defines `is_exceptional_br` to check if a BR induced by a maximal Wyckoff position is an
+# "exceptional" BR, i.e., is in fact not an elementary BR (EBR)
+include("ebr_exceptions.jl")
+
+# ---------------------------------------------------------------------------------------- #
+
+
+# create `BandRepSet`s from `reference_csv` and `calc_bandreps`
+key_T = @NamedTuple{sgnum::Int, timereversal::Bool, allpaths::Bool}
+reference_brs = Dict{key_T, BandRepSet}()
+calc_brs = Dict{key_T, BandRepSet}()
+for sgnum in (1, 16, 17)
+    for timereversal in (false, true)
+        for allpaths in (false, true)
+            sgnum == 1 && !(!timereversal && allpaths) && continue # csv not stored
+
+            key = (; sgnum, timereversal, allpaths)
+            io = IOBuffer(reference_csv[key])
+            reference_brs[key] = dlm2struct(io, sgnum, allpaths, #=spinful=# false, timereversal)
+            calc_brs[key] = calc_bandreps(sgnum, Val(2); allpaths, timereversal)
+        end
+    end
+end
+
+# ---------------------------------------------------------------------------------------- #
+
+@testset "2D: calc_bandreps vs. bandreps" begin
+    # test that `bandreps` agrees with `calc_bandreps` in 2D (since the former is generated
+    # by the latter; basically check that the data behind the former is up-to-date)
+    for sgnum in 1:17
+        for timereversal in (false, true)
+            for allpaths in (false, true)
+                @test calc_bandreps(sgnum, Val(2); timereversal, allpaths) ==
+                      bandreps(sgnum, 2; timereversal, allpaths)
+            end
+        end
+    end
+end
+
+# TODO: Still some discrepancies here, even with the ebr_exceptions accounted for. Determine
+#       why these discrepancies exist...
+@testset "3D: Checking Wyckoff Position Sets" begin
+    for sgnum in 1:230
+        for timereversal in (false, true)
+            for allpaths in (true,)
+                brsᶜ = calc_bandreps(sgnum, Val(3); timereversal, allpaths)
+                brsʳ = bandreps(sgnum, 3; timereversal, allpaths)
+                
+                # remove "exceptional" BRs that are not in fact elementary, i.e. not EBRS
+                # (needed to compare with output of `bandreps` which only contains EBRs)
+                filter!(br -> !is_exceptional_br(sgnum, br; timereversal), brsᶜ.bandreps)
+
+                println(sgnum, " | tr = ", timereversal, " | allpaths = ", allpaths)
+                # wyckoff labels
+                @test unique!(sort!(wyck.(brsᶜ))) == unique!(sort!(wyck.(brsʳ)))
+
+                # dimensions
+                @test sort!(dim.(brsᶜ)) == sort!(dim.(brsʳ))
+
+                if allpaths # too many differences between ISOTROPY's and Bilbao's inclusion
+                            # "non-special" k-points; don't bother comparing
+                    @test sort(irreplabels(brsᶜ)) ⊆ sort(irreplabels(brsʳ))
+                end
+            end
+        end
+    end
+end
+
+@testset "2D: Checking dims against known bandreps for allpaths=true, timereversal=false" begin
+    for sgnum in (1, 16, 17)
+        for timereversal in (false, true)
+            for allpaths in (false, true)
+                sgnum == 1 && !(!timereversal && allpaths) && continue # csv not stored
+                
+                key = (; sgnum, timereversal, allpaths)
+                brsʳ = reference_brs[key] # reference version
+                brsᶜ = calc_brs[key]      # calculated version
+                # check dimensions             
+                @test sort!(dim.(brsʳ)) == sort!(dim.(brsᶜ))
+
+                # check wyckoff labels
+                @test sort!(wyck.(brsʳ)) == sort!(wyck.(brsᶜ))
+
+                # check irrep labels
+                if !(sgnum == 17 && allpaths) # there's a T point in 2D that Bilbao didn't include in 3D; so we skip
+                    # only test subset-equality, since there's unfortunately some mismatch
+                    # between the included irreps/k-points
+                    @test sort(irreplabels(brsᶜ)) ⊆ sort(irreplabels(brsʳ))
+                end
+            end
+        end
+    end
+end
+
+@testset "2D: Checking irvecs against verified csv files" begin
+    for sgnum in (16, 17)
+        for timereversal in (false, true)
+            key  = (; sgnum, timereversal, allpaths=false)
+            brsʳ = reference_brs[key]
+            brsᶜ = calc_brs[key]
+            
+            # TODO: This is too loose a check most likely. Could do better by searching &
+            #       matching klabels + wyckoff-labels & site-symmetry labels
+            for irvecᶜ in irvec.(brsᶜ)
+                found_irvec = false
+                for irvecʳ in irvec.(brsʳ)
+                    if Set(irvecʳ) == Set(irvecᶜ)
+                        found_irvec = true
+                        break
+                    end
+                end
+                @test found_irvec
+            end
+        end
+    end
+end
+
+
+@testset "2D: Checking irvecs through irlab permutation" begin
+    for sgnum in (16, 17)
+        for timereversal in (false, true)
+            key  = (; sgnum, timereversal, allpaths = false)
+            
+            brsʳ    = reference_brs[key]
+            irlabsʳ = irreplabels(brsʳ)
+            irvecsʳ = irvec.(brsʳ)
+
+            brsᶜ    = calc_brs[key]
+            irlabsᶜ = irreplabels(brsᶜ)
+            irvecsᶜ = irvec.(brsᶜ)
+
+            # permuted indices of the irlabels (indices of the "reference" version for each
+            # calculated version's index in order)
+            irlabs_permᶜ²ʳ = Int[]
+            for irlabᶜ in irlabsᶜ
+                append!(irlabs_permᶜ²ʳ, findfirst(==(irlabᶜ), irlabsʳ))
+            end
+
+            for irvecʳ in irvecsʳ
+                @test findfirst(==(irvecʳ[irlabs_permᶜ²ʳ]), irvecsᶜ) !== nothing
+            end
+        end
+    end
+end
+
+
+@testset "3D: Checking irvecs in 3D" begin
+    for sgnum in 1:230
+        for timereversal in (false, true)
+            brsᶜ = calc_bandreps(sgnum, Val(3); allpaths = false, timereversal)
+            brsʳ = bandreps(sgnum, 3; allpaths = false, timereversal)
+
+            # remove "exceptional" BRs that are not in fact elementary, i.e. not EBRS
+            # (needed to compare with output of `bandreps` which only contains EBRs)
+            filter!(br -> !is_exceptional_br(sgnum, br; timereversal), brsᶜ.bandreps)
+
+            # TODO: Too loose; see comments in analogous 2D check
+            for irvecᶜ in irvec.(brsᶜ)
+                found_irvec = false
+                for irvecʳ in irvec.(brsʳ)
+                    if Set(irvecʳ) == Set(irvecᶜ)
+                        found_irvec = true
+                        break
+                    end
+                end
+                @test found_irvec
+            end
+        end
+    end
+end
+
+@testset "Plane groups vs. parent space groups" begin
+    parent³ᴰ_nums = [1, 3, 6, 7, 8, 25, 28, 32, 35, 75, 99, 100, 143, 156, 157, 168, 183]
+    for (sgnum²ᴰ, sgnum³ᴰ) in zip(1:17, parent³ᴰ_nums)
+        for timereversal in (false, true)
+            for allpaths in (false, true)
+                brs²ᴰ = bandreps(sgnum²ᴰ, 2; timereversal, allpaths)
+                brs³ᴰ = bandreps(sgnum³ᴰ, 3; timereversal, allpaths)
+
+                # dimensions
+                @test sort!(dim.(brs²ᴰ)) == sort!(dim.(brs³ᴰ))
+
+                # topological classification
+                @test classification(brs²ᴰ) == classification(brs³ᴰ)
+            end
+        end
+    end
+end
+end # @testset "calc_bandreps" begin
