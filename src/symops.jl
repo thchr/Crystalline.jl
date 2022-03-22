@@ -933,13 +933,14 @@ end
 
 """
     _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
-                                                    --> (Bool, Vector{Int})
+                                                    --> Tuple{Bool, Vector{Int}}
 
-Determine whether the group ``H`` (with operators `opsᴴ`) is a subgroup
-of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
-an indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `false`), such
-that `opsᴳ[idxs]` ``≡ H``. 
-The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
+Returns a 2-tuple with elements:
+
+1. A boolean, indicating whether the group ``H`` (with operators `opsᴴ`) is a subgroup of
+   the group ``G`` (with operators `opsᴳ`), i.e. whether ``H < G``.
+2. An indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of `G`),
+   such that `opsᴳ[idxs] == opsᴴ`.
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                        opsᴴ::AbstractVector{SymOperation{D}}) where D
