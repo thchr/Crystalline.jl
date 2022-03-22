@@ -150,7 +150,7 @@ function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) w
     iuclab = pointgroup_num2iuc(pgnum, Val(D), setting)
     ops_str = read_pgops_xyzt(iuclab, D)
 
-    return SymOperation{3}.(ops_str)
+    return SymOperation{D}.(ops_str)
 end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---

@@ -45,8 +45,13 @@ end
     for (Dᵛ, gtype) in ((Val(1), PointGroup{1}), (Val(2), PointGroup{2}), (Val(3), PointGroup{3}))
         D = typeof(Dᵛ).parameters[1]
         for iuclab in Crystalline.PGS_IUCs[D]
-            ops1 = sort(pointgroup(iuclab, Dᵛ), by=xyzt)
-            ops2 = sort(generate(generators(iuclab, gtype)), by=xyzt)
+            ops1 = sort!(pointgroup(iuclab, Dᵛ))
+            ops2 = sort!(generate(generators(iuclab, gtype)))
+            @test ops1 ≈ ops2
+        end
+        for pgnum in 1:length(Crystalline.PGS_NUM2IUC[D])
+            ops1 = sort!(pointgroup(pgnum, Dᵛ))
+            ops2 = sort!(generate(generators(pgnum, gtype)))
             @test ops1 ≈ ops2
         end
     end
