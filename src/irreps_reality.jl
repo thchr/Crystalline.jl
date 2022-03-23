@@ -87,16 +87,14 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
             if reality(lgir) == REAL
                 push!(corep_idxs, [i])
                 if verbose
-                    println(formatirreplabel(label(lgir)), 
-                            " (real) ⇒  no additional degeneracy")
+                    println(label(lgir), " (real) ⇒  no additional degeneracy")
                 end
 
             elseif reality(lgir) == PSEUDOREAL
                 # doubles irrep on its own
                 push!(corep_idxs, [i, i])
                 if verbose
-                    println(formatirreplabel(label(lgir)^2), 
-                            " (pseudo-real) ⇒  doubles degeneracy")
+                    println(label(lgir)^2, " (pseudo-real) ⇒  doubles degeneracy")
                 end
 
             elseif reality(lgir) == COMPLEX
@@ -156,7 +154,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
                         if match # ⇒ a match
                             partner = j
                             if verbose; 
-                                println(formatirreplabel(label(lgir)*label(lgirs[j])), " (complex) ⇒  doubles degeneracy")
+                                println(label(lgir)*label(lgirs[j]), " (complex) ⇒  doubles degeneracy")
                             end
                         end
                     end

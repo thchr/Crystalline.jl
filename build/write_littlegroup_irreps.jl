@@ -10,7 +10,7 @@ in order to ease subsequent loading of `LGIrrep`s. Input is of the type
     `LGIRS::Vector{Dict{Vector{LGIrrep}}}`
 
 intended as vector-indexed across space group number, then dict-indexed across distinct
-k-point labels, and finally vector-indexed across distinct irreps; in practice, calling 
+**k**-point labels, and finally vector-indexed across distinct irreps; in practice, calling 
 
     `__write_littlegroupirreps()`
 

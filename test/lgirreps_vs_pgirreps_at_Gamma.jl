@@ -25,7 +25,7 @@ for lgirsd in LGIRS
     # rotational parts - and the associated irreps are then just that of the point group
 
     # --- test that we get the same (formatted) labels ---
-    @test label.(pgirs) == Crystalline.formatirreplabel.(label.(lgirsΓ))
+    @test label.(pgirs) == label.(lgirsΓ)
 
     # --- test that we get the same (point group) operations ---
     pgops = operations(pg)

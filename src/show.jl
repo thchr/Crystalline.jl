@@ -181,7 +181,7 @@ end
 
 # --- LGIrrep & PGIrrep ---
 function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
-    lgirlab = formatirreplabel(label(plgir))
+    lgirlab = label(plgir)
     lablen = length(lgirlab)
     nindent = lablen+1
     prettyprint_header(io, lgirlab)
@@ -333,8 +333,8 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     pretty_table(io,
         chars_formatted;
         # row/column names
-        row_names = seitz.(ops),                # seitz labels
-        header = formatirreplabel.(labels(ct)), # irrep labels
+        row_names = seitz.(ops), # seitz labels
+        header = labels(ct),     # irrep labels
         tf = tf_unicode,
         vlines = [1,], hlines = [:begin, 1, :end]
         )

@@ -16,7 +16,7 @@ for (sgnum, lgirsd) in enumerate(LGIRS)
     irlabs_BRS = irreplabels(BRS)
     klabs_BRS = klabels(BRS)
 
-    irlabs_ISO = [Crystalline.formatirreplabel(label(lgir)) for lgirs in values(lgirsd) for lgir in lgirs]
+    irlabs_ISO = [label(lgir) for lgirs in values(lgirsd) for lgir in lgirs]
     klabs_ISO = keys(lgirsd)
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
@@ -54,8 +54,8 @@ for (sgnum, lgirsd) in enumerate(LGIRS)
         append!(irlabs_ISO,     [label(lgir) for lgir in lgirs])
         append!(realirlabs_ISO, label.(realify(lgirs)))
     end
-    irlabs_ISO = Crystalline.formatirreplabel.(irlabs_ISO)
-    realirlabs_ISO = Crystalline.formatirreplabel.(realirlabs_ISO)
+    irlabs_ISO = irlabs_ISO
+    realirlabs_ISO = realirlabs_ISO
 
     for (iridx_BRS, irlab_BRS) in enumerate(irlabs_BRS)
         klab = klabel(irlab_BRS)

@@ -75,7 +75,7 @@ end
 
 function assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
     lg, sgops = prepare_lg_and_sgops(sgnum, kv, klab, lgops)
-    cdmls     = Ref(klab) .* string.(1:length(Psτs))
+    cdmls     = Crystalline.formatirreplabel.(Ref(klab) .* string.(1:length(Psτs)))
     lgirs     = build_lgirrep_with_type.(cdmls, Ref(lg), Psτs, Ref(sgops))
 end
 

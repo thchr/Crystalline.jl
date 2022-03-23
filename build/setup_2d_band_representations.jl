@@ -1,7 +1,7 @@
 using LinearAlgebra
 using Crystalline
 using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
-                   _mulliken, DEFAULT_ATOL, formatirreplabel
+                   _mulliken, DEFAULT_ATOL
 import Crystalline: mulliken, realify, group
 using StaticArrays
 
@@ -189,7 +189,7 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
 end
 
 function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{D}}};
-            irlabs::Vector{String} = reduce_dict_of_vectors(formatirreplabel∘label, lgirsd),
+            irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
             irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)) where D
 
     irvec = Int[]
@@ -218,7 +218,7 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
     allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && (lgirsd = realify(lgirsd))
 
-    irlabs = reduce_dict_of_vectors(formatirreplabel∘label, lgirsd)
+    irlabs = reduce_dict_of_vectors(label, lgirsd)
     irdims = reduce_dict_of_vectors(irdim, lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
