@@ -3,11 +3,6 @@
 Crystalline.jl provides easy access to crystallographic point group irreps, site symmetry group irreps, and the little group irreps of space groups.
 Currently, we only provide access to spinless (or "single-valued") irreps.
 
-## Data sources
-Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
-
-If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).
-
 ## Point group irreps
 Irreps for the crystallographic point groups are accessible via [`pgirreps`](@ref), with the point group specified either by IUC label and dimensionality.
 As an example, we may load the irreps of the 6mm (C₆ᵥ in Schoenflies notation; see also [`schoenflies(::PointGroup)`](@ref)) point group in 3D.
@@ -68,7 +63,7 @@ where $d_{\mathbf{k}}^{\alpha}$ is the dimension of the little group irrep $D^{\
 ## Site symmetry irreps
 To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`pgirreps`](@ref).
 
-## Time-reversal symmetry and "physically real" irreps
+## Time-reversal symmetry & "physically real" irreps
 Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default. 
 To incorporate time-reversal symmetry (or, equivalently, to obtain associated "physically real" irreps - or, more technically, co-representations), which may cause irreps to "stick together", see [`realify`](@ref) (which takes a vector of `PGIrrep`s or `LGIrrep`s).
 
@@ -92,7 +87,11 @@ label.(pgirs) .=> reality.(pgirs)
 ```
 The reality type can be computed ab initio via [`calc_reality`](@ref), using the Frobenius criterion for `PGIrrep`s and `SiteIrrep`s and the Herring criterion for `LGIrrep`s.
 
-## References
+## Data sources
+Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
+
+If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).
+
 [^1]: Cracknell, A.P., Davies, B.L., Miller, S.C., & Love, W.F., *Kronecker Product Tables, Vol. 1. General Introduction and Tables of Irreducible Representations of Space Groups*, New York: IFI/Plenum (1979).
 
 [^2]: Koster, G.F., Dimmock, J.O., Wheeler, R.G., & Statz, H., *Properties of the Thirty-two Point Groups*, Cambridge: MIT Press (1963).
