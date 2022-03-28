@@ -394,7 +394,7 @@ function normscale!(flat::ModulatedFourierLattice{D}, expon::Real,
             n = if isnothing(Gs)
                 norm(first(orbits[i]))
             else
-                norm(dot(Gs, first(orbits[i]))) / n₀
+                norm(first(orbits[i])'*Gs) / n₀
             end
             rescale_factor = n^expon
             rescale_factor == zero(rescale_factor) && continue # for G = [0,0,0] case
