@@ -974,7 +974,12 @@ conventional settings, they must first be transformed to a shared setting.
 function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                     opsᴴ::AbstractVector{SymOperation{D}}) where D
 
-    length(opsᴳ) < length(opsᴴ) && return false # fast-path early return
+    _subgroup_fastpath_checks(length(opsᴳ), length(opsᴴ)) || return false
+    return _is_setting_matched_subgroup(opsᴳ, opsᴴ)
+end
+
+function _is_setting_matched_subgroup(opsᴳ::AbstractVector{SymOperation{D}},
+                                      opsᴴ::AbstractVector{SymOperation{D}}) where D
     for h in opsᴴ
         found = false
         for g in opsᴳ
@@ -989,6 +994,12 @@ function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
         found || return false
     end
     return true
+end
+
+function _subgroup_fastpath_checks(Nᴳ::Integer, Nᴴ::Integer)
+    # "fast-path" checks for H !< G (returns false if violated, true as sentinel otherwise)
+    Nᴳ > Nᴴ || return false   # 1. Must be a proper supergroup (i.e. higher order)
+    return rem(Nᴳ, Nᴴ) == 0   # 2. Must obey Lagrange's theorem (index is an integer)
 end
 
 """
