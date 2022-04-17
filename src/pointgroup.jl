@@ -29,7 +29,7 @@ const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PGS_NUM2IUC[D
 # correspond to different axis orientations. 
 # When there is a choice of either hexagonal vs. rhombohedral or unique axes b vs unique
 # axes a/c we choose hexagonal and unique axes b, respectively.
-const IUC2SCHOENFLIES_PGS = ImmutableDict(
+const PGS_IUC2SCHOENFLIES = ImmutableDict(
     "1"     => "C₁",   "-1"   => "Cᵢ",
     "2"     => "C₂",   "m"    => "Cₛ",   "2/m"  => "C₂ₕ",  # unique axes b setting
     "222"   => "D₂",   "mm2"  => "C₂ᵥ",  "mmm"  => "D₂ₕ",  "4"    => "C₄",
@@ -75,7 +75,7 @@ function pointgroup_iuc2num(iuclab::String, D::Integer)
         return pgnum
     end
 end
-schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
+schoenflies(pg::PointGroup) = PGS_IUC2SCHOENFLIES[iuc(pg)]
 
 # --- Point groups & operators ---
 unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
