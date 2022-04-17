@@ -22,13 +22,13 @@ The notation is sometimes also known as the
 @inline function iuc(sgnum::Integer, D::Integer=3)
     if D==3
         @boundscheck (sgnum ∈ 1:230) || _throw_invalid_sgnum(sgnum, 3)
-        return @inbounds SGS_IUC_NOTATION[3][sgnum]
+        return @inbounds SG_IUCs[3][sgnum]
     elseif D==2
         @boundscheck (sgnum ∈ 1:17) || _throw_invalid_sgnum(sgnum, 2)
-        return @inbounds SGS_IUC_NOTATION[2][sgnum]
+        return @inbounds SG_IUCs[2][sgnum]
     elseif D==1
         @boundscheck (sgnum ∈ 1:2) || _throw_invalid_sgnum(sgnum, 1)
-        return @inbounds SGS_IUC_NOTATION[1][sgnum]
+        return @inbounds SG_IUCs[1][sgnum]
     else
         _throw_invalid_dim(D)
     end
@@ -99,7 +99,7 @@ const SCHOENFLIES_TABLE = (
 )
 
 # IUC/Hermann-Mauguin notation, ordered relative to space/plane group number
-const SGS_IUC_NOTATION = (
+const SG_IUCs = (
 # ------------------------------------------------------------------------------------------
 # line-group notation (one dimension) [see https://en.wikipedia.org/wiki/Line_group]
 # ------------------------------------------------------------------------------------------    
