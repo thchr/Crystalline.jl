@@ -66,7 +66,7 @@ end
 function _find_isomorphic_parent_pointgroup(G)
     D = dim(G)
     ctᴳ = MultTable(G).table
-    @inbounds for iuclab in PGS_IUCs[D]
+    @inbounds for iuclab in PG_IUCs[D]
         P = pointgroup(iuclab, D)
         ctᴾ = MultTable(P).table
         if ctᴳ == ctᴾ # bit sloppy; would miss ismorphisms that are "concealed" by row/column swaps

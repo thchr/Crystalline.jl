@@ -31,8 +31,8 @@ function bilbao_pgs_url(pgiuc::String)
     return url
 end
 
-if !isdefined(@__MODULE__,:PGS_HTML_REPLACEMENTS)
-    const PGS_HTML_REPLACEMENTS = (
+if !isdefined(@__MODULE__,:PG_HTML_REPLACEMENTS)
+    const PG_HTML_REPLACEMENTS = (
         r"<font style=\\\"text-decoration: overline;\\\">(.*?)</font>"=>s"-\1",
                                                                 # ↑ overbar ⇒ minus sign
         r"<sub>(.*)</sub>"=>x->Crystalline.subscriptify(x[6:end-6]),  # subscripts
@@ -112,7 +112,7 @@ function crawl_pgirs(pgiuc::String, D::Integer=3; consistency_checks::Bool=true)
         # extract pgops' seitz notation from 3rd columns 
         seitz_html = children.(first.(children.(getindex.(rowcols_html, 3))))
         seitz_str = [join(string.(el)) for el in seitz_html]
-        for replacepair in PGS_HTML_REPLACEMENTS
+        for replacepair in PG_HTML_REPLACEMENTS
             seitz_str .= replace.(seitz_str, Ref(replacepair))
         end
         # | test whether we extract pgops and seitz notation mutually consistently; this
@@ -149,8 +149,8 @@ function crawl_pgirs(pgiuc::String, D::Integer=3; consistency_checks::Bool=true)
     labs_and_realities_html = children.(getindex.(children(header_html)[4:end],1))
     irrreps_labs_html = join.(getindex.(labs_and_realities_html,         # ::Vector{String}
                                 Base.OneTo.(lastindex.(labs_and_realities_html) .- 1)))
-    irreps_labs = replace.(replace.(irrreps_labs_html, Ref(PGS_HTML_REPLACEMENTS[2])), 
-                    Ref(PGS_HTML_REPLACEMENTS[3]))
+    irreps_labs = replace.(replace.(irrreps_labs_html, Ref(PG_HTML_REPLACEMENTS[2])), 
+                    Ref(PG_HTML_REPLACEMENTS[3]))
     irreps_labs .= replace.(irreps_labs, Ref("GM"=>"Γ"))
     irreps_realities = parse.(Int8, strip.(string.(getindex.(labs_and_realities_html, 
                                                    lastindex.(labs_and_realities_html))),
@@ -171,7 +171,7 @@ function __crawl_and_write_3d_pgirreps()
     filename_irreps = savepath*"/irreps_data"
 
     JLD2.jldopen(filename_irreps*".jld2", "w") do irreps_file
-        @showprogress for pgiuc in PGS_IUCs[3]
+        @showprogress for pgiuc in PG_IUCs[3]
             # ==== crawl and prepare irreps data ====
             pgirs = crawl_pgirs(pgiuc, 3; consistency_checks=true)
             matrices  = [pgir.matrices for pgir in pgirs]
@@ -198,8 +198,8 @@ end
 
 # ======================================================
 #= 
-pgirs = Vector{Vector{PGIrrep{3}}}(undef, length(PGS_IUCs[3]))
-for (idx, pgiuc) in enumerate(PGS_IUCs[3])
+pgirs = Vector{Vector{PGIrrep{3}}}(undef, length(PG_IUCs[3]))
+for (idx, pgiuc) in enumerate(PG_IUCs[3])
     println(pgiuc)
     pgirs[idx] = crawl_pgirs(pgiuc)
 end

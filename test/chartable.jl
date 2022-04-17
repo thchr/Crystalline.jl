@@ -25,7 +25,7 @@ end
 
     @testset "Point group irreps" begin
         for D in 1:3
-            for pgiuc in PGS_IUCs[D]
+            for pgiuc in PG_IUCs[D]
                 pgirs = pgirreps(pgiuc, Val(D))
                 ct = characters(pgirs)
                 χs = matrix(ct) # each column is a different representation

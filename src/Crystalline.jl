@@ -98,7 +98,7 @@ export find_representation
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export pointgroup, pgirreps,
-       PGS_IUCs, find_isomorphic_parent_pointgroup
+       PG_IUCs, find_isomorphic_parent_pointgroup
 
 include("irreps_reality.jl")
 export calc_reality, realify

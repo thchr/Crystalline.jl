@@ -47,7 +47,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 ## Use crawling functions & write information to `/data/generators/pgs/`
 let D = 3
-    for (pgnum, pgiucs) in enumerate(Crystalline.PGS_NUM2IUC[D])
+    for (pgnum, pgiucs) in enumerate(Crystalline.PG_NUM2IUC[D])
         for (setting, pgiuc) in enumerate(pgiucs)
             if pgiuc ∈ ("-62m", "-6m2")
                 # need to flip the meaning of `setting` here to match sorting on Bilbao
@@ -82,7 +82,7 @@ end
 # Dimension 2 is following a different scheme than dimension 3 on Bilbao, so just correct
 # for that manually
 let D = 2
-    for (pgnum, pgiuc) in enumerate(Crystalline.PGS_IUCs[D])
+    for (pgnum, pgiuc) in enumerate(Crystalline.PG_IUCs[D])
         gens_str = crawl_pg_generators_xyzt(pgnum, D)
         
         unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc)

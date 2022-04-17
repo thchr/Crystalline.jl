@@ -3,7 +3,7 @@ using Crystalline, Test
 @testset "Notation" begin
     @testset "Mulliken notation" begin
         for D in 1:3
-            for pglab in PGS_IUCs[D]
+            for pglab in PG_IUCs[D]
                 pgirs′ = pgirreps(pglab, Val(D))
                 g      = group(first(pgirs′))
 

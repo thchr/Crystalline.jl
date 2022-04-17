@@ -94,7 +94,7 @@ end # @testset "Complex LGIrreps"
 
 @testset "Complex PGIrreps" begin
     for D in 1:3
-        for pgiuc in PGS_IUCs[D]
+        for pgiuc in PG_IUCs[D]
             pgirs = pgirreps(pgiuc, D)
             pg = group(first(pgirs))
             for pgir in pgirs

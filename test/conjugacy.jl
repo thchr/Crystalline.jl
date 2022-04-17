@@ -8,7 +8,7 @@ using Crystalline, Test
     @testset "Point groups" begin
         for Dᵛ in (Val(1), Val(2), Val(3))
             D = typeof(Dᵛ).parameters[1]
-            for pgiuc in Crystalline.PGS_IUCs[D]
+            for pgiuc in Crystalline.PG_IUCs[D]
                 pg = pointgroup(pgiuc, Dᵛ)
                 conj_classes = classes(pg)
                 pgirs = pgirreps(pgiuc, Dᵛ)
@@ -78,7 +78,7 @@ end # @testset "Conjugacy classes"
     @testset "Point groups" begin
         for Dᵛ in (Val(1), Val(2), Val(3))
             D = typeof(Dᵛ).parameters[1]
-            for pgiuc in Crystalline.PGS_IUCs[D]
+            for pgiuc in Crystalline.PG_IUCs[D]
                 pg = pointgroup(pgiuc, Dᵛ)
                 if is_abelian(pg)
                     pgirs = pgirreps(pgiuc, Dᵛ)

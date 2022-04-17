@@ -413,7 +413,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     # Γ-labels there do not always refer to the CDML convention; more likely, the B&C 
     # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
     # point group irrep crawl script
-    # includes all labels in PGS_IUCs[3]
+    # includes all labels in PG_IUCs[3]
     "1"     => ImmutableDict("Γ₁"=>"A"),
     "-1"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ"),
     "2"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B"),
