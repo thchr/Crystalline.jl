@@ -140,7 +140,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
         # primitive basis. This is consistent with e.g. Bilbao and makes good sense.
         # The caller is of course free to do this themselves (via their choice of basis for
         # the specified `sg` and `wp`).
-        if ( # tolerance'd equiv. of `all(isinteger, Δcnst) && all(iszero, Δfree))`
+        if ( # tolerance'd equiv. of `all(isinteger, Δcnst) && all(iszero, Δfree)`
              all(x->isapprox(x, round(x), atol=DEFAULT_ATOL), Δcnst) && 
              all(x->abs(x)≤(DEFAULT_ATOL), Δfree) )             # ⇒ site symmetry operation
 
@@ -292,24 +292,29 @@ function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
     # fact zero, in which can the least squares solution is a "proper" solution, signaling
     # that `v` and `v′` can intersect (at the found values of `αβγ` and `αβγ′`)
     Δcnst = constant(v′) - constant(v)
-    Δfree = if isspecial(v′) # `v′` is special; `v` is not
-        free(v)
+    if isspecial(v′) # `v′` is special; `v` is not
+        Δfree = free(v)                                     # D×D matrix
+        return _can_intersect_equivalence_check(Δcnst, Δfree)
     else                     # neither `v′` nor `v` are special
-        hcat(free(v), -free(v′))
+        Δfree = hcat(free(v), -free(v′))                    # D×2D matrix
+        return _can_intersect_equivalence_check(Δcnst, Δfree)
     end
-    Δfree⁻¹ = pinv(Δfree)
+    # NB: the above seemingly trivial splitting of return statements is intentional & to
+    #     avoid type-instability (because the type of `Δfree` differs in the two brances)
+end
 
-    # tedious detail:
+function _can_intersect_equivalence_check(Δcnst::StaticVector{D},
+                                          Δfree::StaticMatrix{D}) where D
     # to be safe, we have to check for equivalence between `v` and `v′` while accounting
     # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
     # listings that we have have in 3D, this seems to only make a difference in a single 
     # case (SG 130, wyckoff position 8f) - but there the distinction is actually needed
-    for V in Iterators.product(ntuple(_->(0.0,-1.0,1.0), Val(D))...) # loop over nearest lattice vecs
+    Δfree⁻¹ = pinv(Δfree)
+    for V in Iterators.product(ntuple(_->(0.0, -1.0, 1.0), Val(D))...) # loop over adjacent lattice vectors
         Δcnst_plus_V = Δcnst + SVector{D,Float64}(V)
         αβγ = Δfree⁻¹*Δcnst_plus_V   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
         Δ = Δcnst_plus_V - Δfree*αβγ # residual of least squares solve
         norm(Δ) < atol && return true
     end
-
     return false
 end
