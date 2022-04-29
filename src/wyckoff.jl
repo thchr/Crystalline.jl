@@ -294,17 +294,17 @@ function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
     Δcnst = constant(v′) - constant(v)
     if isspecial(v′) # `v′` is special; `v` is not
         Δfree = free(v)                                     # D×D matrix
-        return _can_intersect_equivalence_check(Δcnst, Δfree)
+        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
     else                     # neither `v′` nor `v` are special
         Δfree = hcat(free(v), -free(v′))                    # D×2D matrix
-        return _can_intersect_equivalence_check(Δcnst, Δfree)
+        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
     end
     # NB: the above seemingly trivial splitting of return statements is intentional & to
     #     avoid type-instability (because the type of `Δfree` differs in the two brances)
 end
 
-function _can_intersect_equivalence_check(Δcnst::StaticVector{D},
-                                          Δfree::StaticMatrix{D}) where D
+function _can_intersect_equivalence_check(Δcnst::StaticVector{D}, Δfree::StaticMatrix{D},
+                                          atol::Real) where D
     # to be safe, we have to check for equivalence between `v` and `v′` while accounting
     # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
     # listings that we have have in 3D, this seems to only make a difference in a single 
