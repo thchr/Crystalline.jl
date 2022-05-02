@@ -186,28 +186,29 @@ function xyzt2matrix(s::AbstractString, Dᵛ::Val{D}) where D
     return hcat(SMatrix(W), SVector(w))
 end
 
+if !isdefined(Base, :eachsplit) # compat (https://github.com/JuliaLang/julia/pull/39245)
+    eachsplit(str::T, splitter; limit::Integer=0, keepempty::Bool=true) where T = 
+                                                    split(str, splitter; limit, keepempty)
+end
 function xyzt2components(s::AbstractString, ::Val{D}) where D
-    xyzts = split(s, ',')
-    length(xyzts) == D || throw(DimensionMismatch("incompatible matrix size and string format"))
-
     # initialize zero'd MArrays for rotation/translation parts (allocation will be elided)
     W = zero(MMatrix{D, D, Float64}) # rotation
     w = zero(MVector{D, Float64})    # translation
     
     # "fill in" `W` and `w` according to content of `xyzts`
+    xyzts = eachsplit(s, ',')
     xyzt2components!(W, w, xyzts)
 
     # convert to SArrays (elides allocation since `xyzt2components!` is inlined)
     return SMatrix(W), SVector(w)
 end
 
-
-const IDX2XYZ = ('x', 'y', 'z')
-
 @inline function xyzt2components!(W::MMatrix{D,D,T}, w::MVector{D,T},
-                                  xyzts::AbstractVector{<:AbstractString}) where {D,T<:Real}
+                                  xyzts #= iterator of AbstractStrings =#) where {D,T<:Real}
 
     chars = D == 3 ? ('x','y','z') : D == 2 ? ('x','y') : ('x',)
+    d = 0 # dimension-consistency check
+
     @inbounds for (i,s) in enumerate(xyzts)
         # rotation/inversion/reflection part
         firstidx = nextidx = firstindex(s)
@@ -247,12 +248,14 @@ const IDX2XYZ = ('x', 'y', 'z')
                 w[i] = parse(T, SubString(s, nextidx, lastidx))
             end
         end
+        d = i
     end
+    d == D || throw(DimensionMismatch("incompatible matrix size and string format"))
 
     return W, w
 end
 
-
+const IDX2XYZ = ('x', 'y', 'z')
 function matrix2xyzt(O::AbstractMatrix{<:Real})
     D = size(O,1)
     buf = IOBuffer()

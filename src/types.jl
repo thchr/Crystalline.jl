@@ -158,8 +158,8 @@ end
 
 # parsing `AbstractVec`s from string format
 function _strip_split(str::AbstractString)
-    str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
-    return split(str,',')
+    str = filter(!isspace, strip(str, ['(', ')', '[', ']'])) # tidy up string (remove parens & spaces)
+    return split(str, ',') # TODO: change to `eachsplit`
 end
 function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) where D
     length(xyz) == D || throw(DimensionMismatch("Dimension D doesn't match input string"))
@@ -167,7 +167,7 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
     free = zero(MMatrix{D, D, Float64})
     for (i, coord) in enumerate(xyz)
         # --- "free" coordinates, free[i,:] ---
-        for (j, matchgroup) in enumerate((('α','u','x'),('β','v','y'),('γ','w','z')))
+        for (j, matchgroup) in enumerate((('α','u','x'), ('β','v','y'), ('γ','w','z')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
                 free[i,j]  = searchpriornumerals(coord, pos₂)
