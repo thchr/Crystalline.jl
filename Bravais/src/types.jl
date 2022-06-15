@@ -57,12 +57,40 @@ angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
     stack(Vs::AbstractBasis)
 
 Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e. the matrix whose
-columns are the basis vectors in `Vs`. 
+columns are the basis vectors of `Vs`.
 """
 stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
 # TODO: At some point, this should hopefully no longer be necessary to do manually (and
 # `stack` may end up exported by Base): https://github.com/JuliaLang/julia/issues/21672
 
+"""
+    volume(Vs::AbstractBasis)
+
+Return the volume ``V`` of the unit cell associated with the basis `Vs::AbstractBasis{D}`.
+
+The volume is computed as ``V = \\sqrt{\\mathrm{det}G}`` with with ``G`` denoting the metric
+matrix of `Vs` (cf. the International Tables of Crystallography, Volume A, Section 5.2.2.3).
+
+See also [`Bravais.metricmatrix`](@ref).
+"""
+volume(Vs::AbstractBasis) = sqrt(det(metricmatrix(Vs))) # TODO: wrong. TODO: export.
+
+"""
+    metricmatrix(Vs::AbstractBasis)
+
+Return the (real, symmetric) metric matrix of a basis `Vs`, i.e. the matrix with elements
+``G_{ij} =`` `dot(Vs[i], Vs[j])`, as defined in the International Tables of Crystallography,
+Volume A, Section 5.2.2.3.
+
+Equivalently, this is the Gram matrix of `Vs`, and so can also be expressed as `Vm' * Vm`
+with `Vm` denoting the columnwise concatenation of the basis vectors in `Vs`.
+
+See also [`volume`](@ref).
+"""
+function metricmatrix(Vs::AbstractBasis{D}) where D
+    Vm = stack(Vs)
+    return Vm' * Vm # equivalent to [dot(v, w) for v in Vs, w in Vs]
+end
 
 # ---------------------------------------------------------------------------------------- #
 
