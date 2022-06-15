@@ -36,6 +36,6 @@ CurrentModule = Crystalline
 ```@docs
 bandreps
 classification
+nontrivial_factors
 basisdim
-matching_littlegroups
 ```

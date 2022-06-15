@@ -219,29 +219,24 @@ function split_paren(str::AbstractString)
     return before_paren, inside_paren
 end
 
-
+# TODO: Remove this (unexported method)
 """
-    matching_littlegroups(BRS::BandRepSet)
+    matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3))
 
 Finds the matching little groups for each *k*-point referenced in `BRS`. This is mainly a 
-a convenience accessor, since e.g. `littlegroup(::SpaceGroup, ::KVec)` could already give
-the required little groups. The benefit here is that the resulting operator sorting of
-the returned little group is identical ISOTROPY's, so we can rely on that later on.
+a convenience accessor, since e.g. [`littlegroup(::SpaceGroup, ::KVec)`](@ref) could also
+return the required little groups. The benefit here is that the resulting operator sorting
+of the returned little group is identical to the operator sortings assumed in
+[`lgirreps`](@ref) and [`littlegroups`](@ref).
 
-Returns a `Vector{<:LittleGroup}` with ordering identical to that of the k-point labels in 
-`BRS`. Note that this is different from the return type of `littlegroups` which returns
-an unordered `Dict`.
+Returns a `Vector{LittleGroup{D}}` (unlike [`littlegroups`](@ref), which returns a
+`Dict{String, LittleGroup{D}}`).
 
 ## Note 1
 
-The little groups from ISOTROPY do not include copies of operators that would be identical
-when transformed to a primitive basis. The operators are, however, still given in a
-conventional basis.
-
-## Note 2
-
-An error is thrown if a referenced little group cannot be found (currently, this can happen
-for certain k-points in ``Φ-Ω``, see src/special_representation_domain_kpoints.jl)
+Unlike the operations returned by [`spacegroup`](@ref), the returned little groups do not
+include copies of operators that would be identical when transformed to a primitive basis.
+The operators are, however, still given in a conventional basis.
 """
 function matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3)) where D
     lgs = littlegroups(num(BRS), Val(D)) # TODO: generalize to D≠3
