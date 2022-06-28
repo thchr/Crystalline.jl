@@ -90,7 +90,7 @@ export classes, is_abelian
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, cosets,
+       SiteGroup, sitegroup, cosets,
        findmaximal
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
