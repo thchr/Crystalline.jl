@@ -5,7 +5,7 @@ authors:
   given-names: "Thomas"
 title: "Crystalline.jl"
 license: "MIT"
-date-released: 2021-06-18
+date-released: 2022-06-27
 url: "https://github.com/thchr/Crystalline.jl"
 preferred-citation:
   authors:
@@ -17,8 +17,10 @@ preferred-citation:
       given-names: "John D."
     - family-names: "Soljačić"
       given-names: "Marin"
-  url: "https://arxiv.org/abs/2106.10267"
-  journal: "arXiv:2106.10267"
-  title: "Location and topology of the fundamental gap in photonic crystals"
+  url: "https://doi.org/10.1103/PhysRevX.12.021066"
+  journal: "Phys. Rev. X"
+  volume: 12
+  pages: 021066
+  title: "Location and Topology of the Fundamental Gap in Photonic Crystals"
   type: article
-  year: 2021
+  year: 2022

@@ -2,13 +2,13 @@
 
 [![Documentation (stable)][docs-stable-img]][docs-stable-url] [![Documentation (dev)][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 
-Tools for crystalline symmetry implemented in the Julia language.
+Tools for crystalline symmetry analysis implemented in the Julia language.
 
 This package provides access e.g. to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
 
 ## Installation
 
-The package is registered in the General registry and can be installed via Julia's package manager from the `pkg>` prompt (accessed by typing `]` at the Julia REPL):
+The package can be installed via Julia's package manager from the `pkg>` prompt (accessed by typing `]` at the Julia REPL):
 ```julia
 pkg> add Crystalline
 ```
@@ -84,9 +84,9 @@ Crystalline.jl is a research package in active development: breaking changes are
 
 If you find this package useful in your reseach, please cite our arXiv paper:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267).
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and Topology of the Fundamental Gap in Photonic Crystals*, [Phys. Rev. X **12**, 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066).
 
-In addition, please cite any works explicitly referenced in documentation for individual methods that you use.
+In addition, please consider citing any earlier works explicitly referenced in the documentation of individual functions.
 
 
 [ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
