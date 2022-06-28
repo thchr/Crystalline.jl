@@ -9,7 +9,7 @@ using Crystalline: constant, free
             sg  = spacegroup(sgnum, Dᵛ)
             wps = wyckoffs(sgnum, Dᵛ)
             for wp in wps
-                g = SiteGroup(sg, wp)
+                g = sitegroup(sg, wp)
                 @test g isa SiteGroup
 
                 rv = parent(wp)

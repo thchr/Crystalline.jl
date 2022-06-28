@@ -25,3 +25,13 @@
     orbit
     )
 @deprecate kstar(lgir::LGIrrep) orbit
+
+@deprecate(
+    SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D,
+    sitegroup(sg, wp)
+)
+
+@deprecate(
+    SiteGroup(sgnum::Integer, wp::WyckoffPosition{D}) where D,
+    sitegroup(sgnum, wp)
+)

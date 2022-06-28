@@ -182,7 +182,7 @@ str = """
        {m₀₁|0,1}"""
 sg = spacegroup(17,Val(2))
 wps = wyckoffs(17, Val(2))
-test_tp_show(SiteGroup(sg, wps[end-1]), str)
+test_tp_show(sitegroup(sg, wps[end-1]), str)
 
 # -------------------------------
 # LGIrrep

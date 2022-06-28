@@ -301,7 +301,7 @@ pointgroup(g) == operations(pg) == operations(pg′)[Iᵖ²ᵍ]
 sgnum = 141
 wp    = wyckoffs(sgnum, Val(3))[end] # 4a Wyckoff position
 sg    = spacegroup(sgnum, Val(3))
-siteg = SiteGroup(sg, wp)
+siteg = sitegroup(sg, wp)
 pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(siteg)
 ```
 """

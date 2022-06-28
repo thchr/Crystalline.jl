@@ -72,7 +72,7 @@ julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
 
 julia> sg = spacegroup(sgnum, D);
 
-julia> g  = SiteGroup(sg, wp)
+julia> g  = sitegroup(sg, wp)
 SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
  1
  {3⁺|1,1}
@@ -106,7 +106,7 @@ true
 Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
 in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
 """
-function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
+function sitegroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     Nsg  = order(sg)
     Ncoset = multiplicity(wp)
     Nsite, check = divrem(Nsg, Ncoset)
@@ -173,9 +173,9 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     end
     return SiteGroup{D}(num(sg), wp, siteops, cosets)
 end
-function SiteGroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
+function sitegroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
     sg = spacegroup(sgnum, Val(D))
-    return SiteGroup(sg, wp)
+    return sitegroup(sg, wp)
 end
 
 # `MulTable`s of `SiteGroup`s should be calculated with `modτ = false` always
