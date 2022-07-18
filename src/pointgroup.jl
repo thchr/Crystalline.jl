@@ -184,16 +184,22 @@ end
 
 # 3D
 """
-    pgirreps(iuclab::String, ::Val{D}=Val(3)) where D ∈ (1,2,3)
-    pgirreps(iuclab::String, D)
+    pgirreps(iuclab::String, ::Val{D}=Val(3); mullikken::Bool=false) where D ∈ (1,2,3)
+    pgirreps(iuclab::String, D; mullikken::Bool=false)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
-as a vector of `PGIrrep{D}`s.
+as a `Vector{PGIrrep{D}}`.
 
-## Notes
+## Notation
+
 The irrep labelling follows the conventions of CDML [^1] [which occasionally differ from
 those in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* 
-(1972)]. For associated Mulliken ("spectroscopist") notation, see [`mulliken`](@ref).
+(1972)].
+
+To use Mulliken ("spectroscopist") irrep labels instead, set the keyword argument
+`mulliken = true` (default, `false). See also [`mulliken`](@ref).
+
+## Data sources
 
 The data is sourced from the Bilbao Crystallographic Server [^2]. If you are using this 
 functionality in an explicit fashion, please cite the original reference [^3].
@@ -207,15 +213,16 @@ functionality in an explicit fashion, please cite the original reference [^3].
 [^3]: Elcoro et al., 
       [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
 """
-function pgirreps(iuclab::String, ::Val{3}=Val(3))
+function pgirreps(iuclab::String, ::Val{3}=Val(3); mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(3)) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
-
-    return PGIrrep{3}.(cdmls, Ref(pg), matrices, Reality.(realities))
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
+    
+    return PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities))
 end
 # 2D
-function pgirreps(iuclab::String, ::Val{2})
+function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -225,11 +232,12 @@ function pgirreps(iuclab::String, ::Val{2})
     #     That the settings and sorting indeed agree between 2D and 3D is tested in 
     #     scripts/compare_pgops_3dvs2d.jl
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return PGIrrep{2}.(cdmls, Ref(pg), matrices, Reality.(realities))
+    return PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities))
 end
 # 1D
-function pgirreps(iuclab::String, ::Val{1})
+function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
@@ -243,15 +251,20 @@ function pgirreps(iuclab::String, ::Val{1})
     else
         throw(DomainError(iuclab, "invalid 1D point group IUC label"))
     end
-    return PGIrrep{1}.(cdmls, Ref(pg), matrices, REAL)
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
+    
+    return PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL)
 end
-pgirreps(iuclab::String, ::Val{D}) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
-pgirreps(iuclab::String, D::Integer)  = pgirreps(iuclab, Val(D))
-function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
+pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
+pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
+function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3);
+                  setting::Integer=1, kws...) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    return pgirreps(iuc, Dᵛ)
+    return pgirreps(iuc, Dᵛ; kws...)
 end
-pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = pgirreps(pgnum, Val(D), setting)
+function pgirreps(pgnum::Integer, D::Integer; kws...)
+    return pgirreps(pgnum, Val(D); kws...)
+end
 
 # ---------------------------------------------------------------------------------------- #
 
