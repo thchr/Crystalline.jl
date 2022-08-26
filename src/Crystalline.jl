@@ -10,6 +10,7 @@ using Combinatorics           # → `find_isomorphic_parent_pointgroup` in point
 using Requires
 using Reexport
 using DocStringExtensions
+import Graphs
 
 using Base: OneTo, @propagate_inbounds
 
@@ -133,6 +134,9 @@ export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
 include("subperiodic.jl")
 export SubperiodicGroup, subperiodicgroup
+
+include("grouprelations/grouprelations.jl")
+export maximal_subgroups
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
