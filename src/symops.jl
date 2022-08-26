@@ -394,24 +394,28 @@ function compose(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:
 end
 (*)(op1::T, op2::T) where T<:SymOperation = compose(op1, op2)
 
-function reduce_translation_to_unitrange(w::SVector{D, <:Real}) where D # reduces components to range [0.0, 1.0[
-    # naïve approach to achieve semi-robust reduction of integer-translation
-    # via a slightly awful "approximate" modulo approach; basically just the
-    # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
-    # around each integer.
-    w′ = mod.(w, one(eltype(w)))
-    # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
-    # due to floating point errors: we use a tolerance here to round everything 
-    # close to 0.0 or 1.0 exactly to 0.0
-    w′_cleanup = ntuple(Val(D)) do i
-        @inbounds w′ᵢ = w′[i]
-        if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
-            zero(eltype(w))
-        else
-            w′ᵢ
+"""
+    reduce_translation_to_unitrange_q(w::AbstractVector{<:Real}) --> :: typeof(w)
+
+Reduce the components of the vector `w` to range [0.0, 1.0[, incorporating a tolerance
+`atol` in the reduction.
+"""
+function reduce_translation_to_unitrange(w::AbstractVector{<:Real}; atol=DEFAULT_ATOL)
+    # naïve approach to achieve semi-robust reduction of integer-translation via a slightly
+    # awful "approximate" modulo approach; basically just the equivalent of mod.(w′,1.0),
+    # but reducing in a range DEFAULT_ATOL around each value.
+    w′ = similar(w)
+    for (i, wᵢ) in enumerate(w)
+        w′ᵢ = mod(wᵢ, one(eltype(w)))
+        if isapprox(round(w′ᵢ), w′ᵢ; atol)
+            # mod.(w, 1.0) occassionally does not reduce values that are very nearly 1.0
+            # due to floating point errors: we use a tolerance here to round everything 
+            # close to 0.0 or 1.0 exactly to 0.0
+            w′ᵢ = zero(eltype(w))
         end
+        @inbounds w′[i] = w′ᵢ
     end
-    return SVector{D, eltype(w)}(w′_cleanup)
+    return typeof(w)(w′)
 end
 
 """
