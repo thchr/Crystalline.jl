@@ -1,4 +1,4 @@
-let subgroup_data = JLD2.load_object("data/spacegroup_subgroups_data.jld2")
+let subgroup_data = JLD2.load_object(joinpath((@__DIR__), "..", "..", "data", "spacegroup_subgroups_data.jld2"))
     const global SUBGROUPSD_1D = Dict{Int, GroupRelations{1, SpaceGroup{1}}}()
     const global SUBGROUPSD_2D = Dict{Int, GroupRelations{2, SpaceGroup{2}}}()
     const global SUBGROUPSD_3D = Dict{Int, GroupRelations{3, SpaceGroup{3}}}()
