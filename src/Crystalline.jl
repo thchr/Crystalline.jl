@@ -174,6 +174,10 @@ function __init__()
         include("compat/pyplot.jl") # loads PyPlot and Meshing
         export mesh_3d_levelsetlattice
     end
+
+    @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+        include("compat/graphplot.jl")
+    end
 end
 
 # precompile statements
