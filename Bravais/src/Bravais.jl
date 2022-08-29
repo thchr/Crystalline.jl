@@ -34,7 +34,8 @@ export crystal,
     ReciprocalPoint,
     transform,
     primitivize,
-    conventionalize
+    conventionalize,
+    cartesianize
 
 # ---------------------------------------------------------------------------------------- #
 

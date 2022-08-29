@@ -444,3 +444,18 @@ Return the reciprocal point `k` with coordinates in a conventional basis, corres
 the input point `k′` with coordinates in a primitive basis. 
 """
 conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+    cartesianize(v::AbstractVector{<:Real}, basis) --> v′
+
+For a real-valued vector `v` with coordinates referred to the columns of `basis`, return
+`v′`, the vector in the setting of the columns of `basis` (usually a Cartesian setting).
+"""
+cartesianize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis*v
+function cartesianize(v::AbstractVector{<:Real},
+                      basis::AbstractVector{<:AbstractVector{<:Real}})
+    return v'basis
+end
+
