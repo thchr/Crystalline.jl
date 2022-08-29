@@ -216,7 +216,8 @@ end
     end
 end
 
-function all_centeringtranslations(cntr::Char, Dᵛ::Val{D}=Val(3)) where D
+function all_centeringtranslations(cntr::Char,
+                                   Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
     D ∉ 1:3 && _throw_invalid_dim(D)
     P ∉ 1:D && _throw_invalid_dim(P)
     cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
