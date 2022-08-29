@@ -228,7 +228,7 @@ julia> wps = wyckoffs(sgnum, Val(D));
 julia> sg  = spacegroup(sgnum, Val(D));
 
 
-julia> sitegs = SiteGroup.(Ref(sg), wps)
+julia> sitegs = sitegroup.(Ref(sg), wps)
 2-element Vector{SiteGroup{2}}:
  [1] (4b: [α, β])
  [1, m₁₀] (2a: [0, β])

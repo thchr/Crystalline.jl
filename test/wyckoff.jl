@@ -38,7 +38,7 @@ end
     for sgnum in 1:MAX_SGNUM[3]
         sg  = spacegroup(sgnum, Val(3))
         wps = wyckoffs(sgnum, Val(3))
-        sitegs = SiteGroup.(Ref(sg), wps)
+        sitegs = sitegroup.(Ref(sg), wps)
 
         max_sitegs = findmaximal(sitegs)
         max_wps    = position.(max_sitegs)
