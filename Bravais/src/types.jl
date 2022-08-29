@@ -113,7 +113,7 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
         `D`-dimensional $($space_type) space. 
         
         The coordinates of a $($PT) are generally assumed specified relative to an
-        associated $($BT).
+        associated $($BT). To convert to Cartesian coordinates, see [`cartesianize`](@ref).
         """
         struct $PT{D} <: AbstractPoint{D, Float64}
             v::SVector{D, Float64}
