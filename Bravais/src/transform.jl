@@ -65,11 +65,31 @@ const PRIMITIVE_BASIS_MATRICES = (
         'C'=>SMatrix{3,3,Float64}([1 1 0; -1 1 0; 0 0 2]./2))   # base-centered (along z)
     )
 
+function canonicalize_centering(cntr, ::Val{D}, ::Val{P}) where {D,P}
+    if D == P # space/plane/line groups
+        return cntr
+    elseif D == 3 && P == 2 # layer groups
+        return cntr == '𝑝' ? 'p' : 
+               cntr == '𝑐' ? 'c' : error(DomainError(cntr, "invalid layer group centering"))
+    elseif D == 3 && P == 1 # rod groups
+        return cntr == '𝓅' ? 'p' : error(DomainError(cntr, "invalid rod group centering"))
+    elseif D == 2 && P == 1 # frieze groups
+        return cntr == '𝓅' ? 'p' : error(DomainError(cntr, "invalid frieze group centering"))
+    else
+        throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+    end
+end
+
 @doc raw"""
     primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) --> SMatrix{D,D,Float64}
+    primitivebasismatrix(cntr::Char, ::Val{D}, ::Val{P}) --> SMatrix{D,D,Float64}
 
-Return the transformation matrix `P` that transforms a conventional unit cell with centering
-`cntr` to the corresponding primitive unit cell (in dimension `D`) in CDML setting.
+Return the transformation matrix ``\mathbf{P}`` that transforms a conventional unit cell
+with centering `cntr` to the corresponding primitive unit cell (in dimension `D` and
+periodicity `P`) in CDML setting.
+
+If `P` is not provided, it default to `D` (as applicable to [`spacegroup`](@ref)). For
+differing `D` and `P`, the returned matrix is applicable to [`subperiodicgroup`](@ref).
 
 ## Transformations in direct and reciprocal space
 
@@ -140,12 +160,39 @@ frequently and more ambiguously, as the crystallographic primitive setting.
            Thus, Bravais.jl and [Spglib.jl](https://github.com/singularitti/Spglib.jl)
            transform to identical primitive settings and are hence mutually compatible.
 """
-@inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
-    D∉1:3 && _throw_invalid_dim(D)
+@inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3), ::Val{D}=Val(D)) where D
+    # space groups
+    D ∉ 1:3 && _throw_invalid_dim(D)
     return PRIMITIVE_BASIS_MATRICES[D][cntr]
 end
+@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{3}, Pᵛ::Val{2})
+    # layer and rod groups
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    P²ᴰ = PRIMITIVE_BASIS_MATRICES[2][cntr]
+    return @SMatrix [P²ᴰ[1,1] P²ᴰ[2,1] 0.0; P²ᴰ[1,2] P²ᴰ[2,2] 0.0; 0.0 0.0 1.0]
+end
+@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{3}, Pᵛ::Val{1})
+    # rod groups
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    P²ᴰ = PRIMITIVE_BASIS_MATRICES[1][cntr]
+    return @SMatrix [P²ᴰ[1,1] 0.0 0.0; 0.0 0.0 0.0; 0.0 0.0 1.0]
+end
+@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{2}, Pᵛ::Val{1})
+    # frieze groups
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    P¹ᴰ = PRIMITIVE_BASIS_MATRICES[1][cntr]
+    return @SMatrix [P¹ᴰ[1,1] 0.0; 0.0 1.0]
+end
+function primitivebasismatrix(cntr::Char, ::Val{D}, ::Val{P}) where {D,P}
+    # fall-back error
+    throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+end
 
-@inline function centeringtranslation(cntr::Char, ::Val{D}=Val(3)) where D
+@inline function centeringtranslation(cntr::Char,
+                                      Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && _throw_invalid_dim(P)
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     if D == 3
         if     cntr == 'P'; return zeros(SVector{3})
         elseif cntr == 'I'; return SVector((1,1,1)./2)
@@ -170,6 +217,9 @@ end
 end
 
 function all_centeringtranslations(cntr::Char, Dᵛ::Val{D}=Val(3)) where D
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && _throw_invalid_dim(P)
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     if D == 3 && cntr == 'F'
         # primitive cell has 1/4th the volume of conventional cell: 3 extra centers
         return [SVector((1,0,1)./2), SVector((0,1,1)./2), SVector((1,1,0)./2)]
@@ -188,11 +238,10 @@ end
     reciprocalbasis(Rs)  -->  ::ReciprocalBasis{D}
     
 Return the reciprocal basis of a direct basis `Rs` in `D` dimensions, provided as a
-`DirectBasis{D}`, a `D`-dimensional `NTuple`, or a `StaticVector` of `AbstractVector`s
-(or, type-unstably, as any iterable of `AbstractVector`s).
+`StaticVector` of `AbstractVector`s (e.g., a `DirectBasis{D}`) or a `D`-dimensional `NTuple`
+of `AbstractVector`s, or a (or, type-unstably, as any iterable of `AbstractVector`s).
 """
-function reciprocalbasis(Rs::Union{DirectBasis{D}, 
-                                   NTuple{D, <:AbstractVector{<:Real}},
+function reciprocalbasis(Rs::Union{NTuple{D, <:AbstractVector{<:Real}},
                                    StaticVector{D, <:AbstractVector{<:Real}}}) where D
     if D == 3
         G₁′ = Rs[2]×Rs[3]
@@ -216,7 +265,7 @@ function reciprocalbasis(Rs::Union{DirectBasis{D},
 
     return ReciprocalBasis{D}(vecs)
 end
-reciprocalbasis(Rs) = reciprocalbasis(tuple(Rs...)) # type-unstable convenience accesor
+reciprocalbasis(Rs) = reciprocalbasis(Tuple(Rs)) # type-unstable convenience accesor
 
 # TODO: Provide a utility to go from ReciprocalBasis -> DirectBasis. Maybe deprecate
 #       `reciprocalbasis` and have a more general function `dualbasis` instead?

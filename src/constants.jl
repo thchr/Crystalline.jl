@@ -10,6 +10,19 @@ dimensionality).
 """
 const MAX_SGNUM    = (2, 17, 230) # number of space groups in dimensions 1, 2, and 3
 
+@doc raw"""
+    MAX_SUBGNUM :: ImmutableDict
+
+An immutable dictionary with values `v::Int` and keys `k::Tuple{Int,Int}`, where `v` is
+the number of distinct subperiodic group types for a given key `k = (D,P)` describing a
+subperiodic group of dimensionality `D` and periodicity `P`:
+
+- layer groups: `(D,P) = (3,2)`
+- rod groups: `(D,P) = (3,1)`
+- frieze groups: `(D,P) = (2,1)`
+"""
+const MAX_SUBGNUM = ImmutableDict((3,2)=>80, (3,1)=>75, (2,1)=>7)
+
 # --- VECTORS ---
 # arbitrary test vector for e.g. evaluating KVecs lines/planes/volumes; 3D by default
 const TEST_αβγ =  [0.123123123, 0.456456456, 0.789789789]

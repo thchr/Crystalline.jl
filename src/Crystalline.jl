@@ -43,7 +43,7 @@ using Bravais: stack, all_centeringtranslations, centeringtranslation
 
 # included files and exports
 include("constants.jl")
-export MAX_SGNUM, ENANTIOMORPHIC_PAIRS
+export MAX_SGNUM, MAX_SUBGNUM, ENANTIOMORPHIC_PAIRS
 
 include("utils.jl") # useful utility methods (seldom needs exporting)
 export splice_kvpath, interpolate_kvpath
@@ -75,6 +75,8 @@ include("show.jl") # custom printing for structs defined in src/types.jl
 
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
+
+include("orders.jl")
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,

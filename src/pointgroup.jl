@@ -46,24 +46,6 @@ const PG_IUC2SCHOENFLIES = ImmutableDict(
     "m-3"   => "Tₕ",   "432"  => "O",    "-43m" => "Td",   "m-3m" => "Oₕ"
 )
 
-const PG_ORDERs = ImmutableDict(
-    "1"     =>  1,  "-1"   =>  2,
-    "2"     =>  2,  "m"    =>  2,  "2/m"  => 4,  # unique axes b setting
-    "222"   =>  4,  "mm2"  =>  4,  "mmm"  => 8,  "4"    => 4,
-    "-4"    =>  4,  "4/m"  =>  8,  "422"  => 8,  "4mm"  => 8,
-    "-42m"  =>  8,  "-4m2" =>  8,  # D₂d setting variations
-    "4/mmm" => 16,  "3"    =>  3,  "-3"   => 6,
-    "312"   =>  6,  "321"  =>  6,  # D₃ setting variations  (hexagonal axes)
-    "3m1"   =>  6,  "31m"  =>  6,  # C₃ᵥ setting variations (hexagonal axes)
-    "-31m"  => 12,  "-3m1" => 12,  # D₃d setting variations (hexagonal axes)
-    "6"     =>  6,  "-6"   =>  6,  "6/m"  => 12,  "622"  => 12,
-    "6mm"   => 12,
-    "-62m"  => 12,  "-6m2" => 12,  # D₃ₕ setting variations
-    "6/mmm" => 24,  "23"   => 12,
-    "m-3"   => 24,  "432"  => 24,  "-43m" => 24,  "m-3m" => 48
-)
-
-
 # ===== METHODS =====
 
 # --- Notation ---

@@ -846,17 +846,23 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     end
 end
 
-# TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
+# TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in
+#       many usecases
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
-                    conv_or_prim::Bool=true, modw::Bool=true) where D
-    P = primitivebasismatrix(cntr, Val(D))
-    ops′ = transform.(ops, Ref(P), nothing, modw) # equiv. to `primitivize.(ops, cntr, modw)` [but avoids loading P anew for each SymOperation]
+                    conv_or_prim::Bool=true, modw::Bool=true,
+                    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
+    
+    P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
+    # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
+    # for each SymOperation]
+    ops′ = transform.(ops, Ref(P), nothing, modw)
+
     # remove equivalent operations
     ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
 
-    if conv_or_prim # (true) return in conventional basis
-        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw) # equiv. to conventionalize.(ops′_reduced, cntr, modw)
-    else            # (false) return in primitive basis
+    if conv_or_prim # `true`: return in conventional basis
+        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw)
+    else            # `false`: return in primitive basis
         return ops′_reduced
     end
 end
@@ -864,13 +870,15 @@ end
                             conv_or_prim::Bool=true, modw::Bool=true)
     return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-primitivize(sg::T, modw::Bool=true) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false, modw))
-function primitivize(lg::T, modw::Bool=true) where T<:LittleGroup 
+function primitivize(sg::SpaceGroup, modw::Bool=true)
+    return typeof(sg)(num(sg), reduce_ops(sg, false, modw))
+end
+function primitivize(lg::LittleGroup, modw::Bool=true)
     cntr = centering(lg)
     # transform both k-point and operations
     kv′  = primitivize(position(lg), cntr)
     ops′ = reduce_ops(operations(lg), cntr, false, modw)
-    return T(num(lg), kv′, klabel(lg), ops′)
+    return typeof(lg)(num(lg), kv′, klabel(lg), ops′)
 end
 
 """

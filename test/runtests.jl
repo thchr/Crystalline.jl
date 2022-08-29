@@ -10,9 +10,10 @@ using Crystalline, Test
     include("kvecs.jl")
     include("wyckoff.jl")
 
-    # show and notation
+    # show, notation, and cached info
     include("show.jl")
     include("notation.jl")
+    include("orders.jl")
 
     # group checks
     include("littlegroup_orders.jl")

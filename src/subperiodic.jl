@@ -314,6 +314,19 @@ centering(g::SubperiodicGroup) = first(label(g))
 
 # ---------------------------------------------------------------------------------------- #
 
+function reduce_ops(subg::SubperiodicGroup{<:Any,P}, conv_or_prim::Bool=true,
+                    modw::Bool=true) where P
+    return reduce_ops(operations(subg), centering(subg), conv_or_prim, modw, Val(P))
+end
+
+function primitivize(subg::SubperiodicGroup{<:Any,P}, modw::Bool=true) where P
+    return typeof(subg)(num(subg), reduce_ops(subg, false, modw))
+end
+
+# TODO: conventionalize(::SubperiodicGroup)
+
+# ---------------------------------------------------------------------------------------- #
+
 # Band topology check for layer groups:
 #   w/ time-reversal symmetry
 #       "Z₂"    = [2, 3, 7, 49, 50, 52, 66, 73]
