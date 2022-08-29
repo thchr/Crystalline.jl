@@ -52,7 +52,7 @@ end
 # end
 function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
                                      force_layer_bool=true) where D
-    orders = SG_PRIMITIVE_ORDERs[D][nums]
+    orders = SG_PRIMITIVE_ORDERs[D][gr.nums]
     force_layer = if force_layer_bool
         layers′ = map_numbers_to_oneto(orders)
         maxlayer = maximum(layers′)
