@@ -38,7 +38,7 @@ import .SmithNormalForm: smith, Smith # TODO: remove explicit import when we upd
 export smith, Smith # export, so that loading Crystalline effectively also provides SmithNormalForm
 
 @reexport using Bravais
-import Bravais: primitivize, conventionalize, transform, centering
+import Bravais: primitivize, conventionalize, cartesianize, transform, centering
 using Bravais: stack, all_centeringtranslations, centeringtranslation
 
 # included files and exports
@@ -82,7 +82,6 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, spacegroup, compose,
        issymmorph, littlegroup, orbit,
        pointgroup,
-       cartesianize,
        reduce_ops,
        issubgroup, isnormal,
        generate, generators

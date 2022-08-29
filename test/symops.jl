@@ -80,8 +80,8 @@ using Crystalline, Test
 
         # check that the cartesian representation of the space group operations, obtained
         # from `csg` & `cRs` versus `psg` and `pRs` agree (as it should)
-        cartRs_from_cRs = Crystalline.cartesianize(csg, cRs)
-        cartRs_from_pRs = Crystalline.cartesianize(psg, pRs)
+        cartRs_from_cRs = cartesianize(csg, cRs)
+        cartRs_from_pRs = cartesianize(psg, pRs)
 
         @test all(isapprox.(cartRs_from_cRs, cartRs_from_pRs, atol=1e-12))
 

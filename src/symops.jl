@@ -908,7 +908,9 @@ function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
     op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑*translation(op)])
     return op′
 end
-cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
+function cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D
+    return SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
+end
 
 """
     findequiv(op::SymOperation, ops::AbstractVector{SymOperation{D}}, cntr::Char) 
