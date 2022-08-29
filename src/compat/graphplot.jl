@@ -21,9 +21,8 @@ end
 # TODO: generalize to groups besides `SpaceGroup`?
 function layout_by_order(gr::GroupRelationGraph{D,SpaceGroup{D}};
                          ymap=map_numbers_to_oneto) where D
-    nums = gr.nums
-    N = length(nums)
-    orders = order.(primitivize.(spacegroup.(nums, Val(D)))) # TODO: Change to lookup table
+    orders = SG_PRIMITIVE_ORDERs[D][gr.nums]
+    N = length(orders)
     yposs = ymap(orders)
     xposs = Vector{Float64}(undef, N)
     maxwidth = maximum([length(findall(==(o), orders)) for o in unique(orders)])
@@ -53,7 +52,7 @@ end
 # end
 function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
                                      force_layer_bool=true) where D
-    orders = order.(primitivize.(spacegroup.(gr.nums, Val(D)))) # TODO: Change to lookup table
+    orders = SG_PRIMITIVE_ORDERs[D][nums]
     force_layer = if force_layer_bool
         layers′ = map_numbers_to_oneto(orders)
         maxlayer = maximum(layers′)
