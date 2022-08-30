@@ -35,7 +35,8 @@ export crystal,
     transform,
     primitivize,
     conventionalize,
-    cartesianize
+    cartesianize,
+    latticize
 
 # ---------------------------------------------------------------------------------------- #
 

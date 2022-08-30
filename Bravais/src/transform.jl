@@ -447,11 +447,54 @@ conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
 
 # ---------------------------------------------------------------------------------------- #
 
-"""
-    cartesianize(v::AbstractVector{<:Real}, basis) --> v′
+const _basis_explain_str = "Depending on the object, the basis may be inferrable " * 
+            "directly from the object; if not, it must be supplied explicitly."
 
-For a real-valued vector `v` with coordinates referred to the columns of `basis`, return
-`v′`, the vector in the setting of the columns of `basis` (usually a Cartesian setting).
+@doc """
+    cartesianize!
+
+In-place transform an object with coordinates in an lattice basis to an object with
+coordinates in a Cartesian basis.
+
+$_basis_explain_str
+"""
+function cartesianize! end
+
+@doc """
+    cartesianize
+
+Transform an object with coordinates in an lattice basis to an object with coordinates in a
+Cartesian basis.
+
+$_basis_explain_str
+@doc """
+function cartesianize end
+
+@doc """
+    latticize!
+
+In-place transform object with coordinates in a Cartesian basis to an object with
+coordinates in a lattice basis.
+
+$_basis_explain_str
+"""
+function latticize! end
+
+@doc """
+    latticize
+
+Transform an object with coordinates in a Cartesian basis to an object with coordinates in
+a lattice basis.
+
+$_basis_explain_str
+"""
+function latticize end
+
+@doc """
+    cartesianize(v::AbstractVector{<:Real}, basis)
+
+Transform a vector `v` with coordinates referred to a lattice basis to a vector with
+coordinates referred to the Cartesian basis implied by the columns (or vectors) of `basis`.
 """
 cartesianize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis*v
 function cartesianize(v::AbstractVector{<:Real},
@@ -459,3 +502,14 @@ function cartesianize(v::AbstractVector{<:Real},
     return v'basis
 end
 
+@doc """
+    latticize(v::AbstractVector{<:Real}, basis)
+
+Transform a vector `v` with coordinates referred to the Cartesian basis to a vector with
+coordinates referred to the lattice basis implied by the columns (or vectors) of `basis`.
+"""
+latticize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis\v
+function latticize(v::AbstractVector{<:Real},
+                   basis::AbstractVector{<:AbstractVector{<:Real}})
+    return latticize(v, reduce(hcat, basis))
+end
