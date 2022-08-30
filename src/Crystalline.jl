@@ -172,12 +172,12 @@ function __init__()
 
     # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
     @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
-        include("compat/pyplot.jl") # loads PyPlot and Meshing
+        include("requires/pyplot.jl") # loads PyPlot and Meshing
         export mesh_3d_levelsetlattice
     end
 
     @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-        include("compat/graphplot.jl")
+        include("requires/graphplot.jl")
     end
 end
 
