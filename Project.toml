@@ -1,7 +1,7 @@
 name = "Crystalline"
 uuid = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 authors = ["Thomas Christensen <tchr@mit.edu>"]
-version = "0.4.18"
+version = "0.4.19"
 
 [deps]
 Bravais = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
@@ -23,7 +23,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-Bravais = "0.1.7"
+Bravais = "0.1.8"
 Combinatorics = "1.0"
 DocStringExtensions = "0.8, 0.9"
 Graphs = "1.7"
