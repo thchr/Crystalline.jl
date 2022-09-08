@@ -22,9 +22,9 @@
 
 @deprecate(
     kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D,
-    orbit
+    orbit(g, kv, cntr)
     )
-@deprecate kstar(lgir::LGIrrep) orbit
+@deprecate kstar(lgir::LGIrrep) orbit(lgir)
 
 @deprecate(
     SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D,
