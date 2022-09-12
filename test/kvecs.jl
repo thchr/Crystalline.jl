@@ -12,7 +12,7 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
 
         @test string(KVec{3}("u+1,0,0.5")) == string(KVec{3}("1.0+u,0,0.5")) == "[1+α, 0, 1/2]"
         @test string(KVec{3}("u+v,u,0"))   == string(KVec{3}("α+β,α,0"))     == "[α+β, α, 0]"
-        @test string(KVec{3}("-0.3,0.2,-.1")) == "[-0.3, 0.2, -0.1]"
+        @test string(KVec{3}("-0.3,0.2,-.1")) == "[-3/10, 1/5, -1/10]"
 
         @test string(KVec{3}("α, 2α, 0.0"))   == string(KVec{3}("α, 2.0α, 0.0")) == "[α, 2α, 0]"
         @test string(KVec{3}("α, 2α+2, 0.0")) == string(KVec{3}("α, 2.0α+2.0, 0.0")) == "[α, 2+2α, 0]"
