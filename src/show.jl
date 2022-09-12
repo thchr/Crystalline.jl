@@ -111,19 +111,11 @@ function prettyprint_scalar(io, v::Real)
     if isinteger(v)
         print(io, Int(v))
     else
-        # print ±1/2, ±1/3, ±2/3, ±1/4, ±3/4 as fracs / and everything else as decimal
-        av = abs(v)
-        s = v < 0 ? "-" : ""
-        if isapprox(av, 1/2, atol=DEFAULT_ATOL)
-            print(io, s, "1/2")
-        elseif isapprox(av, 1/3, atol=DEFAULT_ATOL)
-            print(io, s, "1/3")
-        elseif isapprox(av, 2/3, atol=DEFAULT_ATOL)
-            print(io, s, "2/3")
-        elseif isapprox(av, 1/4, atol=DEFAULT_ATOL)
-            print(io, s, "1/4")
-        elseif isapprox(av, 3/4, atol=DEFAULT_ATOL)
-            print(io, s, "3/4")
+        # print all fractions divisible by 2, ..., 10 as fractions, and everything else
+        # as decimal
+        rv = rationalize(Int, v; tol=1e-2)
+        if isapprox(v, rv, atol=DEFAULT_ATOL)
+            print(io, rv.num, "/", rv.den)
         else
             print(io, v)
         end
