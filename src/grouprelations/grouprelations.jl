@@ -56,10 +56,11 @@ for (f, rel_shorthand, rel_kind, doctxt) in
 
         ## Data sources
 
-        The group relationships returned by this function were retrieved from the
-        [MAXSUB program on the Bilbao Crystallographic Server](https://www.cryst.ehu.es/cryst/maxsub.html).
-        Please cite the original reference work related with MAXSUB:
-        [Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15 (2006)](https://doi.org/10.1524/zkri.2006.221.1.15).
+        The group relationships returned by this function were retrieved from the Bilbao
+        Crystallographic Server's [MAXSUB](https://www.cryst.ehu.es/cryst/maxsub.html)
+        program. Please cite the original reference work associated with MAXSUB:
+
+        - Aroyo et al., [Z. Kristallogr. Cryst. Mater. **221**, 15 (2006)](https://doi.org/10.1524/zkri.2006.221.1.15).
         """
         function $f(num::Integer, ::Type{SpaceGroup{D}}=SpaceGroup{3};
                     kind::GleicheKind = TRANSLATIONENGLEICHE) where D
