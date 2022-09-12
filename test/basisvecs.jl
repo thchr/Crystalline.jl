@@ -48,4 +48,20 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         @test Rs′ == DirectBasis(Rsˢ[1], Rsˢ[2], Rsˢ[3]) == DirectBasis{3}(Rsˢ[1], Rsˢ[2], Rsˢ[3])
                                               # ↑ Varargs / splatting of SVector{3, Float64}
     end
+
+    @testset "AbstractPoint" begin
+        t = (.1,.2,.3)
+        v = [.1,.2,.3]
+        s = @SVector [.1,.2,.3]
+        r = ReciprocalPoint(.1,.2,.3)
+
+        # conversion
+        @test r == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
+        @test r == convert(ReciprocalPoint{3}, s)  # StaticVector conversion
+
+        # construction
+        @test r == ReciprocalPoint(s) == ReciprocalPoint{3}(s)
+        @test r == ReciprocalPoint(t) == ReciprocalPoint{3}(t)
+        @test r == ReciprocalPoint(v) == ReciprocalPoint{3}(v)
+    end
 end

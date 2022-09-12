@@ -122,7 +122,7 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
             $PT{D}(v::NTuple{D, Real}) where D         = new{D}(convert(SVector{D, Float64}, v))
             $PT{D}(v::AbstractVector{<:Real}) where D  = new{D}(convert(SVector{D, Float64}, v))
         end
-        @eval function convert(::Type{$PT{D}}, v::AbstractVector{<:Real}) where D
+        @eval function convert(::Type{$PT{D}}, v::StaticVector{D, <:Real}) where D
             $PT{D}(convert(SVector{D, Float64}, v))
         end
         @eval $PT(v::StaticVector{D}) where D = $PT{D}(v) # resolve internal/StaticArrays
