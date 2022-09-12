@@ -17,7 +17,7 @@
 @deprecate kvec(lg::LittleGroup)     position(lg)
 @deprecate kvec(lgir::LGIrrep)       position(lgir)
 @deprecate wyck(g::SiteGroup)        position(g)
-@deprecate wyck(wp::WyckoffPosition) position(wp)
+@deprecate wyck(wp::WyckoffPosition) parent(wp)
 @deprecate wyck(BR::BandRep)         position(BR)
 
 @deprecate(
