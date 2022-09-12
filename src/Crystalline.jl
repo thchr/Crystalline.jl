@@ -137,7 +137,7 @@ include("subperiodic.jl")
 export SubperiodicGroup, subperiodicgroup
 
 include("grouprelations/grouprelations.jl")
-export maximal_subgroups
+export maximal_subgroups, minimal_supergroups
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them

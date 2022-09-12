@@ -8,8 +8,8 @@ import LayeredLayouts
 # Visualize graph of maximal subgroups a particular group (descendants of `g`)
 
 # -----------------
-function map_numbers_to_oneto(xs)
-    uxs = sort!(unique(xs))
+function map_numbers_to_oneto(xs; rev::Bool=false)
+    uxs = sort!(unique(xs); rev)
     idxss = [findall(==(x), xs) for x in uxs]
     ys = Vector{Int}(undef, length(xs))
     for (y,idxs) in enumerate(idxss)
@@ -53,8 +53,9 @@ end
 function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
                                      force_layer_bool=true) where D
     orders = SG_PRIMITIVE_ORDERs[D][gr.nums]
+    is_supergroup_relations = gr.direction==SUPERGROUP # if true, must flip y-ordering twice
     force_layer = if force_layer_bool
-        layers′ = map_numbers_to_oneto(orders)
+        layers′ = map_numbers_to_oneto(orders; rev = is_supergroup_relations)
         maxlayer = maximum(layers′)
         1:length(orders) .=> (maxlayer+1) .- layers′
     else
@@ -65,6 +66,8 @@ function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
     gr′ = SimpleDiGraphFromIterator(edges(gr))
     xs, ys, _ = LayeredLayouts.solve_positions(LayeredLayouts.Zarate(), gr′; force_layer)
 
+    is_supergroup_relations && (xs .= -xs) # re-reverse the ordering
+    
     return Makie.Point2f.(ys, -xs), orders
 end
 # -----------------
@@ -130,7 +133,7 @@ plot(gr)
 function Makie.plot!(
             ax::Makie.Axis,
             gr::GroupRelationGraph{D};
-            layout_mode::Symbol=Graphs.ne(gr) ≤ 40 ? :fancy : :quick
+            layout_mode::Symbol=(Graphs.ne(gr) ≤ 40 && Graphs.nv(gr) ≤ 20) ? :fancy : :quick
             ) where D
 
     mapping_strings = stringify_relations.(Ref(gr), edges(gr))
