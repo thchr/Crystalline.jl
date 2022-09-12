@@ -283,7 +283,9 @@ function (==)(v1::T, v2::T) where T<:AbstractVec
 end
 
 """
-    isapprox(v1::T, v2::T[, cntr::Char, modw::Bool]; kwargs...) --> Bool
+    isapprox(v1::T, v2::T, 
+             [cntr::Union{Char, Nothing, AbstractMatrix{<:Real}}, modw::Bool];
+             kwargs...) --> Bool
                                                             
 Compute approximate equality of two vector quantities `v1` and `v2` of type,
 `T = Union{<:AbstractVec, <:AbstractPoint}`. 
@@ -296,7 +298,8 @@ lattice vectors are used in the comparison.
 ## Optional arguments
 
 - `cntr`: if not provided, the comparison will not account for equivalence by primitive
-  lattice vectors, only equivalence by lattice vectors in the basis of `v1` and `v2`.
+  lattice vectors (equivalent to setting `cntr=nothing`), only equivalence by lattice
+  vectors in the basis of `v1` and `v2`.
   `cntr` may also be provided as a `D`×`D` `AbstractMatrix` to give the relevant
   transformation matrix directly.
 - `modw`: whether vectors that differ by multiples of a lattice vector are considered
@@ -309,7 +312,8 @@ function isapprox(v1::T, v2::T,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
-
+    
+    T′ = typeof(parent(v1)) # for wrapped RVec or KVec types like WyckoffPosition
     if modw # equivalence modulo a primitive lattice vector
         δ₀ = v₀1 - v₀2
         if cntr !== nothing
@@ -318,8 +322,8 @@ function isapprox(v1::T, v2::T,
             else # AbstractMatrix{<:Real}
                 convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
             end
-            δ₀ = T <: KVec ? P' * δ₀ :
-                 T <: RVec ? P  \ δ₀ :
+            δ₀ = T′ <: KVec ? P' * δ₀ :
+                 T′ <: RVec ? P  \ δ₀ :
                  error("`isapprox` is not implemented for type $T")
         end
         all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false

@@ -16,7 +16,9 @@ using Crystalline: constant, free
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
                     rv′ = op*rv
-                    @test isapprox(rv, rv′, nothing, false)
+                    @test isapprox(rv, rv′, nothing, false) # isapprox(::RVec, ::RVec)
+                    wp′ = op*wp
+                    @test isapprox(wp, wp′, nothing, false) # isapprox(::WyckoffPosition, ::WyckoffPosition)
                 end
 
                 # test that all the constant parts of the positions in the Wyckoff orbit
