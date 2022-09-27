@@ -1,6 +1,6 @@
 using .Graphs, .StaticArrays, .LinearAlgebra
-import .Makie
-import GraphMakie
+import .GraphMakie
+import .GraphMakie: Makie
 import LayeredLayouts
 #using NetworkLayout: SFDP
 
@@ -124,11 +124,15 @@ See also `Makie.plot`.
 
 ## Example
 
-```
-using Crystalline, GLMakie
+```jl
+using Crystalline
+using GraphMakie, GLMakie
 gr = maximal_subgroups(202)
 plot(gr)
 ```
+
+Note that `plot(gr)` is conditionally defined only upon loading of GraphMakie (via
+Requires); additionally, a backend for Makie must be explicitly loaded (here, GLMakie).
 """
 function Makie.plot!(
             ax::Makie.Axis,

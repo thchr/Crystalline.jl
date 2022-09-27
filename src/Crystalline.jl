@@ -176,7 +176,7 @@ function __init__()
         export mesh_3d_levelsetlattice
     end
 
-    @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
+    @require GraphMakie="1ecd5474-83a3-4783-bb4f-06765db800d2" begin
         include("requires/graphplot.jl")
     end
 end
