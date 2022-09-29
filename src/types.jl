@@ -83,6 +83,8 @@ unpack(op::SymOperation) = (rotation(op), translation(op))
 
 one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),
                                                        zero(SVector{D,Float64}))
+one(op::SymOperation) = one(typeof(op))
+
 function isone(op::SymOperation{D}) where D
     @inbounds for D₁ in SOneTo(D)
         iszero(op.translation[D₁]) || return false

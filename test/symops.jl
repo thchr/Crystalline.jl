@@ -33,6 +33,9 @@ using Crystalline, Test
         @test op == SymOperation(rotation(op), translation(op)) 
         @test op == SymOperation(matrix(op)) # SMatrix
         @test op == SymOperation(Matrix(op)) # Matrix
+
+        # identity operation
+        @test S"x,y,z" == one(S"y,z,x") == one(SymOperation{3})
     end
 
     @testset "Parsing cornercases" begin
