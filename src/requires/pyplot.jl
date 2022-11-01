@@ -93,7 +93,8 @@ end
 # plot isocontour of data
 function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
                  repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing, ax=nothing) where D
+                 fig=nothing,
+                 ax=nothing) where D
 
     # If fig is nothing and ax is nothing, we must make a figure and add a add_subplot
     # If fig is nothing but ax is not nothing, we just add to the ax that is given
