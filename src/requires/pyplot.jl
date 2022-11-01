@@ -72,7 +72,9 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
               filling::Union{Real, Nothing}=0.5, 
               isoval::Union{Real, Nothing}=nothing,
               repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing, ax=nothing) where D
+              fig=nothing, 
+              ax=nothing) where D
+
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
     if isnothing(isoval)
