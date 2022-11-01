@@ -72,8 +72,9 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
               filling::Union{Real, Nothing}=0.5, 
               isoval::Union{Real, Nothing}=nothing,
               repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing) where D
- 
+              fig=nothing, 
+              ax=nothing) where D
+
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
     if isnothing(isoval)
@@ -86,7 +87,7 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
                 end
         isoval = quantile(Iterators.flatten(vals′), filling)
     end
-    plotiso(xyz, vals, isoval, Rs, repeat, fig)
+    plotiso(xyz, vals, isoval, Rs, repeat, fig, ax)
 
     return xyz, vals, isoval
 end
@@ -94,14 +95,14 @@ end
 # plot isocontour of data
 function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
                  repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing) where D
+                 fig=nothing,
+                 ax=nothing) where D
 
-    if isnothing(fig)
-        fig = plt.figure()
-    else
-        fig.clf()
-    end
-    ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
+    # If fig is nothing and ax is nothing, we must make a figure and add a add_subplot
+    # If fig is nothing but ax is not nothing, we just add to the ax that is given
+    # If fig is not nothing but ax is nothing, we add an ax to the existing given figure
+    fig = (isnothing(fig) && isnothing(ax)) ? plt.figure() : fig
+    ax = isnothing(ax) ? fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear") : ax
 
     if D == 2
     # convert to a cartesian coordinate system rather than direct basis of Ri
