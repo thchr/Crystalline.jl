@@ -72,10 +72,11 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
               filling::Union{Real, Nothing}=0.5,
               isoval::Union{Real, Nothing}=nothing,
               repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing) where D
- 
+              fig=nothing,
+              ax=nothing) where D
+
     xyz, vals, isoval = _create_isosurf_plot_data(flat; N, filling, isoval)
-    plotiso(xyz, vals, isoval, Rs, repeat, fig)
+    plotiso(xyz, vals, isoval, Rs, repeat, fig, ax)
 
     return xyz, vals, isoval
 end
@@ -105,14 +106,18 @@ end
 # plot isocontour of data
 function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
                  repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing) where D
+                 fig=nothing,
+                 ax=nothing) where D
 
-    if isnothing(fig)
-        fig = plt.figure()
-    else
-        fig.clf()
+    # If `fig` is nothing and `ax`` is nothing, we make a figure and add a subplot
+    # If `fig` is nothing but `ax`` is not nothing, we plot directly into the provided axis
+    # If `fig` is not nothing but `ax`` is nothing, we add an axis to the provided figure
+    if isnothing(ax)
+        if isnothing(fig)
+            fig = plt.figure()
+        end
+        ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
     end
-    ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
 
     if D == 2
     # convert to a cartesian coordinate system rather than direct basis of Ri
