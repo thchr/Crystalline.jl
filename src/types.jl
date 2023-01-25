@@ -59,13 +59,13 @@ function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
 end
 function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
-            kwargs...) where D
+            kws...) where D
 
     # check rotation part 
-    isapprox(rotation(op1), rotation(op2); kwargs...) || return false
-
+    _fastpath_atol_isapprox(rotation(op1), rotation(op2); kws...) || return false
+    
     # check translation part
-    if cntr !== nothing
+    if cntr !== nothing && (D == 3 && cntr ≠ 'P' || D == 2 && cntr ≠ 'p')
         P = primitivebasismatrix(cntr, Val(D))
         t1 = transform_translation(op1, P, nothing, modw)
         t2 = transform_translation(op2, P, nothing, modw)
@@ -77,8 +77,9 @@ function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             t2 = reduce_translation_to_unitrange(t2)
         end
     end
-    return isapprox(t1, t2; kwargs...)
+    return _fastpath_atol_isapprox(t1, t2; kws...)
 end
+@inline _fastpath_atol_isapprox(x, y; atol=DEFAULT_ATOL) = norm(x - y) ≤ atol # (cf. https://github.com/JuliaLang/julia/pull/47464)
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
 one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),

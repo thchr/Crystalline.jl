@@ -103,7 +103,7 @@ There are 4 crystal systems in 2D and 7 in 3D (see Section 2.1.2(iii) of [^ITA5]
 
 The `Rs` must specify a set of conventional basis vectors, i.e., not generally primitive.
 For primitive basis vectors, the crystal system can be further reduced into 5 Bravais types
-in 2D and 14 in 3D (see [`@bravaistype`](@ref)).
+in 2D and 14 in 3D (see [`bravaistype`](@ref)).
 
 [^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
          3.1.2.1 and 3.1.2.2 (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).

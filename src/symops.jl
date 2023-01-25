@@ -407,7 +407,7 @@ function reduce_translation_to_unitrange(w::AbstractVector{<:Real}; atol=DEFAULT
     w′ = similar(w)
     for (i, wᵢ) in enumerate(w)
         w′ᵢ = mod(wᵢ, one(eltype(w)))
-        if isapprox(round(w′ᵢ), w′ᵢ; atol)
+        if _fastpath_atol_isapprox(round(w′ᵢ), w′ᵢ; atol)
             # mod.(w, 1.0) occassionally does not reduce values that are very nearly 1.0
             # due to floating point errors: we use a tolerance here to round everything 
             # close to 0.0 or 1.0 exactly to 0.0
@@ -1064,9 +1064,13 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
+Return the group generated from a finite set of generators `gens`.
 
 ## Keyword arguments
+- `cntr` (default, `nothing`): check equivalence of operations modulo primitive lattice
+  vectors (see also 
+  [`isapprox(::SymOperation{D}, ::SymOperation{D}, cntr::Union{Nothing, Char}) where D`](@ref)); 
+  only nonequivalent operations are included in the returned group.
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
   case, the provided generators will also be taken modulo integer lattice translations.
@@ -1088,23 +1092,23 @@ function generate(gens::AbstractVector{SymOperation{D}};
     unique!(ops)
     Ngens = length(ops)
     
+    # FIXME: there's probably a more efficient way to do this?
+    # Ideas: apparently, the group order can be inferred from the generators without
+    #        needing to compute the group itself (Schreier-Sims algorithm, see GAP; &
+    #        also the Orbit-Stabilizer theorem; https://math.stackexchange.com/a/1706006).
     while true
         Nₒₚ = length(ops)
-        # fixme: there's probably a more efficient way to do this?
         for opᵢ in (@view ops[OneTo(Nₒₚ)])
             for opⱼ in (@view ops[OneTo(Ngens)]) # every op can be written as products w/ original generators
                 opᵢⱼ = compose(opᵢ, opⱼ, modτ)
-                # FIXME: there are some _really_ strange allocations going on here, related
-                #        to the interplay between the `∉` and `push!`ing operations here; no 
-                #        clue why this happens... some sort of stack/heap conflict?
-                if !isapproxin(opᵢⱼ, ops, cntr, modτ; atol=DEFAULT_ATOL)
+                if !isapproxin(opᵢⱼ, ops, cntr, modτ)
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
-                    length(ops) > Nmax && return _throw_overflowed_generation()
+                    length(ops) > Nmax && _throw_overflowed_generation()
                 end
             end
         end
-        Nₒₚ == length(ops) && (return GenericGroup{D}(ops))
+        Nₒₚ == length(ops) && return GenericGroup{D}(ops)
     end
 end
 
