@@ -68,11 +68,23 @@ If both `filling` and `isoval` kwargs simultaneously not equal
 to `nothing`, then `isoval` takes precedence.
 """
 function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
-              N::Integer=(D==2 ? 100 : 20), 
-              filling::Union{Real, Nothing}=0.5, 
+              N::Integer=(D==2 ? 100 : 20),
+              filling::Union{Real, Nothing}=0.5,
               isoval::Union{Real, Nothing}=nothing,
               repeat::Union{Integer, Nothing}=nothing,
               fig=nothing) where D
+ 
+    xyz, vals, isoval = _create_isosurf_plot_data(flat; N, filling, isoval)
+    plotiso(xyz, vals, isoval, Rs, repeat, fig)
+
+    return xyz, vals, isoval
+end
+
+function _create_isosurf_plot_data(
+            flat::AbstractFourierLattice{D};
+            N::Integer=(D==2 ? 100 : 20),
+            filling::Union{Real, Nothing}=0.5,
+            isoval::Union{Real, Nothing}=nothing) where D
  
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
@@ -86,7 +98,6 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
                 end
         isoval = quantile(Iterators.flatten(vals′), filling)
     end
-    plotiso(xyz, vals, isoval, Rs, repeat, fig)
 
     return xyz, vals, isoval
 end
