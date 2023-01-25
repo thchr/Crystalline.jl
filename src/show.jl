@@ -172,33 +172,20 @@ function _group_descriptor(g; prefix::AbstractString="")
 end
 
 # --- LGIrrep & PGIrrep ---
-function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
-    lgirlab = label(plgir)
-    lablen = length(lgirlab)
+function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
+    irlab = label(ir)
+    lablen = length(irlab)
     nindent = lablen+1
-    prettyprint_header(io, lgirlab)
-    prettyprint_irrep_matrices(io, plgir, nindent)
-end
-function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
-    # TODO: This kind of show extension is bad style, afaik...
-    # Header line
-    plg = group(first(plgirs))
-    print(io, "$T: ")
-    prettyprint_group_header(io, plg)
-
-    Nᵢᵣ = length(plgirs)
-    for (i,plgir) in enumerate(plgirs)
-        show(io, MIME"text/plain"(), plgir)
-        if i != Nᵢᵣ; println(io); end
-    end
+    prettyprint_header(io, irlab)
+    prettyprint_irrep_matrices(io, ir, nindent)
 end
 
 # ... utilities to print PGIrreps and LGIrreps
-function prettyprint_group_header(io::IO, plg::AbstractGroup)
-    print(io, "⋕", num(plg), " (", iuc(plg), ")")
-    if plg isa LittleGroup
-        print(io, " at " , klabel(plg), " = ")
-        show(io, MIME"text/plain"(), position(plg))
+function prettyprint_group_header(io::IO, g::AbstractGroup)
+    print(io, "⋕", num(g), " (", iuc(g), ")")
+    if g isa LittleGroup
+        print(io, " at " , klabel(g), " = ")
+        show(io, MIME"text/plain"(), position(g))
     end
     println(io)
 end
@@ -217,7 +204,9 @@ end
 function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
                                     atol::Real=DEFAULT_ATOL)
 
-    if isapprox(v, real(v), atol=atol)          # real scalar
+    if norm(v) < atol
+        print(io, 0)
+    elseif isapprox(v, real(v), atol=atol)     # real scalar
         if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
             signbit(real(v)) && print(io, '-')
         else
