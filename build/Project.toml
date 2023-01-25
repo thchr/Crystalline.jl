@@ -1,7 +1,9 @@
 [deps]
+Cascadia = "54eefc05-d75b-58de-a785-1a3403f0919f"
 Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 Gumbo = "708ec375-b3d6-5a57-a7ce-8257bf98657a"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
