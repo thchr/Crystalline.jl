@@ -1,0 +1,7 @@
+[deps]
+Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+GraphsMatching = "c3af3a8c-b79e-4b01-bf44-c718d7e0e0d6"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+LayeredLayouts = "f4a74d36-062a-4d48-97cd-1356bad1de4e"
+MetaGraphsNext = "fa8bd995-216d-47f1-8a91-f3b68fbeb377"

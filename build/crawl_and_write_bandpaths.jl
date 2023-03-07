@@ -118,7 +118,7 @@ function parse_connections(bandpaths_data::Matrix{<:AbstractString})
     for (i, row) = enumerate(eachrow(bandpaths_data))
         # left to center
         kᴳ¹ = parse_labeledkpoint(row[1]) # left-hand maximal k-point in table
-        kᴴ  = parse_labeledkpoint(row[2])  # non-maximal k-point in table
+        kᴴ  = parse_labeledkpoint(row[2]) # non-maximal k-point in table
         kᴳ² = parse_labeledkpoint(row[3]) # right-hand maximal k-point in table
         connections[2i-1] = Connection(kᴳ¹, kᴴ)
         connections[2i]   = Connection(kᴳ², kᴴ)
@@ -153,9 +153,8 @@ function find_highest_order_nonsymmorphic_operation(g::Crystalline.AbstractGroup
         end
     end
     ts = translation.(ops)
-    uns = sort!(unique(ns))
-    while !isempty(uns)
-        n = pop!(uns)
+    uns = sort!(unique(ns); rev=true)
+    for n in uns
         idxs = something(findall(==(n), ns))
         for i in idxs
             t = ts[i]
@@ -198,7 +197,8 @@ function Base.show(io::IO,  t::SubductionTable{D}) where D
     println(io, " ⋕", t.num, " (", iuc(t.num, D), ") for ", t.c, " connection:")
     pretty_table(io,
         t.table,
-        header = t.irlabsᴴ, row_names = t.irlabsᴳ,
+        header = t.irlabsᴴ,
+        row_labels = t.irlabsᴳ,
         vlines = [1,], hlines = [:begin, 1, :end]
     )
 end
@@ -248,7 +248,7 @@ function parse_subductions(
                     #             doesn't seem right: need to fix eventually, but not really
                     #             important per se
                     t = find_highest_order_nonsymmorphic_operation(lg, centering(num, 3))[2]
-                    kᴳ′ = LabeledKVec(Symbol(kᴳ.label, Symbol('′')), kᴳ.kv + t)
+                    kᴳ′ = LabeledKVec(Symbol(kᴳ.label, '′'), kᴳ.kv + t)
                     c′ = Connection(kᴳ′, kᴴ)
                     irlabsᴳ′ = map(irlab->replace(irlab, string(kᴳ.label) => string(kᴳ′.label)), irlabsᴳ)
                     push!(tables, SubductionTable(num, c′, irlabsᴳ′, irlabsᴴ, table, true))
@@ -309,11 +309,11 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
-
 connectionsd = Dict{Int, Vector{Connection{3}}}()
 subductionsd = Dict{Int, Vector{SubductionTable{3}}}()
 data = Dict{Int, Any}()
-for sgnum in 143:230
+for sgnum in 3:230
+    # Note: SGs 1 & 2 fail since there are no connections
     println("sgnum ", sgnum)
     tmp = crawl_bandpaths(sgnum, true)
     data[sgnum] = tmp
@@ -321,12 +321,11 @@ for sgnum in 143:230
     connectionsd[sgnum] = parse_connections(bandpath_data)
     subductionsd[sgnum] = parse_subductions(subduction_data, sgnum; spinful=false)
 end
+for sgnum in 1:2
+    connectionsd[sgnum] = Connection{3}[]
+    subductionsd[sgnum] = SubductionTable{3}[]
+end
 
-# print a particular example
-display(connectionsd[230])
-display(subductionsd[230])
-
-# debug monodromy additions:
-row = data[230][2][3,:]
-q = parse_subductions_of_columns_in_row(row, 1, 4, 3, !contains("ˢ"))
-SubductionTable(230, q..., false)
+using JLD2
+jldsave("data/connections/3d/subductions-tr.jld2"; subductionsd=subductionsd)
+jldsave("data/connections/3d/connections.jld"; connectionsd=connectionsd)
