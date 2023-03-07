@@ -61,8 +61,10 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     seitz_ops = seitz.(mt.operations)
     pretty_table(io,
         getindex.(Ref(seitz_ops), mt.table);
-        row_names = seitz_ops, header = seitz_ops,
-        vlines = [1,], hlines = [:begin, 1, :end]
+        row_labels = seitz_ops,
+        header = seitz_ops,
+        vlines = [1,],
+        hlines = [:begin, 1, :end]
         )
     return nothing
 end
@@ -314,7 +316,7 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     pretty_table(io,
         chars_formatted;
         # row/column names
-        row_names = seitz.(ops), # seitz labels
+        row_labels = seitz.(ops), # seitz labels
         header = labels(ct),     # irrep labels
         tf = tf_unicode,
         vlines = [1,], hlines = [:begin, 1, :end]
@@ -450,7 +452,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         # table contents
         matrix(BRS; includedim=true);
         # row/column names
-        row_names = vcat(irreplabels(BRS), "μ"),
+        row_labels = vcat(irreplabels(BRS), "μ"),
         header = (position.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
