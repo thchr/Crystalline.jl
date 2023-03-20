@@ -12,7 +12,7 @@
 #     generalized.
 
 using Graphs
-using Graphs: AbstractSimpleGraph
+using Graphs: AbstractGraph
 using GraphsMatching
 include("eulerian.jl")
 
@@ -22,7 +22,7 @@ struct Trail{T}
 end
 
 function chinese_postman(
-            g::AbstractSimpleGraph{T},
+            g::AbstractGraph{T},
             check_connectedness::Bool=true
             ) where T
     # if disconnected, split into connected components and run on each component separately,
@@ -82,7 +82,7 @@ function chinese_postman(
     return reconstruct_real_tour(cycle, added_edge_d, pair_paths_d)
 end
 
-function _chinese_postman_split_disconnected_components(g::AbstractSimpleGraph{T}) where T
+function _chinese_postman_split_disconnected_components(g::AbstractGraph{T}) where T
     components = connected_components(g)
     filter!(length(verts)==1, components) # remove single-vertex components
 
@@ -157,7 +157,7 @@ function find_minimal_matching(paths)
     return pair_idxs_in_paths, pair_path_lengths
 end
 
-function augment_graph(g::AbstractSimpleGraph{T}, paths, idxs) where T
+function augment_graph(g::AbstractGraph{T}, paths, idxs) where T
     g′ = SimpleGraph{T}(nv(g))
     added_edge_d = Dict{Edge{T}, Bool}() # whether edges are original (0) or fictitious (1)
     for e in edges(g)

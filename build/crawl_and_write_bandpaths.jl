@@ -1,4 +1,4 @@
-using HTTP, Gumbo, Cascadia, Crystalline, PrettyTables, LinearAlgebra
+using HTTP, Gumbo, Cascadia, Crystalline, LinearAlgebra
 
 function crawl_bandpaths(sgnum::Integer, timereversal::Bool=true; maxfails=10)
     body = crawl_bandpaths_html(sgnum, timereversal; maxfails)
@@ -88,26 +88,16 @@ function html2unicode_postprocess(s::AbstractString)
     return replace(replace(s, replacepairlist...), " "=>"")
 end
 
+
+# ---------------------------------------------------------------------------------------- #
+# Types
+
+# defines LabeledKVec{D}, Connection{D}, SubductionTable{D}
+#include("../BandGraphs/src/subduction-types.jl")
+using BandGraphs: LabeledKVec, Connection, SubductionTable
+
 # ---------------------------------------------------------------------------------------- #
 # Connections between k-vectors
-
-struct LabeledKVec{D}
-    label :: Symbol
-    kv    :: KVec{D}
-end
-Base.show(io::IO, lk::LabeledKVec) = print(io, lk.label, "=", lk.kv)
-
-struct Connection{D}
-    # assumed sorted such that H ⊂ G for the little group G and H (i.e., kᴳ is a maximal
-    # point typically and kᴴ a nonmaximal manifold)
-    kᴳ :: LabeledKVec{D}
-    kᴴ :: LabeledKVec{D}
-end
-function Base.show(io::IO, ::MIME"text/plain", c::Connection)
-    print(io, c.kᴳ.label, " ↓ ", c.kᴴ.label)
-    print(io, ": ", c.kᴳ.kv, " ↓ ", c.kᴴ.kv)
-end
-Base.show(io::IO, c::Connection) = print(io, c.kᴳ.label, " ↓ ", c.kᴴ.label)
 
 function parse_labeledkpoint(s::AbstractString)
     label, kstr = split(s, ":")[1:2]
@@ -183,25 +173,6 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 # Irrep subduction
-
-struct SubductionTable{D}
-    num :: Int
-    c :: Connection{D}
-    irlabsᴳ :: Vector{String}
-    irlabsᴴ :: Vector{String}
-    table :: Matrix{Int}
-    monodromy :: Bool
-end
-function Base.show(io::IO,  t::SubductionTable{D}) where D
-    summary(io, t)
-    println(io, " ⋕", t.num, " (", iuc(t.num, D), ") for ", t.c, " connection:")
-    pretty_table(io,
-        t.table,
-        header = t.irlabsᴴ,
-        row_labels = t.irlabsᴳ,
-        vlines = [1,], hlines = [:begin, 1, :end]
-    )
-end
 
 function parse_subductions(
             subduction_data::Matrix{<:AbstractVector{<:AbstractString}},
@@ -327,5 +298,5 @@ for sgnum in 1:2
 end
 
 using JLD2
-jldsave("data/connections/3d/subductions-tr.jld2"; subductionsd=subductionsd)
-jldsave("data/connections/3d/connections.jld"; connectionsd=connectionsd)
+jldsave("BandGraphs/data/connections/3d/subductions-tr.jld2"; subductionsd=subductionsd)
+jldsave("BandGraphs/data/connections/3d/connections.jld"; connectionsd=connectionsd)

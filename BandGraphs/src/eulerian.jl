@@ -3,7 +3,7 @@
 # Reproduced under the MIT Expat License.
 
 """
-    eulerian(g::AbstractSimpleGraph{T}[, u::T, v::T]) --> T[]
+    eulerian(g::AbstractGraph{T}[, u::T, v::T]) --> T[]
 
 Compute an Eulerian tour through an undirected graph `g`, starting at `u` and ending at `v`,
 returning a vector listing the vertices of `g` in the order that they are travailed. If no
@@ -14,7 +14,7 @@ such tour exists, throws an error.
 - If both `u` and `v` are omitted, a Eulerian cycle is computed with
   `u = v = first(vertices(g))`.
 """
-function eulerian(g::AbstractSimpleGraph{T}, u::T, v::T) where {T}
+function eulerian(g::AbstractGraph{T}, u::T, v::T) where {T}
     is_directed(g) && error("`eulerian` is not yet implemented for directed graphs")
     
     _check_eulerian_input(g, u, v) # perform basic sanity checks
@@ -28,12 +28,12 @@ function eulerian(g::AbstractSimpleGraph{T}, u::T, v::T) where {T}
 end
 
 # special case: find an Euler cycle from a specified vertex
-eulerian(G::AbstractSimpleGraph{T}, u::T) where {T} = eulerian(G, u, u)
+eulerian(G::AbstractGraph{T}, u::T) where {T} = eulerian(G, u, u)
 
 # special case: find any Euler tour; randomly pick first vertex
-eulerian(g::AbstractSimpleGraph) = eulerian(g, first(vertices(g)))
+eulerian(g::AbstractGraph) = eulerian(g, first(vertices(g)))
 
-function _eulerian!(g::AbstractSimpleGraph{T}, u::T) where {T}
+function _eulerian!(g::AbstractGraph{T}, u::T) where {T}
     # TODO: This uses Fleury's algorithm which is O(|E|²) in the number of edges |E|.
     #       Hierholzer's algorithm [https://en.wikipedia.org/wiki/Eulerian_path#Hierholzer's_algorithm]
     #       is presumably faster, running in O(|E|) time, but requires more space due to
