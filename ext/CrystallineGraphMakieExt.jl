@@ -1,8 +1,17 @@
-using .Graphs, .StaticArrays, .LinearAlgebra
-import .GraphMakie
-import .GraphMakie: Makie
-import LayeredLayouts
-#using NetworkLayout: SFDP
+module CrystallineGraphMakieExt
+
+if isdefined(Base, :get_extension)
+    import GraphMakie
+    using GraphMakie: Makie, NetworkLayout
+else
+    import ..GraphMakie
+    using ..GraphMakie: Makie, NetworkLayout
+end
+using Crystalline
+using Crystalline: GroupRelationGraph, SG_PRIMITIVE_ORDERs, SUPERGROUP
+
+using Graphs, StaticArrays, LinearAlgebra
+using LayeredLayouts: solve_positions, Zarate
 
 ## -------------------------------------------------------------------------------------- ##
 # Visualize graph of maximal subgroups a particular group (descendants of `g`)
@@ -32,24 +41,19 @@ function layout_by_order(gr::GroupRelationGraph{D,SpaceGroup{D}};
     end
     return Makie.Point2f.(xposs, yposs), orders
 end
-# # TODO: requires variant of https://github.com/JuliaGraphs/NetworkLayout.jl/pull/52 to be
-# #       merged
-# function layout_by_order_spring(gr::GroupRelationGraph{D,SpaceGroup{D}};
-#                                 ymap=map_numbers_to_oneto) where D
-#     xy, orders = layout_by_order(gr; ymap)
-#     orderslim = extrema(orders)
-#     
-#     P = eltype(xy)
-#     T = eltype(P)
-#     rng = Xoshiro(1)
-#     initialpos = [P(p[1] + (o∉orderslim) * (rand(rng, T)-0.5)*0.05, p[2]) for (p,o) in zip(xy,orders)]
-#     pin = [Point{2,Bool}(false, true) for _ in xy]
-#     
-#     algo = NetworkLayout.SFDPpin(; initialpos, pin, K=.001, C=500, tol=1e-1)
-#     xy′ = algo(gr)
-# 
-#     return xy′, orders
-# end
+# use a spring layout in x-coordinates, fixing y-coordinates, via NetworkLayout.jl/pull/52
+function layout_by_order_spring(gr::GroupRelationGraph{D,SpaceGroup{D}};
+                                ymap=map_numbers_to_oneto) where D
+    xy, orders = layout_by_order(gr; ymap)
+    orderslim = extrema(orders)
+    
+    # to use `pin` in this manner we require NetworkLayout ≥v0.4.5
+    pin = Dict(i=>(false, true) for i in eachindex(xy))
+    algo = NetworkLayout.Spring(; initialpos=xy, pin, initialtemp=1.0)
+    xy′ = algo(gr)
+
+    return xy′, orders
+end
 function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
                                      force_layer_bool=true) where D
     orders = SG_PRIMITIVE_ORDERs[D][gr.nums]
@@ -64,7 +68,7 @@ function layout_by_minimal_crossings(gr::GroupRelationGraph{D,SpaceGroup{D}};
     # `solve_positions` implicitly assumes `SimpleGraph`/`SimpleDiGraph` type graphs, so we
     # must first convert `gr` to `gr′::SimpleDiGraph`
     gr′ = SimpleDiGraphFromIterator(edges(gr))
-    xs, ys, _ = LayeredLayouts.solve_positions(LayeredLayouts.Zarate(), gr′; force_layer)
+    xs, ys, _ = solve_positions(Zarate(), gr′; force_layer)
 
     is_supergroup_relations && (xs .= -xs) # re-reverse the ordering
     
@@ -110,7 +114,7 @@ function stringify_relations(gr::GroupRelationGraph, e::Edge)
 end
 
 """
-    plot!(ax, gr::GroupRelationGraph{D}; layout_mode)
+    plot!(ax, gr::GroupRelationGraph{D}; layout)
 
 Visualize the graph structure of `gr`.
 If the Makie backend is GLMakie, the resulting plot will be interactive (on hover and drag).
@@ -118,9 +122,15 @@ If the Makie backend is GLMakie, the resulting plot will be interactive (on hove
 See also `Makie.plot`.
 
 ## Keyword arguments
-- `layout_mode`: `:fancy` or `:quick`. By default, `:fancy` is chosen for graph with less
-   than 40 edges; otherwise `:quick`. The `:fancy` algorithm uses a Sugiyama-style DAG
-   layout algorithm: it performs well for relatively few edges, but very poorly otherwise.
+- `layout`: `:strict`, `:quick`, or `:spring`. By default, `:strict` is chosen for Graphs
+   with less than 40 edges and less than 20 vertices, otherwise `:spring`.
+   - `:strict`: a Sugiyama-style DAG layout algorithm, which rigorously minimizes the number
+     of edge crossings in the graph layout. Performs well for relatively few edges, but very
+     poorly otherwise.
+   - `:quick`: distributes nodes in each layer horizontally, with node randomly assigned
+     relative node positions.
+   - `:spring`: same as `:quick`, but with node positions in each layer relaxed using a
+     layer-pinned spring layout.
 
 ## Example
 
@@ -131,22 +141,22 @@ gr = maximal_subgroups(202)
 plot(gr)
 ```
 
-Note that `plot(gr)` is conditionally defined only upon loading of GraphMakie (via
-Requires); additionally, a backend for Makie must be explicitly loaded (here, GLMakie).
+Note that `plot(gr)` is conditionally defined only upon loading of GraphMakie; additionally,
+a backend for Makie must be explicitly loaded (here, GLMakie).
 """
 function Makie.plot!(
             ax::Makie.Axis,
             gr::GroupRelationGraph{D};
-            layout_mode::Symbol=(Graphs.ne(gr) ≤ 40 && Graphs.nv(gr) ≤ 20) ? :fancy : :quick
+            layout::Symbol=(Graphs.ne(gr) ≤ 40 && Graphs.nv(gr) ≤ 20) ? :strict : :spring
             ) where D
 
     mapping_strings = stringify_relations.(Ref(gr), edges(gr))
 
     # --- compute layout of vertices ---
-    xy, orders = layout_mode == :fancy ? layout_by_minimal_crossings(gr; force_layer_bool=true) :
-                 layout_mode == :quick ? layout_by_order(gr) :
-                 layout_mode == :quickspring ? layout_by_order_spring(gr) :
-                 error("invalid `layout_mode` value")
+    xy, orders = layout == :strict ? layout_by_minimal_crossings(gr; force_layer_bool=true) :
+                 layout == :spring ? layout_by_order_spring(gr) :
+                 layout == :quick  ? layout_by_order(gr) :
+                 error("invalid `layout` keyword argument (valid: `:strict`, `:spring`, `:quick`)")
 
     # --- graphplot ---
     p = GraphMakie.graphplot!(ax, gr; 
@@ -162,8 +172,7 @@ function Makie.plot!(
                 arrow_size = 0,
                 elabels = fill("", ne(gr)),
                 elabels_textsize = 16,
-                elabels_distance = 15,
-                )    
+                elabels_distance = 15)
     p[:node_pos][] = xy # update layout of vertices
     
     # --- group "order" y-axis ---
@@ -202,7 +211,8 @@ function Makie.plot!(
                 e = Edge(s, d)
                 eidx = something(findfirst(==(e), es))
                 p.edge_width[][eidx] = state ? 2.75 : 2.0
-                p.edge_color[][eidx] = state ? Makie.RGBf(.35, .35, .7) : Makie.RGBf(.5, .5, .5) 
+                p.edge_color[][eidx] = state ? Makie.RGBf(.35, .35, .7) :
+                                               Makie.RGBf(.5, .5, .5) 
                 d ∈ nidxs || push!(nidxs, d)
             end
             i += 1
@@ -230,3 +240,5 @@ function Makie.plot(gr::GroupRelationGraph;
     p = Makie.plot!(ax, gr; kws...)
     return Makie.FigureAxisPlot(f, ax, p)
 end
+
+end # module CrystallineGraphMakieExt

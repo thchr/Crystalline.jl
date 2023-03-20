@@ -139,6 +139,12 @@ export SubperiodicGroup, subperiodicgroup
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups
 
+# ---------------------------------------------------------------------------------------- #
+# EXTENSIONS AND JLD-FILE INITIALIZATION
+if !isdefined(Base, :get_extension)
+    using Requires # load extensions via Requires.jl on Julia versions <v1.9
+end
+
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
 # - optional code-loading, using Requires.
@@ -170,14 +176,15 @@ function __init__()
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
 
-    # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
-    @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
-        include("requires/pyplot.jl") # loads PyPlot and Meshing
-        export mesh_3d_levelsetlattice
-    end
-
-    @require GraphMakie="1ecd5474-83a3-4783-bb4f-06765db800d2" begin
-        include("requires/graphplot.jl")
+    # load extensions via Requires.jl on Julia versions <v1.9
+    @static if !isdefined(Base, :get_extension)
+        @require PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
+            include("../ext/CrystallinePyPlotExt.jl") # loads PyPlot and Meshing
+            export mesh_3d_levelsetlattice
+        end
+        @require GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2" begin
+            include("../ext/CrystallineGraphMakieExt.jl")
+        end
     end
 end
 
