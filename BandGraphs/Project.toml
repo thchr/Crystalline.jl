@@ -17,15 +17,16 @@ MetaGraphsNext = "fa8bd995-216d-47f1-8a91-f3b68fbeb377"
 PrettyTables = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
-[compat]
-julia = "1.6"
-GraphMakie = "0.5"
+[weakdeps]
+GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
 
 [extensions]
 BandGraphsGraphMakieExt = "GraphMakie"
 
-[extras]
-GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
+[compat]
+julia = "1.6"
+GraphMakie = "0.5"
 
-[weakdeps]
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"

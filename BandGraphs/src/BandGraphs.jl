@@ -68,10 +68,15 @@ if !isdefined(Base, :get_extension)
     using Requires
 end
 
+# we cannot export directly from an extension, so we must define & export methods here and
+# then actually fill in extension module
+function plot_flattened_bandgraph end
+function make_vertices_dragable! end
+export plot_flattened_bandgraph, make_vertices_dragable!
 @static if !isdefined(Base, :get_extension)
     function __init__()
-        @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-            include("ext/BandGraphsMakieExt.jl")
+        @require GraphMakie="1ecd5474-83a3-4783-bb4f-06765db800d2" begin
+            include("../ext/BandGraphsGraphMakieExt.jl")
         end
     end
 end

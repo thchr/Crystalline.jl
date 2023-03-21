@@ -18,9 +18,9 @@ function unfold_bandgraph(
     partitionsd = Dict(p.klab => p for p in partitions)
     k_ids = Dict(p.klab => 0 for p in partitions)
     g_trail = MetaGraph(DiGraph();
-                Label = Tuple{String, Int, Int}, # (irrep label, multiplicity identifier, path-identifier)
-                VertexData = @NamedTuple{lgir::LGIrrep, maximal::Bool, trailidx::Int},
-                EdgeData   = @NamedTuple{weight::Int})
+        label_type       = Tuple{String, Int, Int}, # (irrep label, multiplicity identifier, path-identifier)
+        vertex_data_type = @NamedTuple{lgir::LGIrrep, maximal::Bool, trailidx::Int},
+        edge_data_type   = @NamedTuple{weight::Int})
     
     # --- add vertices ---
     for (trailidx, kidx′) in enumerate(kg_trail.trail)
@@ -82,10 +82,10 @@ function edgify_nonmax_vertices(g_trail)
     #        up needing _two_ edges between the Γ₁ and X₁ vertices
 
     g_decimated = MetaGraph(DiGraph();
-                Label = Tuple{String, Int, Int}, # (irrep label, multiplicity identifier, path-identifier)
-                VertexData = @NamedTuple{lgir::LGIrrep, maximal::Bool, trailidx::Int},
-                EdgeData   = @NamedTuple{lgir::LGIrrep, weight::Int}
-                )
+        label_type       = Tuple{String, Int, Int}, # (irrep label, multiplicity identifier, path-identifier)
+        vertex_data_type = @NamedTuple{lgir::LGIrrep, maximal::Bool, trailidx::Int},
+        edge_data_type   = @NamedTuple{lgir::LGIrrep, weight::Int}
+        )
     original_idxs = Int[]
 
     for v in vertices(g_trail)

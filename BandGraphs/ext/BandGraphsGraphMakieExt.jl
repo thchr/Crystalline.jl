@@ -1,20 +1,22 @@
-module BandGraphsMakieExt
+module BandGraphsGraphMakieExt
 
 # ---------------------------------------------------------------------------------------- #
 
 if isdefined(Base, :get_extension)
-    using GraphMakie: graphplot!
+    using GraphMakie: graphplot!, NodeDragHandler
     using GraphMakie: Makie
 else
-    using ..GraphMakie: graphplot!
+    using ..GraphMakie: graphplot!, NodeDragHandler
     using ..GraphMakie: Makie
 end
 using BandGraphs
 
 using LayeredLayouts: solve_positions, Zarate # must use https://github.com/thchr/LayeredLayouts.jl#equal_layers
-using Colors
+using Crystalline
+using Graphs
+using MetaGraphsNext
 
-export plot_flattened_bandgraph
+import BandGraphs: plot_flattened_bandgraph, make_vertices_dragable! # exported in BandGraphs
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -24,6 +26,9 @@ function plot_flattened_bandgraph(
             lgirsd::Dict{String, Vector{LGIrrep{D}}}
             ) where D
     
+    sgnum = num(group(first(first(n.lgirsv))))
+    @assert sgnum == num(group(first(first(values(lgirsd)))))
+
     # compute subgraphs and partitions
     subgraphs, partitions = build_subgraphs(n, SUBDUCTIONSD[sgnum], lgirsd)
 
@@ -44,7 +49,7 @@ end
 function plot_flattened_bandgraph(
             subgraphs  :: AbstractVector{SubGraph{D}},
             partitions :: AbstractVector{Partition{D}},
-            kg         :: MetaUndirectedGraph
+            kg         :: MetaGraph # ::(!IsDirected)
             ) where D
 
     # compute a directed acyclic graph `g_trail` that "unfolds" or "flattens" the original
@@ -64,13 +69,13 @@ function plot_flattened_bandgraph(
 end
 
 function plot_flattened_bandgraph(
-            g_trail     :: MetaDiGraph,
+            g_trail     :: MetaGraph, # ::IsDirected
             klabs_trail :: AbstractVector{<:AbstractString},
             xs          :: AbstractVector{<:Real},
             ys          :: AbstractVector{<:Real}
             )
 
-    xy = [Point(x,y) for (x,y) in zip(xs, ys)]
+    xy = [Makie.Point(x,y) for (x,y) in zip(xs, ys)]
     miny, maxy = extrema(ys)
     Δy = maxy - miny
     miny -= Δy/25; maxy += Δy/25
@@ -82,20 +87,22 @@ function plot_flattened_bandgraph(
     n_visited = maximum(trailidxs)
 
     # --- figure and axis object ---
-    f = Figure()
-    ax = Axis(f[1,1])
+    f = Makie.Figure()
+    ax = Makie.Axis(f[1,1])
 
     # --- k-manifold lines ---
     max_idxs    = 1:2:n_visited
     nonmax_idxs = 2:2:n_visited-1
-    linesegments!(ax, [(Point(idx, miny), Point(idx, maxy)) for idx in max_idxs];
-                      color=RGBf(.65,.65,.65), linewidth=1) # maximal
-    #linesegments!(ax, [(Point(idx, miny), Point(idx, maxy)) for idx in nonmax_idxs];
-    #                  color=RGBf(.9,.9,.9),    linewidth=1) # non-maximal
-    text!(ax, max_idxs, fill(miny-Δy/100, length(max_idxs));
-              text=klabs_trail[max_idxs], align=(:center, :top), color = RGBf(.35,.35,.35))
-    text!(ax, nonmax_idxs, fill(miny-Δy/100, length(nonmax_idxs));
-              text=klabs_trail[nonmax_idxs], align=(:center, :top), color=RGBf(.65,.65,.65))
+    Makie.linesegments!(ax,
+            [(Makie.Point(idx, miny), Makie.Point(idx, maxy)) for idx in max_idxs];
+            color=Makie.RGBf(.65,.65,.65), linewidth=1) # maximal
+    #Makie.linesegments!(ax,
+    #       [(Point(idx, miny), Point(idx, maxy)) for idx in nonmax_idxs];
+    #       color=Makie.RGBf(.9,.9,.9), linewidth=1) # non-maximal
+    Makie.text!(ax, max_idxs, fill(miny-Δy/100, length(max_idxs));
+        text=klabs_trail[max_idxs], align=(:center, :top), color=Makie.RGBf(.35,.35,.35))
+    Makie.text!(ax, nonmax_idxs, fill(miny-Δy/100, length(nonmax_idxs));
+        text=klabs_trail[nonmax_idxs], align=(:center, :top), color=Makie.RGBf(.65,.65,.65))
 
     # --- graph ---
     maximality = [g_trail[label_for(g_trail, i)].maximal for i in vertices(g_trail)]
@@ -103,12 +110,12 @@ function plot_flattened_bandgraph(
         l = label_for(g_trail, i)
         l[1]
     end
-    graphcol = RGBf(.1,.2,.6) # color of main elements in graph
+    graphcol = Makie.RGBf(.1,.2,.6) # color of main elements in graph
     graphplot!(ax, g_trail; 
             layout = _->xy,
             arrow_size = 0,
             nlabels = nlabels,
-            nlabels_color = [m ? graphcol : RGBf(.55,.55,.55) for m in maximality],
+            nlabels_color = [m ? graphcol : Makie.RGBf(.55,.55,.55) for m in maximality],
             nlabels_align = (:center,:bottom),
             nlabels_distance = 6.0,
             nlabels_attr = (;strokewidth=2, strokecolor=:white),
@@ -119,8 +126,8 @@ function plot_flattened_bandgraph(
             )
     
     # --- prettification ---
-    hidedecorations!(ax)  # hides ticks, grid and labels
-    hidespines!(ax)
+    Makie.hidedecorations!(ax)  # hides ticks, grid and labels
+    Makie.hidespines!(ax)
 
     return f, ax, (g_trail, klabs_trail, xs, ys)
 end
@@ -160,17 +167,17 @@ end
 # ---------------------------------------------------------------------------------------- #
 # Plotting utilities
 
-function make_vertices_dragable!(ax)
-    deregister_interaction!(ax, :rectanglezoom)
+function make_vertices_dragable!(ax, p)
+    Makie.deregister_interaction!(ax, :rectanglezoom)
     function node_drag_action(state, idx, event, axis)
         p[:node_pos][][idx] = event.data
         p[:node_pos][] = p[:node_pos][]
     end
     ndrag = NodeDragHandler(node_drag_action)
-    register_interaction!(ax, :ndrag, ndrag)
-    hidedecorations!(ax)
-    hidespines!(ax)
+    Makie.register_interaction!(ax, :ndrag, ndrag)
+    Makie.hidedecorations!(ax)
+    Makie.hidespines!(ax)
     nothing
 end
 
-end # module
+end # module BandGraphsGraphMakieExt

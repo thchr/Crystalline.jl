@@ -34,7 +34,7 @@ f, ax, p = graphplot(
     layout = GraphMakie.NetworkLayout.SFDP(; C=10, K=.2, dim=2)
     )
 
-make_vertices_dragable!(ax)
+make_vertices_dragable!(ax, p)
 f
 
 ## ----------------------------------------------------------------------------------------
@@ -54,7 +54,7 @@ kg_trail = chinese_postman(kg′)
 dkg = DiGraph(kg_trail)
 graphplot!(ax, dkg,
     layout=_->p[:node_pos][],
-    edge_color=RGB(0.2,0.2,.9),
+    edge_color = RGBf(0.2,0.2,.9),
     edge_width = 2,
     node_size = 0,
     curve_distance_usage = true)

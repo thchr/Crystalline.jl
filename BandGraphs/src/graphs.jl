@@ -5,9 +5,9 @@
 # the subgraph and partition structures, and return additional metadata on vertices & edges
 function assemble_graph(subgraphs, partitions)
     g = MetaGraph(Graph();
-            Label = Tuple{String, Int},
-            VertexData = @NamedTuple{lgir::LGIrrep, maximal::Bool},
-            EdgeData   = @NamedTuple{weight::Int})
+            label_type       = Tuple{String, Int},
+            vertex_data_type = @NamedTuple{lgir::LGIrrep, maximal::Bool},
+            edge_data_type   = @NamedTuple{weight::Int})
     # add vertices to graph
     for p in partitions
         j = 0
@@ -42,8 +42,9 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 function partition_graph(subgraphs, partitions)
-    g = MetaGraph(Graph(); Label=String,
-                           VertexData = @NamedTuple{maximal::Bool})
+    g = MetaGraph(Graph();
+            label_type       = String,
+            vertex_data_type = @NamedTuple{maximal::Bool})
     for (i,p) in enumerate(partitions)
         @assert i == p.kidx
         add_vertex!(g, p.klab, (;maximal=p.maximal))
@@ -68,8 +69,8 @@ end
 # effectively, this is an alternative to multigraphs.
 function split_nonmaximal_nodes(kg::MetaGraph)
     kg′ = MetaGraph(Graph();
-                  Label=Tuple{String, Int},
-                  VertexData=@NamedTuple{klab::String, code::Int, maximal::Bool})
+                    label_type       = Tuple{String, Int},
+                    vertex_data_type = @NamedTuple{klab::String, code::Int, maximal::Bool})
     for i in vertices(kg)
         klab = label_for(kg, i)
         kg[klab].maximal || break # assume that all non-maximal k-points come in sequence
