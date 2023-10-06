@@ -43,8 +43,9 @@ for (f, rel_shorthand, rel_kind, doctxt) in
         The resulting group structure can be plotted using Makie.jl (e.g., GLMakie.jl) using
         [`plot(::GroupRelationGraph)`](@ref):
         ```jl
-        julia> using Crystalline, GLMakie
+        julia> using Crystalline
         julia> gr = $($f)(112, SpaceGroup{3})
+        julia> using GraphMakie, GLMakie
         julia> plot(gr)
         ```
         ## Keyword arguments
