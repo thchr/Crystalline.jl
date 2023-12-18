@@ -641,6 +641,23 @@ type is `REAL` it is `false`; if the reality type is `PSEUDOREAL` or `COMPLEX` i
 """
 iscorep(ir::AbstractIrrep) = ir.iscorep
 
+"""
+    ⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep --> T
+
+Compute the representation obtained from direct sum of the irreps `ir1`, `ir2`, `ir3`, etc.
+The resulting representation is reducible and has dimension
+`irdim(ir1)+irdim(ir2)+irdim(ir3)+...`.
+
+The groups of the provided irreps must be identical.
+If `T isa LGIrrep`, the irrep translation factor must also be identical (due to a technical
+limitation of the `LGIrrep` data structure).
+
+Also provided via `Base.:+`.
+"""
+⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = ⊕(⊕(ir1, ir2), ir3...)
+Base.:+(ir1::T, ir2::T) where T<:AbstractIrrep = ⊕(ir1, ir2)
+Base.:+(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = +(+(ir1, ir2), ir3...)
+
 # --- Point group irreps ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
