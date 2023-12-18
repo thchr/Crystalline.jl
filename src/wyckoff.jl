@@ -82,7 +82,7 @@ SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
 The group structure of a `SiteGroup` can be inspected with `MultTable`:
 ```jldoctest sitegroup
 julia> MultTable(g)
-3×3 MultTable{2}:
+3×3 MultTable{SymOperation{2}}:
 ──────────┬──────────────────────────────
           │        1  {3⁺|1,1}  {3⁻|0,1} 
 ──────────┼──────────────────────────────
