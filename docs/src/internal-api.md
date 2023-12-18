@@ -12,5 +12,6 @@ CurrentModule = Crystalline
 ```@autodocs
 Modules = [Crystalline]
 Private = true
+Public  = false
 Order   = [:type, :function, :constant]
 ```
