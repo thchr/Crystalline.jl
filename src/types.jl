@@ -612,7 +612,6 @@ Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `m
 `irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
-(ir::AbstractIrrep)(αβγ=nothing) = deepcopy(ir.matrices)
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices
@@ -649,11 +648,11 @@ iscorep(ir::AbstractIrrep) = ir.iscorep
 
 Compute the representation obtained from direct sum of the irreps `ir1`, `ir2`, `ir3`, etc.
 The resulting representation is reducible and has dimension
-`irdim(ir1)+irdim(ir2)+irdim(ir3)+...`.
+`irdim(ir1) + irdim(ir2) + irdim(ir3) + …`.
 
 The groups of the provided irreps must be identical.
-If `T isa LGIrrep`, the irrep translation factor must also be identical (due to a technical
-limitation of the `LGIrrep` data structure).
+If `T isa LGIrrep`, the irrep translation factors must also be identical (due to an
+implementation detail of the `LGIrrep` type).
 
 Also provided via `Base.:+`.
 """

@@ -65,6 +65,7 @@ export SymOperation,                        # types
        klabel, characters,                  # ::AbstractIrrep
        classcharacters,
        label, reality, group,
+       ⊕,
        israyrep,                            # ::LGIrrep
        isspecial,
        dim, parts,                          # ::KVec & RVec
