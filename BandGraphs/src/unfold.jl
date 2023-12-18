@@ -74,6 +74,12 @@ end
 
 # WIP below: aim was to remove the nonmaximal vertices and replace them with edge info; but
 #            stalled due to problem in "NB" below.
+# tricky bits include:
+#       - correctly deal with two max-irreps of high-degen being connected by
+#         multiple low-degen nonmax-irreps (e.g., `sgnum = 147; brs[end]`);
+#       - if a max-manifold is not connected via a nonmax manifold, should it be pruned
+#         (e.g., `sgnum = 6`) or connected via Ω? The latter seems preferable for
+#         connectivity analysis
 function edgify_nonmax_vertices(g_trail)
     # FIXME: This does not work in general since the general case would require us to have a
     #        multigraph structure. To see this, consider e.g. the case that we have an irrep

@@ -70,8 +70,8 @@ timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirs
 _n = brs[end-1]
 n = SymVector(_n, brs.irlabs, lgirsd)
 
-f1, ax, plot_data = plot_flattened_bandgraph(n, lgirsd)
-f1
+faxp1, plot_data = plot_flattened_bandgraph(n, lgirsd)
+f1, ax1, p1 = faxp1
 # TODO: Debug visualization of SG 230
 
 ## ----------------------------------------------------------------------------------------
@@ -87,10 +87,14 @@ permuted_subgraphs = vcat(
     permuted_subgraph,
     subgraphs[p_idx+1:end])
 
-f2, _ = plot_flattened_bandgraph(subgraphs, partitions)
+xys = (plot_data.xs, plot_data.ys)
+faxp2, _ = plot_flattened_bandgraph(permuted_subgraphs, partitions; xys=xys)
+f2, ax2, p2 = faxp2
 
 display(GLMakie.Screen(), f1)
 display(GLMakie.Screen(), f2) # open both
+make_vertices_dragable!(ax2, p2)
+
 ## ----------------------------------------------------------------------------------------
 # Understanding how many permutations remain
 
@@ -106,17 +110,5 @@ let sgnum = 73
         join(stdout, string.(length.(subgraphsp)) .* subgraph_klabs, ", ")
         println(" ⇒ ", prod(length.(subgraphsp)))
     end
+    # TODO: the above can segfault?
 end
-
-## ----------------------------------------------------------------------------------------
-## TODO: prune non-maximal vertices while retaining connectivity
-# tricky bits include:
-#       - fails if any nonmax manifolds is not a line (e.g., plane) (e.g., `sgnum = 3`);
-#         similar, but physically unrelated, failure when a k-line connects three irreps
-#         where one of the three irreps is a "monodromy"-repetition.
-#         can be fixed by using on output of `unfold_bandgraph` or 
-#       - doesn't correctly deal with two max-irreps of high-degen being connected by
-#         multiple low-degen nonmax-irreps (e.g., `sgnum = 147; brs[end]`);
-#       - if a max-manifold is not connected via a nonmax manifold, should it be pruned
-#         (e.g., `sgnum = 6`) or connected via Ω? The latter seems preferable for
-#         connectivity analysis

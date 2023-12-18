@@ -37,19 +37,21 @@ end
 
 function plot_flattened_bandgraph(
             subgraphs  :: AbstractVector{SubGraph{D}},
-            partitions :: AbstractVector{Partition{D}}
+            partitions :: AbstractVector{Partition{D}};
+            xys = nothing
             ) where D
 
     # compute a path `kg` that connects all required maximal and nonmaximal k manifolds
     kg = partition_graph(subgraphs, partitions)
 
-    plot_flattened_bandgraph(subgraphs, partitions, kg)
+    plot_flattened_bandgraph(subgraphs, partitions, kg; xys)
 end
 
 function plot_flattened_bandgraph(
             subgraphs  :: AbstractVector{SubGraph{D}},
             partitions :: AbstractVector{Partition{D}},
-            kg         :: MetaGraph # ::(!IsDirected)
+            kg         :: MetaGraph; # ::(!IsDirected)
+            xys = nothing
             ) where D
 
     # compute a directed acyclic graph `g_trail` that "unfolds" or "flattens" the original
@@ -62,8 +64,12 @@ function plot_flattened_bandgraph(
     # same frequency/y-position for the irreps; we do not require the same of nonmaximal
     # irrep nodes, since a notion of fixed frequency-position does not apply to those
     # manifolds (lines/planes, etc)
-    force_equal_layers = find_equal_maximal_layers(klabs_trail, partitions)
-    xs, ys, _ = solve_positions(Zarate(), g_trail; force_equal_layers)
+    if isnothing(xys)
+        force_equal_layers = find_equal_maximal_layers(klabs_trail, partitions)
+        xs, ys, _ = solve_positions(Zarate(), g_trail; force_equal_layers)
+    else
+        xs, ys = xys
+    end
     
     plot_flattened_bandgraph(g_trail, klabs_trail, xs, ys)
 end
@@ -111,7 +117,7 @@ function plot_flattened_bandgraph(
         l[1]
     end
     graphcol = Makie.RGBf(.1,.2,.6) # color of main elements in graph
-    graphplot!(ax, g_trail; 
+    p = graphplot!(ax, g_trail; 
             layout = _->xy,
             arrow_size = 0,
             nlabels = nlabels,
@@ -129,7 +135,8 @@ function plot_flattened_bandgraph(
     Makie.hidedecorations!(ax)  # hides ticks, grid and labels
     Makie.hidespines!(ax)
 
-    return f, ax, (g_trail, klabs_trail, xs, ys)
+    faxp = Makie.FigureAxisPlot(f, ax, p)
+    return faxp, (; g_trail, klabs_trail, xs, ys)
 end
 
 function find_equal_maximal_layers(klabs_trail, partitions)
