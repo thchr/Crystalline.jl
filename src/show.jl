@@ -467,11 +467,11 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_name_alignment = :l,
+        row_label_alignment = :l,
         alignment = :c, 
         highlighters = (h_odd, h_μ), 
         header_crayon = crayon"bold"
-        # TODO: Would be nice to highlight the `row_names` in a style matching the contents,
+        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 
