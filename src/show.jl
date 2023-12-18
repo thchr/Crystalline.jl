@@ -162,7 +162,9 @@ end
 function _print_group_descriptor(io::IO, g::AbstractGroup; prefix::AbstractString="")
     print(io, prefix)
     g isa GenericGroup && return nothing
-    print(io, "⋕", num(g), " (", label(g), ")")
+    print(io, "⋕")
+    join(io, num(g), '.') # this slightly odd approach to treat magnetic groups also
+    print(io, " (", label(g), ")")
     if position(g) !== nothing
         print(io, " at ")
         print(io, fullpositionlabel(g))
