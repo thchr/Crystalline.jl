@@ -119,3 +119,30 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
 
     return Ps_list, τs_list, realities_list, cdmls_list
 end
+
+# ---------------------------------------------------------------------------------------- #
+# Misc functions with `LGIrrep`
+
+
+
+function ⊕(lgir1::LGIrrep{D}, lgir2::LGIrrep{D}) where D
+    if position(lgir1) ≠ position(lgir2) || num(lgir1) ≠ num(lgir2) || order(lgir1) ≠ order(lgir2)
+        error("The direct sum of two LGIrreps requires identical little groups")
+    end
+    if lgir1.translations ≠ lgir2.translations
+        error("The provided LGIrreps have different translation-factors and cannot be \
+               combined within a single translation factor system")
+    end
+    
+    cdml = label(lgir1)*"⊕"*label(lgir2)
+    g   = group(lgir1)
+    T   = eltype(eltype(lgir1.matrices))
+    z12 = zeros(T, irdim(lgir1), irdim(lgir2))
+    z21 = zeros(T, irdim(lgir2), irdim(lgir1))
+    matrices = [[m1 z12; z21 m2] for (m1, m2) in zip(lgir1.matrices, lgir2.matrices)]
+    translations = lgir1.translations
+    reality = UNDEF
+    iscorep = lgir1.iscorep || lgir2.iscorep
+
+    return LGIrrep{D}(cdml, g, matrices, translations, reality, iscorep)
+end
