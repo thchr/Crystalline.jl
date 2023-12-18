@@ -209,7 +209,7 @@ return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
 
 Results are returned as a `view` into the input vector (i.e. as an 
 `AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can be retrieved via
-`position`.
+[`position`](@ref).
 
 ## Definition
 A Wyckoff position is maximal if its site symmetry group has higher order than the site

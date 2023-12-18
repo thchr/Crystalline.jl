@@ -84,7 +84,8 @@ export @S_str, spacegroup, compose,
        pointgroup,
        reduce_ops,
        issubgroup, isnormal,
-       generate, generators
+       generate, generators,
+       position # to appear in docs, must be re-exported, even though it extends Base
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian

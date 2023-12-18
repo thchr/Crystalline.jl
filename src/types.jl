@@ -587,7 +587,7 @@ $(TYPEDSIGNATURES)
 
 Return the cosets of a `SiteGroup` `g`.
 
-The cosets generate the orbit of the Wyckoff position `position(g)` (see
+The cosets generate the orbit of the Wyckoff position [`position(g)`](@ref) (see also
 [`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
 group, jointly with the operations in `g` itself.
 """
