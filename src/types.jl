@@ -868,9 +868,9 @@ struct BandRep <: AbstractVector{Int}
                            # entries correspond to an element in the band representation
     irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
-position(BR::BandRep)    = BR.wyckpos
-sitesym(BR::BandRep)     = BR.sitesym
-label(BR::BandRep)       = BR.label
+Base.position(BR::BandRep) = BR.wyckpos
+sitesym(BR::BandRep) = BR.sitesym
+label(BR::BandRep) = BR.label
 irreplabels(BR::BandRep) = BR.irlabs
 
 """
@@ -881,7 +881,7 @@ Return the number of bands included in the provided `BandRep`.
 If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
 band connectivity μ.
 """
-dim(BR::BandRep)     = BR.dim
+dim(BR::BandRep) = BR.dim
 
 # define the AbstractArray interface for BandRep
 size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
