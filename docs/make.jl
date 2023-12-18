@@ -23,7 +23,8 @@ makedocs(
         "Bravais types & bases" => "bravais.md",
         "Band representations"  => "bandreps.md",
         "Lattices"              => "lattices.md",
-        "API"                   => "api.md"
+        "API"                   => "api.md",
+        "Internal API"          => "internal-api.md",
     ]
 )
 

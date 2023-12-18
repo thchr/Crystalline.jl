@@ -84,8 +84,7 @@ export @S_str, spacegroup, compose,
        pointgroup,
        reduce_ops,
        issubgroup, isnormal,
-       generate, generators,
-       position # to appear in docs, must be re-exported, even though it extends Base
+       generate, generators
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
@@ -139,6 +138,10 @@ export SubperiodicGroup, subperiodicgroup
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups
+
+# some functions are extensions of base-owned names; we need to (re)export them in order to 
+# get the associated docstrings listed by Documeter.jl
+export position, inv
 
 # ---------------------------------------------------------------------------------------- #
 # EXTENSIONS AND JLD-FILE INITIALIZATION

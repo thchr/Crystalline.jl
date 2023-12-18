@@ -15,5 +15,6 @@ Pages = ["operations.md",
          "bravais.md",
          "bandreps.md",
          "lattices.md",
-         "api.md"]
+         "api.md",
+         "internal-api.md"]
 ```
