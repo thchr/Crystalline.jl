@@ -475,7 +475,7 @@ IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
 order(g::AbstractGroup) = length(g)
 
 # fall-back for groups without an associated position notion (for dispatch)
-position(g::AbstractGroup) = nothing
+position(::AbstractGroup) = nothing
 
 # sorting
 sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
@@ -614,9 +614,9 @@ abstract type AbstractIrrep{D} end
 (ir::AbstractIrrep)(αβγ=nothing) = deepcopy(ir.matrices)
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
-matrices(ir::AbstractIrrep) = ir.matrices    
+matrices(ir::AbstractIrrep) = ir.matrices
 reality(ir::AbstractIrrep) = ir.reality
-translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
+translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
@@ -629,6 +629,8 @@ function klabel(cdml::String)
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
 end
+(ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
+
 """
     $TYPEDSIGNATURES --> Bool
 
@@ -674,12 +676,6 @@ function PGIrrep{D}(cdml::String, pg::PointGroup{D}, matrices::Vector{Matrix{Com
     PGIrrep{D}(cdml, pg, matrices, reality, false)
 end
 
-# printing
-function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
-    P = pgir.matrices[i]
-    prettyprint_scalar_or_matrix(io, P, prefix, false)
-end
-
 # --- Little group irreps ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -709,85 +705,6 @@ isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
-
-function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
-    P = lgir.matrices
-    τ = lgir.translations
-    if !iszero(τ)
-        k = position(lgir)(αβγ)
-        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
-        for (i,τ′) in enumerate(τ)
-            if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
-                # NOTE/TODO/FIXME:
-                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
-                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
-                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
-                # own _publications_?!).
-                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
-                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
-                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
-                # operations acting _inversely_ on functions of spatial coordinates and
-                # Bloch phases exp(i𝐤⋅𝐫).
-                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
-                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
-                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
-                # this is probably the sanest choice for this dataset.
-                # This weird state of affairs was also noted explicitly by Chen Fang in
-                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
-                #
-                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
-                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
-                # to account for this difference. It is not enough just to swap the sign
-                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
-                # to account for the fact that it would be -β⁻¹τ that appears in the 
-                # inverse operation, not just τ. Same applies here, if you want to 
-                # adopt the other convention, it should probably not just be a swap 
-                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-            end
-        end
-    end
-    # FIXME: Attempt to flip phase convention. Does not pass tests.
-    #=
-    lg = group(lgir)
-    if !issymmorph(lg)
-        k = position(lgir)(αβγ)
-        for (i,op) in enumerate(lg)
-            P[i] .* cis(-4π*dot(k, translation(op)))
-        end
-    end
-    =#
-
-    return P
-end
-
-"""
-    israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
-
-Computes whether a given little group irrep `ir` is a ray representation 
-by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
-from unity, we consider the little group irrep a ray representation
-(as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
-The function returns a boolean (true => ray representation) and the
-coefficient matrix αᵢⱼ.
-"""
-function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
-    k = position(lgir)(αβγ)
-    lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
-    Nₒₚ = length(lg)
-    α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
-    # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
-    #       here, given the tricks we then perform subsequently?
-    mt = MultTable(primitivize(lg)) 
-    for (row, oprow) in enumerate(lg)
-        for (col, opcol) in enumerate(lg)
-            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt.table[row,col]])
-            ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
-            α[row,col] = cis(ϕ)
-        end
-    end
-    return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
-end
 
 
 # ---------------------------------------------------------------------------------------- #

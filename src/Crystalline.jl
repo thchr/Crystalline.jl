@@ -66,7 +66,7 @@ export SymOperation,                        # types
        classcharacters,
        label, reality, group,
        israyrep,                            # ::LGIrrep
-       isspecial, translations,
+       isspecial,
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
