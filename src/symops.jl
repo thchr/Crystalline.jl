@@ -376,8 +376,8 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 
-The multiplication operator [`*`](@ref) is overloaded for `SymOperation`s to call `compose`,
-in the manner `op1 * op2 = compose(op1, op2, modτ=true)`.
+The multiplication operator `*` is overloaded for `SymOperation`s to call `compose`, in the
+manner `op1 * op2 = compose(op1, op2, modτ=true)`.
 """
 function compose(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
     T(compose(unpack(op1)..., unpack(op2)..., modτ)...)
@@ -847,13 +847,29 @@ end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in
 #       many usecases
+"""
+    reduce_ops(ops::AbstractVector{SymOperation{D}},
+               cntr::Char,
+               conv_or_prim::Bool=true,
+               modw::Bool=true) --> Vector{SymOperation{D}}
+
+Reduce the operations `ops`, removing operations that are identical in the primitive basis
+associated with the centering `cntr`. 
+
+If `conv_or_prim = false`, the reduced operations are returned in the primitive basis
+associated with `cntr`; otherwise, in the conventional.
+If `modw = true`, the comparison in the primitive basis is done modulo unit primitive
+lattice vectors; otherwise not.
+A final argument of type `::Val{P}` can be specified to indicate a subperiodic group of
+periodicity dimension `P`, different from the spatial embedding dimension `D`.
+"""
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
                     conv_or_prim::Bool=true, modw::Bool=true,
                     ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
     
     P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
     # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
-    # for each SymOperation]
+    # for each SymOperation
     ops′ = transform.(ops, Ref(P), nothing, modw)
 
     # remove equivalent operations
@@ -1067,8 +1083,7 @@ Return the group generated from a finite set of generators `gens`.
 
 ## Keyword arguments
 - `cntr` (default, `nothing`): check equivalence of operations modulo primitive lattice
-  vectors (see also 
-  [`isapprox(::SymOperation{D}, ::SymOperation{D}, cntr::Union{Nothing, Char}) where D`](@ref)); 
+  vectors (see also `isapprox(::SymOperation, ::SymOperation, cntr::Union{Nothing, Char})`; 
   only nonequivalent operations are included in the returned group.
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this

@@ -33,7 +33,7 @@ The [`SymmetryBases.jl`](https://github.com/thchr/SymmetryBases.jl) package prov
 CurrentModule = Crystalline
 ```
 
-```@docs
+```@docs; canonical=false
 bandreps
 classification
 nontrivial_factors

@@ -11,6 +11,9 @@ using StaticArrays
 # ---------------------------------------------------------------------------------------- #
 # Site symmetry irreps
 
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct SiteIrrep{D} <: AbstractIrrep{D}
     cdml     :: String
     g        :: SiteGroup{D}
@@ -19,7 +22,7 @@ struct SiteIrrep{D} <: AbstractIrrep{D}
     iscorep  :: Bool
     pglab    :: String
 end
-position(siteir::SiteIrrep) = position(group(siteir))
+Base.position(siteir::SiteIrrep) = position(group(siteir))
 
 """
     siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}

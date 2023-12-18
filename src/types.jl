@@ -28,8 +28,23 @@ end
 SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 SymOperation{D}(t::AbstractVector{<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
+"""
+    rotation(op::SymOperation{D}) --> SMatrix{D, D, Float64}
+
+Return the `D`×`D`` rotation part of `op`.
+"""
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
+"""
+    translation(op::SymOperation{D}) --> SVector{D, Float64}
+
+Return the `D`-dimensional translation part of `op`.
+"""
 translation(op::SymOperation{D}) where D = op.translation
+"""
+    matrix(op::SymOperation{D}) --> SMatrix{D, D+1, Float64}
+
+Return the `D`×`D+1` matrix representation of `op`.
+"""
 matrix(op::SymOperation{D}) where D = 
     SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
                                        translation(op)...))
@@ -461,6 +476,16 @@ end
 # AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup
 # ---------------------------------------------------------------------------------------- #
 
+"""
+$(TYPEDEF)
+
+The abstract supertype of all group structures.
+
+Minimum interface includes definitions of:
+    - `num(::AbstractGroup)`, returning an integer or tuple of integers.
+    - `operations(::AbstractGroup)`, returning a set of operations.
+or, alternatively, fields with names `num` and `operations`, behaving accordingly.
+"""
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
 num(g::AbstractGroup) = g.num
@@ -476,8 +501,20 @@ IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
 # common `AbstractGroup` utilities
 order(g::AbstractGroup) = length(g)
 
-# fall-back for groups without an associated position notion (for dispatch)
-position(::AbstractGroup) = nothing
+# fall-back for groups without an associated position notion (for dispatch); this extends
+# `Base.position` rather than introducing a new `position` function due to
+# https://github.com/JuliaLang/julia/issues/33799
+"""
+    position(x::Union{AbstractGroup, AbstractIrrep})
+
+If a position is associated with `x`, return it; if no position is associated, return
+`nothing`.
+
+Applicable cases include `LittleGroup` (return the associated **k**-vector) and `SiteGroup`
+(returns the associated Wyckoff position), as well as their associated irrep types
+(`LGIrrep` and `SiteIrrep`).
+"""
+Base.position(::AbstractGroup) = nothing
 
 # sorting
 sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
@@ -527,13 +564,16 @@ struct LittleGroup{D} <: AbstractGroup{D}
 end
 LittleGroup(num::Integer, kv::KVec{D}, klab::AbstractString, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
 LittleGroup(num::Integer, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
-position(lg::LittleGroup) = lg.kv
+Base.position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup) = iuc(num(lg), dim(lg))
 orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
                                centering(num(lg), dim(lg)))
 
 # --- Site symmetry group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct SiteGroup{D} <: AbstractGroup{D}
     num::Int
     wp::WyckoffPosition{D}
@@ -553,12 +593,7 @@ group, jointly with the operations in `g` itself.
 """
 cosets(g::SiteGroup) = g.cosets
 
-"""
-$(TYPEDSIGNATURES)
-
-Return the Wyckoff position associated with a `SiteGroup`.
-"""
-position(g::SiteGroup) = g.wp
+Base.position(g::SiteGroup) = g.wp
 
 
 # --- "position labels" of LittleGroup and SiteGroups ---
@@ -617,6 +652,11 @@ abstract type AbstractIrrep{D} end
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices
+"""
+    reality(ir::AbstractIrrep) --> Reality
+
+Return the reality of `ir` (see []`Reality`](@ref)).
+"""
 reality(ir::AbstractIrrep) = ir.reality
 translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
@@ -702,7 +742,7 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-position(lgir::LGIrrep) = position(group(lgir))
+Base.position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),

@@ -26,3 +26,8 @@ Modules = [Crystalline]
 Private = false
 Order   = [:constant]
 ```
+
+## Unexported functionality
+```@docs
+Crystalline.AbstractGroup{D}
+```

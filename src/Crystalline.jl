@@ -22,7 +22,6 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              *, +, -, ==, ImmutableDict,
              isone, one,
              convert, parent,
-             position,                 # cf. https://github.com/JuliaLang/julia/issues/33799
              sort!
 import LinearAlgebra: inv
 
