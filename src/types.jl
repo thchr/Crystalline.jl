@@ -597,6 +597,7 @@ real" irreps (co-reps) via [`realify`](@ref).
     REAL       = 1
     PSEUDOREAL = -1
     COMPLEX    = 0
+    UNDEF      = 2 # for irreps that are artificially joined together (e.g., by ⊕)
 end
 
 # ---------------------------------------------------------------------------------------- #
