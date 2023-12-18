@@ -104,10 +104,12 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct MultTable{D} <: AbstractMatrix{SymOperation{D}}
-    operations::Vector{SymOperation{D}}
+struct MultTable{O} <: AbstractMatrix{O}
+    operations::Vector{O}
     table::Matrix{Int} # Cayley table: indexes into `operations`
 end
+MultTable(ops::Vector{O}, table) where O = MultTable{O}(ops, Matrix{Int}(table))
+MultTable(ops, table) = (O=typeof(first(ops)); MultTable(collect(O, ops), table))
 @propagate_inbounds function getindex(mt::MultTable, i::Int)
     mtidx = mt.table[i]
     return mt.operations[mtidx]

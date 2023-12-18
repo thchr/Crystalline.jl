@@ -457,20 +457,19 @@ end
 
 
 """
-    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true)
+    MultTable(ops::AbstractVector, modτ=true)
 
-Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
-`SymOperation{D}`s.
-The `modτ` keyword argument controls whether composition of operations is taken modulo
-lattice vectors (`true`, default) or not (`false`).
+Compute the multiplication (or Cayley) table of `ops`, an iterable of `SymOperation`s.
 
-A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
+A `MultTable` is returned, which contains symmetry operations resulting from composition 
 of `row` and `col` operators; the table of indices give the symmetry operators relative to
 the ordering of `ops`.
+
+## Keyword arguments
+- `modτ` (default: `true`): whether composition of operations is taken modulo lattice
+vectors (`true`) or not (`false`).
 """
-function MultTable(ops::AbstractVector{SymOperation{D}};
-                   modτ::Bool=true) where D
-    havewarned = false
+function MultTable(ops; modτ::Bool=true)
     N = length(ops)
     table = Matrix{Int}(undef, N,N)
     for (row,oprow) in enumerate(ops)
@@ -478,12 +477,12 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
             op′ = compose(oprow, opcol, modτ)
             match = findfirst(≈(op′), ops)
             if isnothing(match)
-                throw(DomainError(ops, "provided operations do not form a group"))
+                throw(DomainError(ops, "provided operations do not form a group; group does not contain $op′"))
             end
             @inbounds table[row,col] = match
         end
     end
-    return MultTable{D}(ops, table)
+    return MultTable(ops, table)
 end
 
 
