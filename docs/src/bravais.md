@@ -35,10 +35,7 @@ reciprocalbasis
 ### Transformations
 ```@docs
 primitivebasismatrix
-transform(::DirectBasis, ::AbstractMatrix{<:Real})
-transform(::ReciprocalBasis, ::AbstractMatrix{<:Real})
-transform(::DirectPoint, ::AbstractMatrix{<:Real})
-transform(::ReciprocalPoint, ::AbstractMatrix{<:Real})
+transform
 primitivize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
 primitivize(::DirectBasis, ::Union{Char, <:Integer})
 primitivize(::ReciprocalBasis, ::Union{Char, <:Integer})
