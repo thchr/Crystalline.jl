@@ -10,8 +10,10 @@ CurrentModule = Bravais
 
 ### Types
 ```@docs
+AbstractBasis
 DirectBasis
 ReciprocalBasis
+AbstractPoint
 DirectPoint
 ReciprocalPoint
 ```
@@ -47,6 +49,17 @@ conventionalize(::DirectBasis, ::Union{Char, <:Integer})
 conventionalize(::ReciprocalBasis, ::Union{Char, <:Integer})
 conventionalize(::DirectPoint, ::Union{Char, <:Integer})
 conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
+cartesianize
+cartesianize!
+latticize
+latticize!
+```
+
+### Miscellaneous
+```@docs
+volume
+metricmatrix
+stack
 ```
 
 ## Crystalline.jl extensions of Bravais.jl functions

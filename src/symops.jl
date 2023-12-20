@@ -606,7 +606,16 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
     end
     return idxlist, view(ops, idxlist)
 end
-function littlegroup(sg::SpaceGroup, kv::KVec) 
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the little group associated with space group `sg` at the **k**-vector `kv`.
+
+Optionally, an associated **k**-vector label `klab` can be provided; if not provided, the
+empty string is used as label.
+"""
+function littlegroup(sg::SpaceGroup, kv::KVec, klab::String="") 
     _, lgops = littlegroup(operations(sg), kv, centering(sg))
     return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
