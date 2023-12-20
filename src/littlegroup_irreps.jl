@@ -66,7 +66,7 @@ as values.
   the matrices associated with `lgir` will be evaluated assuming `αβγ = [0,0,...]`.
 
 ## References
-The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite original
+The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite the original
 reference material associated with ISO-IR:
 
 1. Stokes, Hatch, & Campbell, 
@@ -138,14 +138,14 @@ function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothin
                 # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
                 # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
                 # own _publications_?!).
-                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
+                # In these other references one has Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
                 # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
                 # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
                 # operations acting _inversely_ on functions of spatial coordinates and
                 # Bloch phases exp(i𝐤⋅𝐫).
                 # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
                 # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
-                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
+                # explicated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
                 # this is probably the sanest choice for this dataset.
                 # This weird state of affairs was also noted explicitly by Chen Fang in
                 # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).

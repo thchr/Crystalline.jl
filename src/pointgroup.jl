@@ -417,9 +417,9 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
 end
 
 """
-    $TYPEDSIGNATURES --> Vector{UnitRange}
+    _find_equal_groups_in_sorted(v::AbstractVector) --> Vector{UnitRange}
 
-Returns indices into groups of equal values in `v`. Input `v` *must be* sorted so that
+Returns indices into groups of equal values in `v`. Input `v` *must* be sorted so that
 identical values are adjacent.
 
 ## Example

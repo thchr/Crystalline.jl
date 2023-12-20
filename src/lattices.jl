@@ -184,13 +184,12 @@ end
     _orbit(Ws, x)
 
 Computes the orbit of a direct-space point `x` under a set of point-group operations `Ws`,
-i.e. computes the set ``{gx | g∈G}`` where `g` denotes elements of the group
-`G` composed of all operations in `Ws` (possibly iterated, to ensure
-full coverage).
+i.e. computes the set {gx | g∈G} where g denotes elements of the group G composed of all
+operations in `Ws` (possibly iterated, to ensure full coverage).
 
 It is important that `Ws` and `x` are given in the same basis. 
 
-[W' = PWP⁻¹ if the basis change is from coordinates r to r' = Pr, corresponding 
+[``W' = PWP⁻¹`` if the basis change is from coordinates r to r' = Pr, corresponding 
 to a new set of basis vectors (x̂')ᵀ=x̂ᵀP; e.g., when going from a direct basis
 representation to a Cartesian one, the basis change matrix is P = [R₁ R₂ R₃],
 with Rᵢ inserted as column vectors]
