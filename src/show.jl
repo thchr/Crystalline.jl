@@ -162,7 +162,9 @@ end
 function _print_group_descriptor(io::IO, g::AbstractGroup; prefix::AbstractString="")
     print(io, prefix)
     g isa GenericGroup && return nothing
-    print(io, "⋕", num(g), " (", label(g), ")")
+    print(io, "⋕")
+    join(io, num(g), '.') # this slightly odd approach to treat magnetic groups also
+    print(io, " (", label(g), ")")
     if position(g) !== nothing
         print(io, " at ")
         print(io, fullpositionlabel(g))
@@ -191,6 +193,7 @@ function prettyprint_group_header(io::IO, g::AbstractGroup)
     end
     println(io)
 end
+
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
                                       ϕabc_contrib::Bool=false)
     if size(printP) == (1,1) # scalar case
@@ -203,6 +206,7 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
         compact_print_matrix(io, printP, prefix, formatter)
     end
 end
+
 function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
                                     atol::Real=DEFAULT_ATOL)
 
@@ -235,6 +239,7 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
         #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
+
 function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
     # unpack
     k₀, kabc = parts(position(group(lgir)))
@@ -282,6 +287,12 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
         end
     end
 end
+
+function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
+    P = pgir.matrices[i]
+    prettyprint_scalar_or_matrix(io, P, prefix, false)
+end
+
 function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
                                   nindent::Integer, nboxdelims::Integer=45)  
     indent = repeat(" ", nindent)
@@ -301,6 +312,7 @@ function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep},
     end
     print(io, "\n", indent, " └", boxdelims)
 end
+
 function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Integer=45)
     println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
 end
@@ -457,11 +469,11 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_name_alignment = :l,
+        row_label_alignment = :l,
         alignment = :c, 
         highlighters = (h_odd, h_μ), 
         header_crayon = crayon"bold"
-        # TODO: Would be nice to highlight the `row_names` in a style matching the contents,
+        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 

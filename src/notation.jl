@@ -478,7 +478,7 @@ Return the Mulliken label of a point group irrep `pgir`.
 
 ## Notes
 This functionality is a simple mapping between the tabulated CDML point group irrep labels
-and associated Mulliken labels, using the listings at the Bilbao Crystallographic
+and associated Mulliken labels, using the listings from the Bilbao Crystallographic
 Database [^1].
 
 Ignoring subscript, the rough rules associated with assignment of Mulliken labels are:
@@ -486,15 +486,15 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 1. **Irrep dimensionality**: 
     - **1D irreps**: if a real irrep, assign A or B (B if antisymmetric under a principal 
       rotation); if a complex irrep, assigned label ¹E or ²E.
-    - **2D irreps**: assign label E
-    - **3D irreps**: assign label T
+    - **2D irreps**: assign label E.
+    - **3D irreps**: assign label T.
 2. **_u_ and _g_ subscripts**: if the group contains inversion, indicate whether irrep is
-   symmetric (g ~ gerade) or antisymmetric (ᵤ ~ ungerade) under inversion.
+   symmetric (g ~ gerade) or antisymmetric (u ~ ungerade) under inversion.
 3. **Prime superscripts**: if the group contains a mirror *m* aligned with a principal 
    rotation axis, but does *not* contain inversion, indicate whether irrep is symmetric (′) 
    or antisymmetric (′′) under this mirror.
 4. **Numeral subscripts**: the rules for assignment of numeral subscripts are too
-   too complicated in general - and indeed, we are unaware of a general coherent rule -- to
+   complicated in general - and indeed, we are unaware of a general coherent rule -- to
    describe here.
 
 ## References

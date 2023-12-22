@@ -408,7 +408,7 @@ function calc_reality(lgir::LGIrrep{D},
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
     isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
     
-    return Reality(type) # return [∑ χ({β|b}²)]/[g₀/M(k)]
+    return type ∈ (-1, 0, 1) ? Reality(type) : UNDEF # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end
 
 # Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
@@ -431,7 +431,7 @@ function calc_reality(pgir::PGIrrep)
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
     isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
 
-    return Reality(type) # return |g|⁻¹∑ χ(g²)
+    return type ∈ (-1, 0, 1) ? Reality(type) : UNDEF # return |g|⁻¹∑ χ(g²)
 end
 
 @noinline _throw_reality_not_integer(x) = error("Criterion must yield an integer; obtained non-integer value = $(x)")

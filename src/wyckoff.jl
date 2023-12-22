@@ -82,7 +82,7 @@ SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
 The group structure of a `SiteGroup` can be inspected with `MultTable`:
 ```jldoctest sitegroup
 julia> MultTable(g)
-3×3 MultTable{2}:
+3×3 MultTable{SymOperation{2}}:
 ──────────┬──────────────────────────────
           │        1  {3⁺|1,1}  {3⁻|0,1} 
 ──────────┼──────────────────────────────
@@ -208,8 +208,8 @@ Given a vector of `SiteGroup`s associated with the Wyckoff positions of a space 
 return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
 
 Results are returned as a `view` into the input vector (i.e. as an 
-`AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can subsequently be
-retrieved via [`wyck`](@ref).
+`AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can be retrieved via
+[`position`](@ref).
 
 ## Definition
 A Wyckoff position is maximal if its site symmetry group has higher order than the site

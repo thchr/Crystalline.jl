@@ -376,8 +376,8 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 
-The multiplication operator [`*`](@ref) is overloaded for `SymOperation`s to call `compose`,
-in the manner `op1 * op2 = compose(op1, op2, modτ=true)`.
+The multiplication operator `*` is overloaded for `SymOperation`s to call `compose`, in the
+manner `op1 * op2 = compose(op1, op2, modτ=true)`.
 """
 function compose(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
     T(compose(unpack(op1)..., unpack(op2)..., modτ)...)
@@ -457,20 +457,19 @@ end
 
 
 """
-    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true)
+    MultTable(ops::AbstractVector, modτ=true)
 
-Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
-`SymOperation{D}`s.
-The `modτ` keyword argument controls whether composition of operations is taken modulo
-lattice vectors (`true`, default) or not (`false`).
+Compute the multiplication (or Cayley) table of `ops`, an iterable of `SymOperation`s.
 
-A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
+A `MultTable` is returned, which contains symmetry operations resulting from composition 
 of `row` and `col` operators; the table of indices give the symmetry operators relative to
 the ordering of `ops`.
+
+## Keyword arguments
+- `modτ` (default: `true`): whether composition of operations is taken modulo lattice
+vectors (`true`) or not (`false`).
 """
-function MultTable(ops::AbstractVector{SymOperation{D}};
-                   modτ::Bool=true) where D
-    havewarned = false
+function MultTable(ops; modτ::Bool=true)
     N = length(ops)
     table = Matrix{Int}(undef, N,N)
     for (row,oprow) in enumerate(ops)
@@ -478,12 +477,12 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
             op′ = compose(oprow, opcol, modτ)
             match = findfirst(≈(op′), ops)
             if isnothing(match)
-                throw(DomainError(ops, "provided operations do not form a group"))
+                throw(DomainError(ops, "provided operations do not form a group; group does not contain $op′"))
             end
             @inbounds table[row,col] = match
         end
     end
-    return MultTable{D}(ops, table)
+    return MultTable(ops, table)
 end
 
 
@@ -607,7 +606,16 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
     end
     return idxlist, view(ops, idxlist)
 end
-function littlegroup(sg::SpaceGroup, kv::KVec) 
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the little group associated with space group `sg` at the **k**-vector `kv`.
+
+Optionally, an associated **k**-vector label `klab` can be provided; if not provided, the
+empty string is used as label.
+"""
+function littlegroup(sg::SpaceGroup, kv::KVec, klab::String="") 
     _, lgops = littlegroup(operations(sg), kv, centering(sg))
     return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
 end
@@ -848,13 +856,29 @@ end
 
 # TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in
 #       many usecases
+"""
+    reduce_ops(ops::AbstractVector{SymOperation{D}},
+               cntr::Char,
+               conv_or_prim::Bool=true,
+               modw::Bool=true) --> Vector{SymOperation{D}}
+
+Reduce the operations `ops`, removing operations that are identical in the primitive basis
+associated with the centering `cntr`. 
+
+If `conv_or_prim = false`, the reduced operations are returned in the primitive basis
+associated with `cntr`; otherwise, in the conventional.
+If `modw = true`, the comparison in the primitive basis is done modulo unit primitive
+lattice vectors; otherwise not.
+A final argument of type `::Val{P}` can be specified to indicate a subperiodic group of
+periodicity dimension `P`, different from the spatial embedding dimension `D`.
+"""
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
                     conv_or_prim::Bool=true, modw::Bool=true,
                     ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
     
     P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
     # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
-    # for each SymOperation]
+    # for each SymOperation
     ops′ = transform.(ops, Ref(P), nothing, modw)
 
     # remove equivalent operations
@@ -1068,8 +1092,7 @@ Return the group generated from a finite set of generators `gens`.
 
 ## Keyword arguments
 - `cntr` (default, `nothing`): check equivalence of operations modulo primitive lattice
-  vectors (see also 
-  [`isapprox(::SymOperation{D}, ::SymOperation{D}, cntr::Union{Nothing, Char}) where D`](@ref)); 
+  vectors (see also `isapprox(::SymOperation, ::SymOperation, cntr::Union{Nothing, Char})`; 
   only nonequivalent operations are included in the returned group.
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this

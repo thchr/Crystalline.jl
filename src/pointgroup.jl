@@ -248,6 +248,23 @@ function pgirreps(pgnum::Integer, D::Integer; kws...)
     return pgirreps(pgnum, Val(D); kws...)
 end
 
+function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D
+    if label(group(pgir1)) ≠ label(group(pgir2)) || order(pgir1) ≠ order(pgir2)
+        error("The direct sum of two PGIrreps requires identical point groups")
+    end
+    
+    pgirlab = label(pgir1)*"⊕"*label(pgir2)
+    g   = group(pgir1)
+    T   = eltype(eltype(pgir1.matrices))
+    z12 = zeros(T, irdim(pgir1), irdim(pgir2))
+    z21 = zeros(T, irdim(pgir2), irdim(pgir1))
+    matrices = [[m1 z12; z21 m2] for (m1, m2) in zip(pgir1.matrices, pgir2.matrices)]
+    reality = UNDEF
+    iscorep = pgir1.iscorep || pgir2.iscorep
+
+    return PGIrrep{D}(pgirlab, g, matrices, reality, iscorep)
+end
+
 # ---------------------------------------------------------------------------------------- #
 
 """
@@ -400,9 +417,9 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
 end
 
 """
-    $TYPEDSIGNATURES --> Vector{UnitRange}
+    _find_equal_groups_in_sorted(v::AbstractVector) --> Vector{UnitRange}
 
-Returns indices into groups of equal values in `v`. Input `v` *must be* sorted so that
+Returns indices into groups of equal values in `v`. Input `v` *must* be sorted so that
 identical values are adjacent.
 
 ## Example

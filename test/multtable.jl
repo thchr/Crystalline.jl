@@ -28,6 +28,12 @@ for LGIRS in LGIRSDIM # ... D in 1:3
 end # for LGIRS in LGIRSDIM
 end # @testset "Space groups (consistent ..."
 
+@testset "Iterable inputs" begin
+    sg = spacegroup(16)
+    sg_iter = (op for op in sg)
+    @test MultTable(sg) == MultTable(sg_iter)
+end
+
 @testset "Little groups: group property" begin
 for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS

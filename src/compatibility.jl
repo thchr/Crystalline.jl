@@ -1,5 +1,3 @@
-using Crystalline
-
 @doc raw"""
     subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int
 

@@ -28,8 +28,23 @@ end
 SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 SymOperation{D}(t::AbstractVector{<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 # extracting StaticArray representations of the symmetry operation, amenable to linear algebra
+"""
+    rotation(op::SymOperation{D}) --> SMatrix{D, D, Float64}
+
+Return the `D`×`D`` rotation part of `op`.
+"""
 rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
+"""
+    translation(op::SymOperation{D}) --> SVector{D, Float64}
+
+Return the `D`-dimensional translation part of `op`.
+"""
 translation(op::SymOperation{D}) where D = op.translation
+"""
+    matrix(op::SymOperation{D}) --> SMatrix{D, D+1, Float64}
+
+Return the `D`×`D+1` matrix representation of `op`.
+"""
 matrix(op::SymOperation{D}) where D = 
     SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
                                        translation(op)...))
@@ -104,10 +119,12 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct MultTable{D} <: AbstractMatrix{SymOperation{D}}
-    operations::Vector{SymOperation{D}}
+struct MultTable{O} <: AbstractMatrix{O}
+    operations::Vector{O}
     table::Matrix{Int} # Cayley table: indexes into `operations`
 end
+MultTable(ops::Vector{O}, table) where O = MultTable{O}(ops, Matrix{Int}(table))
+MultTable(ops, table) = (O=typeof(first(ops)); MultTable(collect(O, ops), table))
 @propagate_inbounds function getindex(mt::MultTable, i::Int)
     mtidx = mt.table[i]
     return mt.operations[mtidx]
@@ -459,6 +476,16 @@ end
 # AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup
 # ---------------------------------------------------------------------------------------- #
 
+"""
+$(TYPEDEF)
+
+The abstract supertype of all group structures.
+
+Minimum interface includes definitions of:
+    - `num(::AbstractGroup)`, returning an integer or tuple of integers.
+    - `operations(::AbstractGroup)`, returning a set of operations.
+or, alternatively, fields with names `num` and `operations`, behaving accordingly.
+"""
 abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
 num(g::AbstractGroup) = g.num
@@ -474,8 +501,20 @@ IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
 # common `AbstractGroup` utilities
 order(g::AbstractGroup) = length(g)
 
-# fall-back for groups without an associated position notion (for dispatch)
-position(g::AbstractGroup) = nothing
+# fall-back for groups without an associated position notion (for dispatch); this extends
+# `Base.position` rather than introducing a new `position` function due to
+# https://github.com/JuliaLang/julia/issues/33799
+"""
+    position(x::Union{AbstractGroup, AbstractIrrep})
+
+If a position is associated with `x`, return it; if no position is associated, return
+`nothing`.
+
+Applicable cases include `LittleGroup` (return the associated **k**-vector) and `SiteGroup`
+(returns the associated Wyckoff position), as well as their associated irrep types
+(`LGIrrep` and `SiteIrrep`).
+"""
+Base.position(::AbstractGroup) = nothing
 
 # sorting
 sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
@@ -525,13 +564,16 @@ struct LittleGroup{D} <: AbstractGroup{D}
 end
 LittleGroup(num::Integer, kv::KVec{D}, klab::AbstractString, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
 LittleGroup(num::Integer, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
-position(lg::LittleGroup) = lg.kv
+Base.position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
 label(lg::LittleGroup) = iuc(num(lg), dim(lg))
 orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
                                centering(num(lg), dim(lg)))
 
 # --- Site symmetry group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct SiteGroup{D} <: AbstractGroup{D}
     num::Int
     wp::WyckoffPosition{D}
@@ -545,18 +587,13 @@ $(TYPEDSIGNATURES)
 
 Return the cosets of a `SiteGroup` `g`.
 
-The cosets generate the orbit of the Wyckoff position `position(g)` (see
+The cosets generate the orbit of the Wyckoff position [`position(g)`](@ref) (see also
 [`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
 group, jointly with the operations in `g` itself.
 """
 cosets(g::SiteGroup) = g.cosets
 
-"""
-$(TYPEDSIGNATURES)
-
-Return the Wyckoff position associated with a `SiteGroup`.
-"""
-position(g::SiteGroup) = g.wp
+Base.position(g::SiteGroup) = g.wp
 
 
 # --- "position labels" of LittleGroup and SiteGroups ---
@@ -597,6 +634,7 @@ real" irreps (co-reps) via [`realify`](@ref).
     REAL       = 1
     PSEUDOREAL = -1
     COMPLEX    = 0
+    UNDEF      = 2 # for irreps that are artificially joined together (e.g., by ⊕)
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -611,12 +649,16 @@ Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `m
 `irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
-(ir::AbstractIrrep)(αβγ=nothing) = deepcopy(ir.matrices)
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
-matrices(ir::AbstractIrrep) = ir.matrices    
+matrices(ir::AbstractIrrep) = ir.matrices
+"""
+    reality(ir::AbstractIrrep) --> Reality
+
+Return the reality of `ir` (see []`Reality`](@ref)).
+"""
 reality(ir::AbstractIrrep) = ir.reality
-translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
+translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
@@ -629,6 +671,8 @@ function klabel(cdml::String)
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
 end
+(ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
+
 """
     $TYPEDSIGNATURES --> Bool
 
@@ -640,6 +684,23 @@ For an irrep produced by `realify`, this can be either `false` or `true`: if the
 type is `REAL` it is `false`; if the reality type is `PSEUDOREAL` or `COMPLEX` it is `true`.
 """
 iscorep(ir::AbstractIrrep) = ir.iscorep
+
+"""
+    ⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep --> T
+
+Compute the representation obtained from direct sum of the irreps `ir1`, `ir2`, `ir3`, etc.
+The resulting representation is reducible and has dimension
+`irdim(ir1) + irdim(ir2) + irdim(ir3) + …`.
+
+The groups of the provided irreps must be identical.
+If `T isa LGIrrep`, the irrep translation factors must also be identical (due to an
+implementation detail of the `LGIrrep` type).
+
+Also provided via `Base.:+`.
+"""
+⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = ⊕(⊕(ir1, ir2), ir3...)
+Base.:+(ir1::T, ir2::T) where T<:AbstractIrrep = ⊕(ir1, ir2)
+Base.:+(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = +(+(ir1, ir2), ir3...)
 
 # --- Point group irreps ---
 """
@@ -655,12 +716,6 @@ end
 function PGIrrep{D}(cdml::String, pg::PointGroup{D}, matrices::Vector{Matrix{ComplexF64}},
                     reality::Reality) where D 
     PGIrrep{D}(cdml, pg, matrices, reality, false)
-end
-
-# printing
-function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
-    P = pgir.matrices[i]
-    prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
 # --- Little group irreps ---
@@ -687,90 +742,11 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-position(lgir::LGIrrep) = position(group(lgir))
+Base.position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
-
-function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
-    P = lgir.matrices
-    τ = lgir.translations
-    if !iszero(τ)
-        k = position(lgir)(αβγ)
-        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
-        for (i,τ′) in enumerate(τ)
-            if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
-                # NOTE/TODO/FIXME:
-                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
-                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
-                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
-                # own _publications_?!).
-                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
-                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
-                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
-                # operations acting _inversely_ on functions of spatial coordinates and
-                # Bloch phases exp(i𝐤⋅𝐫).
-                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
-                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
-                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
-                # this is probably the sanest choice for this dataset.
-                # This weird state of affairs was also noted explicitly by Chen Fang in
-                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
-                #
-                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
-                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
-                # to account for this difference. It is not enough just to swap the sign
-                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
-                # to account for the fact that it would be -β⁻¹τ that appears in the 
-                # inverse operation, not just τ. Same applies here, if you want to 
-                # adopt the other convention, it should probably not just be a swap 
-                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-            end
-        end
-    end
-    # FIXME: Attempt to flip phase convention. Does not pass tests.
-    #=
-    lg = group(lgir)
-    if !issymmorph(lg)
-        k = position(lgir)(αβγ)
-        for (i,op) in enumerate(lg)
-            P[i] .* cis(-4π*dot(k, translation(op)))
-        end
-    end
-    =#
-
-    return P
-end
-
-"""
-    israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
-
-Computes whether a given little group irrep `ir` is a ray representation 
-by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
-from unity, we consider the little group irrep a ray representation
-(as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
-The function returns a boolean (true => ray representation) and the
-coefficient matrix αᵢⱼ.
-"""
-function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
-    k = position(lgir)(αβγ)
-    lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
-    Nₒₚ = length(lg)
-    α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
-    # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
-    #       here, given the tricks we then perform subsequently?
-    mt = MultTable(primitivize(lg)) 
-    for (row, oprow) in enumerate(lg)
-        for (col, opcol) in enumerate(lg)
-            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt.table[row,col]])
-            ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
-            α[row,col] = cis(ϕ)
-        end
-    end
-    return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
-end
 
 
 # ---------------------------------------------------------------------------------------- #
@@ -892,9 +868,9 @@ struct BandRep <: AbstractVector{Int}
                            # entries correspond to an element in the band representation
     irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
-position(BR::BandRep)    = BR.wyckpos
-sitesym(BR::BandRep)     = BR.sitesym
-label(BR::BandRep)       = BR.label
+Base.position(BR::BandRep) = BR.wyckpos
+sitesym(BR::BandRep) = BR.sitesym
+label(BR::BandRep) = BR.label
 irreplabels(BR::BandRep) = BR.irlabs
 
 """
@@ -905,7 +881,7 @@ Return the number of bands included in the provided `BandRep`.
 If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
 band connectivity μ.
 """
-dim(BR::BandRep)     = BR.dim
+dim(BR::BandRep) = BR.dim
 
 # define the AbstractArray interface for BandRep
 size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)

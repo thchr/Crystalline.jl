@@ -1,5 +1,5 @@
 # Groups
-All groups in Crystalline are concrete instances of the abstract supertype [`AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
+All groups in Crystalline are concrete instances of the abstract supertype [`Crystalline.AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `Crystalline.AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
 Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`PointGroup`](@ref), [`LittleGroup`](@ref), [`SubperiodicGroup`](@ref) and [`SiteGroup`](@ref).
 
 ## Example: space groups

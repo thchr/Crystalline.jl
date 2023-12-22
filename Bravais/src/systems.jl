@@ -364,8 +364,8 @@ dimension `D`.
 
 The centering type is equal to the first letter of the Hermann-Mauguin notation's label,
 i.e., `centering(sgnum, D) == first(Crystalline.iuc(sgnum, D))`. Equivalently, the
-centering type is the second and last letter of the Bravais type ([`bravais`](@ref)), i.e.,
-`centering(sgnum, D) == bravaistype(sgnum, D)`.
+centering type is the second and last letter of the Bravais type ([`bravaistype`](@ref)),
+i.e., `centering(sgnum, D) == bravaistype(sgnum, D)`.
 
 Possible values of `cntr`, depending on dimensionality `D`, are (see ITA Sec. 9.1.4):
 

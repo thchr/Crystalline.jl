@@ -5,7 +5,7 @@
 CurrentModule = Crystalline
 ```
 
-```@docs
+```@docs; canonical=false
 UnityFourierLattice
 ModulatedFourierLattice
 levelsetlattice

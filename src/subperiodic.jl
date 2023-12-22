@@ -276,7 +276,7 @@ subperiodicgroup(num::Integer, D::Integer, P::Integer) = subperiodicgroup(num, V
 Return a canonical set of generators for the subperiodic group `num` of embedding dimension
 `D` and periodicity dimension `P`. See also [`subperiodicgroup`](@ref).
 
-See also [`generators(::Integer, ::Type{SpaceGroup{D}})`](@ref) and information therein.
+See also [`generators(::Integer, ::Type{SpaceGroup})`](@ref) and information therein.
 
 ## Example
 

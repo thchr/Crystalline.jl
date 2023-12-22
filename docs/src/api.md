@@ -1,4 +1,4 @@
-# API
+# Public API
 
 ---
 
@@ -18,6 +18,13 @@ Order   = [:type]
 Modules = [Crystalline]
 Private = false
 Order   = [:function]
+```
+
+## Exported macros
+```@autodocs
+Modules = [Crystalline]
+Private = false
+Order   = [:macro]
 ```
 
 ## Exported constants

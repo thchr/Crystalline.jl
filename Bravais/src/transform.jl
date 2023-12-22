@@ -88,8 +88,9 @@ Return the transformation matrix ``\mathbf{P}`` that transforms a conventional u
 with centering `cntr` to the corresponding primitive unit cell (in dimension `D` and
 periodicity `P`) in CDML setting.
 
-If `P` is not provided, it default to `D` (as applicable to [`spacegroup`](@ref)). For
-differing `D` and `P`, the returned matrix is applicable to [`subperiodicgroup`](@ref).
+If `P` is not provided, it default to `D` (as e.g., applicable to Crystalline.jl's 
+`spacegroup`). If `D` and `P` differ, a subperiodic group setting is assumed (as e.g.,
+applicable to Crystalline.jl's `subperiodicgroup`).
 
 ## Transformations in direct and reciprocal space
 

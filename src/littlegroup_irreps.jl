@@ -1,4 +1,5 @@
-# Little group operations loading
+# ---------------------------------------------------------------------------------------- #
+# LittleGroup data loading
 """
     littlegroups(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3)) 
                                                         -> Dict{String, LittleGroup{D}}
@@ -41,8 +42,9 @@ end
 # convenience functions without Val(D) usage; avoid internally
 littlegroups(sgnum::Integer, D::Integer) = littlegroups(sgnum, Val(D))
 
-#------------------------------------------------------------------------------------------
-# LGIrrep loading
+# ---------------------------------------------------------------------------------------- #
+# LGIrrep data loading
+
 """
     lgirreps(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3))
                                                     -> Dict{String, Vector{LGIrrep{D}}}
@@ -64,7 +66,7 @@ as values.
   the matrices associated with `lgir` will be evaluated assuming `αβγ = [0,0,...]`.
 
 ## References
-The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite original
+The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite the original
 reference material associated with ISO-IR:
 
 1. Stokes, Hatch, & Campbell, 
@@ -118,4 +120,111 @@ function _load_lgirreps_data(sgnum::Integer, jldfile::JLD2.JLDFile)
     cdmls_list::Vector{Vector{String}}                              = jldgroup["cdml_list"]
 
     return Ps_list, τs_list, realities_list, cdmls_list
+end
+
+# ---------------------------------------------------------------------------------------- #
+# Evaluation of LGIrrep at specific `αβγ`
+function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
+    P = lgir.matrices
+    τ = lgir.translations
+    if !iszero(τ)
+        k = position(lgir)(αβγ)
+        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
+        for (i,τ′) in enumerate(τ)
+            if !iszero(τ′) && !iszero(k)
+                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
+                # NOTE/TODO/FIXME:
+                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
+                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
+                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
+                # own _publications_?!).
+                # In these other references one has Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
+                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
+                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
+                # operations acting _inversely_ on functions of spatial coordinates and
+                # Bloch phases exp(i𝐤⋅𝐫).
+                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
+                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
+                # explicated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
+                # this is probably the sanest choice for this dataset.
+                # This weird state of affairs was also noted explicitly by Chen Fang in
+                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
+                #
+                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
+                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
+                # to account for this difference. It is not enough just to swap the sign
+                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
+                # to account for the fact that it would be -β⁻¹τ that appears in the 
+                # inverse operation, not just τ. Same applies here, if you want to 
+                # adopt the other convention, it should probably not just be a swap 
+                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
+            end
+        end
+    end
+    # FIXME: Attempt to flip phase convention. Does not pass tests.
+    #=
+    lg = group(lgir)
+    if !issymmorph(lg)
+        k = position(lgir)(αβγ)
+        for (i,op) in enumerate(lg)
+            P[i] .* cis(-4π*dot(k, translation(op)))
+        end
+    end
+    =#
+
+    return P
+end
+
+# ---------------------------------------------------------------------------------------- #
+# Misc functions with `LGIrrep`
+
+"""
+    israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
+
+Computes whether a given little group irrep `ir` is a ray representation 
+by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
+from unity, we consider the little group irrep a ray representation
+(as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
+The function returns a boolean (true => ray representation) and the
+coefficient matrix αᵢⱼ.
+"""
+function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
+    k = position(lgir)(αβγ)
+    lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
+    Nₒₚ = length(lg)
+    α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
+    # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
+    #       here, given the tricks we then perform subsequently?
+    mt = MultTable(primitivize(lg)) 
+    for (row, oprow) in enumerate(lg)
+        for (col, opcol) in enumerate(lg)
+            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt.table[row,col]])
+            ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
+            α[row,col] = cis(ϕ)
+        end
+    end
+    return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
+end
+
+
+function ⊕(lgir1::LGIrrep{D}, lgir2::LGIrrep{D}) where D
+    if position(lgir1) ≠ position(lgir2) || num(lgir1) ≠ num(lgir2) || order(lgir1) ≠ order(lgir2)
+        error("The direct sum of two LGIrreps requires identical little groups")
+    end
+    if lgir1.translations ≠ lgir2.translations
+        error("The provided LGIrreps have different translation-factors and cannot be \
+               combined within a single translation factor system")
+    end
+    
+    cdml = label(lgir1)*"⊕"*label(lgir2)
+    g   = group(lgir1)
+    T   = eltype(eltype(lgir1.matrices))
+    z12 = zeros(T, irdim(lgir1), irdim(lgir2))
+    z21 = zeros(T, irdim(lgir2), irdim(lgir1))
+    matrices = [[m1 z12; z21 m2] for (m1, m2) in zip(lgir1.matrices, lgir2.matrices)]
+    translations = lgir1.translations
+    reality = UNDEF
+    iscorep = lgir1.iscorep || lgir2.iscorep
+
+    return LGIrrep{D}(cdml, g, matrices, translations, reality, iscorep)
 end

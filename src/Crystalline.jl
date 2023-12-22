@@ -22,7 +22,6 @@ import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              *, +, -, ==, ImmutableDict,
              isone, one,
              convert, parent,
-             position,                 # cf. https://github.com/JuliaLang/julia/issues/33799
              sort!
 import LinearAlgebra: inv
 
@@ -65,8 +64,9 @@ export SymOperation,                        # types
        klabel, characters,                  # ::AbstractIrrep
        classcharacters,
        label, reality, group,
+       ⊕,
        israyrep,                            # ::LGIrrep
-       isspecial, translations,
+       isspecial,
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
@@ -138,6 +138,10 @@ export SubperiodicGroup, subperiodicgroup
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups
+
+# some functions are extensions of base-owned names; we need to (re)export them in order to 
+# get the associated docstrings listed by Documeter.jl
+export position, inv
 
 # ---------------------------------------------------------------------------------------- #
 # EXTENSIONS AND JLD-FILE INITIALIZATION

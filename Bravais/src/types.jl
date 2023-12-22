@@ -53,32 +53,39 @@ function angles(Rs::AbstractBasis{3})
 end
 angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
 
+if VERSION < v"1.9.0-DEV.1163" 
+    # since https://github.com/JuliaLang/julia/pull/43334, Julia defines its own `stack`;
+    # however, it is still much slower than a naive implementation based on `reduce` cf.
+    # https://github.com/JuliaLang/julia/issues/52590. As such, we extend `Base.stack` even
+    # on more recent versions; when the issue is fixed, it would be enough to only define
+    # `stack` on earlier versions of Julia, falling back to `Base.stack` on later versions.
+    import Base: stack
+end
 """
     stack(Vs::AbstractBasis)
 
-Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e. the matrix whose
+Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e., the matrix whose
 columns are the basis vectors of `Vs`.
 """
 stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
-# TODO: At some point, this should hopefully no longer be necessary to do manually (and
-# `stack` may end up exported by Base): https://github.com/JuliaLang/julia/issues/21672
 
 """
     volume(Vs::AbstractBasis)
 
 Return the volume ``V`` of the unit cell associated with the basis `Vs::AbstractBasis{D}`.
 
-The volume is computed as ``V = \\sqrt{\\mathrm{det}G}`` with with ``G`` denoting the metric
-matrix of `Vs` (cf. the International Tables of Crystallography, Volume A, Section 5.2.2.3).
+The volume is computed as ``V = \\sqrt{\\mathrm{det}\\mathbf{G}}`` with with ``\\mathbf{G}``
+denoting the metric matrix of `Vs` (cf. the International Tables of Crystallography, 
+Volume A, Section 5.2.2.3).
 
-See also [`Bravais.metricmatrix`](@ref).
+See also [`metricmatrix`](@ref).
 """
-volume(Vs::AbstractBasis) = sqrt(det(metricmatrix(Vs))) # TODO: wrong. TODO: export.
+volume(Vs::AbstractBasis) = sqrt(det(metricmatrix(Vs)))
 
 """
     metricmatrix(Vs::AbstractBasis)
 
-Return the (real, symmetric) metric matrix of a basis `Vs`, i.e. the matrix with elements
+Return the (real, symmetric) metric matrix of a basis `Vs`, i.e., the matrix with elements
 ``G_{ij} =`` `dot(Vs[i], Vs[j])`, as defined in the International Tables of Crystallography,
 Volume A, Section 5.2.2.3.
 
@@ -94,6 +101,11 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
+"""
+    AbstractPoint{D, T} <: StaticVector{D, T}
+
+Abstract supertype of a `D`-dimensional point with elements of type `T`.
+"""
 abstract type AbstractPoint{D, T} <: StaticVector{D, T} end
 
 parent(p::AbstractPoint) = p.v
