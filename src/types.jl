@@ -2,10 +2,46 @@
 # SymOperation
 # ---------------------------------------------------------------------------------------- #
 
+abstract type AbstractOperation{D} <: AbstractMatrix{Float64} end
+# the subtyping of `AbstractOperation{D}` to `AbstractMatrix{Float64}` is a bit of a pun,
+# especially for `MSymOperation` - but it makes a lot of linear-algebra-like things "just
+# work"™; examples includes `^` and `isapprox` of arrays of `<:AbstractOperation`s.
+# The interface of `AbstractOperation` is that it must define a `SymOperation(...)` that
+# returns a `SymOperation` with the associated spatial transform
+
+# define the AbstractArray interface for SymOperation
+@propagate_inbounds getindex(op::AbstractOperation, i::Int) = matrix(op)[i]
+IndexStyle(::Type{<:AbstractOperation}) = IndexLinear()
+size(::AbstractOperation{D}) where D = (D, D+1)
+copy(op::AbstractOperation) = op # cf. https://github.com/JuliaLang/julia/issues/41918
+
+dim(::AbstractOperation{D}) where D = D
+
+# extracting StaticArray representations of the symmetry operation, amenable to linear algebra
+"""
+    rotation(op::AbstractOperation{D}) --> SMatrix{D, D, Float64}
+
+Return the `D`×`D`` rotation part of `op`.
+"""
+rotation(op::AbstractOperation) = SMatrix(SymOperation(op).rotation)
+"""
+    translation(op::AbstractOperation{D}) --> SVector{D, Float64}
+
+Return the `D`-dimensional translation part of `op`.
+"""
+translation(op::AbstractOperation) = SymOperation(op).translation
+"""
+    matrix(op::AbstractOperation{D}) --> SMatrix{D, D+1, Float64}
+
+Return the `D`×`D+1` matrix representation of `op`.
+"""
+matrix(op::AbstractOperation) = matrix(SymOperation(op))
+
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SymOperation{D} <: AbstractMatrix{Float64}
+struct SymOperation{D} <: AbstractOperation{D}
     rotation    :: SqSMatrix{D, Float64} # a square stack-allocated matrix
     translation :: SVector{D, Float64}
 end
@@ -18,36 +54,22 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     tuple_cols  = ntuple(j -> ntuple(i -> (@inbounds m[i,j]), Val(D)), Val(D))
     rotation    = SqSMatrix{D, Float64}(tuple_cols)
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
-    SymOperation{D}(rotation, translation)
+    return SymOperation{D}(rotation, translation)
 end
-function SymOperation(r::Union{SMatrix{D,D,<:Real}, MMatrix{D,D,<:Real}}, 
-                      t::Union{SVector{D,<:Real}, MVector{D,<:Real}}=zero(SVector{D,Float64})
-                      ) where D
-    SymOperation{D}(SqSMatrix{D,Float64}(r), t)
+function SymOperation(
+            r::Union{SMatrix{D,D,<:Real}, MMatrix{D,D,<:Real}}, 
+            t::Union{SVector{D,<:Real}, MVector{D,<:Real}}=zero(SVector{D,Float64})
+            ) where D
+    return SymOperation{D}(SqSMatrix{D,Float64}(r), t)
 end
 SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 SymOperation{D}(t::AbstractVector{<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
-# extracting StaticArray representations of the symmetry operation, amenable to linear algebra
-"""
-    rotation(op::SymOperation{D}) --> SMatrix{D, D, Float64}
+SymOperation{D}(op::SymOperation{D}) where D = op # part of `AbstractOperation` interface (to allow shared `MSymOperation` & `SymOperation` manipulations)
 
-Return the `D`×`D`` rotation part of `op`.
-"""
-rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
-"""
-    translation(op::SymOperation{D}) --> SVector{D, Float64}
-
-Return the `D`-dimensional translation part of `op`.
-"""
-translation(op::SymOperation{D}) where D = op.translation
-"""
-    matrix(op::SymOperation{D}) --> SMatrix{D, D+1, Float64}
-
-Return the `D`×`D+1` matrix representation of `op`.
-"""
-matrix(op::SymOperation{D}) where D = 
-    SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
-                                       translation(op)...))
+function matrix(op::SymOperation{D}) where D
+    return SMatrix{D, D+1, Float64, D*(D+1)}(
+                (SquareStaticMatrices.flatten(op.rotation)..., translation(op)...))
+end
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
@@ -57,18 +79,11 @@ SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)
 SymOperation(s::AbstractString) = SymOperation{count(==(','), s)+1}(s)
 
-# define the AbstractArray interface for SymOperation
-@propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
-IndexStyle(::Type{<:SymOperation}) = IndexLinear()
-size(::SymOperation{D}) where D = (D, D+1)
-copy(op::SymOperation) = op # cf. https://github.com/JuliaLang/julia/issues/41918
-
 rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of an operation
 rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for type-stability w/ StaticArrays (returns an SMatrix{D,D,...})
 translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly needed for type-stability    (returns an SVector{D,...})
 
-dim(::SymOperation{D}) where D = D
 function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
@@ -172,7 +187,7 @@ function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
     cnst, free = parts(v)
     return cnst + free*αβγ
 end
-(v::AbstractVec)(αβγ::Vararg{<:Real}) = v([αβγ...])
+(v::AbstractVec)(αβγ::Vararg{Real}) = v([αβγ...])
 (v::AbstractVec)(::Nothing) = constant(v)
 (v::AbstractVec)()          = v(nothing)
 
@@ -268,7 +283,7 @@ for T in (:KVec, :RVec)
         @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
         $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
-    $T(xs::Vararg{<:Real, D}) where D = $T(SVector{D, Float64}(xs))
+    $T(xs::Vararg{Real, D}) where D = $T(SVector{D, Float64}(xs))
     $T(xs::NTuple{D, <:Real}) where D = $T(SVector{D, Float64}(xs))
     end
 end
@@ -473,20 +488,21 @@ end
 # new abstract type between `AbstractVec` and `KVec`/`RVec`...
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup
+# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup, MSpaceGroup
 # ---------------------------------------------------------------------------------------- #
 
 """
 $(TYPEDEF)
 
-The abstract supertype of all group structures.
+The abstract supertype of all group structures, with assumed group elements of type `O` and
+embedding dimension `D`.
 
 Minimum interface includes definitions of:
     - `num(::AbstractGroup)`, returning an integer or tuple of integers.
     - `operations(::AbstractGroup)`, returning a set of operations.
 or, alternatively, fields with names `num` and `operations`, behaving accordingly.
 """
-abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
+abstract type AbstractGroup{D,O} <: AbstractVector{O} end # where O <: AbstractOperation{D}
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
@@ -523,7 +539,7 @@ sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct GenericGroup{D} <: AbstractGroup{D}
+struct GenericGroup{D} <: AbstractGroup{D, SymOperation{D}}
     operations::Vector{SymOperation{D}}
 end
 num(::GenericGroup) = 0
@@ -533,7 +549,7 @@ label(::GenericGroup) = ""
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SpaceGroup{D} <: AbstractGroup{D}
+struct SpaceGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     operations::Vector{SymOperation{D}}
 end
@@ -543,7 +559,7 @@ label(sg::SpaceGroup) = iuc(sg)
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct PointGroup{D} <: AbstractGroup{D}
+struct PointGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     label::String
     operations::Vector{SymOperation{D}}
@@ -556,7 +572,7 @@ centering(pg::PointGroup) = nothing
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct LittleGroup{D} <: AbstractGroup{D}
+struct LittleGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     kv::KVec{D}
     klab::String
@@ -574,7 +590,7 @@ orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SiteGroup{D} <: AbstractGroup{D}
+struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     wp::WyckoffPosition{D}
     operations::Vector{SymOperation{D}}
@@ -910,14 +926,13 @@ struct BandRepSet <: AbstractVector{BandRep}
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
-    timeinvar::Bool         # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
+    timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
 num(BRS::BandRepSet)         = BRS.sgnum
 klabels(BRS::BandRepSet)     = BRS.klabs
 hasnonmax(BRS::BandRepSet)   = BRS.allpaths
 irreplabels(BRS::BandRepSet) = BRS.irlabs
 isspinful(BRS::BandRepSet)   = BRS.spinful
-istimeinvar(BRS::BandRepSet) = BRS.timeinvar
 reps(BRS::BandRepSet)        = BRS.bandreps
 
 # define the AbstractArray interface for BandRepSet

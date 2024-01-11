@@ -1,34 +1,8 @@
-#module ParseMSG
-
 using Crystalline
+using StaticArrays
 # --- definitions ---
 # to be transferred to Crystalline's definitions
-using Crystalline: AbstractGroup
-using StaticArrays
 
-struct MSymOperation{D}
-    op :: SymOperation{D}
-    tr :: Bool
-end
-Base.show(io::IO, mop::MSymOperation) = (show(io, mop.op); print(io, mop.tr ? "′" : ""))
-function Crystalline.compose(
-        mop₁::MSymOperation{D},
-        mop₂::MSymOperation{D},
-        modτ::Bool=true) where D
-    return MSymOperation{D}(compose(mop₁.op, mop₂.op, modτ), xor(mop₁.tr, mop₂.tr))
-end
-Base.:*(mop₁::MSymOperation{D}, mop₂::MSymOperation{D}) where D = compose(mop₁, mop₂)
-function Base.isapprox(mop₁::MSymOperation{D}, mop₂::MSymOperation{D}, vs...; kws...) where D
-    isapprox(mop₁.op, mop₂.op, vs...; kws...) && mop₁.tr == mop₂.tr
-end
-struct MSpaceGroup{D} <: AbstractGroup{D}
-    # Note: we use BNS numbers, not  OG numbers (see Sec. 4, Acta Cryst. A78, 99 (2022))
-    # BNS number: `num[1]`: F space-group associated number
-    #             `num[2]`: crystal-system sequential number
-    num :: Tuple{Int, Int}
-    operations :: Vector{MSymOperation{D}}
-end
-Crystalline.label(msg::MSpaceGroup) = MSG_BNS_LABELs_D[msg.num]::String
 # --- parsing ---
 #cd(@__DIR__)
 io = open((@__DIR__)*"/../data/operations/msgs/iso-magnetic_table_bns.txt")
@@ -69,6 +43,7 @@ function read_group!(io)
     readuntil(io, "BNS: ")
     num_str = readuntil(io, " ") # numbering in format `sgnum.cnum`
     sgnum, cnum = parse.(Int, split(num_str, "."))::Vector{Int}
+    # `sgnum`: F space-group associated number, `cnum`:  crystal-system sequential number
     bns_label = replace(readuntil(io, " "), '\''=>'′') # BNS label in IUC-style
 
     # OG: number and label
@@ -110,5 +85,3 @@ for i in 1:1651
     MSG_OG_LABELs_D[(N₁, N₂, N₃)] = og_label
     MSG_BNS2OG_NUMs_D[msg.num] = (N₁, N₂, N₃)
 end
-
-#end # module ParseMSG
