@@ -45,11 +45,7 @@ Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperio
 """
 function subperiodicgroup(num::Integer, Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(2)) where {D, P}
     @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
-
-    codes = D == 3 && P == 2 ? LAYER_CODES_V[num]  : 
-            D == 3 && P == 1 ? ROD_CODES_V[num]    :
-            D == 2 && P == 1 ? FRIEZE_CODES_V[num] : 
-            error("unreachable; (D,P) input is invalid but boundscheck assumed valid")
+    codes = SUBG_CODES_Vs[(D,P)][num]
 
     cntr = centering(num, D, P)
     Ncntr = centering_volume_fraction(cntr, Dᵛ, Pᵛ)

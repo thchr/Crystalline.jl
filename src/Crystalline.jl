@@ -58,9 +58,9 @@ export SymOperation,                        # types
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
-       matrix, xyzt,                        # ::SymOperation
-       getindex, rotation, translation, 
-       issymmorph,
+       matrix, xyzt,                        # ::AbstractOperation
+       rotation, translation, 
+       issymmorph,                          # ::SymOperation
        num, order, operations,              # ::AbstractGroup
        klabel, characters,                  # ::AbstractIrrep
        classcharacters,
@@ -83,16 +83,24 @@ include("magnetic/types.jl")
 export MSymOperation, MSpaceGroup
 
 include("tables/rotation_translation.jl")
-include("tables/pointgroup.jl")
-include("tables/spacegroup.jl")
-include("tables/subperiodicgroup.jl")
-include("tables/mspacegroup.jl")
+include("tables/groups/pointgroup.jl")
+include("tables/groups/spacegroup.jl")
+include("tables/groups/subperiodicgroup.jl")
+include("tables/groups/mspacegroup.jl")
+include("tables/generators/pointgroup.jl")
+include("tables/generators/spacegroup.jl")
+include("tables/generators/subperiodicgroup.jl")
+
+include("assembly/groups/pointgroup.jl")
+include("assembly/groups/spacegroup.jl")
+include("assembly/groups/subperiodicgroup.jl")
+include("assembly/groups/mspacegroup.jl")
 export pointgroup, spacegroup, subperiodicgroup, mspacegroup
 
-include("group-assembly/assemble_pointgroup.jl")
-include("group-assembly/assemble_spacegroup.jl")
-include("group-assembly/assemble_subperiodicgroup.jl")
-include("group-assembly/assemble_mspacegroup.jl")
+include("assembly/generators/pointgroup.jl")
+include("assembly/generators/spacegroup.jl")
+include("assembly/generators/subperiodicgroup.jl")
+export generate, generators
 
 include("show.jl") # custom printing for structs defined in src/types.jl
 
@@ -102,8 +110,7 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, compose,
        issymmorph, littlegroup, orbit,
        reduce_ops,
-       issubgroup, isnormal,
-       generate, generators
+       issubgroup, isnormal
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian

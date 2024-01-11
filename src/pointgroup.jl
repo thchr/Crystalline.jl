@@ -67,29 +67,6 @@ schoenflies(pg::PointGroup) = PG_IUC2SCHOENFLIES[iuc(pg)]
     return @inbounds iucs[setting]
 end
 
-# --- Point group generators ---
-unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
-
-function read_pggens_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck iuclab ∉ PG_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PG_IUCs[D])"))
-
-    filepath = joinpath(DATA_DIR, "generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
-
-    return readlines(filepath)
-end
-
-function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
-    ops_str = read_pggens_xyzt(iuclab, D)
-    return SymOperation{D}.(ops_str)
-end
-function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Val(D), setting)
-    ops_str = read_pggens_xyzt(iuclab, D)
-
-    return SymOperation{D}.(ops_str)
-end
-
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
 function find_parent_pointgroup(g::AbstractGroup{D}) where D
     # Note: this method will only find parent point groups with the same setting (i.e. 
@@ -109,9 +86,11 @@ function find_parent_pointgroup(g::AbstractGroup{D}) where D
 end
 
 # --- POINT GROUP IRREPS ---
+_unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
+
 # loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
 function _load_pgirreps_data(iuclab::String)
-    jldgroup = PGIRREPS_JLDFILE[][unmangle_pgiuclab(iuclab)] 
+    jldgroup = PGIRREPS_JLDFILE[][_unmangle_pgiuclab(iuclab)] 
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]

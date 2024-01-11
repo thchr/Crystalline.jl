@@ -1,5 +1,3 @@
-
-
 """
     spacegroup(sgnum::Integer, ::Val{D}=Val(3))
     spacegroup(sgnum::Integer, D::Integer)          --> SpaceGroup{D}
@@ -32,11 +30,7 @@ The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221*
 """
 function spacegroup(sgnum, Dᵛ::Val{D}=Val(3)) where D
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
-
-    codes = D == 3 ? SG_CODES_3D_V[sgnum] : 
-            D == 2 ? SG_CODES_2D_V[sgnum] :
-            D == 1 ? SG_CODES_1D_V[sgnum] :
-                     error("unreachable; D is invalid but boundscheck assumed valid")
+    codes = SG_CODES_Vs[D][sgnum]
 
     cntr = centering(sgnum, D)
     Ncntr = centering_volume_fraction(cntr, Dᵛ)
@@ -56,12 +50,16 @@ function spacegroup(sgnum, Dᵛ::Val{D}=Val(3)) where D
 end
 spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
 
-function _include_symops_from_codes!(operations::Vector{SymOperation{D}}, codes) where D
-    operations[1] = one(SymOperation{D}) # add trivial identity op separately and manually
+function _include_symops_from_codes!(
+            operations::Vector{SymOperation{D}}, codes;
+            add_identity::Bool = true) where D
+    if add_identity # add trivial identity operation separately and manually
+        operations[1] = one(SymOperation{D})
+    end
     for (n, code) in enumerate(codes)
         op = SymOperation{D}(get_indexed_rotation(code[1], Val{D}()), 
                              get_indexed_translation(code[2], Val{D}()))
-        operations[n+1] = op
+        operations[n+add_identity] = op
     end
     return operations
 end

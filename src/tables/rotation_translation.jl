@@ -130,6 +130,8 @@ const TRANSLATIONS_3D = [
     SVector{3,Float64}(0.25, 0.75, 0), 
     SVector{3,Float64}(0.75, 0, 0.25), 
     SVector{3,Float64}(0, 0.25, 0.75),
+    # extra entries for `generators` data
+    SVector{3,Float64}(2/3, 1/3, 1/3),
 ]
 
 const ROTATIONS_2D = [

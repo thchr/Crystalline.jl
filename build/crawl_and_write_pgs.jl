@@ -183,7 +183,7 @@ function __crawl_and_write_3d_pgirreps()
             # "test/data/xyzt-operations/pgs/..."; note that we explicitly checked the 
             # sorting and # equivalence of operations when pgirs was crawled above (cf. flag
             # `consistency_checks=true`)
-            unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
+            unmangled_pgiuc = Crystalline._unmangle_pgiuclab(pgiuc) # replace '/'s by '_slash_'s
             irreps_file[unmangled_pgiuc*"/matrices"]  = matrices
             irreps_file[unmangled_pgiuc*"/realities"] = Integer.(realities)
             irreps_file[unmangled_pgiuc*"/cdmls"]     = cdmls
