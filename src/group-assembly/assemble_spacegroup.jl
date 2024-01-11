@@ -30,7 +30,6 @@ Crystallographic Server, SPACEGROUP GENPOS](https://www.cryst.ehu.es/cryst/get_g
 The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
 """
-
 function spacegroup(sgnum, Dᵛ::Val{D}=Val(3)) where D
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
 
