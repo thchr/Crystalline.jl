@@ -1,4 +1,7 @@
 # --- MSymOperation ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct MSymOperation{D} <: AbstractOperation{D}
     op :: SymOperation{D}
     tr :: Bool
@@ -33,6 +36,9 @@ end
 # The `num` field of `MSpaceGroup` gives the the two BNS numbers:
 #   - `num[1]`: F space-group associated number
 #   - `num[2]`: crystal-system sequential number
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
 struct MSpaceGroup{D} <: AbstractGroup{D, MSymOperation{D}}
     num :: Tuple{Int, Int}
     operations :: Vector{MSymOperation{D}}

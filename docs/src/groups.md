@@ -1,6 +1,6 @@
 # Groups
 All groups in Crystalline are concrete instances of the abstract supertype [`Crystalline.AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `Crystalline.AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
-Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`PointGroup`](@ref), [`LittleGroup`](@ref), [`SubperiodicGroup`](@ref) and [`SiteGroup`](@ref).
+Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`PointGroup`](@ref), [`LittleGroup`](@ref), [`SubperiodicGroup`](@ref), [`SiteGroup`](@ref), and [`MSpaceGroup`](@ref).
 
 ## Example: space groups
 
@@ -41,3 +41,6 @@ To generate a group from a list of generators, we can use the [`generate`](@ref)
 ```@example spacegroup
 generate(ops)
 ```
+
+## Magnetic space groups
+Magnetic space groups are accessible via [`mspacegroup`](@ref).
