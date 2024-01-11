@@ -12,7 +12,7 @@ using Crystalline:
 
 export pointgroup_from_xyzt, spacegroup_from_xyzt, subperiodicgroup_from_xyzt
 
-const OPERATIONS_DATA_DIR = joinpath(@__DIR__, "data", "xyzt-operations")
+const XYZT_DATA_DIR = joinpath(@__DIR__, "data", "xyzt-operations")
 # ---------------------------------------------------------------------------------------- #
 # Point groups
 # ---------------------------------------------------------------------------------------- #
