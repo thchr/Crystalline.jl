@@ -5,6 +5,7 @@ using Crystalline, Test
     include("basisvecs.jl")
     include("symops.jl")
     include("SquareStaticMatrices.jl")
+    include("xyzt_data_vs_coded_groups.jl")
 
     # abstractvecs
     include("kvecs.jl")
@@ -44,4 +45,7 @@ using Crystalline, Test
     # band representations
     include("classification.jl")  # does topo classification agree w/ Adrian?
     include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
+
+    # magnetic space groups
+    include("mspacegroup.jl")
 end

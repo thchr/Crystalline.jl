@@ -253,7 +253,7 @@ end
 function matching_lgirreps(BRS::BandRepSet)
     lgirsd = lgirreps(num(BRS), Val(3))
     # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
-    if BRS.timeinvar 
+    if BRS.timereversal 
         for (klab, lgirs) in lgirsd
             lgirsd[klab] = realify(lgirs)
         end

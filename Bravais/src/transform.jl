@@ -69,10 +69,10 @@ function canonicalize_centering(cntr, ::Val{D}, ::Val{P}) where {D,P}
     if D == P # space/plane/line groups
         return cntr
     elseif D == 3 && P == 2 # layer groups
-        return cntr == '𝑝' ? 'p' : 
-               cntr == '𝑐' ? 'c' : error(DomainError(cntr, "invalid layer group centering"))
+        return cntr == '𝑝' ? 'P' : 
+               cntr == '𝑐' ? 'C' : error(DomainError(cntr, "invalid layer group centering"))
     elseif D == 3 && P == 1 # rod groups
-        return cntr == '𝓅' ? 'p' : error(DomainError(cntr, "invalid rod group centering"))
+        return cntr == '𝓅' ? 'P' : error(DomainError(cntr, "invalid rod group centering"))
     elseif D == 2 && P == 1 # frieze groups
         return cntr == '𝓅' ? 'p' : error(DomainError(cntr, "invalid frieze group centering"))
     else
@@ -161,38 +161,18 @@ frequently and more ambiguously, as the crystallographic primitive setting.
            Thus, Bravais.jl and [Spglib.jl](https://github.com/singularitti/Spglib.jl)
            transform to identical primitive settings and are hence mutually compatible.
 """
-@inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3), ::Val{D}=Val(D)) where D
-    # space groups
+@inline function primitivebasismatrix(cntr::Char,
+                                      Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
     D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     return PRIMITIVE_BASIS_MATRICES[D][cntr]
-end
-@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{3}, Pᵛ::Val{2})
-    # layer and rod groups
-    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
-    P²ᴰ = PRIMITIVE_BASIS_MATRICES[2][cntr]
-    return @SMatrix [P²ᴰ[1,1] P²ᴰ[2,1] 0.0; P²ᴰ[1,2] P²ᴰ[2,2] 0.0; 0.0 0.0 1.0]
-end
-@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{3}, Pᵛ::Val{1})
-    # rod groups
-    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
-    P²ᴰ = PRIMITIVE_BASIS_MATRICES[1][cntr]
-    return @SMatrix [P²ᴰ[1,1] 0.0 0.0; 0.0 0.0 0.0; 0.0 0.0 1.0]
-end
-@inline function primitivebasismatrix(cntr::Char, Dᵛ::Val{2}, Pᵛ::Val{1})
-    # frieze groups
-    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
-    P¹ᴰ = PRIMITIVE_BASIS_MATRICES[1][cntr]
-    return @SMatrix [P¹ᴰ[1,1] 0.0; 0.0 1.0]
-end
-function primitivebasismatrix(cntr::Char, ::Val{D}, ::Val{P}) where {D,P}
-    # fall-back error
-    throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
 end
 
 @inline function centeringtranslation(cntr::Char,
                                       Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
     D ∉ 1:3 && _throw_invalid_dim(D)
-    P ∉ 1:D && _throw_invalid_dim(P)
+    P ∉ 1:D && throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
     cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     if D == 3
         if     cntr == 'P'; return zeros(SVector{3})
@@ -212,9 +192,8 @@ end
         if     cntr == 'p'; return zeros(SVector{1})
         else;               _throw_invalid_cntr(cntr, 1)
         end
-    else 
-        _throw_invalid_dim(D)
     end
+    error("unreachable reached")
 end
 
 function all_centeringtranslations(cntr::Char,
@@ -222,15 +201,41 @@ function all_centeringtranslations(cntr::Char,
     D ∉ 1:3 && _throw_invalid_dim(D)
     P ∉ 1:D && _throw_invalid_dim(P)
     cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
-    if D == 3 && cntr == 'F'
+    if cntr == 'P' || cntr == 'p'
+        # primitive cell is equal to conventional cell: 0 extra centers
+        return SVector{D,Float64}[]
+    elseif D == 3 && cntr == 'F'
         # primitive cell has 1/4th the volume of conventional cell: 3 extra centers
-        return [SVector((1,0,1)./2), SVector((0,1,1)./2), SVector((1,1,0)./2)]
+        return [SVector((0,1,1)./2), SVector((1,0,1)./2), SVector((1,1,0)./2)]
     elseif D == 3 && cntr == 'R'
         # primitive cell has 1/3rd the volume of conventional cell: 2 extra centers
         return [SVector((2,1,1)./3), SVector((1,2,2)./3)]
-    else
+    else # 'I', 'C', 'c', 'A'
         # primitive cell has half the volume of conventional cell: 1 extra center
         return [centeringtranslation(cntr, Dᵛ)]
+    end
+end
+
+"""
+    centering_volume_fraction(cntr, Dᵛ, Pᵛ) --> Int
+
+Return the (integer-) ratio between the volumes of the conventional and primitive unit cells
+for a space or subperiodic group with centering `cntr`, embedding dimension `D`, and
+periodicity dimension `P`.
+"""
+@inline function centering_volume_fraction(cntr::Char,
+                                   Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && _throw_invalid_dim(P)
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    if cntr == 'P' || cntr == 'p'
+        return 1
+    elseif D == 3 && cntr == 'F'
+        return 4
+    elseif D == 3 && cntr == 'R'
+        return 3
+    else # 'I', 'C', 'c', 'A'
+        return 2
     end
 end
 

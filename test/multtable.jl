@@ -51,13 +51,24 @@ end # for LGIRS in LGIRSDIM
 end # @testset "Little groups: ..."
 
 @testset "Broadcasting vs. MultTable indexing" begin
-    for D in 1:3
-        for sgnum in 1:MAX_SGNUM[D]
-            # construct equivalent of MultTable as Matrix{SymOperation{D}} by using 
-            # broadcasting and check that this agrees with MultTable and indexing into it
-            sg = spacegroup(sgnum, Val(D))
-            mt  = MultTable(sg)
-            mt′ = sg .* permutedims(sg)
+    @testset "Space groups" begin
+        for D in 1:3
+            for sgnum in 1:MAX_SGNUM[D]
+                # construct equivalent of MultTable as Matrix{SymOperation{D}} by using 
+                # broadcasting and check that this agrees with MultTable and indexing into it
+                sg = spacegroup(sgnum, Val(D))
+                mt  = MultTable(sg)
+                mt′ = sg .* permutedims(sg)
+                @test mt ≈ mt′
+            end
+        end
+    end
+
+    @testset "Magnetic space groups" begin
+        for msgnum in 1:MAX_MSGNUM[3]
+            msg = mspacegroup(msgnum, Val(3))
+            mt  = MultTable(msg)
+            mt′ = msg .* permutedims(msg)
             @test mt ≈ mt′
         end
     end
