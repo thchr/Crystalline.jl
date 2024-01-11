@@ -71,7 +71,8 @@ CharacterTable{3}: ⋕16 (P222) at Γ = [0, 0, 0]
 ──────┴────────────────
 ```
 
-Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), physically real irreps (`realify`), and Bravais lattice utilities and conventions (accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais)).
+Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), subperiodic groups (`subperiodicgroup`), 3D magnetic space groups (`mspacegroup`), and physically real irreps (`realify`).
+In addition, Bravais lattice utilities and conventions are accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais).
 For a full description of the public API, see the [documentation][docs-dev-url].
 
 ### Current limitations
