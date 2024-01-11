@@ -1,5 +1,5 @@
 # ISOTROPY ISO-IR dataset
-These file `CIR_data.txt` and `PIR_data.txt` are sourced from the
+The files `CIR_data.txt` and `PIR_data.txt` are sourced from the
 [ISOTROPY software's ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php)
 and contain data needed to generate *space group* irreps.
 In ISOTROPY, the data files are extracted in Fortran using associated files

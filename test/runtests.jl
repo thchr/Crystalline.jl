@@ -5,7 +5,8 @@ using Crystalline, Test
     include("basisvecs.jl")
     include("symops.jl")
     include("SquareStaticMatrices.jl")
-    include("xyzt_data_vs_coded_groups.jl")
+    include("groups_xyzt_vs_coded.jl")
+    include("generators_xyzt_vs_coded.jl")
 
     # abstractvecs
     include("kvecs.jl")

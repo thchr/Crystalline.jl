@@ -5,19 +5,19 @@ module CrystallineTestXYZT
 
 using Crystalline
 using Crystalline: 
-    unmangle_pgiuclab, pointgroup_num2iuc, pointgroup_iuc2num, # point groups
+    _unmangle_pgiuclab, pointgroup_iuc2num, # point groups
     _check_valid_sgnum_and_dim, # space group
-    subperiodic_kind, _check_valid_subperiodic_num_and_dim, # subperiodic groups
+    _subperiodic_kind, _check_valid_subperiodic_num_and_dim, # subperiodic groups
     _throw_invalid_dim # general
 
 export pointgroup_from_xyzt, spacegroup_from_xyzt, subperiodicgroup_from_xyzt
 
-const XYZT_DATA_DIR = joinpath(@__DIR__, "data", "xyzt-operations")
+const XYZT_DATA_DIR = joinpath(@__DIR__, "data", "xyzt", "groups")
 # ---------------------------------------------------------------------------------------- #
 # Point groups
 # ---------------------------------------------------------------------------------------- #
 
-@inline function pointgroup_from_xyzt(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
+@inline function pointgroup_from_xyzt(iuclab::String, ::Val{D}=Val(3)) where D
     pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
     ops_str = read_pgops_xyzt(iuclab, D)
     
@@ -30,7 +30,7 @@ end
 function read_pgops_xyzt(iuclab::String, D::Integer)
     @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
     @boundscheck iuclab ∉ PG_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PG_IUCs[D])"))
-    filepath = joinpath(XYZT_DATA_DIR, "pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
+    filepath = joinpath(XYZT_DATA_DIR, "pgs/"*string(D)*"d/"*_unmangle_pgiuclab(iuclab)*".csv")
 
     return readlines(filepath)
 end
@@ -66,7 +66,7 @@ end
 
 function read_subperiodic_ops_xyzt(num::Integer, D::Integer, P::Integer)
     @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
-    kind = subperiodic_kind(D, P)
+    kind = _subperiodic_kind(D, P)
     filepath = joinpath(XYZT_DATA_DIR, "subperiodic/"*kind*"/"*string(num)*".csv")
 
     return readlines(filepath)
@@ -88,21 +88,25 @@ using .CrystallineTestXYZT
     @testset "Point groups" begin
         for D in 1:3
             Dᵛ = Val(D)
-            for pgiuc in PG_IUCs[D]
-                pg = pointgroup(pgiuc, Dᵛ)
-                pg_from_xyzt = pointgroup_from_xyzt(pgiuc, Dᵛ)
-                @test all(pg .≈ pg_from_xyzt)
+            for (pgnum, pgiucs) in enumerate(Crystalline.PG_NUM2IUC[D])
+                for (setting, pgiuc) in enumerate(pgiucs)
+                    pg = pointgroup(pgiuc, Dᵛ)
+                    pg_from_xyzt = pointgroup_from_xyzt(pgiuc, Dᵛ)
+                    pg′ = pointgroup(pgnum, Dᵛ, setting)
+                    @test pg ≈ pg_from_xyzt
+                    @test pg == pg′
+                end
             end
         end
     end
-
+    
     @testset "Space groups" begin
         for D in 1:3
             Dᵛ = Val(D)
             for sgnum in 1:MAX_SGNUM[D]
                 sg = spacegroup(sgnum, Dᵛ)
                 sg_from_xyzt = spacegroup_from_xyzt(sgnum, Dᵛ)
-                @test all(sg .≈ sg_from_xyzt)
+                @test sg ≈ sg_from_xyzt
             end
         end
     end
@@ -113,7 +117,7 @@ using .CrystallineTestXYZT
             for num in 1:MAX_SUBGNUM[(D,P)]
                 subg = subperiodicgroup(num, Dᵛ, Pᵛ)
                 subg_from_xyzt = subperiodicgroup_from_xyzt(num, Dᵛ, Pᵛ)
-                @test all(subg .≈ subg_from_xyzt)
+                @test subg ≈ subg_from_xyzt
             end
         end
     end

@@ -168,6 +168,9 @@ struct SubperiodicGroup{D,P} <: AbstractGroup{D, SymOperation{D}}
     num :: Int
     operations :: Vector{SymOperation{D}}
 end
+const LayerGroup  = SubperiodicGroup{3,2}
+const RodGroup    = SubperiodicGroup{3,1}
+const FriezeGroup = SubperiodicGroup{2,1}
 
 function _throw_subperiodic_domain(D::Integer, P::Integer)
     throw(DomainError((D, P), "invalid dimension and periodicity for subperiodic group"))
@@ -183,16 +186,8 @@ end
         "group number must be between 1 and $maxnum for $sub groups (D=$D, P=$P)"))
 end
 
-function read_subperiodic_gens_xyzt(num::Integer, D::Integer, P::Integer)
-    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
-
-    kind = subperiodic_kind(D, P)
-    filepath = joinpath(DATA_DIR, "generators/subperiodic/"*kind*"/"*string(num)*".csv")
-
-    return readlines(filepath)
-end
-
-@inline function subperiodic_kind(D, P)
+@inline function _subperiodic_kind(D, P)
+    # TODO: Move to a testing-utils module (only used in /test/)
     if D == 3 && P == 2
         return "layer"
     elseif D == 3 && P == 1
@@ -216,47 +211,6 @@ function _check_valid_subperiodic_num_and_dim(num::Integer, D::Integer, P::Integ
     end
     num < 1 && throw(DomainError(num, "group number must be a positive integer"))
     return nothing
-end
-
-# NOTE: There's some unfortunate conventional choices regarding the setting of rod groups:
-#       the periodicity is assumed to be along the z-direction - this is contrary to how the
-#       layer groups (x-y periodicity) and frieze groups (x periodicity) are built... One
-#       possible motivation for this choice would be to have rod groups more closely
-#       resemble the corresponding space groups; but this way, the frieze groups don't
-#       resemble the rod groups (instead, the layer groups)... Quite annoying in a
-#       computational setting ...: we now need to keep track of _which_ direction is the
-#       periodic one... Seems more appealing to just establish some convention (say,
-#       P = 1 ⇒ x periodicity; P = 2 ⇒ x-y periodicity). Unfortunately, if we do that,
-#       we need to change the labels for the rod groups (they are setting dependent).
-#       This problem is discussed in e.g. ITE1 Section 1.2.6; one option is to indicate the
-#       direction of periodicity with a subscript (e.g., ₐ for x-direction; but that doesn't
-#       work too well with unicode that doesn't have {b,c}-subscripts.
-"""
-    generators(num::Integer, ::Type{SubperiodicGroup{D,P}})  -->  ::Vector{SymOperation{D}}
-
-Return a canonical set of generators for the subperiodic group `num` of embedding dimension
-`D` and periodicity dimension `P`. See also [`subperiodicgroup`](@ref).
-
-See also [`generators(::Integer, ::Type{SpaceGroup})`](@ref) and information therein.
-
-## Example
-
-```jldoctest
-julia> generators(7, SubperiodicGroup{2, 1})
-2-element Vector{SymOperation{2}}:
- 2
- {m₁₀|½,0}
-```
-
-## Data sources
-
-The generators returned by this function were originally retrieved from the [Bilbao
-Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
-"""
-function generators(num::Integer, ::Type{SubperiodicGroup{D,P}}) where {D,P}
-    ops_str = read_subperiodic_gens_xyzt(num, D, P)
-
-    return SymOperation{D}.(ops_str)
 end
 
 label(g::SubperiodicGroup{D,P}) where {D,P} = _subperiodic_label(num(g), D, P)

@@ -33,15 +33,13 @@ end
 end
 
 function _pointgroup(iuclab::String, pgnum::Integer, Dᵛ::Val{D}) where D
-    codes = D == 3 ? PG_CODES_3D_D[iuclab] : 
-               D == 2 ? PG_CODES_2D_D[iuclab] :
-                        PG_CODES_1D_D[iuclab]
+    codes = PG_CODES_Ds[D][iuclab]
 
     Nop = (length(codes)+1) # number of operations
     operations = Vector{SymOperation{D}}(undef, Nop)
     operations[1] = one(SymOperation{D})
     for (n, code) in enumerate(codes)
-        op = SymOperation{D}(get_indexed_rotation(code[1], Dᵛ), 
+        op = SymOperation{D}(get_indexed_rotation(code, Dᵛ), 
                              zero(SVector{D,Float64}))
         operations[n+1] = op
     end
