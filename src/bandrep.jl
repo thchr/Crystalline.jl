@@ -153,7 +153,7 @@ function classification(nontriv_Λ::AbstractVector{<:Integer})
     if isempty(nontriv_Λ)
         return "Z₁"
     else
-        return "Z"*join(subscriptify.(string.(nontriv_Λ)), "×Z")
+        return "Z"*subscriptify(join(nontriv_Λ, "×Z"))
     end
 end
 function classification(BRS_or_F::Union{BandRepSet, Smith})
@@ -253,7 +253,7 @@ end
 function matching_lgirreps(BRS::BandRepSet)
     lgirsd = lgirreps(num(BRS), Val(3))
     # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
-    if BRS.timeinvar 
+    if BRS.timereversal 
         for (klab, lgirs) in lgirsd
             lgirsd[klab] = realify(lgirs)
         end

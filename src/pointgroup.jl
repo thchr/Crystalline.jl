@@ -59,80 +59,12 @@ function pointgroup_iuc2num(iuclab::String, D::Integer)
 end
 schoenflies(pg::PointGroup) = PG_IUC2SCHOENFLIES[iuc(pg)]
 
-# --- Point groups & operators ---
-unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
-
-function read_pgops_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck iuclab ∉ PG_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PG_IUCs[D])"))
-
-    filepath = joinpath(DATA_DIR, "operations/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
-
-    return readlines(filepath)
-end
-
-function read_pggens_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck iuclab ∉ PG_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PG_IUCs[D])"))
-
-    filepath = joinpath(DATA_DIR, "generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
-
-    return readlines(filepath)
-end
-
-"""
-    pointgroup(iuclab::String, ::Union{Val{D}, Integer}=Val(3))  -->  PointGroup{D}
-
-Return the symmetry operations associated with the point group identified with label
-`iuclab` in dimension `D` as a `PointGroup{D}`.
-"""
-@inline function pointgroup(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
-    pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
-    ops_str = read_pgops_xyzt(iuclab, D)
-    
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
-
 @inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
     @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
     @boundscheck 1 ≤ pgnum ≤ length(PG_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PG_NUM2IUC"))
     iucs = @inbounds PG_NUM2IUC[D][pgnum]
     @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PG_NUM2IUC[pgnum]"))
     return @inbounds iucs[setting]
-end
-
-"""
-    pointgroup(pgnum::Integer, ::Union{Val{D}, Integer}=Val(3), setting::Integer=1)
-                                                                      -->  PointGroup{D}
-
-Return the symmetry operations associated with the point group identfied with canonical
-number `pgnum` in dimension `D` as a `PointGroup{D}`. The connection between a point group's
-numbering and its IUC label is enumerated in `Crystalline.PG_NUM2IUC[D]` and
-`Crystalline.IUC2NUM[D]`.
-
-Certain point groups feature in multiple setting variants: e.g., IUC labels 321 and 312 both
-correspond to `pgnum = 18` and correspond to the same group structure expressed in two
-different settings. The `setting` argument allows choosing between these setting variations.
-"""
-@inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    ops_str = read_pgops_xyzt(iuclab, D)
-
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(pgnum::Integer, D::Integer, setting::Integer=1) = pointgroup(pgnum, Val(D), setting)
-
-# --- Point group generators ---
-function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
-    ops_str = read_pggens_xyzt(iuclab, D)
-    return SymOperation{D}.(ops_str)
-end
-function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Val(D), setting)
-    ops_str = read_pgops_xyzt(iuclab, D)
-
-    return SymOperation{D}.(ops_str)
 end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
@@ -154,9 +86,11 @@ function find_parent_pointgroup(g::AbstractGroup{D}) where D
 end
 
 # --- POINT GROUP IRREPS ---
+_unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
+
 # loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
 function _load_pgirreps_data(iuclab::String)
-    jldgroup = PGIRREPS_JLDFILE[][unmangle_pgiuclab(iuclab)] 
+    jldgroup = PGIRREPS_JLDFILE[][_unmangle_pgiuclab(iuclab)] 
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]

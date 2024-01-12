@@ -9,7 +9,7 @@ function show(io::IO, ::MIME"text/plain", Vs::DirectBasis)
 end
 
 # --- SymOperation ---
-function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
+function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
     
@@ -46,13 +46,14 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
         end
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
+        op isa MSymOperation && i == 1 && timereversal(op) && print(io, '′')
         i ≠ D && println(io)
     end
     return nothing
 end
 _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 # print vectors of `SymOperation`s compactly
-show(io::IO, op::SymOperation) = print(io, seitz(op))
+show(io::IO, op::AbstractOperation) = print(io, seitz(op))
 
 # --- MultTable ---
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
@@ -454,7 +455,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
                 length(BRS), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(BRS) ? "½" : "1", " ",
-                istimeinvar(BRS) ? "w/" : "w/o", " TR)")
+                BRS.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
     k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters

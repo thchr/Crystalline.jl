@@ -59,7 +59,7 @@ let D = 3
                 gens_str = crawl_pg_generators_xyzt(pgnum, D, pgiuc)
             end
 
-            unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc)
+            unmangled_pgiuc = Crystalline._unmangle_pgiuclab(pgiuc)
             filename = (@__DIR__)*"/../data/generators/pgs/$(D)d/$(unmangled_pgiuc).csv"
             open(filename; write=true, create=true, truncate=true) do io
                 first = true
@@ -85,7 +85,7 @@ let D = 2
     for (pgnum, pgiuc) in enumerate(Crystalline.PG_IUCs[D])
         gens_str = crawl_pg_generators_xyzt(pgnum, D)
         
-        unmangled_pgiuc = Crystalline.unmangle_pgiuclab(pgiuc)
+        unmangled_pgiuc = Crystalline._unmangle_pgiuclab(pgiuc)
         filename = (@__DIR__)*"/../data/generators/pgs/$(D)d/$(unmangled_pgiuc).csv"
         open(filename; write=true, create=true, truncate=true) do io
             first = true

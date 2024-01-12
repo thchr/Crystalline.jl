@@ -38,11 +38,12 @@ export smith, Smith # export, so that loading Crystalline effectively also provi
 
 @reexport using Bravais
 import Bravais: primitivize, conventionalize, cartesianize, transform, centering
-using Bravais: stack, all_centeringtranslations, centeringtranslation
+using Bravais: stack, all_centeringtranslations, centeringtranslation,
+               centering_volume_fraction
 
 # included files and exports
 include("constants.jl")
-export MAX_SGNUM, MAX_SUBGNUM, ENANTIOMORPHIC_PAIRS
+export MAX_SGNUM, MAX_SUBGNUM, MAX_MSGNUM, MAX_MSUBGNUM, ENANTIOMORPHIC_PAIRS
 
 include("utils.jl") # useful utility methods (seldom needs exporting)
 export splice_kvpath, interpolate_kvpath
@@ -57,9 +58,9 @@ export SymOperation,                        # types
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
-       matrix, xyzt,                        # ::SymOperation
-       getindex, rotation, translation, 
-       issymmorph,
+       matrix, xyzt,                        # ::AbstractOperation
+       rotation, translation, 
+       issymmorph,                          # ::SymOperation
        num, order, operations,              # ::AbstractGroup
        klabel, characters,                  # ::AbstractIrrep
        classcharacters,
@@ -71,20 +72,45 @@ export SymOperation,                        # types
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
-include("show.jl") # custom printing for structs defined in src/types.jl
-
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
+
+include("subperiodic.jl")
+export SubperiodicGroup
+
+include("magnetic/notation-data.jl")
+include("magnetic/types.jl")
+export MSymOperation, MSpaceGroup
+
+include("tables/rotation_translation.jl")
+include("tables/groups/pointgroup.jl")
+include("tables/groups/spacegroup.jl")
+include("tables/groups/subperiodicgroup.jl")
+include("tables/groups/mspacegroup.jl")
+include("tables/generators/pointgroup.jl")
+include("tables/generators/spacegroup.jl")
+include("tables/generators/subperiodicgroup.jl")
+
+include("assembly/groups/pointgroup.jl")
+include("assembly/groups/spacegroup.jl")
+include("assembly/groups/subperiodicgroup.jl")
+include("assembly/groups/mspacegroup.jl")
+export pointgroup, spacegroup, subperiodicgroup, mspacegroup
+
+include("assembly/generators/pointgroup.jl")
+include("assembly/generators/spacegroup.jl")
+include("assembly/generators/subperiodicgroup.jl")
+export generate, generators
+
+include("show.jl") # custom printing for structs defined in src/types.jl
 
 include("orders.jl")
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export @S_str, spacegroup, compose,
+export @S_str, compose,
        issymmorph, littlegroup, orbit,
-       pointgroup,
        reduce_ops,
-       issubgroup, isnormal,
-       generate, generators
+       issubgroup, isnormal
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
@@ -99,8 +125,7 @@ include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue
 export find_representation
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export pointgroup, pgirreps,
-       PG_IUCs, find_isomorphic_parent_pointgroup
+export pgirreps, PG_IUCs, find_isomorphic_parent_pointgroup
 
 include("irreps_reality.jl")
 export calc_reality, realify
@@ -132,9 +157,6 @@ export bandreps, matrix, classification, nontrivial_factors, basisdim
 
 include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
-
-include("subperiodic.jl")
-export SubperiodicGroup, subperiodicgroup
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups

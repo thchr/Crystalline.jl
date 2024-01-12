@@ -441,7 +441,7 @@ function (flat::AbstractFourierLattice)(xyz)
     end
     return f
 end
-(flat::AbstractFourierLattice{D})(xyzs::Vararg{<:Real, D}) where D = flat(SVector{D, Float64}(xyzs))
+(flat::AbstractFourierLattice{D})(xyzs::Vararg{Real, D}) where D = flat(SVector{D, Float64}(xyzs))
 
 # note: 
 # the "(x,y,z) ordering" depends on dimension D:

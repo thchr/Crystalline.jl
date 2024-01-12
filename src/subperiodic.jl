@@ -62,14 +62,36 @@ const PLANE2LAYER_NUMS = (
 
 # Data from Table 1 of the SI of Watanabe, Po, and Vishwanath's 2017 Nature Commun.
 const LAYER2SPACE_NUMS = (
-    1, 2, 3, 6, 7, 10, 13, 3, 4, 5, 6, 7, 8, 10, 11, 13, 14, 12, 16, 17,
-    18, 21, 25, 28, 32, 35, 25, 26, 26, 27, 28, 31, 29, 30, 38, 39, 47,
-    49, 50, 51, 51, 53, 54, 55, 57, 59, 65, 67, 75, 81, 83, 85, 89, 90,
-    99, 100, 111, 113, 115, 117, 123, 125, 127, 129, 143, 147, 149, 150,
-    156, 157, 162, 164, 168, 174, 175, 177, 183, 187, 189, 191)
+    1   #= 𝑝1     ⇒ P1 =#,     2   #= 𝑝-1     ⇒ P-1 =#,    3   #= 𝑝112    ⇒ P2 =#, 
+    6   #= 𝑝11m   ⇒ Pm =#,     7   #= 𝑝11a    ⇒ Pc =#,     10  #= 𝑝112/m  ⇒ P2/m =#,
+    13  #= 𝑝112/a ⇒ P2/c =#,   3   #= 𝑝211    ⇒ P2 =#,     4   #= 𝑝2₁11   ⇒ P2₁ =#,
+    5   #= 𝑐211   ⇒ C2 =#,     6   #= 𝑝m11    ⇒ Pm =#,     7   #= 𝑝b11    ⇒ Pc =#, 
+    8   #= 𝑐m11   ⇒ Cm =#,     10  #= 𝑝2/m11  ⇒ P2/m =#,   11  #= 𝑝2₁/m11 ⇒ P2₁/m =#, 
+    13  #= 𝑝2/b11 ⇒ P2/c =#,   14  #= 𝑝2₁/b11 ⇒ P2₁/c =#,  12  #= 𝑐2/m11  ⇒ C2/m =#,
+    16  #= 𝑝222   ⇒ P222 =#,   17  #= 𝑝2₁22   ⇒ P222₁ =#,  18  #= 𝑝2₁2₁2  ⇒ P2₁2₁2 =#,
+    21  #= 𝑐222   ⇒ C222 =#,   25  #= 𝑝mm2    ⇒ Pmm2 =#,   28  #= 𝑝ma2    ⇒ Pma2 =#, 
+    32  #= 𝑝ba2   ⇒ Pba2 =#,   35  #= 𝑐mm2    ⇒ Cmm2 =#,   25  #= 𝑝m2m    ⇒ Pmm2 =#, 
+    26  #= 𝑝m2₁b  ⇒ Pmc2₁ =#,  26  #= 𝑝b2₁m   ⇒ Pmc2₁ =#,  27  #= 𝑝b2b    ⇒ Pcc2 =#,
+    28  #= 𝑝m2a   ⇒ Pma2 =#,   31  #= 𝑝m2₁n   ⇒ Pmn2₁ =#,  29  #= 𝑝b2₁a   ⇒ Pca2₁ =#, 
+    30  #= 𝑝b2n   ⇒ Pnc2 =#,   38  #= 𝑐m2m    ⇒ Amm2 =#,   39  #= 𝑐m2e    ⇒ Aem2 =#, 
+    47  #= 𝑝mmm   ⇒ Pmmm =#,   49  #= 𝑝maa    ⇒ Pccm =#,   50  #= 𝑝ban    ⇒ Pban =#, 
+    51  #= 𝑝mam   ⇒ Pmma =#,   51  #= 𝑝mma    ⇒ Pmma =#,   53  #= 𝑝man    ⇒ Pmna =#, 
+    54  #= 𝑝baa   ⇒ Pcca =#,   55  #= 𝑝bam    ⇒ Pbam =#,   57  #= 𝑝bma    ⇒ Pbcm =#, 
+    59  #= 𝑝mmn   ⇒ Pmmn =#,   65  #= 𝑐mmm    ⇒ Cmmm =#,   67  #= 𝑐mme    ⇒ Cmme =#, 
+    75  #= 𝑝4     ⇒ P4 =#,     81  #= 𝑝-4     ⇒ P-4 =#,    83  #= 𝑝4/m    ⇒ P4/m =#, 
+    85  #= 𝑝4/n   ⇒ P4/n =#,   89  #= 𝑝422    ⇒ P422 =#,   90  #= 𝑝42₁2   ⇒ P42₁2 =#, 
+    99  #= 𝑝4mm   ⇒ P4mm =#,   100 #= 𝑝4bm    ⇒ P4bm =#,   111 #= 𝑝-42m   ⇒ P-42m =#, 
+    113 #= 𝑝-42₁m ⇒ P-42₁m =#, 115 #= 𝑝-4m2   ⇒ P-4m2 =#,  117 #= 𝑝-4b2   ⇒ P-4b2 =#,
+    123 #= 𝑝4/mmm ⇒ P4/mmm =#, 125 #= 𝑝4/nbm  ⇒ P4/nbm =#, 127 #= 𝑝4/mbm  ⇒ P4/mbm =#,
+    129 #= 𝑝4/nmm ⇒ P4/nmm =#, 143 #= 𝑝3      ⇒ P3 =#,     147 #= 𝑝-3     ⇒ P-3 =#,
+    149 #= 𝑝312   ⇒ P312 =#,   150 #= 𝑝321    ⇒ P321 =#,   156 #= 𝑝3m1    ⇒ P3m1 =#, 
+    157 #= 𝑝31m   ⇒ P31m =#,   162 #= 𝑝-31m   ⇒ P-31m =#,  164 #= 𝑝-3m1   ⇒ P-3m1 =#, 
+    168 #= 𝑝6     ⇒ P6 =#,     174 #= 𝑝-6     ⇒ P-6 =#,    175 #= 𝑝6/m    ⇒ P6/m =#, 
+    177 #= 𝑝622   ⇒ P622 =#,   183 #= 𝑝6mm    ⇒ P6mm =#,   187 #= 𝑝-6m2   ⇒ P-6m2 =#,
+    189 #= 𝑝-62m  ⇒ P-62m =#,  191 #= 𝑝6/mmm  ⇒ P6/mmm =#)
 
 # this is just `LAYER2SPACE_NUMS[[PLANE2LAYER_NUMS...]]`
-const PLANE2SPACE_NUM = (
+const PLANE2SPACE_NUMS = (
     1   #= p1   ⇒ P1   =#, 3   #= p2   ⇒ P2   =#, 6   #= p1m1 ⇒ Pm   =#, 
     7   #= p1g1 ⇒ Pc   =#, 8   #= c1m1 ⇒ Cm   =#, 25  #= p2mm ⇒ Pmm2 =#,
     28  #= p2mg ⇒ Pma2 =#, 32  #= p2gg ⇒ Pba2 =#, 35  #= c2mm ⇒ Cmm2 =#,
@@ -77,31 +99,27 @@ const PLANE2SPACE_NUM = (
     143 #= p3   ⇒ P3   =#, 156 #= p3m1 ⇒ P3m1 =#, 157 #= p31m ⇒ P31m =#,
     168 #= p6   ⇒ P6   =#, 183 #= p6mm ⇒ P6mm =#)
 
-const FRIEZE2SPACE_NUM = (
+const FRIEZE2SPACE_NUMS = (
     1  #= 𝓅1   ⇒ P1   =#, 3 #= 𝓅2   ⇒ P2 =#, 6  #= 𝓅1m1 ⇒ Pm   =#,
     6  #= 𝓅11m ⇒ Pm   =#, 7 #= 𝓅11g ⇒ Pc =#, 25 #= 𝓅2mm ⇒ Pmm2 =#,
     28 #= 𝓅2mg ⇒ Pma2 =#)
 
-const FRIEZE2LAYER_NUM = (
+const FRIEZE2LAYER_NUMS = (
     1  #= 𝓅1   ⇒ 𝑝1   =#, 3 #= 𝓅2   ⇒ 𝑝112 =#, 11 #= 𝓅1m1 ⇒ 𝑝m11 =#,
     4  #= 𝓅11m ⇒ 𝑝11m =#, 5 #= 𝓅11g ⇒ 𝑝11a =#, 23 #= 𝓅2mm ⇒ 𝑝mm2 =#,
     24 #= 𝓅2mg ⇒ 𝑝ma2 =#)
 
-const FRIEZE2ROD_NUM = (
+const FRIEZE2ROD_NUMS = (
      1  #= 𝓅1   ⇒ 𝓅1   =#, 3 #= 𝓅2   ⇒ 𝓅211 =#, 10 #= 𝓅1m1 ⇒ 𝓅11m =#, 
      4  #= 𝓅11m ⇒ 𝓅m11 =#, 5 #= 𝓅11g ⇒ 𝓅c11 =#, 18 #= 𝓅2mm ⇒ 𝓅2mm =#,
      19 #= 𝓅2mg ⇒ 𝓅2cm =#)
 
-const FRIEZE2PLANE_NUM  = (
+const FRIEZE2PLANE_NUMS  = (
     1 #= 𝓅1   ⇒ p1   =#, 2 #= 𝓅2   ⇒ p2   =#, 3 #= 𝓅1m1 ⇒ p1m1 =#,
     3 #= 𝓅11m ⇒ p1m1 =#, 4 #= 𝓅11g ⇒ p1g1 =#, 6 #= 𝓅2mm ⇒ p2mm =#,
     7 #= 𝓅2mg ⇒ p2mg =#)
 
-const ROD2LAYER_NUM = (
-    # TODO
-    )
-
-const ROD2SPACE_NUM = (
+const ROD2SPACE_NUMS = (
     1   #= 𝓅1     ⇒ P1     =#, 2   #= 𝓅-1     ⇒ P-1     =#, 3   #= 𝓅211    ⇒ P2      =#,
     6   #= 𝓅m11   ⇒ Pm     =#, 7   #= 𝓅c11    ⇒ Pc      =#, 10  #= 𝓅2/m11  ⇒ P2/m    =#,
     13  #= 𝓅2/c1  ⇒ P2/c   =#, 3   #= 𝓅112    ⇒ P2      =#, 4   #= 𝓅112₁   ⇒ P2₁     =#,
@@ -128,9 +146,9 @@ const ROD2SPACE_NUM = (
     186 #= 𝓅6₃mc  ⇒ P6₃mc  =#, 187 #= 𝓅-6m2   ⇒ P-6m2   =#, 188 #= 𝓅-6c2   ⇒ P-6c2   =#,
     191 #= 𝓅6/mmm ⇒ P6/mmm =#, 192 #= 𝓅6/mcc  ⇒ P6/mcc  =#, 194 #= 𝓅6/mmc  ⇒ P6₃/mmc =#)
 
-const LINE2ROD_NUM = (1 #= p1 ⇒ 𝓅1 =#, 10 #= p1m ⇒ 𝓅11m =#)
+const LINE2ROD_NUMS = (1 #= p1 ⇒ 𝓅1 =#, 10 #= p1m ⇒ 𝓅11m =#)
 
-const LINE2FRIEZE_NUM = (1 #= p1 ⇒ 𝓅1 =#, 3 #= p1m ⇒ 𝓅1m1 =#)
+const LINE2FRIEZE_NUMS = (1 #= p1 ⇒ 𝓅1 =#, 3 #= p1m ⇒ 𝓅1m1 =#)
 
 # ---------------------------------------------------------------------------------------- #
 # GROUP ELEMENTS
@@ -146,10 +164,13 @@ subperiodic group and ``T`` is the translation group of the associated lattice.
 - `num`: the canonical number of the group, following the International Tables for
 Crystallography, Volume E.
 """
-struct SubperiodicGroup{D,P} <: AbstractGroup{D}
-    num::Int
-    operations::Vector{SymOperation{D}}
+struct SubperiodicGroup{D,P} <: AbstractGroup{D, SymOperation{D}}
+    num :: Int
+    operations :: Vector{SymOperation{D}}
 end
+const LayerGroup  = SubperiodicGroup{3,2}
+const RodGroup    = SubperiodicGroup{3,1}
+const FriezeGroup = SubperiodicGroup{2,1}
 
 function _throw_subperiodic_domain(D::Integer, P::Integer)
     throw(DomainError((D, P), "invalid dimension and periodicity for subperiodic group"))
@@ -158,38 +179,15 @@ end
 @noinline function _throw_subperiodic_num(num::Integer, D::Integer, P::Integer)
     maxnum, sub = (D==3 && P==2) ? (80, "layer") :
                   (D==3 && P==1) ? (75, "rod") :
-                  (D==2 && P==1) ? (7, "frieze") : error("unreachable reached")
+                  (D==2 && P==1) ? (7, "frieze") :
+                  _throw_subperiodic_domain(D, P)
 
     throw(DomainError(num,
         "group number must be between 1 and $maxnum for $sub groups (D=$D, P=$P)"))
 end
 
-"""
-    read_sgops_xyzt(num::Integer, dim::Integer=3)
-
-Obtains the symmetry operations in xyzt format for a given subperiodic group with number
-`num`, dimensionality `D`, and periodicity `P` by reading from .csv files in 
-`data/operations/subperiodic/`; see [`subperiodicgroup`](@ref) for additional details.
-"""
-function read_subperiodic_ops_xyzt(num::Integer, D::Integer, P::Integer)
-    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
-
-    kind = subperiodic_kind(D, P)
-    filepath = joinpath(DATA_DIR, "operations/subperiodic/"*kind*"/"*string(num)*".csv")
-
-    return readlines(filepath)
-end
-
-function read_subperiodic_gens_xyzt(num::Integer, D::Integer, P::Integer)
-    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
-
-    kind = subperiodic_kind(D, P)
-    filepath = joinpath(DATA_DIR, "generators/subperiodic/"*kind*"/"*string(num)*".csv")
-
-    return readlines(filepath)
-end
-
-@inline function subperiodic_kind(D, P)
+@inline function _subperiodic_kind(D, P)
+    # TODO: Move to a testing-utils module (only used in /test/)
     if D == 3 && P == 2
         return "layer"
     elseif D == 3 && P == 1
@@ -215,102 +213,30 @@ function _check_valid_subperiodic_num_and_dim(num::Integer, D::Integer, P::Integ
     return nothing
 end
 
-# TODO: Doc-string
-# NOTE: There's some unfortunate conventional choices regarding the setting of rod groups:
-#       the periodicity is assumed to be along the z-direction - this is contrary to how the
-#       layer groups (x-y periodicity) and frieze groups (x periodicity) are built... One
-#       possible motivation for this choice would be to have rod groups more closely
-#       resemble the corresponding space groups; but this way, the frieze groups don't
-#       resemble the rod groups (instead, the layer groups)... Quite annoying in a
-#       computational setting ...: we now need to keep track of _which_ direction is the
-#       periodic one... Seems more appealing to just establish some convention (say,
-#       P = 1 ⇒ x periodicity; P = 2 ⇒ x-y periodicity). Unfortunately, if we do that,
-#       we need to change the labels for the rod groups (they are setting dependent).
-#       This problem is discussed in e.g. ITE1 Section 1.2.6; one option is to indicate the
-#       direction of periodicity with a subscript (e.g., ₐ for x-direction; but that doesn't
-#       work too well with unicode that doesn't have {b,c}-subscripts.
-"""
-    subperiodicgroup(num::Integer, ::Val{D}=Val(3), ::Val{P}=Val(2))
-    subperiodicgroup(num::Integer, D::Integer, P::Integer)
-                                                            --> ::SubperiodicGroup{D,P}
-
-Return the operations of the subperiodic group `num` of embedding dimension `D` and
-periodicity dimension `P` as a `SubperiodicGroup{D,P}`.
-
-The setting choices are those of the International Tables for Crystallography, Volume E.
-
-Allowed combinations of `D` and `P` and their associated group names are:
-
-- `D = 3`, `P = 2`: Layer groups (`num` = 1, …, 80).
-- `D = 3`, `P = 1`: Rod groups (`num` = 1, …, 75).
-- `D = 2`, `P = 1`: Frieze groups (`num` = 1, …, 7).
-
-## Example
-
-```jldoctest
-julia> subperiodicgroup(7, Val(2), Val(1))
-SubperiodicGroup{2, 1} ⋕7 (𝓅2mg) with 4 operations:
- 1
- 2
- {m₁₀|½,0}
- {m₀₁|½,0}
-```
-
-## Data sources
-
-The symmetry operations returned by this function were originally retrieved from the [Bilbao
-Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
-"""
-@inline function subperiodicgroup(num::Integer, 
-                                  ::Val{D}=Val(3), ::Val{P}=Val(2)) where {D,P}
-    ops_str = read_subperiodic_ops_xyzt(num, D, P)
-    ops = SymOperation{D}.(ops_str)
-
-    return SubperiodicGroup{D,P}(num, ops)
-end
-subperiodicgroup(num::Integer, D::Integer, P::Integer) = subperiodicgroup(num, Val(D), Val(P))
-
-"""
-    generators(num::Integer, ::Type{SubperiodicGroup{D,P}})  -->  ::Vector{SymOperation{D}}
-
-Return a canonical set of generators for the subperiodic group `num` of embedding dimension
-`D` and periodicity dimension `P`. See also [`subperiodicgroup`](@ref).
-
-See also [`generators(::Integer, ::Type{SpaceGroup})`](@ref) and information therein.
-
-## Example
-
-```jldoctest
-julia> generators(7, SubperiodicGroup{2, 1})
-2-element Vector{SymOperation{2}}:
- 2
- {m₁₀|½,0}
-```
-
-## Data sources
-
-The generators returned by this function were originally retrieved from the [Bilbao
-Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
-"""
-function generators(num::Integer, ::Type{SubperiodicGroup{D,P}}) where {D,P}
-    ops_str = read_subperiodic_gens_xyzt(num, D, P)
-
-    return SymOperation{D}.(ops_str)
-end
-
-function label(g::SubperiodicGroup{D,P}) where {D,P}
+label(g::SubperiodicGroup{D,P}) where {D,P} = _subperiodic_label(num(g), D, P)
+@inline function _subperiodic_label(num::Integer, D::Integer, P::Integer)
+    @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
     if D == 3 && P == 2
-        return LAYERGROUP_IUCs[num(g)]
+        return LAYERGROUP_IUCs[num]
     elseif D == 3 && P == 1
-        return RODGROUP_IUCs[num(g)]
+        return RODGROUP_IUCs[num]
     elseif D == 2 && P == 1
-        return FRIEZEGROUP_IUCs[num(g)]
+        return FRIEZEGROUP_IUCs[num]
     else
-        _throw_subperiodic_domain(D, P)
+        _throw_subperiodic_domain(D, P) # unreachable under boundschecking
     end
 end
 
-centering(g::SubperiodicGroup) = first(label(g))
+centering(g::SubperiodicGroup{D,P}) where {D,P} = centering(num(g), D, P)
+function centering(num::Integer, D::Integer, P::Integer)
+    if D == P
+        return centering(num, D)
+    else
+        lab = _subperiodic_label(num, D, P) # (also checks input validity)
+        return first(lab)
+    end
+    error("unreachable")
+end
 
 # ---------------------------------------------------------------------------------------- #
 

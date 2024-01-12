@@ -49,12 +49,14 @@ using Crystalline, Test
     @testset "Conversion between xyzt and matrix forms" begin
         for D = 1:3
             Dᵛ = Val(D)
-            for sgnum in 1:MAX_SGNUM[D]
-                    @testset "SG$sgnum ($(D)D)" begin
-                    sg = spacegroup(sgnum, Dᵛ)
-                    for op in sg
-                        @test all(Crystalline.xyzt2matrix(xyzt(op), Dᵛ) == matrix(op)) # xyzt->matrix
-                        @test all(Crystalline.matrix2xyzt(matrix(op))   == xyzt(op))   # matrix->xyzt
+            @testset "D = $(D)" begin
+                for sgnum in 1:MAX_SGNUM[D]
+                    @testset "⋕$sgnum" begin
+                        sg = spacegroup(sgnum, Dᵛ)
+                        for op in sg
+                            @test Crystalline.xyzt2matrix(xyzt(op), Dᵛ) ≈ matrix(op) # xyzt->matrix (`≈` due to possible rounding errors and precision loss on round-trip)
+                            @test Crystalline.matrix2xyzt(matrix(op))   == xyzt(op)  # matrix->xyzt
+                        end
                     end
                 end
             end
@@ -65,7 +67,7 @@ using Crystalline, Test
         sg = spacegroup(230, Val(3)) # random space group
 
         # test associativity (with and without modular arithmetic)
-        g₁, g₂, g₃ = sg[5:7] 
+        g₁, g₂, g₃ = sg[5:7]
         @test g₁*(g₂*g₃) == (g₁*g₂)*g₃
         @test compose(compose(g₁, g₂, false), g₃, false) == compose(g₁, compose(g₂, g₃, false), false)
     end

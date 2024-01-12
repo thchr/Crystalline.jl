@@ -34,11 +34,7 @@ function classes(
     cntr_ops = if cntr === nothing
         nothing
     else
-        if cntr == 'P' || cntr == 'p'
-            SymOperation{D}[]
-        else
-            SymOperation{D}.(all_centeringtranslations(cntr, Val(D)))
-        end
+        SymOperation{D}.(all_centeringtranslations(cntr, Val(D)))
     end
 
     conj_classes = Vector{Vector{SymOperation{D}}}()
