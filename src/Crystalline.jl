@@ -161,6 +161,9 @@ export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups
 
+include("corner_anomaly.jl")
+export corner_anomaly
+
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl
 export position, inv
