@@ -153,7 +153,7 @@ function classification(nontriv_Λ::AbstractVector{<:Integer})
     if isempty(nontriv_Λ)
         return "Z₁"
     else
-        return "Z"*join(subscriptify.(string.(nontriv_Λ)), "×Z")
+        return "Z"*subscriptify(join(nontriv_Λ, "×Z"))
     end
 end
 function classification(BRS_or_F::Union{BandRepSet, Smith})
