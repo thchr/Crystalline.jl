@@ -5,7 +5,7 @@ using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
 import Crystalline: mulliken, realify, group
 using StaticArrays
 
-# The implementation here follows Elcoro et al., Phys. Rev. B 97, 035139 (2018)
+# The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
 
 # ---------------------------------------------------------------------------------------- #

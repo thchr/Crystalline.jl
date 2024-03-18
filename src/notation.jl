@@ -478,8 +478,8 @@ Return the Mulliken label of a point group irrep `pgir`.
 
 ## Notes
 This functionality is a simple mapping between the tabulated CDML point group irrep labels
-and associated Mulliken labels, using the listings from the Bilbao Crystallographic
-Database [^1].
+and associated Mulliken labels [^1], using the listings from the Bilbao Crystallographic
+Database [^2].
 
 Ignoring subscript, the rough rules associated with assignment of Mulliken labels are:
 
@@ -498,7 +498,9 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
    describe here.
 
 ## References
-[^1]: Bilbao Crystallographic Database's
+[^1]: Mulliken, Report on Notation for the Spectra of Polyatomic Molecules, 
+      [J. Chem. Phys. *23*, 1997 (1955)](https://doi.org/10.1063/1.1740655).
+[^2]: Bilbao Crystallographic Database's
       [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
 function mulliken(pgir::PGIrrep{D}) where D

@@ -5,8 +5,8 @@ using Crystalline
 # every group. The notation follows Bilbao's LKVEC tool [^1] entirely. Note that this
 # implies some occasionally odd-looking choices, e.g. (see (*) marks below):
 #   - *Plane groups 3 & 4*: the X and Y labels are defined counter-intuitively, such that
-#           X = (0,1/2) and Y = (1/2,0). This also differs from the definitions in other
-#           the other primitive rectangular (op) Bravais lattices (i.e. 6, 7, & 8), which
+#           X = (0,1/2) and Y = (1/2,0). This also differs from the definitions in the
+#           other primitive rectangular (op) Bravais lattices (i.e. 6, 7, & 8), which
 #           instead have X = (1/2,0) etc. The difference also exists for k-line labels.
 #   - *Plane group 5 vs. 9*: although both are centred rectangular (oc) Bravais lattices,
 #           their k-vector labels do not agree, but differ by coordinate permutations.
