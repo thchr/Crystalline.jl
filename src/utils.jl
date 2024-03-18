@@ -254,7 +254,7 @@ end
 # === misc functionality ===
 
 """
-    isapproxin(x, itr) --> Bool
+    isapproxin(x, itr, optargs...; kwargs...) --> Bool
 
 Determine whether `x` ∈ `itr` with approximate equality.
 """

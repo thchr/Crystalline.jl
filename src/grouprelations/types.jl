@@ -44,7 +44,7 @@ struct GroupRelationGraph{D,AG} <: Graphs.AbstractGraph{Int}
     direction :: RelationKind # whether this is a sub- or supergroup relation
 end
 dim(::GroupRelationGraph{D}) where D = D
-
+Base.getindex(gr::GroupRelationGraph, i::Integer) = getindex(gr.infos, i)
 # ---------------------------------------------------------------------------------------- #
 # Graphs.jl `AbstractGraph` interface for `GroupRelationGraph`
 
