@@ -65,6 +65,7 @@ function html2dlm(body::String, oplus::Union{String,Char}='⊕')
         "GP"=>'Ω',                                                # GP to Ω
         "&nbsp;"=>"",                                             # non-breaking space
         '*'=>"",                                                  # * (for Σ k-points in e.g. sg 146: sending `u,-2*u,0`⇒`u,-2u,0`)
+        "'"=>"′",                                                 # ′ (some Mulliken irrep labels)
         r"\<form.*?\"Decomposable\"\>\<\/form\>"=>"Decomposable", # decomposable bandreps contain a link to decompositions; ignore it
         "$(dlm)Decomposable"=>"$(dlm)true",    # simplify statement of composability
         "$(dlm)Indecomposable"=>"$(dlm)false",
