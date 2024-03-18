@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------------------------------- #
 
 # build adjacency matrix as a block matrix from subgraphs
+assemble_adjacency(bandg::BandGraph) = assemble_adjacency(bandg.subgraphs, bandg.partitions)
 function assemble_adjacency(subgraphs, partitions)
     Nirs_total  = last(partitions[end].iridxs)
     Nirs_each    = [length(p.lgirs) for p in partitions]
@@ -18,6 +19,7 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
+assemble_degree(bandg::BandGraph) = assemble_degree(bandg.subgraphs, bandg.partitions)
 function assemble_degree(subgraphs, partitions)
     # Diagonal matrix D, whose entries Dᵢᵢ are equal to the degree of the ith node (i.e.,
     # the number of edges incident upon it). We define the degree of node nᵢ as on p. 9 of
@@ -44,10 +46,9 @@ function assemble_degree(subgraphs, partitions)
 end
 
 # ---------------------------------------------------------------------------------------- #
-
-function assemble_laplacian(subgraphs, partitions)
-    A = assemble_adjacency(subgraphs, partitions)
-    D = assemble_degree(subgraphs, partitions)
+function assemble_laplacian(bandg::BandGraph)
+    A = assemble_adjacency(bandg)
+    D = assemble_degree(bandg)
     return D - A
 end
 

@@ -24,9 +24,9 @@ GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
 BandGraphsGraphMakieExt = "GraphMakie"
 
 [compat]
-julia = "1.6"
 GraphMakie = "0.5"
+julia = "1.6"
 
 [extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

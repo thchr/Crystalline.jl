@@ -38,7 +38,7 @@ function assemble_graph(subgraphs, partitions)
     end
     return g
 end
-
+assemble_graph(bandg::BandGraph) = assemble_graph(bandg.subgraphs, bandg.partitions)
 # ---------------------------------------------------------------------------------------- #
 
 function partition_graph(subgraphs, partitions)
@@ -58,7 +58,7 @@ function partition_graph(subgraphs, partitions)
 
     return g
 end
-
+partition_graph(bandg::BandGraph) = partition_graph(bandg.subgraphs, bandg.partitions)
 # ---------------------------------------------------------------------------------------- #
 
 # compute a modified graph from `kg` such that any nonmaximal node is only ever entered and

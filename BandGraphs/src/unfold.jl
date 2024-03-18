@@ -7,6 +7,7 @@ function partition_ids(p :: Partition)
     return ids
 end
 
+unfold_bandgraph(bandg::BandGraph, kg) = unfold_bandgraph(bandg.subgraphs, bandg.partitions, kg)
 function unfold_bandgraph(
             subgraphs,
             partitions,

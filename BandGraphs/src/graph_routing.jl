@@ -84,7 +84,7 @@ end
 
 function _chinese_postman_split_disconnected_components(g::AbstractGraph{T}) where T
     components = connected_components(g)
-    filter!(length(verts)==1, components) # remove single-vertex components
+    filter!(verts->length(verts)==1, components) # remove single-vertex components
 
     trail = T[]
     for (n, verts) in enumerate(components)

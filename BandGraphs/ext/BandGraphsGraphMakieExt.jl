@@ -23,50 +23,51 @@ import BandGraphs: plot_flattened_bandgraph, make_vertices_dragable! # exported 
 ## Unfolding a band graph `g` via `kg_trail`
 function plot_flattened_bandgraph(
             n::SymVector{D},
-            lgirsd::Dict{String, Vector{LGIrrep{D}}}
+            lgirsd::Dict{String, Vector{LGIrrep{D}}};
+            timereversal=true
             ) where D
+    # TODO: take a `SubductionTable` as input?
     
     sgnum = num(group(first(first(n.lgirsv))))
     @assert sgnum == num(group(first(first(values(lgirsd)))))
 
     # compute subgraphs and partitions
-    subgraphs, partitions = build_subgraphs(n, SUBDUCTIONSD[sgnum], lgirsd)
+    bandg = build_subgraphs(n, subduction_tables(sgnum; timereversal), lgirsd)
 
-    plot_flattened_bandgraph(subgraphs, partitions)
+    plot_flattened_bandgraph(bandg)
 end
 
 function plot_flattened_bandgraph(
-            subgraphs  :: AbstractVector{SubGraph{D}},
-            partitions :: AbstractVector{Partition{D}};
+            bandg :: BandGraph;
             xys = nothing
-            ) where D
+            )
 
     # compute a path `kg` that connects all required maximal and nonmaximal k manifolds
-    kg = partition_graph(subgraphs, partitions)
+    kg = partition_graph(bandg)
 
-    plot_flattened_bandgraph(subgraphs, partitions, kg; xys)
+    plot_flattened_bandgraph(bandg, kg; xys)
 end
 
 function plot_flattened_bandgraph(
-            subgraphs  :: AbstractVector{SubGraph{D}},
-            partitions :: AbstractVector{Partition{D}},
-            kg         :: MetaGraph; # ::(!IsDirected)
+            bandg :: BandGraph,
+            kg        :: MetaGraph; # ::(!IsDirected)
             xys = nothing
-            ) where D
+            )
 
     # compute a directed acyclic graph `g_trail` that "unfolds" or "flattens" the original
     # graph representation associated with `subgraphs` into a frequency-momentum/dispersion
     # diagram; to unfold it, we allow ourselves to pass through certain k-manifolds multiple
     # times if necessary
-    g_trail, klabs_trail = unfold_bandgraph(subgraphs, partitions, kg)
+    g_trail, klabs_trail = unfold_bandgraph(bandg, kg)
 
     # find layers in `g_trail` with the same maximal k-points and force them to have the
     # same frequency/y-position for the irreps; we do not require the same of nonmaximal
     # irrep nodes, since a notion of fixed frequency-position does not apply to those
     # manifolds (lines/planes, etc)
     if isnothing(xys)
-        force_equal_layers = find_equal_maximal_layers(klabs_trail, partitions)
+        force_equal_layers = find_equal_maximal_layers(klabs_trail, bandg.partitions)
         xs, ys, _ = solve_positions(Zarate(), g_trail; force_equal_layers)
+        ys = linearize_nonmaximal_y_coordinates(g_trail, ys)
     else
         xs, ys = xys
     end
@@ -116,7 +117,7 @@ function plot_flattened_bandgraph(
         l = label_for(g_trail, i)
         l[1]
     end
-    graphcol = Makie.RGBf(.1,.2,.6) # color of main elements in graph
+    graphcol = Makie.RGBAf(.1,.2,.6, 1.0) # color of main elements in graph
     p = graphplot!(ax, g_trail; 
             layout = _->xy,
             arrow_size = 0,
@@ -125,15 +126,21 @@ function plot_flattened_bandgraph(
             nlabels_align = (:center,:bottom),
             nlabels_distance = 6.0,
             nlabels_attr = (;strokewidth=2, strokecolor=:white),
-            node_color = graphcol, 
+            # the weird transparent coloring situation below is there to avoid a bug on
+            # dragging transparent / zero-size vertices (the nonmaximal vertices)
+            node_color = [m ? graphcol : Makie.RGBAf(1.0,1.0,1.0,0.001) for m in maximality], 
             edge_color = graphcol,
-            node_size = [m ? 15 : 0 for m in maximality],
-            node_attr = (; strokewidth=3, strokecolor=:white)
+            node_size = fill(15, length(maximality)),
+            node_attr = (; strokewidth=3, 
+                           strokecolor=[(m ? Makie.RGBAf(1.0,1.0,1.0,1.0) :
+                                             Makie.RGBAf(1.0,1.0,1.0,0.0))
+                                             for m in maximality],)
             )
     
     # --- prettification ---
     Makie.hidedecorations!(ax)  # hides ticks, grid and labels
     Makie.hidespines!(ax)
+    make_vertices_dragable_bandgraph!(ax, p, g_trail)
 
     faxp = Makie.FigureAxisPlot(f, ax, p)
     return faxp, (; g_trail, klabs_trail, xs, ys)
@@ -171,13 +178,96 @@ function find_equal_maximal_layers(klabs_trail, partitions)
     return force_equal_layers
 end
 
+# the y-coordinates returned by `solve_positions` often make the paths/edges through the
+# nonmaximal irrep "jagged" unnecessarily (essentially, an artifact of us treating the 
+# nonmaximal irreps as nodes in the `g_trail` graph, instead of having a proper multigraph);
+# we fix that here, by "linearizing" the possibly jagged edges between maximal irreps.
+# note that the "frequency" of the nonmaximal irrep is not really a fixed thing in the same
+# way as it is for the maximal irreps (it spans a line/plane etc; not a fixed point), so it
+# is fine for us to change it ad hoc.
+function linearize_nonmaximal_y_coordinates(g_trail, ys::Vector)
+    Δy = -(-)(extrema(ys)...)
+    ys′ = similar(ys)
+    track = Dict{Int, Vector{Int}}() # trailidx => indices in `ys`
+    for i in vertices(g_trail)
+        l = label_for(g_trail, i)
+        v = g_trail[l]
+        maximal = v.maximal
+        if maximal # don't change maximal y-positions
+            ys′[i] = ys[i]
+            continue
+        end
+
+        if !haskey(track, v.trailidx)
+            track[v.trailidx] = [i]
+        else
+            push!(track[v.trailidx], i)
+        end
+    end
+    for is in values(track)
+        # a vertex assoc. w/ a nonmaximal irrep will only ever have two neighbors: it cannot
+        # have more than 2 irrep neighbors, as any connected maximal irrep must have equal
+        # or higher irrep dimensions; it cannot have less than 2 since it will always
+        # connect two different maximal irreps
+        avg_ys = Vector{Float64}(undef, length(is))
+        for (idx_in_is, i) in enumerate(is)
+            in_i = only(inneighbors(g_trail, i))   # vertex index of ingoing maximal irrep
+            out_i = only(outneighbors(g_trail, i)) # vertex index of outgoing maximal irrep
+            avg_ys[idx_in_is] = (ys[in_i] + ys[out_i])/2
+        end
+        for (idx_in_is, i) in enumerate(is)
+            y′ = avg_ys[idx_in_is]
+            if (any(≈(y′; atol=5e-2), @view avg_ys[1:idx_in_is-1]) || 
+                any(≈(y′; atol=5e-2), @view avg_ys[idx_in_is+1:end]))
+                # if linearizing would "collapse" multiple edges to lie on top of eachother,
+                # or simply overlay their y-labels, we keep the existing positions
+                if length(is) == 2 # special treatment for 2-irrep case
+                    # TODO: we could do something better/more general things here by looking
+                    #       again at the neighbors of the "overlapping" nonmaximal verts
+                    ys′[i] = ys[i] - sign(ys[i])*Δy/3
+                else
+                    ys′[i] = ys[i]
+                end
+            else
+                ys′[i] = y′
+            end
+        end
+    end
+    return ys′
+end
+
+
 # ---------------------------------------------------------------------------------------- #
 # Plotting utilities
 
 function make_vertices_dragable!(ax, p)
     Makie.deregister_interaction!(ax, :rectanglezoom)
     function node_drag_action(state, idx, event, axis)
+        println(idx)
         p[:node_pos][][idx] = event.data
+        p[:node_pos][] = p[:node_pos][]
+    end
+    ndrag = NodeDragHandler(node_drag_action)
+    Makie.register_interaction!(ax, :ndrag, ndrag)
+    Makie.hidedecorations!(ax)
+    Makie.hidespines!(ax)
+    nothing
+end
+
+function make_vertices_dragable_bandgraph!(ax, p, g_trail)
+    Makie.deregister_interaction!(ax, :rectanglezoom)
+    function node_drag_action(state, idx, event, axis)
+        mouse_r = event.data
+
+        # find related irreps, their vertex indices, and change their y-coordinates as well
+        vert_id = label_for(g_trail, idx)[1:2]
+        related_vert_idxs = findall(l->l[1:2]==(vert_id), g_trail.vertex_labels)
+        for idx′ in related_vert_idxs
+            prev_r′ = p[:node_pos][][idx′]
+            p[:node_pos][][idx′] = Makie.Point(prev_r′[1], mouse_r[2])
+        end
+        
+        # update observable
         p[:node_pos][] = p[:node_pos][]
     end
     ndrag = NodeDragHandler(node_drag_action)

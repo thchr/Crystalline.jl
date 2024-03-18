@@ -1,3 +1,5 @@
+using Pkg
+(dirname(Pkg.project().path) == @__DIR__) || Pkg.activate(@__DIR__)
 using Crystalline
 using BandGraphs
 using Graphs
@@ -14,14 +16,16 @@ sgnum = 200
 sb, brs = compatibility_basis(sgnum; timereversal)
 lgirsd = lgirreps(sgnum)
 timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
+subts = subduction_tables(sgnum; timereversal)
 _n = brs[end]
 n = SymVector(_n, brs.irlabs, lgirsd)
 
-subgraphs, partitions = build_subgraphs(n, SUBDUCTIONSD[sgnum], lgirsd)
+bandg = build_subgraphs(n, subts, lgirsd)
+subgraphs, partitions = bandg.subgraphs, bandg.partitions
 
-A = assemble_adjacency(subgraphs, partitions)
-L = assemble_laplacian(subgraphs, partitions)
-g = assemble_graph(subgraphs, partitions) # structured equiv of `Graph(A)`
+A = assemble_adjacency(bandg)
+L = assemble_laplacian(bandg)
+g = assemble_graph(bandg) # structured equiv of `Graph(A)`
 
 node_colors = [g[label_for(g, i)].maximal ? :red : :black for i in vertices(g)]
 f, ax, p = graphplot(
@@ -40,7 +44,7 @@ f
 ## ----------------------------------------------------------------------------------------
 # Testing & visualization of k-connectivity graphs
 
-kg = partition_graph(subgraphs, partitions)
+kg = partition_graph(bandg)
 kg′ = split_nonmaximal_nodes(kg)
 f,ax,p=graphplot(kg′;
     nlabels = [label_for(kg′, i)[1] for i in vertices(kg′)],
@@ -63,52 +67,58 @@ f
 ## ----------------------------------------------------------------------------------------
 
 
-sgnum = 200
+sgnum = 19#230
+
 sb, brs = compatibility_basis(sgnum; timereversal)
+#sb, brs = nontopological_basis(sgnum; timereversal)
 lgirsd = lgirreps(sgnum)
 timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
-_n = brs[end-1]
+#_n = brs[5]
+_n = sb[1]
 n = SymVector(_n, brs.irlabs, lgirsd)
+subts = subduction_tables(sgnum; timereversal)
 
-faxp1, plot_data = plot_flattened_bandgraph(n, lgirsd)
-f1, ax1, p1 = faxp1
-# TODO: Debug visualization of SG 230
+# TODO: Debug segfault(?) of SG 230 (e.g., `sb[end]`) (probably too many permutations for
+#       some vectors)
 
-## ----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # Create a permuted graph (a single subgraph permutation) and compare
-subgraphs, partitions = build_subgraphs(n, SUBDUCTIONSD[sgnum], lgirsd)
-psubgraphs = permute_subgraphs(subgraphs)
-p_idx = 12 # pick the second possible permutation of `pidx` subgraph
-psubgraph_pidx = psubgraphs[p_idx] # a 
-permuted_subgraph = SubGraph(
-    psubgraph_pidx.p_max, psubgraph_pidx.p_nonmax, psubgraph_pidx.As[2], false)
-permuted_subgraphs = vcat(
-    subgraphs[1:p_idx-1], 
-    permuted_subgraph,
-    subgraphs[p_idx+1:end])
+bandg = build_subgraphs(n, subts, lgirsd);
+subgraphs_ps = permute_subgraphs(bandg.subgraphs);
+bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
+BandGraphs.permutation_info(bandgp)
+length(bandgp) > 10 && @info("Be warned: many permutations ($(length(bandgp)))")
 
-xys = (plot_data.xs, plot_data.ys)
-faxp2, _ = plot_flattened_bandgraph(permuted_subgraphs, partitions; xys=xys)
-f2, ax2, p2 = faxp2
+GLMakie.closeall()
+xys = nothing
+maxplot = 4
+fs = Vector{Figure}(undef, maxplot)
+for (n, bandg′) in enumerate(bandgp)
+    n > maxplot && break
+    faxp, (; xs, ys) = plot_flattened_bandgraph(bandg′; xys=xys)
+    fs[n], ax, p = faxp
+    ax.title = "Permutation $(n)"
+    display(GLMakie.Screen(), fs[n])
+    global xys = (xs, ys)
+end
 
-display(GLMakie.Screen(), f1)
-display(GLMakie.Screen(), f2) # open both
-make_vertices_dragable!(ax2, p2)
 
 ## ----------------------------------------------------------------------------------------
 # Understanding how many permutations remain
 
-let sgnum = 73
+let sgnum = 96 # 200
     sb, brs = compatibility_basis(sgnum; timereversal)
+    #sb, brs = nontopological_basis(sgnum; timereversal)
     lgirsd = Dict(klab=>realify(lgirs) for (klab, lgirs) in lgirreps(sgnum))
+    subts = subduction_tables(sgnum; timereversal)
 
     for nv in sb
-        n = SymVector(nv, brs.irlabs, lgirsd)
-        subgraphs, partitions = build_subgraphs(n, SUBDUCTIONSD[sgnum], lgirsd)
-        subgraphsp = permute_subgraphs(subgraphs)
-        subgraph_klabs = [" (" * s.p_max.klab * "→" * s.p_nonmax.klab .* ")" for s in subgraphs]
-        join(stdout, string.(length.(subgraphsp)) .* subgraph_klabs, ", ")
-        println(" ⇒ ", prod(length.(subgraphsp)))
+        n = SymVector(nv, brs.irlabs, lgirsd);
+        bandg = build_subgraphs(n, subts, lgirsd)
+        subgraphs_ps = permute_subgraphs(bandg.subgraphs)
+        bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
+        println(n)
+        BandGraphs.permutation_info(bandgp)
+        println()
     end
-    # TODO: the above can segfault?
 end

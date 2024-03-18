@@ -17,11 +17,9 @@ struct Connection{D}
     kᴳ :: LabeledKVec{D}
     kᴴ :: LabeledKVec{D}
 end
-function Base.show(io::IO, ::MIME"text/plain", c::Connection)
-    print(io, c.kᴳ.label, " ↓ ", c.kᴴ.label)
-    print(io, ": ", c.kᴳ.kv, " ↓ ", c.kᴴ.kv)
+function Base.show(io::IO, c::Connection)
+    print(io, c.kᴳ.label, " ↓ ", c.kᴴ.label, " = ", c.kᴳ.kv, " ↓ ", c.kᴴ.kv)
 end
-Base.show(io::IO, c::Connection) = print(io, c.kᴳ.label, " ↓ ", c.kᴴ.label)
 
 ## ----------------------------------------------------------------------------------------
 
@@ -33,7 +31,7 @@ struct SubductionTable{D}
     table :: Matrix{Int}
     monodromy :: Bool
 end
-function Base.show(io::IO,  t::SubductionTable{D}) where D
+function Base.show(io::IO, t::SubductionTable{D}) where D
     summary(io, t)
     println(io, " ⋕", t.num, " (", iuc(t.num, D), ") for ", t.c, " connection:")
     pretty_table(io,

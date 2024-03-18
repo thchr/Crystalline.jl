@@ -1,5 +1,8 @@
-function build_subgraphs(n::SymVector{D}, subductions,
-                         lgirsd::Dict{String, Vector{LGIrrep{D}}}) where D
+function build_subgraphs(
+            n::SymVector{D},
+            subductions,
+            lgirsd::Dict{String, Vector{LGIrrep{D}}}
+            ) where D
 
     seen_irs = 0 # current number of irreps aggregated across all partitions
     kidx = 0 # number of distinct k-points we've seen
@@ -147,7 +150,7 @@ function build_subgraphs(n::SymVector{D}, subductions,
 
     partitions = vcat(partitions_max, partitions_nonmax)
 
-    return subgraphs, partitions
+    return BandGraph(subgraphs, partitions)
 end
 
 function build_partition(klab, nsₖ, lgirsₖ::Vector{LGIrrep{D}}, kidx, seen_irs) where D

@@ -20,10 +20,37 @@ function set_pinned_subgraphs!(subgraphs)
 
     # pin additional subgraphs via filter-criteria
     multiple_irrep_filter!.(subgraphs)
+    solitary_subduction_path_filter!.(subgraphs)
     fake_weyl_filter!.(subgraphs)
 
     return subgraphs
 end
+
+function multiple_irrep_filter!(subgraph)
+    # if there's only a single type of irrep included in the considered maximal k-manifold,
+    # there is no point in considering variations from it as they are indistinguishable;
+    # similarly if there is only a single type of nonmaximal k-manifold
+    if length(subgraph.p_max.multiples) == 1 || length(subgraph.p_nonmax.multiples) == 1
+        subgraph.pinned = true
+    end
+end
+function solitary_subduction_path_filter!(subgraph)
+    # if there is only ever one irrep to subduce into, then there will be no permutations
+    # and we might as well pin it for clarity; this is the case when 
+    # `m = subgraph.p_nonmax_multiples` consists of solely single-element ranges s.t.
+    # `all(perm -> length(perm) == 1, permutations.(m))`; an example is e.g., a subgraph
+    # `s` = [S₁S₂ ↓ Q₂Q₂, S₃S₄ ↓ Q₁Q₁] which has no column-permutations for `s.A`;
+    # this filter does not actually reduce the number of overall permutations, but better
+    # shows that some subgraphs are effectively "locked" anyway (i.e., have no permutations)
+    if all(m -> length(m) == 1, subgraph.p_nonmax.multiples)
+        subgraph.pinned = true
+    end
+end
+
+function fake_weyl_filter!(subgraph)
+    # TODO
+end
+
 function subgraph_permutations(subgraph)
     # if the subgraph is pinned, we do not generate any permutations
     if subgraph.pinned
@@ -39,33 +66,20 @@ function subgraph_permutations(subgraph)
     Np = prod(length, pss) # aggregate number of same-irrep permutations, across irreps
     As = Vector{Matrix{Int}}(undef, Np)
     for (j,is) in enumerate(CartesianIndices(Tuple(Base.OneTo.(length.(pss)))))
+        # TODO: do this type-stably and without `collect`ing `pss`
         cols = reduce(vcat, [pss[k][i] for (k,i) in enumerate(Tuple(is))])
         As[j] = subgraph.A[:,cols]
     end
     return SubGraphPermutations(subgraph.p_max, subgraph.p_nonmax, As, #=pinned=# false)
 end
 
-function multiple_irrep_filter!(subgraph)
-    # if there's only a single type of irrep included in the considered maximal k-manifold,
-    # there is no point in considering variations from it as they are indistinguishable;
-    # similarly if there is only a single type of nonmaximal k-manifold
-    if length(subgraph.p_max.multiples) == 1 || length(subgraph.p_nonmax.multiples) == 1
-        subgraph.pinned = true
-    end
-end
-function fake_weyl_filter!(subgraph)
-    # TODO
-end
-
-function permute_subgraphs(subgraphs)
+function permute_subgraphs(subgraphs; set_pinned::Bool=true)
     # find pinned subgraphs: only include a single, canonical, trivial permutation then
-    set_pinned_subgraphs!(subgraphs)
+    set_pinned && set_pinned_subgraphs!(subgraphs)
 
     # generate all subgraph permutations of non-pinned subgraphs
-    return subgraph_permutations.(subgraphs)
+    return subgraph_permutations.(subgraphs) # :: Vector{SubGraphPermutations}
 end
-# TODO: change output structure of the above so that it becomes easier to generate the
-#       different related graphs and also implement the graph filters. Then do that.
 
 # TODO: some entries in `SUBDUCTIONSD[n]` contain trivial connections via the general point
 #       Ω: we should probably just remove any nodes associated with Ω. In fact, there are

@@ -1,4 +1,7 @@
-using HTTP, Gumbo, Cascadia, Crystalline, LinearAlgebra
+using Pkg
+(dirname(Pkg.project().path) == @__DIR__) || Pkg.activate(@__DIR__)
+using HTTP, Gumbo, Cascadia, LinearAlgebra
+using Crystalline, BandGraphs
 
 function crawl_bandpaths(sgnum::Integer, timereversal::Bool=true; maxfails=10)
     body = crawl_bandpaths_html(sgnum, timereversal; maxfails)
@@ -142,7 +145,7 @@ function find_highest_order_nonsymmorphic_operation(g::Crystalline.AbstractGroup
             error("unexpectedly did not get identity or inversion operation on iteration")
         end
     end
-    ts = translation.(ops)
+    ts = Crystalline.translation.(ops)
     uns = sort!(unique(ns); rev=true)
     for n in uns
         idxs = something(findall(==(n), ns))
@@ -280,13 +283,14 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
+timereversal = true
 connectionsd = Dict{Int, Vector{Connection{3}}}()
 subductionsd = Dict{Int, Vector{SubductionTable{3}}}()
 data = Dict{Int, Any}()
 for sgnum in 3:230
     # Note: SGs 1 & 2 fail since there are no connections
     println("sgnum ", sgnum)
-    tmp = crawl_bandpaths(sgnum, true)
+    tmp = crawl_bandpaths(sgnum, timereversal)
     data[sgnum] = tmp
     bandpath_data, subduction_data = tmp
     connectionsd[sgnum] = parse_connections(bandpath_data)
@@ -298,5 +302,8 @@ for sgnum in 1:2
 end
 
 using JLD2
-jldsave("BandGraphs/data/connections/3d/subductions-tr.jld2"; subductionsd=subductionsd)
-jldsave("BandGraphs/data/connections/3d/connections.jld"; connectionsd=connectionsd)
+dir = joinpath((@__DIR__), "..", "BandGraphs/data/connections/3d/")
+jldsave(joinpath(dir, "subductions$(timereversal ? "-tr" : "").jld2"); 
+        subductionsd=subductionsd)
+jldsave(joinpath(dir, "connections$(timereversal ? "-tr" : "").jld2"); 
+         connectionsd=connectionsd)

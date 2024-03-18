@@ -16,6 +16,7 @@ export
     SymVector,
     Partition,
     SubGraph,
+    BandGraph,
     chinese_postman,
     build_subgraphs,
     assemble_adjacency,
@@ -26,7 +27,7 @@ export
     partition_graph,
     split_nonmaximal_nodes,
     permute_subgraphs,
-    SUBDUCTIONSD,
+    subduction_tables,
     plot_flattened_bandgraph
 
 # ---------------------------------------------------------------------------------------- #
@@ -37,17 +38,33 @@ include("subduction-types.jl")
 # ---------------------------------------------------------------------------------------- #
 # DATA
 
-# TODO: FIX
-const SUBDUCTIONSD = Dict{Int, Vector{SubductionTable{3}}}()
+const SUBDUCTIONSD_TR = Dict{Int, Vector{SubductionTable{3}}}() # `timereversal = true`
+const SUBDUCTIONSD = Dict{Int, Vector{SubductionTable{3}}}()    # `timereversal = false`
 function __init__()
     # TODO: Fix the awfulness here: the loading below only works if the dataset is created
     #       with the types from BandGraphs first - not a good circular thing to have...
     datapath = joinpath(dirname(@__DIR__), "data/connections/3d/subductions-tr.jld2")
     JLD2.jldopen(datapath, "r") do jldfile
         for (k,v) in jldfile["subductionsd"]
+            SUBDUCTIONSD_TR[k] = v
+        end
+    end
+    datapath = joinpath(dirname(@__DIR__), "data/connections/3d/subductions.jld2")
+    JLD2.jldopen(datapath, "r") do jldfile
+        for (k,v) in jldfile["subductionsd"]
             SUBDUCTIONSD[k] = v
         end
     end
+end
+
+"""
+    subduction_tables(sgnum; timereversal=true)  --> Vector{SubductionTable{3}}
+
+Return a vector of `SubductionTable`s from stored tabulations, with (`timereversal = true`)
+or without (`timereversal = false`) time-reversal symmetry in space group `sgnum`.
+"""
+function subduction_tables(sgnum; timereversal::Bool=true)
+    (timereversal ? SUBDUCTIONSD_TR[sgnum] : SUBDUCTIONSD[sgnum])::Vector{SubductionTable{3}}
 end
 
 # ---------------------------------------------------------------------------------------- #
