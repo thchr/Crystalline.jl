@@ -235,7 +235,7 @@ end
 
 function Makie.plot(gr::GroupRelationGraph;
                     axis = NamedTuple(), figure = NamedTuple(), kws...)
-    f = Makie.Figure(resolution=(800,900); figure...)
+    f = Makie.Figure(size=(800,900); figure...)
     f[1,1] = ax = Makie.Axis(f; axis...)
     p = Makie.plot!(ax, gr; kws...)
     return Makie.FigureAxisPlot(f, ax, p)
