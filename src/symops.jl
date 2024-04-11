@@ -496,6 +496,61 @@ function orbit(g::AbstractVector{SymOperation{D}},
 end
 orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
 
+"""
+    cosets(G, H; composition_kws)
+
+For a subgroup `H` ``=H`` of `G` = ``G``, find a set of (left) coset representatives 
+``\\{g_i\\}`` of ``H`` in ``G``, such that (see e.g., Inui et al., Section 2.7)
+```math
+    G = \\bigcup_i g_i H.
+```
+The identity operation ``1`` is always included in ``\\{g_i\\}``.
+
+## Example
+```jldoctest cosets
+julia> G = pointgroup("6mm")
+julia> H = pointgroup("3")
+julia> Q = cosets(G, H)
+4-element Vector{SymOperation{3}}:
+ 1
+ 2₀₀₁
+ m₁₁₀
+ m₋₁₁₀
+```
+To generate the associated cosets, simply compose the representatives with `H`:
+```jldoctest cosets
+julia> [compose.(Ref(q), H) for q in Q]
+4-element Vector{Vector{SymOperation{3}}}:
+ [1, 3₀₀₁⁺, 3₀₀₁⁻]
+ [2₀₀₁, 6₀₀₁⁻, 6₀₀₁⁺]
+ [m₁₁₀, m₁₀₀, m₀₁₀]
+ [m₋₁₁₀, m₁₂₀, m₂₁₀]
+```
+"""  
+function cosets(
+            G::AbstractVector{T},
+            H::AbstractVector{T}
+            ) where T<:AbstractOperation
+
+    iszero(rem(length(G), length(H))) || error("H must be a subgroup of G: failed Lagrange's theorem")
+    ind = div(length(G), length(H)) # [H:G]
+    
+    representatives = [one(T)]
+    _cosets         = Vector{T}[operations(H)]
+    sizehint!(representatives, ind)
+    sizehint!(_cosets, ind)
+    for g in G
+        any(_coset -> isapproxin(g, _coset), _cosets) && continue
+        
+        push!(representatives, g)
+        push!(_cosets, compose.(Ref(g), H))
+
+        length(representatives) == ind && break
+    end
+    length(representatives) == ind || error("failed to find a set of coset representatives")
+    return representatives
+end
+
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
 
@@ -808,21 +863,26 @@ end
 
 
 """
-    _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
-                                                    --> Tuple{Bool, Vector{Int}}
+    _findsubgroup(opsᴳ::T, opsᴴ::T′[, cntr]) where T⁽′⁾<:AbstractVector{SymOperation}
+                                                      --> Tuple{Bool, Vector{Int}}
 
 Returns a 2-tuple with elements:
 
 1. A boolean, indicating whether the group ``H`` (with operators `opsᴴ`) is a subgroup of
    the group ``G`` (with operators `opsᴳ`), i.e. whether ``H < G``.
-2. An indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of `G`),
-   such that `opsᴳ[idxs] == opsᴴ`.
+2. An indexing vector `idxsᴳ²ᴴ` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of 
+   `G`), such that `all(isapprox(opsᴳ[idxsᴳ²ᴴ], opsᴴ, cntr)`.
+
+If `cntr` is provided, comparison of operations in ``G`` and ``H`` is done in the associated
+primitive basis (i.e., `cntr` is passed to `isapprox` which compares operations in ``G`` and
+``H``).
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
-                       opsᴴ::AbstractVector{SymOperation{D}}) where D
+                       opsᴴ::AbstractVector{SymOperation{D}},
+                       cntr::Union{Char, Nothing}=nothing) where D
     idxsᴳ²ᴴ = Vector{Int}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
-        idxᴳ = findfirst(==(opᴴ), opsᴳ)
+        idxᴳ = findfirst(opᴳ -> isapprox(opᴳ, opᴴ, cntr), opsᴳ)
         if idxᴳ !== nothing
             idxsᴳ²ᴴ[idxᴴ] = idxᴳ
         else

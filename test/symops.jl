@@ -160,3 +160,22 @@ using Crystalline, Test
         end
     end
 end
+
+@testset "coset representatives" begin
+    G = pointgroup("6mm")
+    H = pointgroup("3")
+    Q = cosets(G, H) 
+    @test length(Q) == div(order(G), order(H))
+    cG = reduce(vcat, (compose.(Ref(q), H) for q in Q))
+    @test sort(cG, by=xyzt) == sort(G, by=xyzt)
+
+    G = spacegroup(230)
+    H  = spacegroup(206) # a maximal subgroup of G, same setting
+    H′ = spacegroup(199) # a maximal subgroup of H, also same setting
+    Q  = cosets(G, H)
+    Q′ = cosets(G, H)
+    cG  = reduce(vcat, (compose.(Ref(q), H) for q in Q))
+    cG′ = reduce(vcat, (compose.(Ref(q), H) for q in Q′))
+    @test sort(cG,  by=xyzt) == sort(G, by=xyzt)
+    @test sort(cG′, by=xyzt) == sort(G, by=xyzt)
+end

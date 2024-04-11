@@ -110,7 +110,8 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, compose,
        issymmorph, littlegroup, orbit,
        reduce_ops,
-       issubgroup, isnormal
+       issubgroup, isnormal,
+       cosets
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
