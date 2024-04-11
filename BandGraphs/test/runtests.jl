@@ -12,12 +12,12 @@ using GLMakie
 ## Testing & visualization of band graph
 
 timereversal = true
-sgnum = 200
+sgnum = 17
 sb, brs = compatibility_basis(sgnum; timereversal)
 lgirsd = lgirreps(sgnum)
 timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
 subts = subduction_tables(sgnum; timereversal)
-_n = brs[end]
+_n = sb[1]
 n = SymVector(_n, brs.irlabs, lgirsd)
 
 bandg = build_subgraphs(n, subts, lgirsd)
@@ -30,7 +30,7 @@ g = assemble_graph(bandg) # structured equiv of `Graph(A)`
 node_colors = [g[label_for(g, i)].maximal ? :red : :black for i in vertices(g)]
 f, ax, p = graphplot(
     g;
-    nlabels=[label(g[label_for(g, i)].lgir) for i in vertices(g)],
+    nlabels=[(l = label_for(g, i); l[1] * Crystalline.supscriptify(string(l[2]))) for i in vertices(g)],
     nlabels_distance=4,
     node_color = node_colors, nlabels_color=node_colors,
     node_attr = (; strokewidth=4, strokecolor=:white),

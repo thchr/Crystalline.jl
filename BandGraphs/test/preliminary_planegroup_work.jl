@@ -11,29 +11,32 @@ using GLMakie
 #         etc. It does work for a subset of the plane groups though, e.g., plane groups
 #         ⋕6 (p2mm), ⋕11 (p4mm), ⋕14 (p3m1; although it has some visualization troubles),
 #         ⋕15 (p31m), ⋕17 (p6mm), ⋕12 (p4gm). But seems to fail e.g., for other cases of
-#         interest such as ⋕4 (p1g1), ⋕5 (c1m1), and ⋕9 (c2mm) (sometimes because there 
-#         are degree-zero vertices).
+#         interest such as ⋕4 (p1g1), ⋕5 (c1m1), and ⋕9 (c2mm) (seems mainly due to
+#         different k-vector labels - but could be other things also).
 
 # Example for p2mm (plane group ⋕6)
 timereversal = true
-sgnum²ᴰ = 5
+sgnum²ᴰ = 17
 sgnum³ᴰ = Crystalline.PLANE2SPACE_NUMS[sgnum²ᴰ]
 subts³ᴰ = subduction_tables(sgnum³ᴰ; timereversal)
 subts²ᴰ = BandGraphs.SubductionTable{2}[]
-for i in 1:length(d)
+for (i, t) in enumerate(subts³ᴰ)
     if sgnum²ᴰ == 2
         xy = [3,1]
         z = 2
+    elseif sgnum²ᴰ == 5
+        xy = [2,1]
+        z = 3
     else
         xy = [1,2]
         z = 3
     end
-    t = subts³ᴰ[i]
-    if !iszero(t.c.kᴳ.kv.cnst[z]) || !iszero(t.c.kᴴ.kv.cnst[z]) | !iszero(t.c.kᴴ.kv.free[z,:])
+
+    if !iszero(t.c.kᴳ.kv.cnst[z]) || !iszero(t.c.kᴴ.kv.cnst[z])# || !iszero(t.c.kᴴ.kv.free[z,:])
         continue # the connection involves k₃≠0
     else
         if !iszero(t.c.kᴴ.kv.free[:,z])
-            error("Unexpectedly used γ as free parameter: not handled..!")
+            @warn "Unexpectedly used γ as free parameter: may not be handled as intended..."
         end
     end
     c = BandGraphs.Connection{2}(

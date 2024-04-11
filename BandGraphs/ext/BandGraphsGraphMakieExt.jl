@@ -50,7 +50,7 @@ end
 
 function plot_flattened_bandgraph(
             bandg :: BandGraph,
-            kg        :: MetaGraph; # ::(!IsDirected)
+            kg    :: MetaGraph; # ::(!IsDirected)
             xys = nothing
             )
 
@@ -243,7 +243,6 @@ end
 function make_vertices_dragable!(ax, p)
     Makie.deregister_interaction!(ax, :rectanglezoom)
     function node_drag_action(state, idx, event, axis)
-        println(idx)
         p[:node_pos][][idx] = event.data
         p[:node_pos][] = p[:node_pos][]
     end
