@@ -160,7 +160,7 @@ include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
 include("grouprelations/grouprelations.jl")
-export maximal_subgroups, minimal_supergroups
+export maximal_subgroups, minimal_supergroups, conjugacy_relations
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl

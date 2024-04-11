@@ -99,3 +99,74 @@ for (f, rel_shorthand, rel_kind, doctxt) in
         end # function $f
     end # begin @eval
 end # for (f, ...)
+
+
+"""
+    conjugacy_relations(gr::GroupRelationGraph, sgnumᴳ, sgnumᴴ) --> Vector{<:ConjugacyTransform}
+
+Given a graph `gr` representing a sub- or supergroup relation, return the possible
+transformations that make up the conjugacy classes between the groups `sgnumᴳ` and `sgnumᴴ`.
+
+The returned transforms bring `G` into the setting of `H` via `transform(G, P, p)`, where
+`P` and `p` denote one of the possible conjugacy transforms in the returned vector. 
+Note that the transforms need not preserve volume: accordingly, some operations may be
+redundant after transformation (use [`reduce_ops`](@ref) or `unique!` to remove these).
+"""
+function conjugacy_relations(
+            gr::GroupRelationGraph{D},
+            sgnumᴳ::Integer,
+            sgnumᴴ::Integer) where D
+
+    idxᴳ = findfirst(==(sgnumᴳ), gr.nums)
+    idxᴴ = findfirst(==(sgnumᴴ), gr.nums)
+    idxᴳ !== nothing || error(lazy"`gr` does not contain group $sgnumᴳ")
+    idxᴴ !== nothing || error(lazy"`gr` does not contain group $sgnumᴴ")
+    has_path(gr, idxᴳ, idxᴴ) || error(lazy"`gr` does not connect group $sgnumᴳ to $sgnumᴴ")
+
+    P₀ = one(SMatrix{D, D, Float64})
+    p₀ = zero(SVector{D, Float64})
+    sgnumᴳ == sgnumᴴ && return [ConjugacyTransform{D}(P₀, p₀)] # sgnumᴳ == sgnumᴴ case
+
+    idxsᴳ²ᴴs = all_simple_paths(gr, idxᴳ, idxᴴ)
+    classes = Vector{ConjugacyTransform{D}}()
+    for idxsᴳ²ᴴ in idxsᴳ²ᴴs
+        accumulate_classes_recur!(classes, gr, P₀, p₀, idxsᴳ²ᴴ)
+    end
+
+    return unique!(classes)
+end
+
+# recursively combine the composition of the distinct conjugacy classes as we traverse the
+# path of transformations; modifies `classes`
+function accumulate_classes_recur!(
+            classes::Vector{ConjugacyTransform{D}}, gr::GroupRelationGraph{D}, 
+            P::SMatrix{D, D}, p::SVector{D}, idxsᴳ²ᴴ) where D
+    
+    if length(idxsᴳ²ᴴ) == 1 # base case
+        t = ConjugacyTransform{D}(P, p)
+        t ∉ classes && push!(classes, t)
+        return classes
+    end
+
+    idxᴳ′ = idxsᴳ²ᴴ[1]
+    idxᴴ′ = idxsᴳ²ᴴ[2]
+    sgnumᴳ′ = gr.nums[idxᴳ′]
+    sgnumᴴ′ = gr.nums[idxᴴ′]
+    rels = gr[sgnumᴳ′] # ::GroupRelations
+    iᴴ′ = something(findfirst(r->r.num==sgnumᴴ′, rels.children))
+    rel = rels[iᴴ′] # ::GroupRelation
+    rel.kind == TRANSLATIONENGLEICHE || error("Klassengleiche relations are not supported")
+    classes′ = rel.classes
+    for ctransform in classes′
+        # composition of transformations work differently for sub- and supergroup relations,
+        # because they are applied in a different order
+        if gr.direction == SUBGROUP
+            p′ = P * ctransform.p + p
+            P′ = P * ctransform.P
+        else # SUPERGROUP
+            p′ = ctransform.P * p + ctransform.p
+            P′ = ctransform.P * P
+        end
+        accumulate_classes_recur!(classes, gr, P′, p′, @view idxsᴳ²ᴴ[2:end])
+    end
+end
