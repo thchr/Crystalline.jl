@@ -553,6 +553,61 @@ function cosets(
     return representatives
 end
 
+"""
+    cosets(G, H; composition_kws)
+
+For a subgroup `H` ``=H`` of `G` = ``G``, find a set of (left) coset representatives 
+``\\{g_i\\}`` of ``H`` in ``G``, such that (see e.g., Inui et al., Section 2.7)
+```math
+    G = \\bigcup_i g_i H.
+```
+The identity operation ``1`` is always included in ``\\{g_i\\}``.
+
+## Example
+```jldoctest cosets
+julia> G = pointgroup("6mm")
+julia> H = pointgroup("3")
+julia> Q = cosets(G, H)
+4-element Vector{SymOperation{3}}:
+ 1
+ 2₀₀₁
+ m₁₁₀
+ m₋₁₁₀
+```
+To generate the associated cosets, simply compose the representatives with `H`:
+```jldoctest cosets
+julia> [compose.(Ref(q), H) for q in Q]
+4-element Vector{Vector{SymOperation{3}}}:
+ [1, 3₀₀₁⁺, 3₀₀₁⁻]
+ [2₀₀₁, 6₀₀₁⁻, 6₀₀₁⁺]
+ [m₁₁₀, m₁₀₀, m₀₁₀]
+ [m₋₁₁₀, m₁₂₀, m₂₁₀]
+```
+"""  
+function cosets(
+            G::AbstractVector{T},
+            H::AbstractVector{T}
+            ) where T<:AbstractOperation
+
+    iszero(rem(length(G), length(H))) || error("H must be a subgroup of G: failed Lagrange's theorem")
+    ind = div(length(G), length(H)) # [H:G]
+    
+    representatives = [one(T)]
+    _cosets         = Vector{T}[operations(H)]
+    sizehint!(representatives, ind)
+    sizehint!(_cosets, ind)
+    for g in G
+        any(_coset -> isapproxin(g, _coset), _cosets) && continue
+        
+        push!(representatives, g)
+        push!(_cosets, compose.(Ref(g), H))
+
+        length(representatives) == ind && break
+    end
+    length(representatives) == ind || error("failed to find a set of coset representatives")
+    return representatives
+end
+
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
 
