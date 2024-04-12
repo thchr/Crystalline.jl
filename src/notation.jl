@@ -369,8 +369,8 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
         # there is near-infinitesimal chance that u′ is zero for random v, but check anyway
         u′ = Yₖ*rand(SVector{3, Float64})
     end
-    norm = minimum(Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
-    u′ = u′/norm # normalize
+    n = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum-norm nonzero element
+    u′ = u′/n # normalize
     u  = round.(Int, u′) # convert from float to integer and check validity of conversion
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
         throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))
