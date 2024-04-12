@@ -508,9 +508,9 @@ The identity operation ``1`` is always included in ``\\{g_i\\}``.
 
 ## Example
 ```jldoctest cosets
-julia> G = pointgroup("6mm")
+julia> G = pointgroup("6mm");
 
-julia> H = pointgroup("3")
+julia> H = pointgroup("3");
 
 julia> Q = cosets(G, H)
 4-element Vector{SymOperation{3}}:
@@ -528,7 +528,7 @@ julia> [compose.(Ref(q), H) for q in Q]
  [m₁₁₀, m₁₀₀, m₀₁₀]
  [m₋₁₁₀, m₁₂₀, m₂₁₀]
 ```
-"""  
+"""
 function cosets(
             G::AbstractVector{T},
             H::AbstractVector{T}
