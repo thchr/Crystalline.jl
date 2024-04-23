@@ -38,7 +38,7 @@ for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "recipro
 end
 
 parent(Vs::AbstractBasis) = Vs.vs
-# define the AbstractArray interface for DirectBasis{D}
+# define the AbstractArray interface for AbstractBasis{D}
 @propagate_inbounds getindex(Vs::AbstractBasis, i::Int) = parent(Vs)[i]
 size(::AbstractBasis{D}) where D = (D,)
 IndexStyle(::Type{<:AbstractBasis}) = IndexLinear()
