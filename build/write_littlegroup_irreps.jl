@@ -50,7 +50,7 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
         # don't want to save a bunch of zeros if all translations are zero: 
         # instead, save `nothing` as a sentinel value
         translations_list = [Union{Nothing, Vector{Vector{Float64}}}[
-                                    all(iszero, translations(lgir)) ? nothing : translations(lgir) 
+                                    all(iszero, Crystalline.translations(lgir)) ? nothing : Crystalline.translations(lgir) 
                                     for lgir in lgirs] for lgirs in values(lgirsd)] # dreadful generator, but OK...
         realities_list = [[Integer(reality(lgir)) for lgir in lgirs] for lgirs in values(lgirsd)]
         cdml_list      = [[label(lgir) for lgir in lgirs] for lgirs in values(lgirsd)]
