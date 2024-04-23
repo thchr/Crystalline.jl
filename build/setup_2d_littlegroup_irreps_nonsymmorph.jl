@@ -100,7 +100,7 @@ LGIRSD_2D[7]["Γ"] = [
 # Y
 kv = KVec(0,1/2)
 lg = LittleGroup(7, kv, "Y", [S"x,y", S"-x,-y", S"-x+1/2,y", S"x+1/2,-y"])
-LGIRSD_2D[7]["X"] = [
+LGIRSD_2D[7]["Y"] = [
     make_lgirrep("₁", lg, [1, +1, +1, +1], REAL)
     make_lgirrep("₂", lg, [1, +1, -1, -1], REAL)
     make_lgirrep("₃", lg, [1, -1, +1, -1], REAL)

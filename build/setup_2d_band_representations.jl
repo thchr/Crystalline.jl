@@ -4,6 +4,7 @@ using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
                    _mulliken, DEFAULT_ATOL
 import Crystalline: mulliken, realify, group
 using StaticArrays
+using DocStringExtensions
 
 # The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
@@ -126,8 +127,8 @@ function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckoffPosition{D},
     while i ≤ length(ops) && i ≤ length(orbits)
         wpᵢ = orbits[i]
         opᵢ = ops[i]
-        if ops[i]*parent(wp) ≈ wpᵢ
-            i += 1 # then ops[i] is indeed a "generator" of wpᵢ
+        if opᵢ*parent(wp) ≈ parent(wpᵢ)
+            i += 1 # then opᵢ is indeed a "generator" of wpᵢ
         else
             deleteat!(ops, i)
         end
