@@ -210,7 +210,7 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
         end
         
         # --- "fixed"/constant coordinate, cnst[i] ---
-        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuxβvyγwz])", coord)
+        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[\*αuxβvyγwz])", coord)
         # regex matches any digit sequence, possibly including slashes, that is _not_
         # followed by one of the free-part identifiers αuβvγw (this is the '(?!' bit). 
         # If a '+' or '-' exist before the first digit, it is included in the match. 

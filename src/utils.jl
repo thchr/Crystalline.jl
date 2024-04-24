@@ -56,7 +56,7 @@ signaschar(x::Real) = signbit(x) ? '-' : '+'
 function searchpriornumerals(coord, pos₂, ::Type{T}=Float64) where T
     pos₁ = pos₂
     while (prev = prevind(coord, pos₁)) != 0 # not first character
-        if isnumeric(coord[prev]) || coord[prev] == '.'
+        if isnumeric(coord[prev]) || coord[prev] == '.' || coord[prev] == '*'
             pos₁ = prev
         elseif coord[prev] == '+' || coord[prev] == '-'
             pos₁ = prev
@@ -65,7 +65,7 @@ function searchpriornumerals(coord, pos₂, ::Type{T}=Float64) where T
             break
         end
     end
-    prefix = coord[pos₁:prevind(coord, pos₂)]
+    prefix = rstrip(coord[pos₁:prevind(coord, pos₂)], '*')
     if !any(isnumeric, prefix) # in case there's no numerical prefix, it must be unity
         if prefix == "+" || prefix == ""
             return one(T)
