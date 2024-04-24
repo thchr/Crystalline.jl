@@ -281,7 +281,7 @@ function parse_subductions_of_columns_in_row(
     return c, irlabsᴳ, irlabsᴴ, table
 end
 
-# ---------------------------------------------------------------------------------------- #
+## --------------------------------------------------------------------------------------- #
 
 timereversal = true
 connectionsd = Dict{Int, Vector{Connection{3}}}()
