@@ -44,7 +44,8 @@ With following enterpretatation for compatibility relations between irreps at Γ
 where, in this case, all the small irreps are one-dimensional.
 """
 function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T, 
-                          αβγᴴⱼ::Union{Vector{<:Real},Nothing}=nothing) where T<:AbstractIrrep
+                          αβγᴴⱼ::Union{<:AbstractVector{<:Real},Nothing}=nothing
+                          ) where T<:AbstractIrrep
     # find matching operations between H & G and verify that H<G 
     boolsubgroup, idxsᴳ²ᴴ = _findsubgroup(operations(Dᴳᵢ), operations(Dᴴⱼ))
     !boolsubgroup && throw(DomainError("Provided irreps are not H<G subgroups"))
@@ -77,35 +78,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function find_compatible(kv::KVec{D}, kvs′::Vector{KVec{D}}) where D
+function find_compatible(kv::KVec{D}, kvs′::AbstractVector{KVec{D}}) where D
     isspecial(kv) || throw(DomainError(kv, "input kv must be a special k-point"))
 
     compat_idxs = Vector{Int}()
     @inbounds for (idx′, kv′) in enumerate(kvs′)
         isspecial(kv′) && continue # must be a line/plane/general point to match a special point kv
-        is_compatible(kv, kv′) && push!(compat_idxs, idx′) 
+        is_compatible(kv, kv′).bool && push!(compat_idxs, idx′) 
     end
 
     return compat_idxs
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Check whether a special k-point `kv` is compatible with a non-special k-point `kv′`. Note
-that, in general, this is only meaningful if the basis of `kv` and `kv′` is primitive.
-
-TODO: This method should eventually be merged with the equivalently named method in
-      PhotonicBandConnectivity/src/connectivity.jl, which handles everything more correctly,
-      but currently has a slightly incompatible API.
-"""
-function is_compatible(kv::KVec{D}, kv′::KVec{D}) where D
-    isspecial(kv) || throw(DomainError(kv, "must be special"))
-    isspecial(kv′) && return false
-
-    return _can_intersect(kv′, kv)
-    # TODO: We need some way to also get the intersection αβγ and reciprocal lattice vector
-    #       difference, if any.
 end
 
 #=
@@ -115,9 +97,9 @@ function compatibility_matrix(BRS::BandRepSet)
         for (jᴴ, Dᴴⱼ) in enumerate(lgirs_out)    # sub groups
             # we ought to only check this on a per-kvec basis instead of 
             # on a per-lgir basis to avoid redunant checks, but can't be asked...
-            compat_bool  = is_compatible(position(Dᴳᵢ), position(Dᴴⱼ))
-            # TODO: Get associated (αβγ, G) "matching" values that makes kvⱼ and kvᵢ and 
-            #       compatible; use to get correct lgirs at their "intersection".
+            compat_bool, αβγ, αβγ′, G  = is_compatible(position(Dᴳᵢ), position(Dᴴⱼ))
+            # TODO: Use associated (αβγ, αβγ′, G) "matching" values that makes kvⱼ and kvᵢ 
+            #       and compatible; use to get correct lgirs at their "intersection".
             if compat_bool
                 nᴳᴴᵢⱼ = subduction_count(Dᴳᵢ, Dᴴⱼ, αβγ)
                 if !iszero(nᴳᴴᵢⱼ)
