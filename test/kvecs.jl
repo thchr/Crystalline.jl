@@ -3,6 +3,7 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
 @testset "KVec" begin
 
     @testset "Construction, parsing, and show" begin
+        # parsing: primary functionality
         @test dim(KVec("u")) == 1
         @test dim(KVec("0,0.5")) == 2
         @test dim(KVec("0.3,0.2,.1")) == 3
@@ -17,7 +18,15 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test string(KVec{3}("α, 2α, 0.0"))   == string(KVec{3}("α, 2.0α, 0.0")) == "[α, 2α, 0]"
         @test string(KVec{3}("α, 2α+2, 0.0")) == string(KVec{3}("α, 2.0α+2.0, 0.0")) == "[α, 2+2α, 0]"
         @test string(KVec{3}("β, -2/3, -0.75")) == string(KVec{3}("v, -0.66666666666666667, -3/4")) == "[β, -2/3, -3/4]"
-        
+
+        # parsing: allow some basic multiplication usage
+        @test sprint(show, KVec("2+3*u, 1-2*v")) == "[2+3α, 1-2β]"
+        @test sprint(show, KVec("-3*u, -v")) == "[-3α, -β]"
+        @test sprint(show, KVec("3*u, v")) == "[3α, β]"
+        @test sprint(show, KVec("-3*u+1, -β+1/2")) == "[1-3α, 1/2-β]"
+        @test sprint(show, KVec("-1*u+1/3, 2+1*β")) == "[1/3-α, 2+β]"
+
+        # functor-like usage
         @test KVec{3}("x,y,z")(0,1,2) == [0.0,1.0,2.0]
         @test KVec{2}("α,.5")() == KVec{2}("α,.5")(nothing) == [0,0.5]
         @test KVec{3}("u,v,0.5")([.7,.2,.3]) == [.7,.2,.5]
