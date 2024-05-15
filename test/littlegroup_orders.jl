@@ -59,7 +59,6 @@ end
 @testset "Little group data-consistency" begin
     for D in 1:3
         for sgnum in 1:MAX_SGNUM[D]
-            (D == 2 && !issymmorph(sgnum, D)) && continue # 2D nonsymmorphic SGs not yet implemented
             lgs = littlegroups(sgnum, D)
             sg  = spacegroup(sgnum, Val(D))
             sg  = SpaceGroup{D}(sgnum, reduce_ops(sg))

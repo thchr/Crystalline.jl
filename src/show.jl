@@ -117,7 +117,7 @@ function prettyprint_scalar(io, v::Real)
         # print all fractions divisible by 2, ..., 10 as fractions, and everything else
         # as decimal
         rv = rationalize(Int, v; tol=1e-2)
-        if isapprox(v, rv, atol=DEFAULT_ATOL)
+        if isapprox(v, rv; atol=DEFAULT_ATOL)
             print(io, rv.num, "/", rv.den)
         else
             print(io, v)

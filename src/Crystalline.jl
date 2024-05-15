@@ -17,7 +17,7 @@ using Base: OneTo, @propagate_inbounds
 import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              IndexStyle, size, copy,   # ⤶
              iterate,
-             string, isapprox, zero,
+             string, zero,
              readuntil, show, summary,
              *, +, -, ==, ImmutableDict,
              isone, one,
@@ -163,7 +163,7 @@ export maximal_subgroups, minimal_supergroups
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl
-export position, inv
+export position, inv, isapprox
 
 # ---------------------------------------------------------------------------------------- #
 # EXTENSIONS AND JLD-FILE INITIALIZATION

@@ -125,14 +125,14 @@ end
 # ---------------------------------------------------------------------------------------- #
 # Evaluation of LGIrrep at specific `αβγ`
 function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
-    P = lgir.matrices
-    τ = lgir.translations
-    if !iszero(τ)
+    Ps = lgir.matrices
+    τs = lgir.translations
+    if !iszero(τs)
         k = position(lgir)(αβγ)
-        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
-        for (i,τ′) in enumerate(τ)
-            if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
+        Ps′ = [copy(P) for P in Ps] # copy this way to avoid overwriting nested array..!
+        for (i,τ) in enumerate(τs)
+            if !iszero(τ) && !iszero(k)
+                Ps′[i] .*= cispi(2*dot(k,τ))  # note cis(x) = exp(ix)
                 # NOTE/TODO/FIXME:
                 # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
                 # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
@@ -160,6 +160,10 @@ function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothin
                 # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
             end
         end
+        
+        return Ps′
+    else
+        return Ps
     end
     # FIXME: Attempt to flip phase convention. Does not pass tests.
     #=
@@ -167,12 +171,10 @@ function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothin
     if !issymmorph(lg)
         k = position(lgir)(αβγ)
         for (i,op) in enumerate(lg)
-            P[i] .* cis(-4π*dot(k, translation(op)))
+            Ps[i] .* cis(-4π*dot(k, translation(op)))
         end
     end
     =#
-
-    return P
 end
 
 # ---------------------------------------------------------------------------------------- #

@@ -427,8 +427,8 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
                 cntr::Char='P') where D
     k₀, kabc = parts(kv)
     checkabc = !iszero(kabc)
-    idxlist = [1]
-    for (idx, op) in enumerate(@view ops[2:end]) # note: `idx` is offset by 1 relative to position of op in ops
+    idxlist = Int[]
+    for (idx, op) in enumerate(ops)
         k₀′, kabc′ = parts(compose(op, kv, checkabc)) # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)  
         diff = k₀′ .- k₀
         diff = primitivebasismatrix(cntr, Val(D))'*diff 
@@ -436,7 +436,7 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
         abcbool = checkabc ? isapprox(kabc′, kabc, atol=DEFAULT_ATOL) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
         if kbool && abcbool # ⇒ part of little group
-            push!(idxlist, idx+1) # `idx+1` is due to previously noted `idx` offset 
+            push!(idxlist, idx)
         end
     end
     return idxlist, view(ops, idxlist)

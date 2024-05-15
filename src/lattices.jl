@@ -7,7 +7,7 @@ dim(::AbstractFourierLattice{D}) where D = D
 function (==)(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice)
     return flat1.orbits == flat2.orbits && flat1.orbitcoefs == flat2.orbitcoefs
 end
-function isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; kwargs...)
+function Base.isapprox(flat1::AbstractFourierLattice, flat2::AbstractFourierLattice; kwargs...)
     return ( isapprox(flat1.orbits,     flat2.orbits;     kwargs...) && 
              isapprox(flat1.orbitcoefs, flat2.orbitcoefs; kwargs...) )
 end
