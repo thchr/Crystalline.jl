@@ -87,7 +87,7 @@ translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly
 function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
-function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
+function Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
             kws...) where D
 
@@ -342,7 +342,7 @@ lattice vectors are used in the comparison.
 - `kwargs...`: optional keyword arguments (e.g., `atol` and `rtol`) to be forwarded to
   `Base.isapprox`.
 """
-function isapprox(v1::T, v2::T,
+function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
@@ -371,7 +371,7 @@ function isapprox(v1::T, v2::T,
     return isapprox(vabc1, vabc2; kwargs...)
 end
 
-function isapprox(v1::T, v2::T,
+function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractPoint{D} where D
@@ -533,7 +533,7 @@ Applicable cases include `LittleGroup` (return the associated **k**-vector) and 
 Base.position(::AbstractGroup) = nothing
 
 # sorting
-sort!(g::AbstractGroup; by=xyzt, kws...) = sort!(operations(g); by, kws...)
+sort!(g::AbstractGroup; by=xyzt, kws...) = (sort!(operations(g); by, kws...); g)
 
 # --- Generic group ---
 """
