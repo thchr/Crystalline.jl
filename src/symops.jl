@@ -452,7 +452,7 @@ empty string is used as label.
 """
 function littlegroup(sg::SpaceGroup, kv::KVec, klab::String="") 
     _, lgops = littlegroup(operations(sg), kv, centering(sg))
-    return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
+    return LittleGroup{dim(sg)}(num(sg), kv, klab, lgops)
 end
 
 
