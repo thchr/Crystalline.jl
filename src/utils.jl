@@ -11,18 +11,19 @@
 
 # === string manipulation/parsing ===
 """ 
-    parsefraction(str::AbstractString)
+    parsefraction(str::AbstractString, T::Type=Float64)
 
-Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), return as `Float64`.
+Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), return as a type T (default,
+`Float64`).
 """
-function parsefraction(str::AbstractString)
+function parsefraction(str::AbstractString, ::Type{T}=Float64) where T
     slashidx = findfirst(==('/'), str)
     if slashidx === nothing
-        return parse(Float64, str)
+        return parse(T, str)
     else
         num = SubString(str, firstindex(str), prevind(str, slashidx))
         den = SubString(str, nextind(str, slashidx), lastindex(str))
-        return parse(Float64, num)/parse(Float64, den)
+        return T(parse(T, num)/parse(T, den))
     end
 end
 
@@ -56,7 +57,8 @@ signaschar(x::Real) = signbit(x) ? '-' : '+'
 function searchpriornumerals(coord, pos₂, ::Type{T}=Float64) where T
     pos₁ = pos₂
     while (prev = prevind(coord, pos₁)) != 0 # not first character
-        if isnumeric(coord[prev]) || coord[prev] == '.' || coord[prev] == '*'
+        if isnumeric(coord[prev]) || coord[prev] == '.' || coord[prev] == '*' || 
+            coord[prev] == '/' || coord[prev] == 'e' || coord[prev] == 'E'
             pos₁ = prev
         elseif coord[prev] == '+' || coord[prev] == '-'
             pos₁ = prev
@@ -75,7 +77,7 @@ function searchpriornumerals(coord, pos₂, ::Type{T}=Float64) where T
             throw(DomainError(prefix, "unable to parse prefix"))
         end
     else
-        return parse(T, prefix)
+        return parsefraction(prefix, T)
     end
 end
 

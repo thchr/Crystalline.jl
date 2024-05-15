@@ -26,6 +26,13 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test sprint(show, KVec("-3*u+1, -β+1/2")) == "[1-3α, 1/2-β]"
         @test sprint(show, KVec("-1*u+1/3, 2+1*β")) == "[1/3-α, 2+β]"
 
+        # fancy parsing & round-tripping: basic division use in both constant & free parts
+        kv = KVec{3}("α+3.5, 4/5-0.5β+0.5γ, 0.5β+0.25+0.5γ")
+        @test kv == KVec{3}("7/2+1/1α, 4/5-1/2β+1/2γ, 1/2β+1/4+1/2γ")
+        @test KVec{3}(string(kv)) == kv
+        @test KVec("-1/2+3/2u") == KVec("-0.5+1.5u") == KVec("3/2u-0.5") == KVec("1.5u-1/2")
+        @test KVec("3/2u") == KVec("1.5α")
+
         # functor-like usage
         @test KVec{3}("x,y,z")(0,1,2) == [0.0,1.0,2.0]
         @test KVec{2}("α,.5")() == KVec{2}("α,.5")(nothing) == [0,0.5]
