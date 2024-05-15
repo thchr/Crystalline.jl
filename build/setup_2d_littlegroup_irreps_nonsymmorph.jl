@@ -241,7 +241,7 @@ LGIRSD_2D[12]["X"] = [
     make_lgirrep("₁", lg, [[1 0; 0 1], [1 0; 0 -1], [0 -1; 1 0], [0 1; 1 0]])
     ]
 # Δ
-kv = KVec("0,v")
+kv = KVec("0,u")
 lg = LittleGroup(12, kv, "Δ", [S"x,y", S"-x+1/2,y+1/2"])
 LGIRSD_2D[12]["Δ"] = [
     make_lgirrep("₁", lg, [1, 1],  REAL, [[0.0,0.0], [0.5,0.5]])
