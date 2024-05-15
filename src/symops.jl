@@ -496,18 +496,77 @@ function orbit(g::AbstractVector{SymOperation{D}},
 end
 orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
 
+"""
+    cosets(G, H)
+
+For a subgroup `H` ``=H`` of `G` = ``G``, find a set of (left) coset representatives 
+``\\{g_i\\}`` of ``H`` in ``G``, such that (see e.g., Inui et al., Section 2.7)
+```math
+    G = \\bigcup_i g_i H.
+```
+The identity operation ``1`` is always included in ``\\{g_i\\}``.
+
+## Example
+```jldoctest cosets
+julia> G = pointgroup("6mm");
+
+julia> H = pointgroup("3");
+
+julia> Q = cosets(G, H)
+4-element Vector{SymOperation{3}}:
+ 1
+ 2₀₀₁
+ m₁₁₀
+ m₋₁₁₀
+```
+To generate the associated cosets, simply compose the representatives with `H`:
+```jldoctest cosets
+julia> [compose.(Ref(q), H) for q in Q]
+4-element Vector{Vector{SymOperation{3}}}:
+ [1, 3₀₀₁⁺, 3₀₀₁⁻]
+ [2₀₀₁, 6₀₀₁⁻, 6₀₀₁⁺]
+ [m₁₁₀, m₁₀₀, m₀₁₀]
+ [m₋₁₁₀, m₁₂₀, m₂₁₀]
+```
+"""
+function cosets(
+            G::AbstractVector{T},
+            H::AbstractVector{T}
+            ) where T<:AbstractOperation
+
+    iszero(rem(length(G), length(H))) || error("H must be a subgroup of G: failed Lagrange's theorem")
+    ind = div(length(G), length(H)) # [H:G]
+    
+    representatives = [one(T)]
+    _cosets         = Vector{T}[operations(H)]
+    sizehint!(representatives, ind)
+    sizehint!(_cosets, ind)
+    for g in G
+        any(_coset -> isapproxin(g, _coset), _cosets) && continue
+        
+        push!(representatives, g)
+        push!(_cosets, compose.(Ref(g), H))
+
+        length(representatives) == ind && break
+    end
+    length(representatives) == ind || error("failed to find a set of coset representatives")
+    return representatives
+end
+
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
 
-Return the composition `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a reciprocal-space vector `kv`
-``= \mathbf{k}``.
+Return the composition `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a reciprocal-space vector
+`kv` ``= \mathbf{k}``.
 
-The operation is taken to act directly, returning
+The operation is assumed to be specified the direct lattice basis, and `kv` in the
+reciprocal lattice basis. If both were specified in the Cartesian basis, `op` would act
+directly via its rotation part. However, because of the different bases, it now acts as:
 ```math
-    \mathbf{k}' = \{\mathbf{W}|\mathbf{w}\}\mathbf{k} = \mathbf{W}^{\text{T}}\mathbf{k}.
+    \mathbf{k}' = (\mathbf{W}^{\text{T}})^{-1}\mathbf{k}.
 ```
-Note the transposition of ``\mathbf{W}``, arising as a result of the implicit real-space
-basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis specification of
+Note the transposition _and_ inverse of ``\mathbf{W}``, arising as a result of the implicit
+real-space basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis of
 ``\mathbf{k}``.
 Note also that the composition of ``\{\mathbf{W}|\mathbf{w}\}`` with ``\mathbf{k}`` is
 invariant under ``\mathbf{w}``, i.e., translations do not act in reciprocal space.
@@ -519,8 +578,9 @@ performance in situations when `kabc` is zero, and several transformations are r
 """
 @inline function compose(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
     k₀, kabc = parts(kv)
-    k₀′ = rotation(op)'*k₀
-    kabc′ = checkabc ? rotation(op)'*kabc : kabc
+    W⁻¹ᵀ = transpose(inv(rotation(op)))
+    k₀′ = W⁻¹ᵀ*k₀
+    kabc′ = checkabc ? W⁻¹ᵀ * kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
 

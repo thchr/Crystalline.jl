@@ -32,15 +32,22 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
     @testset "Composition" begin
         @test SymOperation{2}("x,y") * KVec{2}("1,α") == KVec{2}("1,α")
 
-        # 4⁺ rotation (rotates _oppositely_ in reciprocal space)
-        @test SymOperation{2}("-y,x") * KVec(.4,.3) == KVec(.3,-.4)
+        # 4⁺ rotation
+        @test SymOperation{2}("-y,x") * KVec(.4,.3) == KVec(-.3,.4)
 
-        # inserting g⁻¹g inside a dot product of a KVec and an RVec should do nothing (if
-        # g doesn't have a translation part; that would shift the RVec also...)
-        kv = KVec{3}(".4+α,0.3-γ,-.1+β")
-        rv = RVec{3}(".7-γ,0.6+α,.2-α")
-        op = SymOperation{3}("-z,-x,-y") # {-3₁₁₁⁺|½,½,½}
-        @test dot((inv(op)*kv)(αβγ), (op*rv)(αβγ)) ≈ dot(kv(αβγ), rv(αβγ))  # g⁻¹g
-        @test dot((op*kv)(αβγ), (inv(op)*rv)(αβγ)) ≈ dot(kv(αβγ), rv(αβγ))  # gg⁻¹
+        # composition is associative for both `KVec`s and `RVec`s
+        kv  = KVec("α, -α")
+        kv′ = KVec("α, 1/2-2β")
+        g   = S"-x+y,-x" # 3⁻
+        h   = S"-x,-x+y" # m₂₁
+        @test h * (g * kv)  == (h * g) * kv
+        @test h * (g * kv′) == (h * g) * kv′
+        
+        rv  = RVec("α, -α")
+        rv′ = RVec("1/4+α, 1/2-2β")
+        g   = S"-x+y,-x" # 3⁻
+        h   = S"-x,-x+y+1/3" # m₂₁
+        @test h * (g * rv)  == (h * g) * rv
+        @test h * (g * rv′) == (h * g) * rv′
     end
 end
