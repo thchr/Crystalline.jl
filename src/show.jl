@@ -211,8 +211,10 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
     end
 end
 
-function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
-                                    atol::Real=DEFAULT_ATOL, digits::Int=4)
+function prettyprint_irrep_scalars(
+        io::IO, v::Number, ϕabc_contrib::Bool=false;
+        atol::Real=DEFAULT_ATOL, digits::Int=4
+    )
 
     if norm(v) < atol
         print(io, 0)
@@ -244,8 +246,10 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
     end
 end
 
-function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
-                                  digits::Int=4)
+function prettyprint_irrep_matrix(
+        io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
+        digits::Int=4
+    )
     # unpack
     k₀, kabc = parts(position(group(lgir)))
     P = lgir.matrices[i]
@@ -297,18 +301,22 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
     end
 end
 
-function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
-    P = pgir.matrices[i]
+function prettyprint_irrep_matrix(
+        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer, prefix::AbstractString
+    )
+    P = ir.matrices[i]
     prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
-function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
-                                  nindent::Integer, nboxdelims::Integer=45)  
+function prettyprint_irrep_matrices(
+        io::IO, ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep}, nindent::Integer,
+        nboxdelims::Integer=45
+    )
     indent = repeat(" ", nindent)
     boxdelims = repeat("─", nboxdelims)
     linelen = nboxdelims + 4 + nindent
-    Nₒₚ = order(plgir)
-    for (i,op) in enumerate(operations(plgir))
+    Nₒₚ = order(ir)
+    for (i,op) in enumerate(operations(ir))
         print(io, indent, " ├─ ")
         opseitz, opxyzt  = seitz(op), xyzt(op)
         printstyled(io, opseitz, ": ", 
@@ -316,14 +324,14 @@ function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep},
                         " (", opxyzt, ")\n"; color=:light_black)
         #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
-        prettyprint_irrep_matrix(io, plgir, i, indent*" │     ")
+        prettyprint_irrep_matrix(io, ir, i, indent*" │     ")
         if i < Nₒₚ; println(io, '\n', indent, " │"); end
     end
     print(io, "\n", indent, " └", boxdelims)
 end
 
-function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Integer=45)
-    println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
+function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=45)
+    println(io, irlab, " ─┬", repeat("─", nboxdelims))
 end
 
 # --- IrrepCollection ---

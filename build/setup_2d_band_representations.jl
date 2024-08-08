@@ -10,50 +10,6 @@ using DocStringExtensions
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
 
 # ---------------------------------------------------------------------------------------- #
-# Site symmetry irreps
-
-"""
-$(TYPEDEF)$(TYPEDFIELDS)
-"""
-struct SiteIrrep{D} <: AbstractIrrep{D}
-    cdml     :: String
-    g        :: SiteGroup{D}
-    matrices :: Vector{Matrix{ComplexF64}}
-    reality  :: Reality
-    iscorep  :: Bool
-    pglab    :: String
-end
-Base.position(siteir::SiteIrrep) = position(group(siteir))
-
-"""
-    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
-
-Return the site symmetry irreps associated with the provided `SiteGroup`, derived from a
-search over isomorphic point groups.
-"""
-function siteirreps(siteg::SiteGroup{D}) where D
-    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
-    pglab = label(parent_pg)
-    pgirs = pgirreps(pglab, Val(D))
-    
-    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
-    # .jld files apparently cache accessed content; so if we modify it, we mess with the
-    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
-    siteirs = map(pgirs) do pgir
-        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
-                     pglab)
-    end
-    return siteirs
-end
-pglabel(siteir::SiteIrrep)  = siteir.pglab # associated point group label
-mulliken(siteir::SiteIrrep) = _mulliken(pglabel(siteir), label(siteir), iscorep(siteir))
-
-# ---------------------------------------------------------------------------------------- #
-# Misc utility functions 
-
-function realify(lgirsd::Dict{<:Any, <:Vector{<:LGIrrep}})
-    return Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd)
-end
 
 """
     reduce_dict_of_vectors([f=identity,] d::Dict{_, <:Vector})  -->  Vector{T}
@@ -208,7 +164,7 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
     spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
     decomposable = false # NB: placeholder, because we don't know the true answer presently
 
-    return BandRep(wycklab, pglabel(siteir), mulliken(siteir)*"↑G", brdim, decomposable,
+    return BandRep(wycklab, siteir.pglabel, mulliken(siteir)*"↑G", brdim, decomposable,
                    spinful, irvec, irlabs)
 end
 

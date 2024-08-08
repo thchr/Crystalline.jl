@@ -53,7 +53,7 @@ export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
        IrrepCollection,
-       MultTable, LGIrrep, PGIrrep,
+       MultTable, LGIrrep, PGIrrep, SiteIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
@@ -120,7 +120,8 @@ include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
        SiteGroup, sitegroup, cosets,
-       findmaximal
+       findmaximal,
+       siteirreps
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation

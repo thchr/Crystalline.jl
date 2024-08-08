@@ -278,7 +278,6 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     return @view sitegs[maximal]
 end
 
-
 function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
                         atol::Real=DEFAULT_ATOL) where D
     # check if solution exists to [A] v′ = v(αβγ) or [B] v′(αβγ′) = v(αβγ) by solving
@@ -318,3 +317,77 @@ function _can_intersect_equivalence_check(Δcnst::StaticVector{D}, Δfree::Stati
     end
     return false
 end
+
+# ---------------------------------------------------------------------------------------- #
+
+
+"""
+    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
+
+Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
+search over isomorphic point groups. The `SiteIrrep`s are in general a permutation of the
+irreps of the associated isomorphic point group.
+
+## Example
+```jldoctest
+julia> sgnum = 16;
+
+julia> sg = spacegroup(sgnum, 2);
+
+julia> wp = wyckoffs(sgnum, 2)[3] # pick the third Wyckoff position
+2b: [1/3, 2/3]
+
+julia> siteg = sitegroup(sg, wp)
+SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
+ 1
+ {3⁺|1,1}
+ {3⁻|0,1}
+
+julia> siteirs = siteirreps(siteg)
+3-element IrrepCollection{SiteIrrep{2}} for ⋕16 (p6) at 2b = [1/3, 2/3]:
+Γ₁ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     1
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     1
+    └─────────────────────────────────────────────
+Γ₂ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(-0.6667iπ)
+    └─────────────────────────────────────────────
+Γ₃ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(-0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(0.6667iπ)
+    └─────────────────────────────────────────────
+"""
+function siteirreps(siteg::SiteGroup{D}) where D
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
+    pglabel = label(parent_pg)
+    pgirs = pgirreps(pglabel, Val(D))
+    
+    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
+    # .jld files apparently cache accessed content; so if we modify it, we mess with the
+    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
+    siteirs = map(pgirs) do pgir
+        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
+                     pglabel)
+    end
+    return IrrepCollection(siteirs)
+end
+mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))

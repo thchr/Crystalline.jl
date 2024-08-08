@@ -654,7 +654,7 @@ real" irreps (co-reps) via [`realify`](@ref).
 end
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractIrrep: PGIrrep, LGIrrep
+# AbstractIrrep: PGIrrep, LGIrrep, SiteIrrep
 # ---------------------------------------------------------------------------------------- #
 
 """ 
@@ -763,6 +763,21 @@ isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
+
+                             # Site symmetry irreps
+
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
+struct SiteIrrep{D} <: AbstractIrrep{D}
+    cdml     :: String
+    g        :: SiteGroup{D}
+    matrices :: Vector{Matrix{ComplexF64}}
+    reality  :: Reality
+    iscorep  :: Bool
+    pglabel  :: String # label of point group that is isomorphic to the site group `g`
+end
+Base.position(siteir::SiteIrrep) = position(group(siteir))
 
 # ---------------------------------------------------------------------------------------- #
 # IrrepCollection
