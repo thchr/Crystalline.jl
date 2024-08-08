@@ -19,7 +19,8 @@ There is generally no reason for a user to **ever** do this.
 
 Returns the filepath of the saved .jld2 files.
 """
-function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}}}) where D
+function __write_littlegroupirreps(
+            LGIRS::Vector{Dict{String, <:AbstractVector{LGIrrep{D}}}}) where D
 
     savepath = (@__DIR__)*"/../data/irreps/lgs/"*string(D)*"d"
     filename_lgs    = joinpath(savepath, "littlegroups_data.jld2")

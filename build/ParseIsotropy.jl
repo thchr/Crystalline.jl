@@ -1,7 +1,7 @@
 module ParseIsotropy
 
 using Crystalline
-using Crystalline: AbstractIrrep
+using Crystalline: AbstractIrrep, IrrepCollection
 
 export parselittlegroupirreps
 
@@ -264,7 +264,7 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
-    lgirsd = Dict{String, Vector{LGIrrep{3}}}()
+    lgirsd = Dict{String, IrrepCollection{LGIrrep{3}}}()
     curklab = nothing; accidx = Int[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
         if curklab == klabel(ir)
@@ -275,7 +275,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirsd, curklab=>lgirs)
+                push!(lgirsd, curklab=>IrrepCollection(lgirs))
             end
 
             curklab = klabel(ir)
@@ -286,13 +286,13 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     # incorporation (because we're always _writing_ a new batch, when 
     # we've moved into the next one); for ISOTROPY's default sorting, 
     # this is the GP=Ω=[α,β,γ]ᵀ point)
-    lgirs = Vector{LGIrrep}(undef, length(accidx))
+    lgirs = Vector{LGIrrep{3}}(undef, length(accidx))
     for (pos, kidx) in enumerate(accidx)
         lgirs[pos] = littlegroupirrep(irvec[kidx])
     end
     lastklab = klabel(irvec[last(accidx)])
     @assert lastklab == "Ω"
-    push!(lgirsd, lastklab=>lgirs)
+    push!(lgirsd, lastklab=>IrrepCollection(lgirs))
 
     return lgirsd
 end

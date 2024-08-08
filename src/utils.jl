@@ -220,32 +220,29 @@ function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     return String(take!(buf))
 end
 
-
+const tf_compact_borderless = TextFormat(
+                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', Symbol[], :none)
 """
 $(TYPEDSIGNATURES)
 
-Canibalized and adapted from Base.print_matrix, specifically to allow a `prerow` input.
-
-Should never be used for printing very large matrices, as it will not wrap or abbreviate
-rows/columns.
+Print a matrix using PrettyTables, allowing a `prerow` input to be printed before each row
+of the matrix. `elformat` is applied to each element of the matrix before printing.
 """
-function compact_print_matrix(io, X::Matrix, prerow, elformat=identity, sep="  ")
-    X_formatted = elformat.(X) # allocates; can't be bothered... (could be fixed using MappedArrays)
-    screenheight = screenwidth = typemax(Int)
-    rowsA, colsA = UnitRange(axes(X,1)), UnitRange(axes(X,2))
-
-    !haskey(io, :compact) && length(axes(X, 2)) > 1 && (io = IOContext(io, :compact => true))
-    A = Base.alignment(io, X_formatted, rowsA, colsA, screenwidth, screenwidth, length(sep))
+function compact_print_matrix(io, X::Matrix, prerow, elformat=identity)
+    rowsA = UnitRange(axes(X,1))
+    io′ = IOBuffer()
+    pretty_table(io′, X; 
+        tf=tf_compact_borderless,
+        show_header=false,
+        formatters = (v,i,j) -> elformat(v),
+        alignment = :r)
+    X_str  = String(take!(io′))
+    X_rows = split(X_str, '\n')
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
         # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
-        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'), ' ') # FIXME: the display of '⎡' and '⎣' is broken in VSCode's integrated terminal :(
-        Base.print_matrix_row(io, X_formatted, A, i, colsA, sep)
-        # TODO: Printing of the closing brackets is not currently well-aligned when the last
-        #       columns' elements have different display width. Should check "print"-length
-        #       of every element in the last column, cross-check with parity of the alignment
-        #       for that column, and use that to figure out how many spaces to insert.
-        print(io, ' ')
+        print(io, i == first(rowsA) ? '⎡' : (i == last(rowsA) ? '⎣' : '⎢'))
+        print(io, X_rows[i], ' ')
         print(io, i == first(rowsA) ? '⎤' : (i == last(rowsA) ? '⎦' : '⎥'))
         if i != last(rowsA); println(io); end
     end

@@ -52,6 +52,7 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
+       IrrepCollection,
        MultTable, LGIrrep, PGIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
