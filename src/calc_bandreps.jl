@@ -1,10 +1,4 @@
-using LinearAlgebra
-using Crystalline
-using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
-                   _mulliken, DEFAULT_ATOL
-import Crystalline: mulliken, realify, group
-using StaticArrays
-using DocStringExtensions
+using LinearAlgebra: dot, \
 
 # The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
@@ -19,14 +13,14 @@ of `f`. Effectively flattens a `Dict` of `Vector`s to a single `Vector`.
 
 Note that application of `f` to vector-elements of `d` must return a stable type `T`.
 """
-function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:Vector}) where F
+function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:AbstractVector}) where F
     # get element type of application of `f` to elements of vectors in `d`; assumed fixed
     eltype = typeof(f(first(first(values(d)))))
     # get total number of elements across vectors in `d`
     N = sum(((_, v),) -> length(v), d)
     # preallocate output vector
-    w      = Vector{eltype}(undef, N)
-    start  = 1
+    w     = Vector{eltype}(undef, N)
+    start = 1
     for v in values(d)
         stop = start + length(v) - 1
         @inbounds for (i, j) in enumerate(start:stop)
@@ -48,8 +42,9 @@ in a primitive basis (as determined by the centering type `cntr`). Returns the u
 If `conv_or_prim = true` (default), the Wyckoff positions are returned in the original,
 conventional basis; if `conv_or_prim = false`, they are returned in a primitive basis.
 """
-function reduce_orbits!(orbits::Vector{WyckoffPosition{D}}, cntr::Char,
-            conv_or_prim::Bool=true) where D
+function reduce_orbits!(
+        orbits::AbstractVector{WyckoffPosition{D}}, cntr::Char, conv_or_prim::Bool=true
+    ) where D
 
     orbits′ = primitivize.(orbits, cntr)
     i = 2 # start from second element
@@ -134,7 +129,9 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
     return χᴳₖ
 end
 
-function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) where D
+function subduce_onto_lgirreps(
+        siteir::SiteIrrep{D}, lgirs::AbstractVector{LGIrrep{D}}
+    ) where D
     lg = group(first(lgirs))
     kv = position(lg)
 
@@ -149,9 +146,12 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
     return m′
 end
 
-function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{D}}};
-            irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
-            irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)) where D
+function calc_bandrep(
+        siteir::SiteIrrep{D}, 
+        lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
+        irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
+        irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)
+    ) where D
 
     irvec = Int[]
     for (_, lgirs) in lgirsd
@@ -191,9 +191,12 @@ Compute the band representations of space group `sgnum` in dimension `D`, return
 The implementation is based on Elcoro et al., [Phys. Rev. B 97, 035139
 (2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
 """
-function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
-                       timereversal::Bool=true,
-                       allpaths::Bool=false) where D
+function calc_bandreps(
+        sgnum::Integer,
+        Dᵛ::Val{D} = Val(3);
+        timereversal::Bool = true,
+        allpaths::Bool = false
+    ) where D
 
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
