@@ -8,7 +8,7 @@ function partition_ids(p :: Partition)
 end
 
 unfold_bandgraph(bandg::BandGraph, kg) = unfold_bandgraph(bandg.subgraphs, bandg.partitions, kg)
-function unfold_bandgraph(
+@eval BandGraphs function unfold_bandgraph(
             subgraphs,
             partitions,
             kg #= info about connections between k-partitions, from `partition_graph` =#
@@ -25,6 +25,13 @@ function unfold_bandgraph(
     
     # --- add vertices ---
     for (trailidx, kidx′) in enumerate(kg_trail.trail)
+        if kidx′ == -1
+            # we've must have more than one disconnected component in the graph; so there
+            # is not a single disconnected trail we can follow between the vertices; that is
+            # okay though, there is just no vertex to add to `g_trail` here - and we need to
+            # keep the absence of a point here in mind when we get to plotting later
+            continue
+        end
         klab = label_for(kg′, kidx′)[1]
         p = partitionsd[klab]
         lgir_ids = partition_ids(p)
@@ -40,11 +47,20 @@ function unfold_bandgraph(
     # --- add edges ---
     subgraphsd  = Dict((s.p_max.klab, s.p_nonmax.klab) => s for s in subgraphs)
     foreach(klab->k_ids[klab]=0, keys(k_ids)) # reset counters
+    trailidx_begin = firstindex(kg_trail.trail)
     # peel one iteration
-    kidx′ = first(kg_trail.trail)
+    @label CONNECTED_COMPONENT_START
+    kidx′ = kg_trail.trail[trailidx_begin]
     p_prev = partitionsd[label_for(kg′, kidx′)[1]]
     k_id = (k_ids[p_prev.klab] += 1)
-    for kidx′ in @view kg_trail.trail[2:end]
+    for trailidx in trailidx_begin+1:lastindex(kg_trail.trail)
+        kidx′ = kg_trail.trail[trailidx]
+        if kidx′ == -1
+            # nothing to add for trail transitions between disconnected components; restart
+            # the loop at the next trailidx
+            trailidx_begin = trailidx + 1
+            @goto CONNECTED_COMPONENT_START
+        end
         vertex_ids_prev = [(lgir_id..., k_id) for lgir_id in partition_ids(p_prev)]
 
         p_curr = partitionsd[label_for(kg′, kidx′)[1]]
@@ -68,53 +84,6 @@ function unfold_bandgraph(
         vertex_ids_curr = vertex_ids_prev
     end
 
-    klabs_trail = [kg′[label_for(kg′, code)].klab for code in kg_trail.trail]
+    klabs_trail = [code == -1 ? "" : kg′[label_for(kg′, code)].klab for code in kg_trail.trail]
     return g_trail, klabs_trail
-end
-
-
-# WIP below: aim was to remove the nonmaximal vertices and replace them with edge info; but
-#            stalled due to problem in "NB" below.
-# tricky bits include:
-#       - correctly deal with two max-irreps of high-degen being connected by
-#         multiple low-degen nonmax-irreps (e.g., `sgnum = 147; brs[end]`);
-#       - if a max-manifold is not connected via a nonmax manifold, should it be pruned
-#         (e.g., `sgnum = 6`) or connected via Ω? The latter seems preferable for
-#         connectivity analysis
-function edgify_nonmax_vertices(g_trail)
-    # FIXME: This does not work in general since the general case would require us to have a
-    #        multigraph structure. To see this, consider e.g. the case that we have an irrep
-    #        Γ₁ which splits into Δ₁+Δ₂ and then recombines to X₁. When we remove the edges
-    #        due to Λ₁ and Λ₂ and seek to make them direct edges between Γ₁ and X₁, we end
-    #        up needing _two_ edges between the Γ₁ and X₁ vertices
-
-    g_decimated = MetaGraph(DiGraph();
-        label_type       = Tuple{String, Int, Int}, # (irrep label, multiplicity identifier, path-identifier)
-        vertex_data_type = @NamedTuple{lgir::LGIrrep, maximal::Bool, trailidx::Int},
-        edge_data_type   = @NamedTuple{lgir::LGIrrep, weight::Int}
-        )
-    original_idxs = Int[]
-
-    for v in vertices(g_trail)
-        lᵥ = label_for(g_trail, v)
-        vertex_data = g_trail[lᵥ]
-        vertex_data.maximal || continue
-        add_vertex!(g_decimated, lᵥ, vertex_data)
-        push!(original_idxs, v)
-    end
-
-    for v in original_idxs
-        lᵥ = label_for(g_trail, v)
-        ns = outneighbors(g_trail, v)
-        for n in ns # over nonmaximal nodes
-            lₙ = label_for(g_trail, n)
-            m = only(outneighbors(g_trail, n)) # nonmax nodes can only have one exiting edge
-            lₘ = label_for(g_trail, m)
-            edge_data = (; lgir=g_trail[lₙ].lgir, g_trail[lᵥ,lₙ]...)
-            add_edge!(g_decimated, lᵥ, lₘ, edge_data) || error("edge insertion failure")
-        end
-    end
-
-    # original_idxs is useful to e.g., index into the `xy` struct
-    return g_decimated, original_idxs
 end

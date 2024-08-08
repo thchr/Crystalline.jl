@@ -43,7 +43,11 @@ function extract_bandpaths_tables(body::HTMLDocument)
     matches = eachmatch(select, root)
     bandpath_htmltable, subduction_htmltable = matches[2], matches[3]
 
-    return convert_html_table(bandpath_htmltable), convert_html_table(subduction_htmltable)
+    bandpath_data   = convert_html_table(bandpath_htmltable)
+    subduction_data = convert_html_table(subduction_htmltable)
+    canonicalize_subduction_data_structure!(subduction_data)
+
+    return bandpath_data, subduction_data
 end
 
 function convert_html_table(t::HTMLElement{:table})
@@ -91,6 +95,39 @@ function html2unicode_postprocess(s::AbstractString)
     return replace(replace(s, replacepairlist...), " "=>"")
 end
 
+function canonicalize_subduction_data_structure!(subduction_data::Matrix)
+    # The structure of the `subduction_data` table, as returned from BCS, is a bit finnicky.
+    # If there are no monodromy additions, the table has 5 columns, structured as:
+    #  | kᴳ₁ | kᴳ₁-kᴴ rules | | kᴴ | kᴳ₂-kᴴ rules | kᴳ₂ |
+    # If there _are_ monodromy additions, the table has 7 columns, structured as:
+    #  | kᴳ₁ | kᴳ₁-kᴴ rules |  kᴳ₁′-kᴴ rules | kᴴ | (...)² | kᴳ₂ | 
+    # where by kᴳ₁′ and kᴳ₂′ we denote a monodromy-derived k-vector and where (...)²
+    # represents represents 2 columns of rules, with a variable structure that depends on
+    # whether there is a monodromy rule or not (whose presence is only optional):
+    #  A. Has monodromy rule:  (...)² = | kᴳ₂-kᴴ rules      | kᴳ₂′-kᴴ rules |
+    #  B. No monodromy rule:   (...)² = | empty string ("") | kᴳ₂-kᴴ rules  |
+    # This is annoying because the structure is variable and depends on the presence of
+    # monodromy rules.
+    # To fix this, we simply reorder the columns to ensure the fixed following structure:
+    # | kᴳ₁ | kᴳ₁-kᴴ rules | kᴳ₁′-kᴴ rules | kᴴ | kᴳ₂′-kᴴ rules | kᴳ₂-kᴴ rules | kᴳ₂ |
+    Ncols = size(subduction_data, 2)
+    if Ncols == 7
+        for i in 1:size(subduction_data, 1)
+            tᵢ₅ = subduction_data[i, 5]
+            if !isempty(first(tᵢ₅))
+                # there is a monodromy rule in this row, so we must flip columns 5 & 6
+                tᵢ₆ = subduction_data[i, 6]
+                subduction_data[i, 5] = tᵢ₆
+                subduction_data[i, 6] = tᵢ₅
+            end
+        end
+    end
+
+    # now with `subduction_data` is in a consistent, simple form and we can parse it in
+    # `parse_subductions` without worrying about a variable location for the different data 
+    return subduction_data
+end
+
 
 # ---------------------------------------------------------------------------------------- #
 # Types
@@ -128,16 +165,9 @@ end
 # function to find element of little group with highest-order screw (or, failing any screws,
 # any glide operation); need this to figure out the k-point of a monodromy-related shifted
 # k-point
+function find_highest_order_nonsymmorphic_operation(
+            g::Crystalline.AbstractGroup{D}, cntr::Char=centering(g, D)) where D
 
-#  function find_highest_order_nonsymmorphic_operation(sgnum::Integer)
-#      issymmorph(sgnum, 3) && return nothing
-#      sg = spacegroup(sgnum, Val(3))
-#      N = round(Int, inv(det(Bravais.primitivebasismatrix(centering(sgnum, 3)))))
-#      sg = sg[1:div(length(sg), N)] # only include the first "non-centering copies" operations
-#  
-#      return find_highest_order_nonsymmorphic_operation(sg, centering(sgnum, 3))
-#  end
-function find_highest_order_nonsymmorphic_operation(g::Crystalline.AbstractGroup{3}, cntr)
     ns = Crystalline.rotation_order.(g)
     ops = iterated_composition.(g, abs.(ns))
     for (j,op) in enumerate(ops)
@@ -153,7 +183,7 @@ function find_highest_order_nonsymmorphic_operation(g::Crystalline.AbstractGroup
             t = ts[i]
             if norm(t) > Crystalline.DEFAULT_ATOL
                 t′ = float.(rationalize.(t, tol=1e-2)) # hack to get rid of floating point errors
-                if !all(isinteger, primitivize(RVec(t′), centering(g)).cnst)
+                if !all(isinteger, primitivize(RVec(t′), cntr).cnst)
                     error("obtained non-integer translation $t for operation $(g[i])")
                 end
                 return (g[i], t′)
@@ -191,6 +221,7 @@ function parse_subductions(
     kᴳ_colidxs = (1, Ncols)
     rules_colidxs = (2, Ncols-1)
 
+    # First, we do the "standard" rules (not monodromy-derived)
     tables = Vector{SubductionTable{3}}()
     for row in eachrow(subduction_data)
         for (kᴳ_colidx, rules_colidx) in zip(kᴳ_colidxs, rules_colidxs)
@@ -201,7 +232,8 @@ function parse_subductions(
         end
     end
 
-    if Ncols == 7 # monodromy additions
+    # Now we do the monodromy additions
+    if Ncols == 7
         lgs = littlegroups(num, 3)
         for row in eachrow(subduction_data)
             for (kᴳ_colidx, rules_colidx) in zip(kᴳ_colidxs, (3, Ncols-2))
@@ -212,27 +244,118 @@ function parse_subductions(
                     # plain rules
                     c, irlabsᴳ, irlabsᴴ, table = tmp
 
-                    # now, we want to infer the k-point associated with the translated high-
-                    # symmetry k-point `kᴳ′` and the associated connection `c′`
-                    kᴳ, kᴴ = c.kᴳ, c.kᴴ
-                    
-                    kᴴlab = kᴴ.label
-                    lg = lgs[string(kᴴlab)]
-                    # FIXME/TODO: the below approach to get the "translated" k-coordinate
-                    #             doesn't seem right: need to fix eventually, but not really
-                    #             important per se
-                    t = find_highest_order_nonsymmorphic_operation(lg, centering(num, 3))[2]
-                    kᴳ′ = LabeledKVec(Symbol(kᴳ.label, '′'), kᴳ.kv + t)
-                    c′ = Connection(kᴳ′, kᴴ)
-                    irlabsᴳ′ = map(irlab->replace(irlab, string(kᴳ.label) => string(kᴳ′.label)), irlabsᴳ)
+                    # determine the monodromy-related k-point and the associated connection
+                    c′ = find_monodromy_related_connection(c, lgs)
+
+                    irlabsᴳ′ = map(irlabsᴳ) do irlab
+                        replace(irlab, string(c.kᴳ.label) => string(c′.kᴳ.label))
+                    end
                     push!(tables, SubductionTable(num, c′, irlabsᴳ′, irlabsᴴ, table, true))
                 end
             end
         end
     end
 
-
     return unique!(t->t.c, tables)
+end
+
+# infer the k-point associated with the shifted high-symmetry k-point `kᴳ′` and return the
+# associated connection `c′` between `kᴳ′` and `kᴴ`
+function find_monodromy_related_connection(c, lgs)
+    kᴳ, kᴴ = c.kᴳ.kv, c.kᴴ.kv
+
+    kᴴlab = c.kᴴ.label
+    kᴳlab = c.kᴳ.label
+    kᴳ′lab = Symbol(kᴳlab, '′')
+    lgᴴ = lgs[string(kᴴlab)]
+
+    cntr = centering(num(lgᴴ), 3)
+    kᴳₚ = primitivize(kᴳ, cntr)
+    kᴴₚ = primitivize(kᴴ, cntr)
+    # FIXME/TODO: the below approach to get the "translated" k-coordinate
+    #             is still not right: must fix
+    #             (Yes, it doesn't make sense to just add a _real-space_
+    #              translation to the k-vector. Need to get k⋅t = -2πn with 
+    #              smallest possible k (and in primitive setting))
+
+    t = find_highest_order_nonsymmorphic_operation(lgᴴ, cntr)[2]
+    tₚ  = primitivize(RVec(t), cntr).cnst
+
+    free_parts = vec(transpose(tₚ) * kᴴₚ.free)
+    idxs = findall(v -> norm(v) > Crystalline.DEFAULT_ATOL, free_parts)
+    idx = if length(idxs) == 1
+        last(idxs)
+    elseif length(idxs) == 2
+        # we cannot uniquely determine which k-point to extend to in this situation;
+        # for now, we just pick _a_ solution, hoping that it will end up being the one that
+        # will give us the same subduction table (TO BE VERIFIED)
+        last(idxs)
+    else
+        # hoping that this scenario never occurs
+        _error_info("unexpected situation when trying to solve k⋅t = 1; too many free parameters", kᴳlab, kᴴlab, kᴳ, kᴳₚ, kᴴ, kᴴₚ, "⋅", "⋅", t, tₚ, cntr)
+    end
+    kᴳ′ₚ = search_n2π_solution(free_parts, idx, kᴳₚ, kᴴₚ)
+    if kᴳ′ₚ === nothing
+        _error_info("failed to find a kᴳ′ that differs from from kᴳ by a primitive reciprocal lattice vector", kᴳlab, kᴴlab, kᴳ, kᴳₚ, kᴴ, kᴴₚ, kᴳ′, kᴳ′ₚ, t, tₚ, cntr)
+    end
+    Δkᴳₚ = (kᴳ′ₚ - kᴳₚ).cnst
+    if !(dot(Δkᴳₚ, tₚ) ≈ round(dot(Δkᴳₚ, tₚ)))
+        _error_info("Δkᴳ⋅t ∉ ℤ", kᴳlab, kᴴlab, kᴳ, kᴳₚ, kᴴ, kᴴₚ, kᴳ′, kᴳ′ₚ, t, tₚ, cntr)
+    end
+
+    kᴳ′ = conventionalize(kᴳ′ₚ, cntr)
+    c′ = Connection(LabeledKVec(kᴳ′lab, kᴳ′), c.kᴴ)
+
+    return c′
+end
+
+function search_n2π_solution(free_parts, idx′, kᴳₚ, kᴴₚ, n::Integer=1, nmax::Integer=6)
+    # solve (kᴳ-kᴳ′)⋅t = -n2π for least positive integer `n`, stopping at `nmax`
+    n>nmax && return nothing
+    αβγ_idx′ = -n/free_parts[idx′]
+    kᴳ′ₚ = KVec(kᴳₚ.cnst + kᴴₚ.free[:,idx′] * αβγ_idx′)
+    # test that kᴳ′ differs from kᴳ by a primitive reciprocal lattice vector
+    Δkᴳₚ = (kᴳ′ₚ - kᴳₚ).cnst
+    if all(v->norm(round(v)-v)<Crystalline.DEFAULT_ATOL, Δkᴳₚ)
+        return kᴳ′ₚ
+    else
+        # try to see if the solution could be fixed by using the remaining degrees of
+        # freedom in kᴴₚ
+        # NB: Below is not a very careful approach; it's a hail Mary & we should probably do
+        #     do better to be safe. For now, we settled for this.
+        idx′′ = findfirst(i->i≠idx′ && Crystalline.freeparams(kᴴₚ)[i], 1:3)
+        if !isnothing(idx′′)
+            v = kᴴₚ.free[:,idx′′]
+            for c in (1.0, 0.5, -0.5, -1.0)
+                kᴳ′ₚ = KVec(kᴳ′ₚ.cnst + c*v)
+                Δkᴳₚ = (kᴳ′ₚ - kᴳₚ).cnst
+                if all(v->norm(round(v)-v)<Crystalline.DEFAULT_ATOL, Δkᴳₚ)
+                    return kᴳ′ₚ
+                end
+            end
+        end
+    end
+    # continue searching for a higher `n` solution
+    search_n2π_solution(free_parts, idx′, kᴳₚ, kᴴₚ, n+1, nmax)
+end
+
+function pseudo_inverse_smith(A)
+    # compute the pseudo-inverse of a matrix `A` using the Smith normal form
+    # (https://en.wikipedia.org/wiki/Pseudoinverse#Using_the_Smith_normal_form)
+    F = Crystalline.smith(A)
+    A⁺ = F.Tinv * pinv(diagm(F)) * F.Sinv
+    return A⁺
+end
+
+function _error_info(msg, kᴳlab, kᴴlab, kᴳ, kᴳₚ, kᴴ, kᴴₚ, kᴳ′, kᴳ′ₚ, t, tₚ, cntr)
+    printstyled(
+        """
+        $kᴳlab → $kᴴlab (cntr: $cntr)
+          kᴳ:  $kᴳ \t\tkᴳₚ:  $kᴳₚ
+          kᴳ′: $kᴳ′\t\tkᴳ′ₚ: $kᴳ′ₚ
+          kᴴ:  $kᴴ \t\tkᴴₚ:  $kᴴₚ
+          t:   $t  \ttₚ:   $tₚ\n"""; color=:yellow)
+    error(msg)
 end
 
 function parse_subductions_of_columns_in_row(
@@ -283,7 +406,7 @@ end
 
 ## --------------------------------------------------------------------------------------- #
 
-timereversal = true
+timereversal = false
 connectionsd = Dict{Int, Vector{Connection{3}}}()
 subductionsd = Dict{Int, Vector{SubductionTable{3}}}()
 data = Dict{Int, Any}()

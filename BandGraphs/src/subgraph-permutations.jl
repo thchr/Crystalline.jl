@@ -61,13 +61,35 @@ function subgraph_permutations(subgraph)
     # for each set of same-irrep nodes, we can perform all possible permutations of the
     # columns in the adjacency matrix associated with those nodes; if there are multiple
     # same-irrep node sets, we must perform all permutations across all sets
-    multiples = subgraph.p_nonmax.multiples   
-    pss = collect.(permutations.(multiples))
-    Np = prod(length, pss) # aggregate number of same-irrep permutations, across irreps
+    multiples = subgraph.p_nonmax.multiples
+    pss = permutations.(multiples)
+
+    # if the permuted columns of the subgraph adjacency matrix are identical, however, there
+    # is no point in including them, since the permutation would leave the associated
+    # subgraph adjacency matrix unchanged; we filter them out below
+    pss′ = [Vector{Int}[] for same_ir_idx in 1:length(pss)]
+    for (same_ir_idx, ps) in enumerate(pss)
+        As′_part = Matrix{Int}[]
+        ps′ = pss′[same_ir_idx]
+        for p in ps
+            A′_part = subgraph.A[:,p]
+            A′_part ∈ As′_part && continue
+            push!(As′_part, A′_part)
+            push!(ps′, p)
+        end
+    end
+
+    # finally, collect the distinct subgraph adjacency matrices for these permutations
+    Np = prod(length, pss′) # aggregate number of same-irrep permutations, across irreps
+    if Np > 1_000_000
+        # TODO: we probably should not be materializing these band permutations but should
+        #       store this lazily via a permutation structure
+        error(lazy"impossibly many subgraph permutations ($Np); bailing out..!")
+    end
     As = Vector{Matrix{Int}}(undef, Np)
-    for (j,is) in enumerate(CartesianIndices(Tuple(Base.OneTo.(length.(pss)))))
-        # TODO: do this type-stably and without `collect`ing `pss`
-        cols = reduce(vcat, [pss[k][i] for (k,i) in enumerate(Tuple(is))])
+    for (j,is) in enumerate(CartesianIndices(Tuple(Base.OneTo.(length.(pss′)))))
+        # TODO: do this type-stably
+        cols = reduce(vcat, [pss′[k][i] for (k,i) in enumerate(Tuple(is))])
         As[j] = subgraph.A[:,cols]
     end
     return SubGraphPermutations(subgraph.p_max, subgraph.p_nonmax, As, #=pinned=# false)

@@ -11,13 +11,15 @@ using GLMakie
 ## ----------------------------------------------------------------------------------------
 ## Testing & visualization of band graph
 
+D = 2
 timereversal = true
 sgnum = 17
-sb, brs = compatibility_basis(sgnum; timereversal)
-lgirsd = lgirreps(sgnum)
-timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
-subts = subduction_tables(sgnum; timereversal)
-_n = sb[1]
+sb, brs = compatibility_basis(sgnum, D; timereversal)
+lgirsd = lgirreps(sgnum, D)
+timereversal && realify!(lgirsd)
+subts = subduction_tables(sgnum, D; timereversal)
+_n = sb[end]
+#_n = brs[end-1]
 n = SymVector(_n, brs.irlabs, lgirsd)
 
 bandg = build_subgraphs(n, subts, lgirsd)
@@ -30,7 +32,8 @@ g = assemble_graph(bandg) # structured equiv of `Graph(A)`
 node_colors = [g[label_for(g, i)].maximal ? :red : :black for i in vertices(g)]
 f, ax, p = graphplot(
     g;
-    nlabels=[(l = label_for(g, i); l[1] * Crystalline.supscriptify(string(l[2]))) for i in vertices(g)],
+    #nlabels=[(l = label_for(g, i); l[1] * Crystalline.supscriptify(string(l[2]))) for i in vertices(g)],
+    nlabels=[(l = label_for(g, i); l[1]) for i in vertices(g)],
     nlabels_distance=4,
     node_color = node_colors, nlabels_color=node_colors,
     node_attr = (; strokewidth=4, strokecolor=:white),
@@ -65,25 +68,7 @@ graphplot!(ax, dkg,
 f
 
 ## ----------------------------------------------------------------------------------------
-
-
-sgnum = 19#230
-
-sb, brs = compatibility_basis(sgnum; timereversal)
-#sb, brs = nontopological_basis(sgnum; timereversal)
-lgirsd = lgirreps(sgnum)
-timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
-#_n = brs[5]
-_n = sb[1]
-n = SymVector(_n, brs.irlabs, lgirsd)
-subts = subduction_tables(sgnum; timereversal)
-
-# TODO: Debug segfault(?) of SG 230 (e.g., `sb[end]`) (probably too many permutations for
-#       some vectors)
-
-# ----------------------------------------------------------------------------------------
 # Create a permuted graph (a single subgraph permutation) and compare
-bandg = build_subgraphs(n, subts, lgirsd);
 subgraphs_ps = permute_subgraphs(bandg.subgraphs);
 bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
 BandGraphs.permutation_info(bandgp)
@@ -92,7 +77,7 @@ length(bandgp) > 10 && @info("Be warned: many permutations ($(length(bandgp)))")
 GLMakie.closeall()
 xys = nothing
 maxplot = 4
-fs = Vector{Figure}(undef, maxplot)
+fs = Vector{Figure}(undef, min(length(bandgp), maxplot))
 for (n, bandg′) in enumerate(bandgp)
     n > maxplot && break
     faxp, (; xs, ys) = plot_flattened_bandgraph(bandg′; xys=xys)
@@ -106,11 +91,11 @@ end
 ## ----------------------------------------------------------------------------------------
 # Understanding how many permutations remain
 
-let sgnum = 96 # 200
+let sgnum = 96, D = 3 # 200
     sb, brs = compatibility_basis(sgnum; timereversal)
     #sb, brs = nontopological_basis(sgnum; timereversal)
     lgirsd = Dict(klab=>realify(lgirs) for (klab, lgirs) in lgirreps(sgnum))
-    subts = subduction_tables(sgnum; timereversal)
+    subts = subduction_tables(sgnum, D; timereversal)
 
     for nv in sb
         n = SymVector(nv, brs.irlabs, lgirsd);

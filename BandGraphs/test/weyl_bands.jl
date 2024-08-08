@@ -20,7 +20,7 @@ for sgnum in 1:230
     sgnum == 1 && empty!(weyl_irs_d)
     # --- identify space groups with Weyl points ---
     lgirsd = lgirreps(sgnum)
-    timereversal && (lgirsd = Dict(klab=>realify(lgirs) for (klab, lgirs) in lgirsd))
+    timereversal && realify!(lgirsd)
     for lgirs in values(lgirsd)
         isspecial(first(lgirs)) || continue
         for lgir in lgirs
@@ -125,43 +125,50 @@ for sgnumᴳ in 1:230
                     end
                     idx_kᴳᴴs_eq_kᴴ = something(idx_kᴳᴴs_eq_kᴴ)
                     q_coset = sgᴳ[idx_kᴳᴴs_eq_kᴴ] # relevant coset representative
-                    
                     kᴳ′ᴴ = kᴳᴴs[idx_kᴳᴴs_eq_kᴴ]
-                    # rotate `lgᴳ` to the new representative associated with `q_coset`
-                    lgᴳ′ = transform.(lgᴳ, Ref(rotation(q_coset)), Ref(Crystalline.translation(q_coset)), false)
+
+                    # since kᴳ might not equal kᴴ, we might need to remap the operations in
+                    # irrep according to the coset-representative that connects kᴳ to kᴴ;
+                    # but we need to compare the two k-points in a shared setting; we choose
+                    # to first map kᴴ to the setting of kᴳ, calling this kᴴᴳ
+                    kᴴᴳ = transform(kᴴ, inv(P)) # kᴴ in G basis
+                    tmp = Crystalline.remap_lgirreps_to_point_in_kstar([irᴳ], kᴴᴳ, [q_coset])
+                    irᴳ′ = tmp[1]
+                    lgᴳ′ = group(irᴳ′)
+
                     # now transform to the basis of H (lgᴳ ops in H setting at kᴴ position)
                     lgᴳ′ᴴ_ops = transform.(lgᴳ′, Ref(P), Ref(p), false)
 
-
-                    # TODO: this is probably not really right since the kᴳᴴ point is only
-                    #       guaranteed to be in the orbit of kᴳ, and so the sorting of
-                    #       irreps should probably be remapped under the mapping from kᴳ
-                    #       to the representative from the orbit
+                    # the operator-ordering of the H and G irreps might differ; find the 
+                    # permutation between the two (or, if their little groups are not
+                    # subgroups, bail out)
                     boolsub, idxsᴳ²ᴴ = Crystalline._findsubgroup(lgᴳ′ᴴ_ops, operations(lgᴴ), cntrᴴ)
                     if !boolsub # we do not have H < G
                         printstyled("÷", color=:red)
                         printstyled(" (little groups)"; color=:light_black)
+                        continue
                     end
+
                     # even if we now have a subgroup, `lgᴳ′ᴴ` and `lgᴴ` may still differ
                     # in their operations by primitive lattice vectors; and this may change
                     # the irreps of nonsymmorphic groups; so we have to correct for that
                     # by identifying possible translation mismatches between operations
                     # and multiplying by the appropriate Bloch phase
                     Δts = translation.(lgᴴ) .- translation.(lgᴳ′ᴴ_ops[idxsᴳ²ᴴ])
-                    matricesᴳ′ = [copy(m) for m in irᴳ.matrices]
+                    translationsᴳ′ = [copy(τ) for τ in irᴳ′.translations]
+                    #matricesᴳ′ = [copy(m) for m in irᴳ′.matrices]
                     for (i, Δt) in enumerate(Δts)
                         norm(Δt) > Crystalline.DEFAULT_ATOL || continue
                         iᴳ = idxsᴳ²ᴴ[i]
                         lgᴳ′ᴴ_ops[iᴳ] = SymOperation(Δt) * lgᴳ′ᴴ_ops[iᴳ]
-                        matricesᴳ′[iᴳ] .*= cispi(2*dot(kᴳ′ᴴ.cnst, Δt))
+                        translationsᴳ′[iᴳ] += Δt
+                        #matricesᴳ′[iᴳ] .*= cispi(2*dot(kᴳ′ᴴ.cnst, Δt))
                         # TODO: do something similar w/ irᴳ.translations & kᴳ′ᴴ.free
                     end
                     lgᴳ′ᴴ = LittleGroup{3}(sgnumᴳ, kᴳ′ᴴ, klabel(lgᴳ), lgᴳ′ᴴ_ops[idxsᴳ²ᴴ])
 
-                    irᴳ′ᴴ = LGIrrep{3}(label(irᴳ), lgᴳ′ᴴ, matricesᴳ′[idxsᴳ²ᴴ],
-                                       irᴳ.translations[idxsᴳ²ᴴ], irᴳ.reality, irᴳ.iscorep)
-                    irᴴ   = LGIrrep{3}(label(irᴴ), lgᴴ,   irᴴ.matrices, 
-                                       irᴴ.translations, irᴴ.reality, irᴴ.iscorep)
+                    irᴳ′ᴴ = LGIrrep{3}(label(irᴳ), lgᴳ′ᴴ, irᴳ.matrices[idxsᴳ²ᴴ],
+                                       translationsᴳ′[idxsᴳ²ᴴ], irᴳ.reality, irᴳ.iscorep)
 
                     if subduction_count(irᴳ′ᴴ, irᴴ) ≠ 0
                         printstyled("✓"; color=:green)
@@ -186,7 +193,7 @@ for sgnumᴳ in 1:230
             printstyled("      no relevant irrep subductions\n"; color=:red)
         end
     end
-end    
+end
 
 ## -----------------
 function layout_y_position(weyl_gr)

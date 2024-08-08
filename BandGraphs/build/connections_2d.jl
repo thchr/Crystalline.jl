@@ -114,6 +114,7 @@ CONNECTIONSD_2D[9] = C2[
     C2(LK2(:Γ, "0, 0"), LK2(:Σ, "2α, 0")), # Γ = [0, 0] ↓ Σ = [2α, 0]
     C2(LK2(:Y, "1, 0"), LK2(:Σ, "2α, 0")), # Y = [1, 0] ↓ Σ = [2α, 0]
     C2(LK2(:S, "1, 2"), LK2(:Ω, "α, β")),  # S = [1, 2] ↓ Ω = [α, β] (manual addition)
+    C2(LK2(:Γ, "0, 0"), LK2(:Ω, "α, β")),  # Γ = [0, 0] ↓ Ω = [α, β] (manual addition)
 ]
 
 # Plane group 10 (p4)
@@ -157,6 +158,7 @@ CONNECTIONSD_2D[14] = C2[
     C2(LK2(:Γ, "0, 0"),     LK2(:Σ, "α, 0")), # Γ = [0, 0]     ↓ Σ = [α, 0]
     C2(LK2(:M, "1/2, 0"),   LK2(:Σ, "α, 0")), # M = [1/2, 0]   ↓ Σ = [α, 0]
     C2(LK2(:K, "1/3, 1/3"), LK2(:Ω, "α, β")), # K = [1/3, 1/3] ↓ Ω = [α, β] (manual addition)
+    C2(LK2(:Γ, "0, 0"),     LK2(:Ω, "α, β")), # Γ = [0, 0]     ↓ Ω = [α, β] (manual addition)
 ]
 
 # Plane group 15 (p31m)
@@ -206,7 +208,7 @@ for sgnum in 1:MAX_SGNUM[2]
     lgirsd = lgirreps(sgnum, Val(2))
     sg = spacegroup(sgnum, Val(2))
     for timereversal in (false, true)
-        timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
+        timereversal && (lgirsd = realify(lgirsd))
         subts = SubductionTable{2}[]
         for c in cs
             push!(subts, SubductionTable(c, sg, lgirsd))

@@ -18,7 +18,7 @@ irrep labels in `irlabs_nv`, mapping these labels to the full irrep information 
 function SymVector(
             nv::AbstractVector{<:Integer},
             irlabs_nv::AbstractVector{String},
-            lgirsd::Dict{String, Vector{LGIrrep{D}}}) where D
+            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
     klabs = unique(klabel.(irlabs_nv))
     Nk = length(klabs)
     mults = [Int[] for _ in 1:Nk]
@@ -71,6 +71,19 @@ end
 
 Base.collect(n :: SymVector) = reduce(vcat, n.mults) # flatten `n` to a simple vector `nv`
 
+@noinline function _throw_dissimilar_irreps(n₁, n₂)
+    error("cannot add symmetry vectors with different irreps:\n  $(n₁.lgirsv) ≠ $(n₂.lgirsv)")
+end
+function Base.:+(n₁ :: SymVector{D}, n₂ :: SymVector{D}) where D
+    length(n₁.lgirsv) == length(n₂.lgirsv) || _throw_dissimilar_irreps(n₁, n₂)
+    for (lgirs₁, lgirs₂) in zip(n₁.lgirsv, n₂.lgirsv)
+        length(lgirs₁) == length(lgirs₂) || _throw_dissimilar_irreps(n₁, n₂)
+        for (lgir₁, lgir₂) in zip(lgirs₁, lgirs₂)
+            label(lgir₁) == label(lgir₂) || _throw_dissimilar_irreps(n₁, n₂)
+        end
+    end
+    return SymVector(n₁.mults + n₂.mults, n₁.lgirsv, n₁.klabs, n₁.μ + n₂.μ)
+end
 # ---------------------------------------------------------------------------------------- #
 
 struct Partition{D}
@@ -110,32 +123,64 @@ end
 function Base.show(io :: IO, s :: SubGraph)
     print(io, "[")
     for i in 1:size(s.A, 1)
-        print(io, label(s.p_max.lgirs[i]), " ↓ ")
+        print_identified_lgir_label(io, s.p_max.lgirs[i], s.p_max, s.pinned, i)
+        print(io, " ↓ ")
         js = findall(!iszero, @view s.A[i,:])
         for (nⱼ,j) in enumerate(js)
             lgirⱼ = s.p_nonmax.lgirs[j]
             multiplicity = s.A[i,j] // Crystalline.irdim(lgirⱼ)
             isone(multiplicity) || print(io, multiplicity)
-            print(io, label(lgirⱼ))
-            if !s.pinned
-                # print a superscript index to identify subduction to nonmaximal irreps for 
-                # which there may be multiple copies; only print an identifier if there
-                # are multiple "copies", and only if the subgraph is not pinned; the index
-                # is a local counter within the set of identical/"copied" nonmaximal irreps
-                for m in s.p_nonmax.multiples
-                    length(m) == 1 && continue # don't print a local index if no copies
-                    local_iridx = findfirst(==(j), m)
-                    isnothing(local_iridx) && continue
-                    printstyled(io, Crystalline.supscriptify(string(local_iridx)); 
-                                    color=:light_black)
-                end
-            end
+            print_identified_lgir_label(io, lgirⱼ, s.p_nonmax, s.pinned, j)
             nⱼ == length(js) || print(io, " + ")
         end
         i == size(s.A, 1) || print(io, ", ")
     end
     print(io, "]")
     s.pinned && printstyled(io, " (pinned)"; color=:light_black)
+end
+
+function print_identified_lgir_label(
+            io :: IO, lgir :: LGIrrep{D}, p :: Partition{D}, pinned :: Bool, idx :: Int
+            ) where D
+    # print a superscript index to identify subduction to nonmaximal irreps for which there
+    # may be multiple copies; only print an identifier if there are multiple "copies", and
+    # only if the subgraph is not `pinned`; the index is a local counter within the set of 
+    # identical/"copied" nonmaximal irreps
+    print(io, label(lgir))
+    pinned && return
+    for m in p.multiples
+        length(m) == 1 && continue # don't print a local index if no copies
+        local_iridx = findfirst(==(idx), m)
+        isnothing(local_iridx) && continue
+        printstyled(io, Crystalline.supscriptify(string(local_iridx)); color=:light_black)
+    end
+end
+function Base.show(io :: IO, ::MIME"text/plain", s :: SubGraph)
+    summary(io, s)
+    println(io, ": ", s)
+    
+    # max- and nonmax- labels
+    max_labels = map(1:length(s.p_max)) do i
+        io′ = IOBuffer()
+        print_identified_lgir_label(io′, s.p_max.lgirs[i], s.p_max, s.pinned, i)
+        String(take!(io′))
+    end
+    nonmax_labels = map(1:length(s.p_nonmax)) do i
+        io′ = IOBuffer()
+        print_identified_lgir_label(io′, s.p_nonmax.lgirs[i], s.p_nonmax, s.pinned, i)
+        String(take!(io′))
+    end
+    pretty_table(io, 
+        s.A;
+        row_labels = max_labels,
+        header = nonmax_labels,
+        vlines = [1,],
+        hlines = [:begin, 1, :end],
+        row_label_alignment = :l,
+        alignment = :c,
+        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
+        highlighters = (Highlighter((data,i,j) -> iszero(data[i,j]), crayon"dark_gray"), )
+        )
 end
 # ---------------------------------------------------------------------------------------- #
 
@@ -148,6 +193,17 @@ function BandGraph(
             partitions::AbstractVector{Partition{D}}
             ) where D
     BandGraph{D}(Vector(subgraphs), Vector(partitions))
+end
+
+function occupation(bandg::BandGraph)
+    partitions = bandg.partitions
+    μ = sum(irdim, first(partitions).lgirs)
+    for p in @view partitions[2:end]
+        if sum(irdim, p.lgirs) ≠ μ
+            error("uneqal number of bands in different partitions!")
+        end
+    end
+    return μ
 end
 
 function Base.show(io :: IO, bandg ::BandGraph)
@@ -183,6 +239,11 @@ mutable struct SubGraphPermutations{D} <: AbstractSubGraph{D}
 end
 Base.length(subgraph_ps::SubGraphPermutations) = length(subgraph_ps.As)
 
+function Base.getindex(subgraph_ps::SubGraphPermutations, idx::Integer)
+    1 ≤ idx ≤ length(subgraph_ps) || throw(BoundsError(subgraph_ps, idx))
+    A = subgraph_ps.As[idx]
+    return SubGraph(subgraph_ps.p_max, subgraph_ps.p_nonmax, A, subgraph_ps.pinned)
+end
 # ---------------------------------------------------------------------------------------- #
 
 struct BandGraphPermutations{D} <: AbstractVector{BandGraph{D}}
@@ -192,7 +253,7 @@ end
 
 function Base.length(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
-    n = 1
+    n = BigInt(1) # the number of permutations can be very large; need BigInt to be safe
     for subgraph_ps in subgraphs_ps
         n *= length(subgraph_ps)
     end
@@ -207,13 +268,10 @@ end
 
 function permutation_info(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
-    n = n_no_pins = 1
+    n = n_no_pins = BigInt(1)
     foreach(subgraphs_ps) do subgraph_ps       
-        multiples = subgraph_ps.p_nonmax.multiples 
-        pss = collect.(permutations.(multiples))
-        Np = prod(length, pss) # aggregate number of same-irrep permutations, across irreps
+        Np = length(subgraph_ps) # aggregate number of distinct same-irrep permutations, across irreps
         if !subgraph_ps.pinned
-            @assert Np == length(subgraph_ps)
             n *= Np
         end
         n_no_pins *= Np
@@ -244,7 +302,7 @@ function Base.getindex(
     # This is equivalent to the following linear-index-to-subscript-index problem:
     #       CartesianIndices(Tuple(counts))[idx]
     # or, equivalently, to `collect(Base.product(counts...))[idx]`; both these variants are
-    # problematic, however, since they are either type-unstable or allocates a lot.
+    # problematic, however, since they are either type-unstable or allocate a lot.
     # Instead, we copy the logic from `Base.getindex` on `CartesianIndices`, specifically
     # from `_ind2sub_recurse`, converting also from a recursive implementation to a loop.
     @boundscheck 1 ≤ idx ≤ length(bandgp) || throw(BoundsError(bandgp, idx))

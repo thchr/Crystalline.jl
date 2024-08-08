@@ -16,23 +16,27 @@ using GLMakie
 
 # Example for p2mm (plane group ⋕6)
 timereversal = true
-sgnum²ᴰ = 17
+sgnum²ᴰ = 12
 sgnum³ᴰ = Crystalline.PLANE2SPACE_NUMS[sgnum²ᴰ]
 subts³ᴰ = subduction_tables(sgnum³ᴰ; timereversal)
 subts²ᴰ = BandGraphs.SubductionTable{2}[]
+cts²ᴰ   = BandGraphs.Connection{2}[]
 for (i, t) in enumerate(subts³ᴰ)
     if sgnum²ᴰ == 2
         xy = [3,1]
         z = 2
-    elseif sgnum²ᴰ == 5
+    elseif sgnum²ᴰ in (3, 5)
         xy = [2,1]
         z = 3
+    elseif sgnum²ᴰ == 4
+        xy = [2, 3]
+        z = 1
     else
         xy = [1,2]
         z = 3
     end
 
-    if !iszero(t.c.kᴳ.kv.cnst[z]) || !iszero(t.c.kᴴ.kv.cnst[z])# || !iszero(t.c.kᴴ.kv.free[z,:])
+    if !iszero(t.c.kᴳ.kv.cnst[z]) || !iszero(t.c.kᴴ.kv.cnst[z]) #|| !iszero(t.c.kᴴ.kv.free[z,:])
         continue # the connection involves k₃≠0
     else
         if !iszero(t.c.kᴴ.kv.free[:,z])
@@ -52,14 +56,16 @@ for (i, t) in enumerate(subts³ᴰ)
     push!(subts²ᴰ, 
           BandGraphs.SubductionTable{2}(sgnum²ᴰ, c, t.irlabsᴳ, t.irlabsᴴ, table, t.monodromy)
     )
+    push!(cts²ᴰ, c)
 end
+cts²ᴰ
 
 ## --------------------------------------------------------------------------------------- #
 # Visualize "interesting" (i.e., more than 1 band) Hilbert vectors
 
 sb, brs = compatibility_basis(sgnum²ᴰ, 2; timereversal)
 lgirsd = lgirreps(sgnum²ᴰ, Val(2))
-timereversal && (lgirsd = Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd))
+timereversal && realify!(lgirsd)
 
 GLMakie.closeall()
 for (j, _n) in enumerate(sb)

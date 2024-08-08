@@ -39,6 +39,28 @@ function assemble_graph(subgraphs, partitions)
     return g
 end
 assemble_graph(bandg::BandGraph) = assemble_graph(bandg.subgraphs, bandg.partitions)
+
+
+function assemble_simple_graph(subgraphs, partitions)
+    # does not have the right "weights" (and hence, not the right adjacency matrix either),
+    # since a simple graph must have unit weights, but can still be used for connectivity 
+    # analysis for instance
+    g = Graph(last(partitions[end].iridxs))
+
+    # add edges to graph
+    for subgraph in subgraphs
+        max_iridxs, nonmax_iridxs = subgraph.p_max.iridxs, subgraph.p_nonmax.iridxs
+        for (j,a) in enumerate(eachcol(subgraph.A)) # j: local column index in block/subgraph
+            j′ = nonmax_iridxs[j] # global column index in overall graph
+            i = something(findfirst(≠(0), a)) # local row index in block/subgraph
+            i′ = max_iridxs[i] # global column index in overall graph
+            add_edge!(g, i′, j′)
+        end
+    end
+    return g
+end
+assemble_simple_graph(bandg::BandGraph) = assemble_simple_graph(bandg.subgraphs, bandg.partitions)
+
 # ---------------------------------------------------------------------------------------- #
 
 function partition_graph(subgraphs, partitions)
@@ -73,7 +95,7 @@ function split_nonmaximal_nodes(kg::MetaGraph)
                     vertex_data_type = @NamedTuple{klab::String, code::Int, maximal::Bool})
     for i in vertices(kg)
         klab = label_for(kg, i)
-        kg[klab].maximal || break # assume that all non-maximal k-points come in sequence
+        kg[klab].maximal || continue
         add_vertex!(kg′, (klab, 1), (; klab=klab, code=i, maximal=true))
     end
     for i in vertices(kg)
@@ -81,16 +103,22 @@ function split_nonmaximal_nodes(kg::MetaGraph)
         kg[klab_nonmax].maximal && continue
         neighbor_codes = neighbors(kg, i)
         neighbor_labels = label_for.(Ref(kg), neighbor_codes)
-        j = 0
-        for (n, klabⁿ) in enumerate(neighbor_labels)
-            for m in n+1:length(neighbor_labels)
-                j += 1
-                klabᵐ = neighbor_labels[m]
-                nonmax_vertex_label = (klab_nonmax, j)
-                add_vertex!(kg′, nonmax_vertex_label,
-                                 (; klab=klab_nonmax, code=i, maximal=false))
-                add_edge!(kg′, (klabⁿ, 1), nonmax_vertex_label, nothing)
-                add_edge!(kg′, (klabᵐ, 1), nonmax_vertex_label, nothing)
+        if length(neighbor_labels) == 1
+            nonmax_vertex_label = (klab_nonmax, 1)
+            add_vertex!(kg′, nonmax_vertex_label, (; klab=klab_nonmax, code=i, maximal=false))
+            add_edge!(kg′, (neighbor_labels[1], 1), nonmax_vertex_label, nothing)
+        else
+            j = 0
+            for (n, klabⁿ) in enumerate(neighbor_labels)
+                for m in n+1:length(neighbor_labels)
+                    j += 1
+                    klabᵐ = neighbor_labels[m]
+                    nonmax_vertex_label = (klab_nonmax, j)
+                    add_vertex!(kg′, nonmax_vertex_label,
+                                    (; klab=klab_nonmax, code=i, maximal=false))
+                    add_edge!(kg′, (klabⁿ, 1), nonmax_vertex_label, nothing)
+                    add_edge!(kg′, (klabᵐ, 1), nonmax_vertex_label, nothing)
+                end
             end
         end
     end

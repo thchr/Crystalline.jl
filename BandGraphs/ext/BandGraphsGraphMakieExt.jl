@@ -23,7 +23,7 @@ import BandGraphs: plot_flattened_bandgraph, make_vertices_dragable! # exported 
 ## Unfolding a band graph `g` via `kg_trail`
 function plot_flattened_bandgraph(
             n::SymVector{D},
-            lgirsd::Dict{String, Vector{LGIrrep{D}}};
+            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
             timereversal=true
             ) where D
     # TODO: take a `SubductionTable` as input?
@@ -66,13 +66,20 @@ function plot_flattened_bandgraph(
     # manifolds (lines/planes, etc)
     if isnothing(xys)
         force_equal_layers = find_equal_maximal_layers(klabs_trail, bandg.partitions)
-        xs, ys, _ = solve_positions(Zarate(), g_trail; force_equal_layers)
+        force_layer = assign_layer_indices(g_trail)
+        xs, ys, _ = solve_positions(Zarate(), g_trail; force_layer, force_equal_layers)
         ys = linearize_nonmaximal_y_coordinates(g_trail, ys)
     else
         xs, ys = xys
     end
     
     plot_flattened_bandgraph(g_trail, klabs_trail, xs, ys)
+end
+
+function assign_layer_indices(g_trail)
+    # the x-layer of the vertices should equal the trail index of the vertex
+    vs = vertices(g_trail)
+    return vs .=> [g_trail[label_for(g_trail, i)].trailidx for i in vs]
 end
 
 function plot_flattened_bandgraph(
@@ -158,6 +165,11 @@ function find_equal_maximal_layers(klabs_trail, partitions)
         # don't need to process k-label if already discovered
         i ∈ seen && continue
 
+        # if this is a transition point between disconnected components (`kidx == -1` which
+        # maps to `klabs_trail[trailidx] = klab = ""`), there's nothing to enforce and we
+        # just go to the next vertex
+        isempty(klab) && continue
+        
         # also, check if this is a maximal manifold: if not, continue
         pidx = something(findfirst(p->p.klab == klab, partitions))
         partitions[pidx].maximal || continue
@@ -260,7 +272,12 @@ function make_vertices_dragable_bandgraph!(ax, p, g_trail)
 
         # find related irreps, their vertex indices, and change their y-coordinates as well
         vert_id = label_for(g_trail, idx)[1:2]
-        related_vert_idxs = findall(l->l[1:2]==(vert_id), g_trail.vertex_labels)
+        irlab, irmul = vert_id
+        irlab_normalized = replace(irlab, "′"=>"") # to also move monodromy-related verts
+        related_vert_idxs = findall(g_trail.vertex_labels) do l
+            irlab′, irmul′ = l
+            irlab_normalized == replace(irlab′, "′"=>"") && irmul == irmul′
+        end
         for idx′ in related_vert_idxs
             prev_r′ = p[:node_pos][][idx′]
             p[:node_pos][][idx′] = Makie.Point(prev_r′[1], mouse_r[2])

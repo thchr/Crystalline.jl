@@ -26,7 +26,7 @@ function chinese_postman(
             check_connectedness::Bool=true
             ) where T
     # if disconnected, split into connected components and run on each component separately,
-    # concatenating trails and indicating disconnections between by -1 elements
+    # concatenating trails and indicating disconnections between by a sentinel value of `-1`
     if check_connectedness && !is_connected(g)
         return _chinese_postman_split_disconnected_components(g)
     end
