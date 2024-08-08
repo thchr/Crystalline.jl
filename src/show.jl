@@ -41,7 +41,7 @@ function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
             else
                 # just use the same sep even if the symop is specified in a nonstandard basis (e.g.
                 # cartesian); probably isn't a good general solution, but good enough for now
-                printstyled(io, sep, round(c, digits=4), color=:light_black)
+                printstyled(io, sep, round(c; digits=4), color=:light_black)
             end
         end
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
@@ -184,6 +184,9 @@ function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
     prettyprint_header(io, irlab)
     prettyprint_irrep_matrices(io, ir, nindent)
 end
+function show(io::IO, ir::AbstractIrrep)
+    print(io, label(ir))
+end
 
 # ... utilities to print PGIrreps and LGIrreps
 function prettyprint_group_header(io::IO, g::AbstractGroup)
@@ -196,20 +199,20 @@ function prettyprint_group_header(io::IO, g::AbstractGroup)
 end
 
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
-                                      ϕabc_contrib::Bool=false)
+                                      ϕabc_contrib::Bool=false, digits::Int=4)
     if size(printP) == (1,1) # scalar case
         v = @inbounds printP[1]
-        prettyprint_irrep_scalars(io, v, ϕabc_contrib)
+        prettyprint_irrep_scalars(io, v, ϕabc_contrib; digits)
 
     else # matrix case
-        formatter(x) = round(x, digits=4)
+        formatter(x) = _stringify_characters(x; digits)
         # FIXME: not very optimal; e.g. makes a whole copy and doesn't handle displaysize
         compact_print_matrix(io, printP, prefix, formatter)
     end
 end
 
 function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
-                                    atol::Real=DEFAULT_ATOL)
+                                    atol::Real=DEFAULT_ATOL, digits::Int=4)
 
     if norm(v) < atol
         print(io, 0)
@@ -217,31 +220,32 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
         if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
             signbit(real(v)) && print(io, '-')
         else
-            print(io, real(v))
+            print(io, _stringify_characters(real(v); digits))
         end
     elseif isapprox(v, imag(v)*im, atol=atol)   # imaginary scalar
         if ϕabc_contrib && isapprox(abs(imag(v)), 1.0, atol=atol)
             signbit(imag(v)) && print(io, '-')
         else
-            print(io, imag(v))
+            print(io, _stringify_characters(imag(v); digits))
         end
         print(io, "i")
     else                                        # complex scalar (print as polar)
         vρ, vθ = abs(v), angle(v)
         vθ /= π
-        isapprox(vρ, 1.0, atol=atol) && print(io, vρ)
+        isapprox(vρ, 1.0, atol=atol) || print(io, _stringify_characters(vρ; digits))
         print(io, "exp(") 
         if isapprox(abs(vθ), 1.0, atol=atol)
             signbit(vθ) && print(io, '-')
         else
-            print(io, vθ)
+            print(io, _stringify_characters(vθ; digits))
         end
         print(io, "iπ)")
         #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
 
-function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
+function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
+                                  digits::Int=4)
     # unpack
     k₀, kabc = parts(position(group(lgir)))
     P = lgir.matrices[i]
@@ -265,7 +269,9 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
             i = findfirst(c->abs(c)>DEFAULT_ATOL, ϕabc)
             c = ϕabc[i]
             signbit(c) && print(io, "-")
-            abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+            if !(abs(c) ≈ 0.5) # do not print if multiplicative factor is 1
+                print(io, _stringify_characters(abs(2c); digits))
+            end
 
             print(io, "iπ", 'ΰ'+i, ")") # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
 
@@ -280,7 +286,9 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
                     else
                         print(io, signaschar(c))
                     end
-                    abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+                    if !(abs(c) ≈ 0.5) # do not print if multiplicative factor is 1
+                        print(io, _stringify_characters(abs(2c); digits))
+                    end
                     print(io, 'ΰ'+i) # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
                 end
             end
@@ -318,14 +326,39 @@ function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Intege
     println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
 end
 
+# --- IrrepCollection ---
+function summary(io::IO, c::IrrepCollection{T}) where T
+    print(io, length(c), "-element IrrepCollection{", T, "}")
+end
+function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
+    summary(io, c)
+    isassigned(c, firstindex(c)) && _print_group_descriptor(io, group(first(c)); prefix=" for ")
+    println(io, ":")
+    for i in eachindex(c)
+        if isassigned(c, i)
+            show(io, MIME"text/plain"(), c[i])
+        else
+            print(io, " #undef")
+        end
+        i ≠ length(c) && println(io)
+    end
+end
+function show(io::IO, c::IrrepCollection)
+    show(io, c.irs)
+    g = group(first(c))
+    if position(g) !== nothing
+        printstyled(io, " (", fullpositionlabel(g), ")"; color=:light_black)
+    end
+end
+
 
 # --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars = matrix(ct)
-    chars_formatted = _stringify_characters.(chars, digits=6)
+    chars_formatted = _stringify_characters.(chars; digits=4)
 
     ops = operations(ct)
-    println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
+    println(io, typeof(ct), " for ", tag(ct), ":") # type name and space group/k-point tags
     pretty_table(io,
         chars_formatted;
         # row/column names
@@ -358,8 +391,8 @@ function _print_class_representatives(io::IO, ct::ClassCharacterTable)
     end
 end
 
-function _stringify_characters(c::Number; digits=6)
-    c′ = round(c, digits=digits)
+function _stringify_characters(c::Number; digits::Int=4)
+    c′ = round(c; digits)
     cr, ci = reim(c′)
     if iszero(ci)     # real
         isinteger(cr) && return string(Int(cr))

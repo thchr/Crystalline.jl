@@ -767,6 +767,22 @@ issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
+# ---------------------------------------------------------------------------------------- #
+# IrrepCollection
+# ---------------------------------------------------------------------------------------- #
+
+struct IrrepCollection{T<:AbstractIrrep} <: AbstractVector{T}
+    irs :: Vector{T}
+end
+Base.size(c::IrrepCollection) = size(c.irs)
+Base.IndexStyle(::Type{<:IrrepCollection}) = IndexLinear()
+@propagate_inbounds Base.getindex(c::IrrepCollection, i::Int) = c.irs[i]
+@propagate_inbounds function Base.setindex!(
+    c::IrrepCollection{T}, ir::T, i::Int) where T<:AbstractIrrep
+    c.irs[i] = ir
+end
+IrrepCollection(c::IrrepCollection) = c
+Base.similar(c::IrrepCollection{T}) where T = IrrepCollection{T}(similar(c.irs))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable
