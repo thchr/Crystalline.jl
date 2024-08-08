@@ -170,7 +170,7 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
 end
 
 # ---------------------------------------------------------------------------------------- #
-"
+"""
     calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                   timereversal::Bool=true,
                   allpaths::Bool=false)
@@ -190,7 +190,7 @@ Compute the band representations of space group `sgnum` in dimension `D`, return
 ## implementation
 The implementation is based on Elcoro et al., [Phys. Rev. B 97, 035139
 (2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
-"
+"""
 function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                        timereversal::Bool=true,
                        allpaths::Bool=false) where D
