@@ -2,10 +2,46 @@
 # SymOperation
 # ---------------------------------------------------------------------------------------- #
 
+abstract type AbstractOperation{D} <: AbstractMatrix{Float64} end
+# the subtyping of `AbstractOperation{D}` to `AbstractMatrix{Float64}` is a bit of a pun,
+# especially for `MSymOperation` - but it makes a lot of linear-algebra-like things "just
+# work"™; examples includes `^` and `isapprox` of arrays of `<:AbstractOperation`s.
+# The interface of `AbstractOperation` is that it must define a `SymOperation(...)` that
+# returns a `SymOperation` with the associated spatial transform
+
+# define the AbstractArray interface for SymOperation
+@propagate_inbounds getindex(op::AbstractOperation, i::Int) = matrix(op)[i]
+IndexStyle(::Type{<:AbstractOperation}) = IndexLinear()
+size(::AbstractOperation{D}) where D = (D, D+1)
+copy(op::AbstractOperation) = op # cf. https://github.com/JuliaLang/julia/issues/41918
+
+dim(::AbstractOperation{D}) where D = D
+
+# extracting StaticArray representations of the symmetry operation, amenable to linear algebra
+"""
+    rotation(op::AbstractOperation{D}) --> SMatrix{D, D, Float64}
+
+Return the `D`×`D`` rotation part of `op`.
+"""
+rotation(op::AbstractOperation) = SMatrix(SymOperation(op).rotation)
+"""
+    translation(op::AbstractOperation{D}) --> SVector{D, Float64}
+
+Return the `D`-dimensional translation part of `op`.
+"""
+translation(op::AbstractOperation) = SymOperation(op).translation
+"""
+    matrix(op::AbstractOperation{D}) --> SMatrix{D, D+1, Float64}
+
+Return the `D`×`D+1` matrix representation of `op`.
+"""
+matrix(op::AbstractOperation) = matrix(SymOperation(op))
+
+
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SymOperation{D} <: AbstractMatrix{Float64}
+struct SymOperation{D} <: AbstractOperation{D}
     rotation    :: SqSMatrix{D, Float64} # a square stack-allocated matrix
     translation :: SVector{D, Float64}
 end
@@ -18,21 +54,22 @@ function SymOperation{D}(m::AbstractMatrix{Float64}) where D
     tuple_cols  = ntuple(j -> ntuple(i -> (@inbounds m[i,j]), Val(D)), Val(D))
     rotation    = SqSMatrix{D, Float64}(tuple_cols)
     translation = SVector{D, Float64}(ntuple(j -> (@inbounds m[j, D+1]), Val(D)))
-    SymOperation{D}(rotation, translation)
+    return SymOperation{D}(rotation, translation)
 end
-function SymOperation(r::Union{SMatrix{D,D,<:Real}, MMatrix{D,D,<:Real}}, 
-                      t::Union{SVector{D,<:Real}, MVector{D,<:Real}}=zero(SVector{D,Float64})
-                      ) where D
-    SymOperation{D}(SqSMatrix{D,Float64}(r), t)
+function SymOperation(
+            r::Union{SMatrix{D,D,<:Real}, MMatrix{D,D,<:Real}}, 
+            t::Union{SVector{D,<:Real}, MVector{D,<:Real}}=zero(SVector{D,Float64})
+            ) where D
+    return SymOperation{D}(SqSMatrix{D,Float64}(r), t)
 end
 SymOperation(t::SVector{D,<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
 SymOperation{D}(t::AbstractVector{<:Real}) where D = SymOperation(one(SqSMatrix{D,Float64}), SVector{D,Float64}(t))
-# extracting StaticArray representations of the symmetry operation, amenable to linear algebra
-rotation(op::SymOperation{D}) where D = SMatrix(op.rotation)
-translation(op::SymOperation{D}) where D = op.translation
-matrix(op::SymOperation{D}) where D = 
-    SMatrix{D, D+1, Float64, D*(D+1)}((SquareStaticMatrices.flatten(op.rotation)..., 
-                                       translation(op)...))
+SymOperation{D}(op::SymOperation{D}) where D = op # part of `AbstractOperation` interface (to allow shared `MSymOperation` & `SymOperation` manipulations)
+
+function matrix(op::SymOperation{D}) where D
+    return SMatrix{D, D+1, Float64, D*(D+1)}(
+                (SquareStaticMatrices.flatten(op.rotation)..., translation(op)...))
+end
 
 # string constructors
 xyzt(op::SymOperation) = matrix2xyzt(matrix(op))
@@ -42,30 +79,23 @@ SymOperation(m::Matrix{<:Real}) = SymOperation{size(m,1)}(float(m))
 SymOperation(t::AbstractVector{<:Real}) = SymOperation{length(t)}(t)
 SymOperation(s::AbstractString) = SymOperation{count(==(','), s)+1}(s)
 
-# define the AbstractArray interface for SymOperation
-@propagate_inbounds getindex(op::SymOperation, i::Int) = matrix(op)[i]
-IndexStyle(::Type{<:SymOperation}) = IndexLinear()
-size(::SymOperation{D}) where D = (D, D+1)
-copy(op::SymOperation) = op # cf. https://github.com/JuliaLang/julia/issues/41918
-
 rotation(m::AbstractMatrix{<:Real}) = @view m[:,1:end-1] # rotational (proper or improper) part of an operation
 translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of an operation
 rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for type-stability w/ StaticArrays (returns an SMatrix{D,D,...})
 translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly needed for type-stability    (returns an SVector{D,...})
 
-dim(::SymOperation{D}) where D = D
 function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
-function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
+function Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
-            kwargs...) where D
+            kws...) where D
 
     # check rotation part 
-    isapprox(rotation(op1), rotation(op2); kwargs...) || return false
-
+    _fastpath_atol_isapprox(rotation(op1), rotation(op2); kws...) || return false
+    
     # check translation part
-    if cntr !== nothing
+    if cntr !== nothing && (D == 3 && cntr ≠ 'P' || D == 2 && cntr ≠ 'p')
         P = primitivebasismatrix(cntr, Val(D))
         t1 = transform_translation(op1, P, nothing, modw)
         t2 = transform_translation(op2, P, nothing, modw)
@@ -77,12 +107,15 @@ function isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             t2 = reduce_translation_to_unitrange(t2)
         end
     end
-    return isapprox(t1, t2; kwargs...)
+    return _fastpath_atol_isapprox(t1, t2; kws...)
 end
+@inline _fastpath_atol_isapprox(x, y; atol=DEFAULT_ATOL) = norm(x - y) ≤ atol # (cf. https://github.com/JuliaLang/julia/pull/47464)
 unpack(op::SymOperation) = (rotation(op), translation(op))
 
 one(::Type{SymOperation{D}}) where D = SymOperation{D}(one(SqSMatrix{D,Float64}),
                                                        zero(SVector{D,Float64}))
+one(op::SymOperation) = one(typeof(op))
+
 function isone(op::SymOperation{D}) where D
     @inbounds for D₁ in SOneTo(D)
         iszero(op.translation[D₁]) || return false
@@ -101,10 +134,12 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct MultTable{D} <: AbstractMatrix{SymOperation{D}}
-    operations::Vector{SymOperation{D}}
+struct MultTable{O} <: AbstractMatrix{O}
+    operations::Vector{O}
     table::Matrix{Int} # Cayley table: indexes into `operations`
 end
+MultTable(ops::Vector{O}, table) where O = MultTable{O}(ops, Matrix{Int}(table))
+MultTable(ops, table) = (O=typeof(first(ops)); MultTable(collect(O, ops), table))
 @propagate_inbounds function getindex(mt::MultTable, i::Int)
     mtidx = mt.table[i]
     return mt.operations[mtidx]
@@ -114,7 +149,7 @@ IndexStyle(::Type{<:MultTable}) = IndexLinear()
 
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractVec: KVec & RVec
+# AbstractVec: KVec & RVec & WyckoffPosition
 # ---------------------------------------------------------------------------------------- #
 
 # 𝐤-vectors (or, equivalently, 𝐫-vectors) are specified as a pair (k₀, kabc), denoting a 𝐤-vector
@@ -132,6 +167,8 @@ free(v::AbstractVec)      = v.free
 parts(v::AbstractVec)     = (constant(v), free(v))
 dim(::AbstractVec{D}) where D = D
 isspecial(v::AbstractVec) = iszero(free(v))
+parent(v::AbstractVec)    = v # fall-back for non-wrapped `AbstracVec`s
+
 """
 $(TYPEDSIGNATURES)
 
@@ -150,14 +187,14 @@ function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
     cnst, free = parts(v)
     return cnst + free*αβγ
 end
-(v::AbstractVec)(αβγ::Vararg{<:Real}) = v([αβγ...])
+(v::AbstractVec)(αβγ::Vararg{Real}) = v([αβγ...])
 (v::AbstractVec)(::Nothing) = constant(v)
 (v::AbstractVec)()          = v(nothing)
 
 # parsing `AbstractVec`s from string format
 function _strip_split(str::AbstractString)
-    str = filter(!isspace, strip(str, ['(',')','[',']'])) # tidy up string (remove parens & spaces)
-    return split(str,',')
+    str = filter(!isspace, strip(str, ['(', ')', '[', ']'])) # tidy up string (remove parens & spaces)
+    return split(str, ',') # TODO: change to `eachsplit`
 end
 function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) where D
     length(xyz) == D || throw(DimensionMismatch("Dimension D doesn't match input string"))
@@ -165,7 +202,7 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
     free = zero(MMatrix{D, D, Float64})
     for (i, coord) in enumerate(xyz)
         # --- "free" coordinates, free[i,:] ---
-        for (j, matchgroup) in enumerate((('α','u','x'),('β','v','y'),('γ','w','z')))
+        for (j, matchgroup) in enumerate((('α','u','x'), ('β','v','y'), ('γ','w','z')))
             pos₂ = findfirst(∈(matchgroup), coord)
             if !isnothing(pos₂)
                 free[i,j]  = searchpriornumerals(coord, pos₂)
@@ -228,7 +265,7 @@ for T in (:KVec, :RVec)
     ## Example
     ```jldoctest
     julia> $($T)("0.25,α,0")
-    [0.25, α, 0.0]
+    [1/4, α, 0]
     ```
     """
     function $T{D}(str::AbstractString) where D
@@ -246,7 +283,7 @@ for T in (:KVec, :RVec)
         @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
         $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
-    $T(xs::Vararg{<:Real, D}) where D = $T(SVector{D, Float64}(xs))
+    $T(xs::Vararg{Real, D}) where D = $T(SVector{D, Float64}(xs))
     $T(xs::NTuple{D, <:Real}) where D = $T(SVector{D, Float64}(xs))
     end
 end
@@ -265,7 +302,7 @@ for op in (:(-), :(+))
     end
     @eval function $op(cnst1::AbstractVector, v2::T) where T<:AbstractVec
         length(cnst1) == dim(v2) || throw(DimensionMismatch("argument dimensions must be equal"))
-        cnst2, free2 = parts(v1)
+        cnst2, free2 = parts(v2)
         return T($op(cnst1, cnst2), $op(free2))
     end
 end
@@ -281,7 +318,9 @@ function (==)(v1::T, v2::T) where T<:AbstractVec
 end
 
 """
-    isapprox(v1::T, v2::T[, cntr::Char, modw::Bool]; kwargs...) --> Bool
+    isapprox(v1::T, v2::T, 
+             [cntr::Union{Char, Nothing, AbstractMatrix{<:Real}}, modw::Bool];
+             kwargs...) --> Bool
                                                             
 Compute approximate equality of two vector quantities `v1` and `v2` of type,
 `T = Union{<:AbstractVec, <:AbstractPoint}`. 
@@ -294,7 +333,8 @@ lattice vectors are used in the comparison.
 ## Optional arguments
 
 - `cntr`: if not provided, the comparison will not account for equivalence by primitive
-  lattice vectors, only equivalence by lattice vectors in the basis of `v1` and `v2`.
+  lattice vectors (equivalent to setting `cntr=nothing`), only equivalence by lattice
+  vectors in the basis of `v1` and `v2`.
   `cntr` may also be provided as a `D`×`D` `AbstractMatrix` to give the relevant
   transformation matrix directly.
 - `modw`: whether vectors that differ by multiples of a lattice vector are considered
@@ -302,12 +342,13 @@ lattice vectors are used in the comparison.
 - `kwargs...`: optional keyword arguments (e.g., `atol` and `rtol`) to be forwarded to
   `Base.isapprox`.
 """
-function isapprox(v1::T, v2::T,
+function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
-
+    
+    T′ = typeof(parent(v1)) # for wrapped RVec or KVec types like WyckoffPosition
     if modw # equivalence modulo a primitive lattice vector
         δ₀ = v₀1 - v₀2
         if cntr !== nothing
@@ -316,8 +357,8 @@ function isapprox(v1::T, v2::T,
             else # AbstractMatrix{<:Real}
                 convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
             end
-            δ₀ = T <: KVec ? P' * δ₀ :
-                 T <: RVec ? P  \ δ₀ :
+            δ₀ = T′ <: KVec ? P' * δ₀ :
+                 T′ <: RVec ? P  \ δ₀ :
                  error("`isapprox` is not implemented for type $T")
         end
         all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false
@@ -330,7 +371,7 @@ function isapprox(v1::T, v2::T,
     return isapprox(vabc1, vabc2; kwargs...)
 end
 
-function isapprox(v1::T, v2::T,
+function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractPoint{D} where D
@@ -425,11 +466,43 @@ function conventionalize(v′::AbstractVec{D}, cntr::Char) where D
 end
 
 
+# --- Wyckoff positions ---
+struct WyckoffPosition{D} <: AbstractVec{D}
+    mult   :: Int
+    letter :: Char
+    v      :: RVec{D} # associated with a single representative
+end
+parent(wp::WyckoffPosition)   = wp.v
+free(wp::WyckoffPosition)     = free(parent(wp))
+constant(wp::WyckoffPosition) = constant(parent(wp))
+
+multiplicity(wp::WyckoffPosition) = wp.mult
+label(wp::WyckoffPosition) = string(multiplicity(wp), wp.letter)
+function transform(wp::WyckoffPosition, P::AbstractMatrix{<:Real})
+    return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
+end
+
+# ---- ReciprocalPosition/Wingten position ---
+# TODO: Wrap all high-symmetry k-points in a structure with a label and a `KVec`, similarly
+# to `WyckoffPosition`s? Maybe kind of awful for dispatch purposes, unless we introduce a
+# new abstract type between `AbstractVec` and `KVec`/`RVec`...
+
 # ---------------------------------------------------------------------------------------- #
-# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup
+# AbstractGroup: Generic Group, SpaceGroup, PointGroup, LittleGroup, SiteGroup, MSpaceGroup
 # ---------------------------------------------------------------------------------------- #
 
-abstract type AbstractGroup{D} <: AbstractVector{SymOperation{D}} end
+"""
+$(TYPEDEF)
+
+The abstract supertype of all group structures, with assumed group elements of type `O` and
+embedding dimension `D`.
+
+Minimum interface includes definitions of:
+    - `num(::AbstractGroup)`, returning an integer or tuple of integers.
+    - `operations(::AbstractGroup)`, returning a set of operations.
+or, alternatively, fields with names `num` and `operations`, behaving accordingly.
+"""
+abstract type AbstractGroup{D,O} <: AbstractVector{O} end # where O <: AbstractOperation{D}
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
 num(g::AbstractGroup) = g.num
 operations(g::AbstractGroup) = g.operations
@@ -444,11 +517,29 @@ IndexStyle(::Type{<:AbstractGroup}) = IndexLinear()
 # common `AbstractGroup` utilities
 order(g::AbstractGroup) = length(g)
 
+# fall-back for groups without an associated position notion (for dispatch); this extends
+# `Base.position` rather than introducing a new `position` function due to
+# https://github.com/JuliaLang/julia/issues/33799
+"""
+    position(x::Union{AbstractGroup, AbstractIrrep})
+
+If a position is associated with `x`, return it; if no position is associated, return
+`nothing`.
+
+Applicable cases include `LittleGroup` (return the associated **k**-vector) and `SiteGroup`
+(returns the associated Wyckoff position), as well as their associated irrep types
+(`LGIrrep` and `SiteIrrep`).
+"""
+Base.position(::AbstractGroup) = nothing
+
+# sorting
+sort!(g::AbstractGroup; by=xyzt, kws...) = (sort!(operations(g); by, kws...); g)
+
 # --- Generic group ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct GenericGroup{D} <: AbstractGroup{D}
+struct GenericGroup{D} <: AbstractGroup{D, SymOperation{D}}
     operations::Vector{SymOperation{D}}
 end
 num(::GenericGroup) = 0
@@ -458,7 +549,7 @@ label(::GenericGroup) = ""
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SpaceGroup{D} <: AbstractGroup{D}
+struct SpaceGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     operations::Vector{SymOperation{D}}
 end
@@ -468,7 +559,7 @@ label(sg::SpaceGroup) = iuc(sg)
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct PointGroup{D} <: AbstractGroup{D}
+struct PointGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     label::String
     operations::Vector{SymOperation{D}}
@@ -481,7 +572,7 @@ centering(pg::PointGroup) = nothing
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct LittleGroup{D} <: AbstractGroup{D}
+struct LittleGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     kv::KVec{D}
     klab::String
@@ -489,11 +580,52 @@ struct LittleGroup{D} <: AbstractGroup{D}
 end
 LittleGroup(num::Integer, kv::KVec{D}, klab::AbstractString, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, klab, ops)
 LittleGroup(num::Integer, kv::KVec{D}, ops::AbstractVector{SymOperation{D}}) where D = LittleGroup{D}(num, kv, "", ops)
-position(lg::LittleGroup) = lg.kv
+Base.position(lg::LittleGroup) = lg.kv
 klabel(lg::LittleGroup) = lg.klab
-label(lg::LittleGroup) = iuc(num(lg), dim(lg))*" at "*klabel(lg)*" = "*string(position(lg))
+label(lg::LittleGroup) = iuc(num(lg), dim(lg))
 orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
                                centering(num(lg), dim(lg)))
+
+# --- Site symmetry group ---
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
+struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
+    num::Int
+    wp::WyckoffPosition{D}
+    operations::Vector{SymOperation{D}}
+    cosets::Vector{SymOperation{D}}
+end
+label(g::SiteGroup) = iuc(num(g), dim(g))
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the cosets of a `SiteGroup` `g`.
+
+The cosets generate the orbit of the Wyckoff position [`position(g)`](@ref) (see also
+[`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
+group, jointly with the operations in `g` itself.
+"""
+cosets(g::SiteGroup) = g.cosets
+
+Base.position(g::SiteGroup) = g.wp
+
+
+# --- "position labels" of LittleGroup and SiteGroups ---
+positionlabel(g::LittleGroup)   = klabel(g)
+positionlabel(g::SiteGroup)     = label(position(g))
+positionlabel(g::AbstractGroup) = ""
+
+function fullpositionlabel(g::AbstractGroup) # print position label L & coords C as "L = C"
+    if position(g) !== nothing
+        return string(positionlabel(g), " = ", parent(position(g)))
+    else
+        return ""
+    end
+end
+
+# TODO: drop `klabel` and use `position` label exclusively?
 
 # ---------------------------------------------------------------------------------------- #
 # Reality <: Enum{Int8}:    1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)
@@ -518,10 +650,11 @@ real" irreps (co-reps) via [`realify`](@ref).
     REAL       = 1
     PSEUDOREAL = -1
     COMPLEX    = 0
+    UNDEF      = 2 # for irreps that are artificially joined together (e.g., by ⊕)
 end
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractIrrep: PGIrrep, LGIrrep
+# AbstractIrrep: PGIrrep, LGIrrep, SiteIrrep
 # ---------------------------------------------------------------------------------------- #
 
 """ 
@@ -532,12 +665,16 @@ Abstract supertype for irreps of dimensionality `D`: must have fields `cdml`, `m
 `irreps` that returns the associated irrep matrices; if not, will simply be `matrices`.
 """
 abstract type AbstractIrrep{D} end
-(ir::AbstractIrrep)(αβγ=nothing) = deepcopy(ir.matrices)
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
-matrices(ir::AbstractIrrep) = ir.matrices    
+matrices(ir::AbstractIrrep) = ir.matrices
+"""
+    reality(ir::AbstractIrrep) --> Reality
+
+Return the reality of `ir` (see []`Reality`](@ref)).
+"""
 reality(ir::AbstractIrrep) = ir.reality
-translations(ir::T) where T<:AbstractIrrep = hasfield(T, :translations) ? ir.translations : nothing
+translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
@@ -550,6 +687,8 @@ function klabel(cdml::String)
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
     return cdml[firstindex(cdml):previdx]
 end
+(ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
+
 """
     $TYPEDSIGNATURES --> Bool
 
@@ -561,6 +700,23 @@ For an irrep produced by `realify`, this can be either `false` or `true`: if the
 type is `REAL` it is `false`; if the reality type is `PSEUDOREAL` or `COMPLEX` it is `true`.
 """
 iscorep(ir::AbstractIrrep) = ir.iscorep
+
+"""
+    ⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep --> T
+
+Compute the representation obtained from direct sum of the irreps `ir1`, `ir2`, `ir3`, etc.
+The resulting representation is reducible and has dimension
+`irdim(ir1) + irdim(ir2) + irdim(ir3) + …`.
+
+The groups of the provided irreps must be identical.
+If `T isa LGIrrep`, the irrep translation factors must also be identical (due to an
+implementation detail of the `LGIrrep` type).
+
+Also provided via `Base.:+`.
+"""
+⊕(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = ⊕(⊕(ir1, ir2), ir3...)
+Base.:+(ir1::T, ir2::T) where T<:AbstractIrrep = ⊕(ir1, ir2)
+Base.:+(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = +(+(ir1, ir2), ir3...)
 
 # --- Point group irreps ---
 """
@@ -576,12 +732,6 @@ end
 function PGIrrep{D}(cdml::String, pg::PointGroup{D}, matrices::Vector{Matrix{ComplexF64}},
                     reality::Reality) where D 
     PGIrrep{D}(cdml, pg, matrices, reality, false)
-end
-
-# printing
-function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
-    P = pgir.matrices[i]
-    prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
 # --- Little group irreps ---
@@ -608,91 +758,43 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-position(lgir::LGIrrep) = position(group(lgir))
+Base.position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
-function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothing)
-    P = lgir.matrices
-    τ = lgir.translations
-    if !iszero(τ)
-        k = position(lgir)(αβγ)
-        P = deepcopy(P) # needs deepcopy rather than a copy due to nesting; otherwise we overwrite..!
-        for (i,τ′) in enumerate(τ)
-            if !iszero(τ′) && !iszero(k)
-                P[i] .*= cis(2π*dot(k,τ′))  # note cis(x) = exp(ix)
-                # NOTE/TODO/FIXME:
-                # This follows the convention in Eq. (11.37) of Inui as well as the Bilbao
-                # server, i.e. has Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭); but disagrees with several other
-                # references (e.g. Herring 1937a and Kovalev's book; and even Bilbao's
-                # own _publications_?!).
-                # In these other references one take Dᵏ({I|𝐭}) = exp(-i𝐤⋅𝐭), while Inui takes
-                # Dᵏ({I|𝐭}) = exp(i𝐤⋅𝐭) [cf. (11.36)]. The former choice, i.e. Dᵏ({I|𝐭}) =
-                # exp(-i𝐤⋅𝐭) actually appears more natural, since we usually have symmetry 
-                # operations acting _inversely_ on functions of spatial coordinates and
-                # Bloch phases exp(i𝐤⋅𝐫).
-                # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
-                # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
-                # expliciated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
-                # this is probably the sanest choice for this dataset.
-                # This weird state of affairs was also noted explicitly by Chen Fang in
-                # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
-                #
-                # If we wanted swap the sign here, we'd likely have to swap t₀ in the check
-                # for ray-representations in `check_multtable_vs_ir(::MultTable, ::LGIrrep)`
-                # to account for this difference. It is not enough just to swap the sign
-                # - I checked (⇒ 172 failures in test/multtable.jl) - you would have 
-                # to account for the fact that it would be -β⁻¹τ that appears in the 
-                # inverse operation, not just τ. Same applies here, if you want to 
-                # adopt the other convention, it should probably not just be a swap 
-                # to -τ, but to -β⁻¹τ. Probably best to stick with Inui's definition.
-            end
-        end
-    end
-    # FIXME: Attempt to flip phase convention. Does not pass tests.
-    #=
-    lg = group(lgir)
-    if !issymmorph(lg)
-        k = position(lgir)(αβγ)
-        for (i,op) in enumerate(lg)
-            P[i] .* cis(-4π*dot(k, translation(op)))
-        end
-    end
-    =#
-
-    return P
-end
+                             # Site symmetry irreps
 
 """
-    israyrep(lgir::LGIrrep, αβγ=nothing) -> (::Bool, ::Matrix)
-
-Computes whether a given little group irrep `ir` is a ray representation 
-by computing the coefficients αᵢⱼ in DᵢDⱼ=αᵢⱼDₖ; if any αᵢⱼ differ 
-from unity, we consider the little group irrep a ray representation
-(as opposed to the simpler "vector" representations where DᵢDⱼ=Dₖ).
-The function returns a boolean (true => ray representation) and the
-coefficient matrix αᵢⱼ.
+$(TYPEDEF)$(TYPEDFIELDS)
 """
-function israyrep(lgir::LGIrrep, αβγ::Union{Nothing,Vector{Float64}}=nothing) 
-    k = position(lgir)(αβγ)
-    lg = group(lgir) # indexing into/iterating over `lg` yields the LittleGroup's operations
-    Nₒₚ = length(lg)
-    α = Matrix{ComplexF64}(undef, Nₒₚ, Nₒₚ)
-    # TODO: Verify that this is OK; not sure if we can just use the primitive basis 
-    #       here, given the tricks we then perform subsequently?
-    mt = MultTable(primitivize(lg)) 
-    for (row, oprow) in enumerate(lg)
-        for (col, opcol) in enumerate(lg)
-            t₀ = translation(oprow) + rotation(oprow)*translation(opcol) - translation(lg[mt.table[row,col]])
-            ϕ  = 2π*dot(k,t₀) # include factor of 2π here due to normalized bases
-            α[row,col] = cis(ϕ)
-        end
-    end
-    return any(x->norm(x-1.0)>DEFAULT_ATOL, α), α
+struct SiteIrrep{D} <: AbstractIrrep{D}
+    cdml     :: String
+    g        :: SiteGroup{D}
+    matrices :: Vector{Matrix{ComplexF64}}
+    reality  :: Reality
+    iscorep  :: Bool
+    pglabel  :: String # label of point group that is isomorphic to the site group `g`
 end
+Base.position(siteir::SiteIrrep) = position(group(siteir))
 
+# ---------------------------------------------------------------------------------------- #
+# IrrepCollection
+# ---------------------------------------------------------------------------------------- #
+
+struct IrrepCollection{T<:AbstractIrrep} <: AbstractVector{T}
+    irs :: Vector{T}
+end
+Base.size(c::IrrepCollection) = size(c.irs)
+Base.IndexStyle(::Type{<:IrrepCollection}) = IndexLinear()
+@propagate_inbounds Base.getindex(c::IrrepCollection, i::Int) = c.irs[i]
+@propagate_inbounds function Base.setindex!(
+    c::IrrepCollection{T}, ir::T, i::Int) where T<:AbstractIrrep
+    c.irs[i] = ir
+end
+IrrepCollection(c::IrrepCollection) = c
+Base.similar(c::IrrepCollection{T}) where T = IrrepCollection{T}(similar(c.irs))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable
@@ -747,8 +849,8 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
     for (j,col) in enumerate(eachcol(table))
         col .= characters(irs[j], αβγ)
     end
-    tag = "⋕"*string(num(g))*" ("*label(g)*")"
-    return CharacterTable{D}(operations(g), label.(irs), table, tag)
+    
+    return CharacterTable{D}(operations(g), label.(irs), table, _group_descriptor(g))
 end
 
 struct ClassCharacterTable{D} <: AbstractCharacterTable
@@ -791,8 +893,7 @@ function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
             table[i,j] = tr(ir[idx])
         end
     end
-    tag = "⋕"*string(num(g))*" ("*label(g)*")"
-    return ClassCharacterTable{D}(classes_ops, label.(irs), table, tag)
+    return ClassCharacterTable{D}(classes_ops, label.(irs), table, _group_descriptor(g))
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -814,9 +915,9 @@ struct BandRep <: AbstractVector{Int}
                            # entries correspond to an element in the band representation
     irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
 end
-position(BR::BandRep)    = BR.wyckpos
-sitesym(BR::BandRep)     = BR.sitesym
-label(BR::BandRep)       = BR.label
+Base.position(BR::BandRep) = BR.wyckpos
+sitesym(BR::BandRep) = BR.sitesym
+label(BR::BandRep) = BR.label
 irreplabels(BR::BandRep) = BR.irlabs
 
 """
@@ -827,7 +928,7 @@ Return the number of bands included in the provided `BandRep`.
 If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
 band connectivity μ.
 """
-dim(BR::BandRep)     = BR.dim
+dim(BR::BandRep) = BR.dim
 
 # define the AbstractArray interface for BandRep
 size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
@@ -856,14 +957,13 @@ struct BandRepSet <: AbstractVector{BandRep}
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
     allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
-    timeinvar::Bool         # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
+    timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
 num(BRS::BandRepSet)         = BRS.sgnum
 klabels(BRS::BandRepSet)     = BRS.klabs
 hasnonmax(BRS::BandRepSet)   = BRS.allpaths
 irreplabels(BRS::BandRepSet) = BRS.irlabs
 isspinful(BRS::BandRepSet)   = BRS.spinful
-istimeinvar(BRS::BandRepSet) = BRS.timeinvar
 reps(BRS::BandRepSet)        = BRS.bandreps
 
 # define the AbstractArray interface for BandRepSet

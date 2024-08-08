@@ -28,6 +28,12 @@ for LGIRS in LGIRSDIM # ... D in 1:3
 end # for LGIRS in LGIRSDIM
 end # @testset "Space groups (consistent ..."
 
+@testset "Iterable inputs" begin
+    sg = spacegroup(16)
+    sg_iter = (op for op in sg)
+    @test MultTable(sg) == MultTable(sg_iter)
+end
+
 @testset "Little groups: group property" begin
 for (D, LGIRS) in enumerate(LGIRSDIM)
     for lgirsd in LGIRS
@@ -45,13 +51,24 @@ end # for LGIRS in LGIRSDIM
 end # @testset "Little groups: ..."
 
 @testset "Broadcasting vs. MultTable indexing" begin
-    for D in 1:3
-        for sgnum in 1:MAX_SGNUM[D]
-            # construct equivalent of MultTable as Matrix{SymOperation{D}} by using 
-            # broadcasting and check that this agrees with MultTable and indexing into it
-            sg = spacegroup(sgnum, Val(D))
-            mt  = MultTable(sg)
-            mt′ = sg .* permutedims(sg)
+    @testset "Space groups" begin
+        for D in 1:3
+            for sgnum in 1:MAX_SGNUM[D]
+                # construct equivalent of MultTable as Matrix{SymOperation{D}} by using 
+                # broadcasting and check that this agrees with MultTable and indexing into it
+                sg = spacegroup(sgnum, Val(D))
+                mt  = MultTable(sg)
+                mt′ = sg .* permutedims(sg)
+                @test mt ≈ mt′
+            end
+        end
+    end
+
+    @testset "Magnetic space groups" begin
+        for msgnum in 1:MAX_MSGNUM[3]
+            msg = mspacegroup(msgnum, Val(3))
+            mt  = MultTable(msg)
+            mt′ = msg .* permutedims(msg)
             @test mt ≈ mt′
         end
     end
@@ -94,7 +111,7 @@ end # @testset "Complex LGIrreps"
 
 @testset "Complex PGIrreps" begin
     for D in 1:3
-        for pgiuc in PGS_IUCs[D]
+        for pgiuc in PG_IUCs[D]
             pgirs = pgirreps(pgiuc, D)
             pg = group(first(pgirs))
             for pgir in pgirs

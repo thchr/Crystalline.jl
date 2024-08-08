@@ -1,6 +1,7 @@
 Wyckoff pos.|2c(m)|2c(m)|2b(2)|2b(2)|2a(2)|2a(2)
 Band-Rep.|A′↑G(2)|A′′↑G(2)|A↑G(2)|B↑G(2)|A↑G(2)|B↑G(2)
 Decomposable|false|false|false|false|false|false
+Y:(0.0,0.5)|Y₁⊕Y₃|Y₂⊕Y₄|Y₃⊕Y₄|Y₁⊕Y₂|Y₁⊕Y₂|Y₃⊕Y₄
 Δ:(0.0,α)|2Δ₂|2Δ₁|Δ₁⊕Δ₂|Δ₁⊕Δ₂|Δ₁⊕Δ₂|Δ₁⊕Δ₂
 S:(0.5,0.5)|S₁|S₁|S₁|S₁|S₁|S₁
 X:(0.5,0.0)|X₁|X₁|X₁|X₁|X₁|X₁

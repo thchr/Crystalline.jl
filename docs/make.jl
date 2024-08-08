@@ -23,8 +23,16 @@ makedocs(
         "Bravais types & bases" => "bravais.md",
         "Band representations"  => "bandreps.md",
         "Lattices"              => "lattices.md",
-        "API"                   => "api.md"
-    ]
+        "API"                   => "api.md",
+        "Internal API"          => "internal-api.md",
+    ],
+    warnonly = Documenter.except(
+        :autodocs_block, :cross_references, :docs_block, :doctest, :eval_block, 
+        :example_block, :footnote, :linkcheck_remotes, :linkcheck, :meta_block, 
+        :parse_error, :setup_block,
+        #:missing_docs # necessary due to docstrings from SmithNormalForm vendoring :(
+    ),
+    clean = true
 )
 
 # Documenter can also automatically deploy documentation to gh-pages.

@@ -5,14 +5,17 @@ using Crystalline, Test
     include("basisvecs.jl")
     include("symops.jl")
     include("SquareStaticMatrices.jl")
+    include("groups_xyzt_vs_coded.jl")
+    include("generators_xyzt_vs_coded.jl")
 
     # abstractvecs
     include("kvecs.jl")
     include("wyckoff.jl")
 
-    # show and notation
+    # show, notation, and cached info
     include("show.jl")
     include("notation.jl")
+    include("orders.jl")
 
     # group checks
     include("littlegroup_orders.jl")
@@ -45,4 +48,7 @@ using Crystalline, Test
     include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
     include("calc_bandreps.jl")   # tests of /src/calc_bandreps.jl
     
+
+    # magnetic space groups
+    include("mspacegroup.jl")
 end

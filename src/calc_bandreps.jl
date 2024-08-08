@@ -1,58 +1,15 @@
 using LinearAlgebra
 using Crystalline
 using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
-                   _mulliken, DEFAULT_ATOL, formatirreplabel
+                   _mulliken, DEFAULT_ATOL
 import Crystalline: mulliken, realify, group
 using StaticArrays
+using DocStringExtensions
 
-# The implementation here follows Elcoro et al., Phys. Rev. B 97, 035139 (2018)
+# The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
 
 # ---------------------------------------------------------------------------------------- #
-# Site symmetry irreps
-
-struct SiteIrrep{D} <: AbstractIrrep{D}
-    cdml     :: String
-    g        :: SiteGroup{D}
-    matrices :: Vector{Matrix{ComplexF64}}
-    reality  :: Reality
-    iscorep  :: Bool
-    pglab    :: String
-end
-position(siteir::SiteIrrep) = position(group(siteir))
-
-"""
-    siteirreps(sitegroup::SiteGroup) --> ::Vector{SiteIrrep}
-
-Return the site symmetry irreps associated with the provided `SiteGroup`, derived from a
-search over isomorphic point groups.
-"""
-function siteirreps(siteg::SiteGroup{D}) where D
-    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
-    pglab = label(parent_pg)
-    pgirs = pgirreps(pglab, Val(D))
-    
-    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
-    # .jld files apparently cache accessed content; so if we modify it, we mess with the
-    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
-    siteirs = map(pgirs) do pgir
-        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
-                     pglab)
-    end
-    return siteirs
-end
-pglabel(siteir::SiteIrrep)  = siteir.pglab # associated point group label
-mulliken(siteir::SiteIrrep) = _mulliken(pglabel(siteir), label(siteir), iscorep(siteir))
-
-# ---------------------------------------------------------------------------------------- #
-# Misc utility functions 
-
-function realify!(lgirsd::Dict{String, <:Vector{<:LGIrrep}})
-    for (klab, lgirs) in lgirsd
-        lgirsd[klab] = realify(lgirs)
-    end
-    return lgirsd
-end
 
 """
     reduce_dict_of_vectors([f=identity,] d::Dict{_, <:Vector})  -->  Vector{T}
@@ -126,8 +83,8 @@ function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckoffPosition{D},
     while i ≤ length(ops) && i ≤ length(orbits)
         wpᵢ = orbits[i]
         opᵢ = ops[i]
-        if ops[i]*parent(wp) ≈ parent(wpᵢ)
-            i += 1 # then ops[i] is indeed a "generator" of wpᵢ
+        if opᵢ*parent(wp) ≈ parent(wpᵢ)
+            i += 1 # then opᵢ is indeed a "generator" of wpᵢ
         else
             deleteat!(ops, i)
         end
@@ -193,7 +150,7 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
 end
 
 function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{D}}};
-            irlabs::Vector{String} = reduce_dict_of_vectors(formatirreplabel∘label, lgirsd),
+            irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
             irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)) where D
 
     irvec = Int[]
@@ -208,7 +165,7 @@ function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{
     spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
     decomposable = false # NB: placeholder, because we don't know the true answer presently
 
-    return BandRep(wycklab, pglabel(siteir), mulliken(siteir)*"↑G", brdim, decomposable,
+    return BandRep(wycklab, siteir.pglabel, mulliken(siteir)*"↑G", brdim, decomposable,
                    spinful, irvec, irlabs)
 end
 
@@ -243,13 +200,13 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
     allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
 
-    irlabs = reduce_dict_of_vectors(formatirreplabel∘label, lgirsd)
+    irlabs = reduce_dict_of_vectors(label, lgirsd)
     irdims = reduce_dict_of_vectors(irdim, lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
     wps    = wyckoffs(sgnum, Dᵛ)
     sg     = spacegroup(sgnum, Dᵛ)
-    sitegs = findmaximal(SiteGroup.(Ref(sg), wps))
+    sitegs = findmaximal(sitegroup.(Ref(sg), wps))
     brs    = BandRep[]
     for siteg in sitegs
         siteirs = siteirreps(siteg)

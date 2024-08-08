@@ -3,7 +3,7 @@ using Crystalline, Test
 @testset "Notation" begin
     @testset "Mulliken notation" begin
         for D in 1:3
-            for pglab in PGS_IUCs[D]
+            for pglab in PG_IUCs[D]
                 pgirs′ = pgirreps(pglab, Val(D))
                 g      = group(first(pgirs′))
 
@@ -52,6 +52,23 @@ using Crystalline, Test
                 end
             end
         end
+    end
+
+    @testset "PGIrreps in Mulliken notation" begin
+        # 2D & 3D
+        for D in (2,3)
+            pgirs          = pgirreps("6", Val(D); mulliken=false)
+            pgirs_mulliken = pgirreps("6", Val(D); mulliken=true)
+            @test label.(pgirs_mulliken) == mulliken.(pgirs)
+
+            # FIXME: we currently don't do nontrivial reductions of Mulliken labels during
+            # "realification"...
+            pgirs′          = realify(pgirs)
+            pgirs_mulliken′ = realify(pgirs_mulliken)
+            @test_broken label.(pgirs_mulliken′) == mulliken.(pgirs′)
+        end
+        # 1D
+        @test label.(pgirreps("m", Val(1); mulliken=true)) == mulliken.(pgirreps("m", Val(1))) == ["A′", "A′′"]
     end
 
     @testset "Centering, Bravais types, & IUC" begin

@@ -1,8 +1,8 @@
 # Groups
-All groups in Crystalline are concrete instances of the abstract supertype [`AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
-Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`LittleGroup`](@ref), [`PointGroup`](@ref), [`SubperiodicGroup`](@ref) and [`SiteGroup`](@ref).
+All groups in Crystalline are concrete instances of the abstract supertype [`Crystalline.AbstractGroup{D}`](@ref), referring to a group in `D` dimensions. `Crystalline.AbstractGroup{D}` is itself a subtype of `AbstractVector{SymOperation{D}}`.
+Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`PointGroup`](@ref), [`LittleGroup`](@ref), [`SubperiodicGroup`](@ref), [`SiteGroup`](@ref), and [`MSpaceGroup`](@ref).
 
-## Space groups
+## Example: space groups
 
 The one, two, and three-dimensional space groups are accessible via [`spacegroup`](@ref), which takes the space group number `sgnum` and dimensino `D` as input (ideally, the dimension is provided as a `Val{D}` for the sake of type stability) and returns a `SpaceGroup{D}` structure:
 ```@example spacegroup
@@ -13,6 +13,8 @@ sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
 sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called with a `Val{D}` dimension to ensure type stability; here we have D::Int instead for simplicity
 ```
 By default, the returned operations are given in the conventional setting of the International Tables of Crystallography, Volume A (ITA). Conversion to a primitive basis (in the CDML setting) can be accomplished via [`primitivize`](@ref).
+
+In addition to space groups, Crystalline.jl provides access to the operations of point groups (`pointgroup`](@ref)), little groups (`littlegroups`](@ref)), subperiodic groups (`subperiodicgroup`](@ref); including rod, layer, and frieze groups), and site symmetry groups (`sitegroup`).
 
 ### Multiplication tables
 We can compute the multiplication table of a space group (under the previously defined notion of operator composition) using [`MultTable`](@ref):
@@ -39,3 +41,6 @@ To generate a group from a list of generators, we can use the [`generate`](@ref)
 ```@example spacegroup
 generate(ops)
 ```
+
+## Magnetic space groups
+Magnetic space groups are accessible via [`mspacegroup`](@ref).

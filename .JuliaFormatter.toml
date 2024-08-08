@@ -1,0 +1,5 @@
+style = "yas"
+always_for_in = true
+always_use_return = true
+separate_kwargs_with_semicolon = true
+align_struct_field = true

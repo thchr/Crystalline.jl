@@ -3,7 +3,7 @@
 # We include several axes settings; as a result, there are more than 32 point groups 
 # under the 3D case, because some variations are "setting-degenerate" (but are needed
 # to properly match all space group settings)
-const PGS_NUM2IUC = (
+const PG_NUM2IUC = (
     (["1"], ["m"]),                                           # 1D
     (["1"], ["2"], ["m"], ["mm2"], ["4"], ["4mm"], ["3"],     # 2D
      ["3m1", "31m"],       # C₃ᵥ setting variations
@@ -19,17 +19,17 @@ const PGS_NUM2IUC = (
      ["-62m", "-6m2"],     # D₃ₕ setting variations
      ["6/mmm"], ["23"], ["m-3"], ["432"], ["-43m"], ["m-3m"])
 )
-# a flat tuple-listing of all the iuc labels in PGS_NUM2IUC; sliced across dimensions
-const PGS_IUCs = map(x->collect(Iterators.flatten(x)), PGS_NUM2IUC)
+# a flat tuple-listing of all the iuc labels in PG_NUM2IUC; sliced across dimensions
+const PG_IUCs = map(x->collect(Iterators.flatten(x)), PG_NUM2IUC)
 # a tuple of ImmutableDicts, giving maps from iuc label to point group number
-const PGS_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PGS_NUM2IUC[D])
-                           for lab in PGS_IUCs[D]]...) for D in (1,2,3)]...)
+const PG_IUC2NUM = tuple([ImmutableDict([lab=>findfirst(∋(lab), PG_NUM2IUC[D])
+                           for lab in PG_IUCs[D]]...) for D in (1,2,3)]...)
 # The IUC notation for point groups can be mapped to the Schoenflies notation, but the 
 # mapping is not one-to-one but rather one-to-many; e.g. 3m1 and 31m maps to C₃ᵥ but 
 # correspond to different axis orientations. 
 # When there is a choice of either hexagonal vs. rhombohedral or unique axes b vs unique
 # axes a/c we choose hexagonal and unique axes b, respectively.
-const IUC2SCHOENFLIES_PGS = ImmutableDict(
+const PG_IUC2SCHOENFLIES = ImmutableDict(
     "1"     => "C₁",   "-1"   => "Cᵢ",
     "2"     => "C₂",   "m"    => "Cₛ",   "2/m"  => "C₂ₕ",  # unique axes b setting
     "222"   => "D₂",   "mm2"  => "C₂ᵥ",  "mmm"  => "D₂ₕ",  "4"    => "C₄",
@@ -46,111 +46,25 @@ const IUC2SCHOENFLIES_PGS = ImmutableDict(
     "m-3"   => "Tₕ",   "432"  => "O",    "-43m" => "Td",   "m-3m" => "Oₕ"
 )
 
-const PGS_ORDERs = ImmutableDict(
-    "1"     =>  1,  "-1"   =>  2,
-    "2"     =>  2,  "m"    =>  2,  "2/m"  => 4,  # unique axes b setting
-    "222"   =>  4,  "mm2"  =>  4,  "mmm"  => 8,  "4"    => 4,
-    "-4"    =>  4,  "4/m"  =>  8,  "422"  => 8,  "4mm"  => 8,
-    "-42m"  =>  8,  "-4m2" =>  8,  # D₂d setting variations
-    "4/mmm" => 16,  "3"    =>  3,  "-3"   => 6,
-    "312"   =>  6,  "321"  =>  6,  # D₃ setting variations  (hexagonal axes)
-    "3m1"   =>  6,  "31m"  =>  6,  # C₃ᵥ setting variations (hexagonal axes)
-    "-31m"  => 12,  "-3m1" => 12,  # D₃d setting variations (hexagonal axes)
-    "6"     =>  6,  "-6"   =>  6,  "6/m"  => 12,  "622"  => 12,
-    "6mm"   => 12,
-    "-62m"  => 12,  "-6m2" => 12,  # D₃ₕ setting variations
-    "6/mmm" => 24,  "23"   => 12,
-    "m-3"   => 24,  "432"  => 24,  "-43m" => 24,  "m-3m" => 48
-)
-
-
 # ===== METHODS =====
 
 # --- Notation ---
 function pointgroup_iuc2num(iuclab::String, D::Integer)
-    pgnum = get(PGS_IUC2NUM[D], iuclab, nothing)
+    pgnum = get(PG_IUC2NUM[D], iuclab, nothing)
     if pgnum === nothing
         throw(DomainError(iuclab, "invalid point group IUC label"))
     else
         return pgnum
     end
 end
-schoenflies(pg::PointGroup) = IUC2SCHOENFLIES_PGS[iuc(pg)]
-
-# --- Point groups & operators ---
-unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
-
-function read_pgops_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
-
-    filepath = joinpath(DATA_DIR, "operations/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
-
-    return readlines(filepath)
-end
-
-function read_pggens_xyzt(iuclab::String, D::Integer)
-    @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck iuclab ∉ PGS_IUCs[D] && throw(DomainError(iuclab, "iuc label not found in database (see possible labels in PGS_IUCs[D])"))
-
-    filepath = joinpath(DATA_DIR, "generators/pgs/"*string(D)*"d/"*unmangle_pgiuclab(iuclab)*".csv")
-
-    return readlines(filepath)
-end
-
-"""
-    pointgroup(iuclab::String, ::Union{Val{D}, Integer}=Val(3))  -->  PointGroup{D}
-
-Return the symmetry operations associated with the point group identified with label
-`iuclab` in dimension `D` as a `PointGroup{D}`.
-"""
-@inline function pointgroup(iuclab::String, Dᵛ::Val{D}=Val(3)) where D
-    pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
-    ops_str = read_pgops_xyzt(iuclab, D)
-    
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(iuclab::String, D::Integer) = pointgroup(iuclab, Val(D))
+schoenflies(pg::PointGroup) = PG_IUC2SCHOENFLIES[iuc(pg)]
 
 @inline function pointgroup_num2iuc(pgnum::Integer, Dᵛ::Val{D}, setting::Integer) where D
     @boundscheck D ∉ (1,2,3) && _throw_invalid_dim(D)
-    @boundscheck 1 ≤ pgnum ≤ length(PGS_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PGS_NUM2IUC"))
-    iucs = @inbounds PGS_NUM2IUC[D][pgnum]
-    @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PGS_NUM2IUC[pgnum]"))
+    @boundscheck 1 ≤ pgnum ≤ length(PG_NUM2IUC[D]) || throw(DomainError(pgnum, "invalid pgnum; out of bounds of Crystalline.PG_NUM2IUC"))
+    iucs = @inbounds PG_NUM2IUC[D][pgnum]
+    @boundscheck 1 ≤ setting ≤ length(iucs) || throw(DomainError(setting, "invalid setting; out of bounds of Crystalline.PG_NUM2IUC[pgnum]"))
     return @inbounds iucs[setting]
-end
-
-"""
-    pointgroup(pgnum::Integer, ::Union{Val{D}, Integer}=Val(3), setting::Integer=1)
-                                                                      -->  PointGroup{D}
-
-Return the symmetry operations associated with the point group identfied with canonical
-number `pgnum` in dimension `D` as a `PointGroup{D}`. The connection between a point group's
-numbering and its IUC label is enumerated in `Crystalline.PGS_NUM2IUC[D]` and
-`Crystalline.IUC2NUM[D]`.
-
-Certain point groups feature in multiple setting variants: e.g., IUC labels 321 and 312 both
-correspond to `pgnum = 18` and correspond to the same group structure expressed in two
-different settings. The `setting` argument allows choosing between these setting variations.
-"""
-@inline function pointgroup(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    ops_str = read_pgops_xyzt(iuclab, D)
-
-    return PointGroup{D}(pgnum, iuclab, SymOperation{D}.(ops_str))
-end
-@inline pointgroup(pgnum::Integer, D::Integer, setting::Integer=1) = pointgroup(pgnum, Val(D), setting)
-
-# --- Point group generators ---
-function generators(iuclab::String, ::Type{PointGroup{D}}=PointGroup{3}) where D
-    ops_str = read_pggens_xyzt(iuclab, D)
-    return SymOperation{D}.(ops_str)
-end
-function generators(pgnum::Integer, ::Type{PointGroup{D}}, setting::Integer=1) where D
-    iuclab = pointgroup_num2iuc(pgnum, Val(D), setting)
-    ops_str = read_pgops_xyzt(iuclab, D)
-
-    return SymOperation{3}.(ops_str)
 end
 
 # --- POINT GROUPS VS SPACE & LITTLE GROUPS ---
@@ -161,7 +75,7 @@ function find_parent_pointgroup(g::AbstractGroup{D}) where D
     #       group (that is achieved by `find_isomorphic_parent_pointgroup`).
     xyzt_pgops = sort!(xyzt.(pointgroup(g)))
 
-    @inbounds for iuclab in PGS_IUCs[D]
+    @inbounds for iuclab in PG_IUCs[D]
         P = pointgroup(iuclab, D)
         if sort!(xyzt.(P)) == xyzt_pgops # the sorting/xyzt isn't strictly needed; belts & buckles...
             return P
@@ -172,9 +86,11 @@ function find_parent_pointgroup(g::AbstractGroup{D}) where D
 end
 
 # --- POINT GROUP IRREPS ---
+_unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
+
 # loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
 function _load_pgirreps_data(iuclab::String)
-    jldgroup = PGIRREPS_JLDFILE[][unmangle_pgiuclab(iuclab)] 
+    jldgroup = PGIRREPS_JLDFILE[][_unmangle_pgiuclab(iuclab)] 
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]
@@ -184,16 +100,24 @@ end
 
 # 3D
 """
-    pgirreps(iuclab::String, ::Val{D}=Val(3)) where D ∈ (1,2,3)
-    pgirreps(iuclab::String, D)
+    pgirreps(iuclab::String, ::Val{D}=Val(3); mullikken::Bool=false) where D ∈ (1,2,3)
+    pgirreps(iuclab::String, D; mullikken::Bool=false)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
-as a vector of `PGIrrep{D}`s.
+as a `Vector{PGIrrep{D}}`.
 
-## Notes
+See `Crystalline.PG_IUC2NUM[D]` for possible IUC labels in dimension `D`.
+
+## Notation
+
 The irrep labelling follows the conventions of CDML [^1] [which occasionally differ from
 those in e.g. Bradley and Cracknell, *The Mathematical Theory of Symmetry in Solids* 
-(1972)]. For associated Mulliken ("spectroscopist") notation, see [`mulliken`](@ref).
+(1972)].
+
+To use Mulliken ("spectroscopist") irrep labels instead, set the keyword argument
+`mulliken = true` (default, `false`). See also [`mulliken`](@ref).
+
+## Data sources
 
 The data is sourced from the Bilbao Crystallographic Server [^2]. If you are using this 
 functionality in an explicit fashion, please cite the original reference [^3].
@@ -207,15 +131,16 @@ functionality in an explicit fashion, please cite the original reference [^3].
 [^3]: Elcoro et al., 
       [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
 """
-function pgirreps(iuclab::String, ::Val{3}=Val(3))
+function pgirreps(iuclab::String, ::Val{3}=Val(3); mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(3)) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
-
-    return PGIrrep{3}.(cdmls, Ref(pg), matrices, Reality.(realities))
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
+    
+    return IrrepCollection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 2D
-function pgirreps(iuclab::String, ::Val{2})
+function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -225,11 +150,12 @@ function pgirreps(iuclab::String, ::Val{2})
     #     That the settings and sorting indeed agree between 2D and 3D is tested in 
     #     scripts/compare_pgops_3dvs2d.jl
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return PGIrrep{2}.(cdmls, Ref(pg), matrices, Reality.(realities))
+    return IrrepCollection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
-function pgirreps(iuclab::String, ::Val{1})
+function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
@@ -243,15 +169,37 @@ function pgirreps(iuclab::String, ::Val{1})
     else
         throw(DomainError(iuclab, "invalid 1D point group IUC label"))
     end
-    return PGIrrep{1}.(cdmls, Ref(pg), matrices, REAL)
+    pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
+    
+    return IrrepCollection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
 end
-pgirreps(iuclab::String, ::Val{D}) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
-pgirreps(iuclab::String, D::Integer)  = pgirreps(iuclab, Val(D))
-function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3), setting::Integer=1) where D
+pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
+pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
+function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3);
+                  setting::Integer=1, kws...) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    return pgirreps(iuc, Dᵛ)
+    return pgirreps(iuc, Dᵛ; kws...)
 end
-pgirreps(pgnum::Integer, D::Integer, setting::Integer=1) = pgirreps(pgnum, Val(D), setting)
+function pgirreps(pgnum::Integer, D::Integer; kws...)
+    return pgirreps(pgnum, Val(D); kws...) :: IrrepCollection{<:PGIrrep}
+end
+
+function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D
+    if label(group(pgir1)) ≠ label(group(pgir2)) || order(pgir1) ≠ order(pgir2)
+        error("The direct sum of two PGIrreps requires identical point groups")
+    end
+    
+    pgirlab = label(pgir1)*"⊕"*label(pgir2)
+    g   = group(pgir1)
+    T   = eltype(eltype(pgir1.matrices))
+    z12 = zeros(T, irdim(pgir1), irdim(pgir2))
+    z21 = zeros(T, irdim(pgir2), irdim(pgir1))
+    matrices = [[m1 z12; z21 m2] for (m1, m2) in zip(pgir1.matrices, pgir2.matrices)]
+    reality = UNDEF
+    iscorep = pgir1.iscorep || pgir2.iscorep
+
+    return PGIrrep{D}(pgirlab, g, matrices, reality, iscorep)
+end
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -301,7 +249,7 @@ pointgroup(g) == operations(pg) == operations(pg′)[Iᵖ²ᵍ]
 sgnum = 141
 wp    = wyckoffs(sgnum, Val(3))[end] # 4a Wyckoff position
 sg    = spacegroup(sgnum, Val(3))
-siteg = SiteGroup(sg, wp)
+siteg = sitegroup(sg, wp)
 pg, Iᵖ²ᵍ, equal = find_isomorphic_parent_pointgroup(siteg)
 ```
 """
@@ -330,8 +278,8 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     # since we don't have to attempt a search over permutations of multiplication tables
     Iᵖ      = Vector{Int}(undef, Nᵍ)
     ordersᵖ = Vector{Int}(undef, Nᵍ)
-    for iuclab in PGS_IUCs[D]
-        PGS_ORDERs[iuclab] == Nᵍ || continue
+    for iuclab in PG_IUCs[D]
+        PG_ORDERs[iuclab] == Nᵍ || continue
         pg = pointgroup(iuclab, Val(D))
 
         # sorting by rotation order & check if rotation orders agree
@@ -372,10 +320,10 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     # repetive work) because we'd prefer to return an identical group rather than an
     # isomorphic group, if that is at all possible
     mtᵍ = MultTable(g′).table
-    for iuclab in PGS_IUCs[D]
+    for iuclab in PG_IUCs[D]
         # NB: in principle, this could probably be sped up a lot by using subgroup relations
         #     to "group up" meaningful portions (in addition to grouping by rotation order)
-        Crystalline.PGS_ORDERs[iuclab] == Nᵍ || continue
+        Crystalline.PG_ORDERs[iuclab] == Nᵍ || continue
         pg = pointgroup(iuclab, Val(D))
 
         # sorting by rotation order & check if rotation orders agree
@@ -405,9 +353,9 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
 end
 
 """
-    $TYPEDSIGNATURES --> Vector{UnitRange}
+    _find_equal_groups_in_sorted(v::AbstractVector) --> Vector{UnitRange}
 
-Returns indices into groups of equal values in `v`. Input `v` *must be* sorted so that
+Returns indices into groups of equal values in `v`. Input `v` *must* be sorted so that
 identical values are adjacent.
 
 ## Example
@@ -468,6 +416,11 @@ function rigorous_isomorphism_search(I_orders::AbstractVector{<:AbstractVector{I
     # `factorial(sum(length, I_orders))`) - but it can still be overwhelming occassionally
     ns_prev = zeros(Int, J)
     for ns in CartesianIndices(Ns)
+        # TODO: This should be done in "blocks" of equal order: i.e., there is no point in
+        #       exploring permutations of I_orders[j+1] etc. if the current permutation of
+        #       I_orders[j] isn't matching up with mtᵍ - this could give very substantial
+        #       scaling improvements since it approximately turns a `prod(...` above into a
+        #       `sum(...`
         for j in Base.OneTo(J)
             nⱼ = ns[j]
             if nⱼ != ns_prev[j]

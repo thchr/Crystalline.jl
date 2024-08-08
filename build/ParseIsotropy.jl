@@ -1,7 +1,7 @@
 module ParseIsotropy
 
 using Crystalline
-using Crystalline: AbstractIrrep
+using Crystalline: AbstractIrrep, IrrepCollection
 
 export parselittlegroupirreps
 
@@ -55,7 +55,8 @@ function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
         skip(io, 2)
         sglabel = filter(!isequal(' '), readuntil(io, "\""))
         skip(io, 2)
-        irlabel = Crystalline.roman2greek(filter(!isequal(' '), readuntil(io, "\"")))
+        irlabel = Crystalline.formatirreplabel(
+                    Crystalline.roman2greek(filter(!isequal(' '), readuntil(io, "\""))))
         # read irdim, irreality, knum, pmknum, opnum (rest of line; split at spaces)
         #       irdim  : dimension of IR
         #       irreality : reality of IR (see Sec. 5 of Acta Cryst. (2013). A69, 388)
@@ -263,7 +264,7 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
-    lgirsd = Dict{String, Vector{LGIrrep{3}}}()
+    lgirsd = Dict{String, IrrepCollection{LGIrrep{3}}}()
     curklab = nothing; accidx = Int[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
         if curklab == klabel(ir)
@@ -274,7 +275,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirsd, curklab=>lgirs)
+                push!(lgirsd, curklab=>IrrepCollection(lgirs))
             end
 
             curklab = klabel(ir)
@@ -285,19 +286,19 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     # incorporation (because we're always _writing_ a new batch, when 
     # we've moved into the next one); for ISOTROPY's default sorting, 
     # this is the GP=Ω=[α,β,γ]ᵀ point)
-    lgirs = Vector{LGIrrep}(undef, length(accidx))
+    lgirs = Vector{LGIrrep{3}}(undef, length(accidx))
     for (pos, kidx) in enumerate(accidx)
         lgirs[pos] = littlegroupirrep(irvec[kidx])
     end
     lastklab = klabel(irvec[last(accidx)])
     @assert lastklab == "Ω"
-    push!(lgirsd, lastklab=>lgirs)
+    push!(lgirsd, lastklab=>IrrepCollection(lgirs))
 
     return lgirsd
 end
 
 
-const ERRONEOUS_LGIRS = (214=>"P1", 214=>"P2", 214=>"P3") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
+const ERRONEOUS_LGIRS = (214=>"P₁", 214=>"P₂", 214=>"P₃") # extend to tuple of three-tuples if we ever need D ≠ 3 as well
 @inline function is_erroneous_lgir(sgnum::Integer, irlab::String, D::Integer=3)
     D == 1 && return false
     D ≠ 3 && Crystalline._throw_2d_not_yet_implemented(D)
@@ -327,8 +328,8 @@ hear back.
 function manually_fixed_lgir(sgnum::Integer, irlab::String)
     # TODO: Use their new and corrected dataset (from February 17, 2020) instead of manually
     #       fixing the old dataset.
-    #       I already verified that their new dataset is correct (and parses), and that P1
-    #       and P3 pass tests. Their P1 and P3 (and P2) irreps are not the same as those we
+    #       I already verified that their new dataset is correct (and parses), and that P₁
+    #       and P₃ pass tests. Their P₁ and P₃ (and P₂) irreps are not the same as those we
     #       had below, but differ by a transformation R(THEIRS)R⁻¹ = (OURS) with 
     #       R = [1 1; 1 -1]/√2.
     #       Thus, we should remove this method (here and from other callers), update and
@@ -339,7 +340,7 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String)
         CQ  = cis(5π/12)/√2  # C*Q       ≈ 0.183013 + 0.683013im
         CcP = cis(-π/12)/√2  # C*conj(P) ≈ 0.683013 - 0.183013im
         CcQ = cis(-5π/12)/√2 # C*conj(Q) ≈ 0.183013 - 0.683013im
-        if irlab == "P1"
+        if irlab == "P₁"
             matrices = [[1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],     # x,y,z
                         [0.0+0.0im 1.0+0.0im; 1.0+0.0im 0.0+0.0im],     # x,-y,-z+1/2
                         [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z
@@ -352,8 +353,8 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String)
                         [CP -CcQ; CP CcQ],                              # z,-x,-y+1/2
                         [CQ -CQ; CcP CcP],                              # y,-z,-x+1/2
                         [CcQ CP; -CcQ CP]]                              # -z+1/2,x,-y
-        elseif irlab == "P2" 
-            # there is, as far as I can see, nothing wrong with ISOTROPY's (214,P2)
+        elseif irlab == "P₂" 
+            # there is, as far as I can see, nothing wrong with ISOTROPY's (214, P₂)
             # small irrep: but it doesn't agree with the form we extract from CDML 
             # either. To be safe, and to have a consistent set of irreps for the P 
             # point we just swap out this irrep as well.
@@ -369,7 +370,7 @@ function manually_fixed_lgir(sgnum::Integer, irlab::String)
                          [0.5+0.5im -0.5-0.5im; -0.5+0.5im -0.5+0.5im], # z,-x,-y+1/2
                          [-0.5-0.5im 0.5-0.5im; 0.5+0.5im 0.5-0.5im],   # y,-z,-x+1/2
                          [-0.5+0.5im 0.5-0.5im; 0.5+0.5im 0.5+0.5im]]   # -z+1/2,x,-y
-        elseif irlab == "P3"
+        elseif irlab == "P₃"
             matrices = [[1.0+0.0im 0.0+0.0im; 0.0+0.0im 1.0+0.0im],     # x,y,z
                         [0.0+0.0im 1.0+0.0im; 1.0+0.0im 0.0+0.0im],     # x,-y,-z+1/2
                         [0.0+0.0im 0.0-1.0im; 0.0+1.0im 0.0+0.0im],     # -x+1/2,y,-z

@@ -1,4 +1,27 @@
 """
+    realify(lgirsd::AbstractDict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}}) 
+                        --> Dict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}}
+
+Apply `realify` to each value of `lgirsd`, returning a new `Dict` of realified irreps.
+"""
+function realify(lgirsd::AbstractDict{<:AbstractString, <:AbstractVector{<:AbstractIrrep}})
+    return Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd)
+end
+
+"""
+    realify!(lgirsd::AbstractDict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}})
+
+Apply `realify` to each value of `lgirsd` in-place, returning the mutated `lgirsd`.
+"""
+function realify!(lgirsd::AbstractDict{<:AbstractString, <:AbstractVector{<:AbstractIrrep}})
+    for (klab, lgirs) in lgirsd
+        lgirsd[klab] = realify(lgirs)
+    end
+    return lgirsd
+end
+
+# ---------------------------------------------------------------------------------------- #
+"""
     realify(lgirs::AbstractVector{<:LGIrrep}; verbose::Bool=false)
                                                         --> AbstractVector{<:LGIrrep}
 
@@ -87,16 +110,14 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
             if reality(lgir) == REAL
                 push!(corep_idxs, [i])
                 if verbose
-                    println(formatirreplabel(label(lgir)), 
-                            " (real) ⇒  no additional degeneracy")
+                    println(label(lgir), " (real) ⇒  no additional degeneracy")
                 end
 
             elseif reality(lgir) == PSEUDOREAL
                 # doubles irrep on its own
                 push!(corep_idxs, [i, i])
                 if verbose
-                    println(formatirreplabel(label(lgir)^2), 
-                            " (pseudo-real) ⇒  doubles degeneracy")
+                    println(label(lgir)^2, " (pseudo-real) ⇒  doubles degeneracy")
                 end
 
             elseif reality(lgir) == COMPLEX
@@ -155,8 +176,8 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
 
                         if match # ⇒ a match
                             partner = j
-                            if verbose; 
-                                println(formatirreplabel(label(lgir)*label(lgirs[j])), " (complex) ⇒  doubles degeneracy")
+                            if verbose
+                                println(label(lgir)*label(lgirs[j]), " (complex) ⇒  doubles degeneracy")
                             end
                         end
                     end
@@ -211,7 +232,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
         end
     end
     
-    return lgirs′
+    return IrrepCollection(lgirs′)
 end
 
 """
@@ -293,8 +314,10 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
                       # `AbstractIrrep`, which is probably not a great idea, but meh)
                       ntuple(i->getfield(ir, 5+i), Val(T_extrafields))...))
     end
-    return irs′
+    return IrrepCollection(irs′)
 end
+
+# ---------------------------------------------------------------------------------------- #
 
 @noinline function _check_not_corep(ir::AbstractIrrep)
     if iscorep(ir)
@@ -410,7 +433,7 @@ function calc_reality(lgir::LGIrrep{D},
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
     isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
     
-    return Reality(type) # return [∑ χ({β|b}²)]/[g₀/M(k)]
+    return type ∈ (-1, 0, 1) ? Reality(type) : UNDEF # return [∑ χ({β|b}²)]/[g₀/M(k)]
 end
 
 # Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
@@ -433,7 +456,7 @@ function calc_reality(pgir::PGIrrep)
     isapprox(imag(s),    0.0,  atol=DEFAULT_ATOL) || _throw_reality_not_real(s)
     isapprox(type_float, type, atol=DEFAULT_ATOL) || _throw_reality_not_integer(type_float)
 
-    return Reality(type) # return |g|⁻¹∑ χ(g²)
+    return type ∈ (-1, 0, 1) ? Reality(type) : UNDEF # return |g|⁻¹∑ χ(g²)
 end
 
 @noinline _throw_reality_not_integer(x) = error("Criterion must yield an integer; obtained non-integer value = $(x)")

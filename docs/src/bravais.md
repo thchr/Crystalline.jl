@@ -10,8 +10,10 @@ CurrentModule = Bravais
 
 ### Types
 ```@docs
+AbstractBasis
 DirectBasis
 ReciprocalBasis
+AbstractPoint
 DirectPoint
 ReciprocalPoint
 ```
@@ -33,20 +35,20 @@ reciprocalbasis
 ### Transformations
 ```@docs
 primitivebasismatrix
-transform(::DirectBasis, ::AbstractMatrix{<:Real})
-transform(::ReciprocalBasis, ::AbstractMatrix{<:Real})
-transform(::DirectPoint, ::AbstractMatrix{<:Real})
-transform(::ReciprocalPoint, ::AbstractMatrix{<:Real})
-primitivize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
-primitivize(::DirectBasis, ::Union{Char, <:Integer})
-primitivize(::ReciprocalBasis, ::Union{Char, <:Integer})
-primitivize(::DirectPoint, ::Union{Char, <:Integer})
-primitivize(::ReciprocalPoint, ::Union{Char, <:Integer})
-conventionalize(::Union{AbstractBasis, AbstractPoint}, ::Union{Char, <:Integer})
-conventionalize(::DirectBasis, ::Union{Char, <:Integer})
-conventionalize(::ReciprocalBasis, ::Union{Char, <:Integer})
-conventionalize(::DirectPoint, ::Union{Char, <:Integer})
-conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
+transform
+primitivize
+conventionalize
+cartesianize
+cartesianize!
+latticize
+latticize!
+```
+
+### Miscellaneous
+```@docs
+volume
+metricmatrix
+stack
 ```
 
 ## Crystalline.jl extensions of Bravais.jl functions
@@ -62,15 +64,15 @@ primitivize(::SymOperation, ::Char, ::Bool)
 conventionalize(::SymOperation, ::Char, ::Bool)
 ```
 
-### `AbstractFourierLattice`
-```@docs
-primitivize(::AbstractFourierLattice, ::Char)
-conventionalize(::AbstractFourierLattice, ::Char)
-```
-
 ### `AbstractVec`
 ```@docs
 transform(::Crystalline.AbstractVec, ::AbstractMatrix{<:Real})
 primitivize(::Crystalline.AbstractVec, ::Char)
 conventionalize(::Crystalline.AbstractVec, ::Char)
+```
+
+### `AbstractFourierLattice`
+```@docs
+primitivize(::AbstractFourierLattice, ::Char)
+conventionalize(::AbstractFourierLattice, ::Char)
 ```

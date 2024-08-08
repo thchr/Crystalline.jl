@@ -1,7 +1,24 @@
-using .PyPlot
-import .PyPlot: plot, plot3D, plt
-using Meshing
+module CrystallinePyPlotExt
+
+# Preamble --------------------------------------------------------------------------------
+
+if isdefined(Base, :get_extension)
+    using PyPlot
+    using PyPlot: plot3D, plt
+    import PyPlot: plot    
+else
+    using ..PyPlot
+    using ..PyPlot: plot3D, plt
+    import ..PyPlot: plot
+end
+using Crystalline
+using Crystalline: AbstractFourierLattice, AbstractVec, calcfouriergridded
+
+using Meshing: MarchingCubes, isosurface
 using Statistics: quantile
+using StaticArrays: SVector
+
+export mesh_3d_levelsetlattice
 
 # Defaults --------------------------------------------------------------------------------
 
@@ -47,6 +64,8 @@ function plot(Rs::AbstractBasis{D},
     # seems broken in 3D (https://github.com/matplotlib/matplotlib/pull/13474); 
     # FIXME: may raise an error in later matplotlib releases
     # ax.set_aspect("equal", adjustable="box")
+    #    actually, seems fixed after https://github.com/matplotlib/matplotlib/pull/23409
+    #    but will error on some matplotlib versions, so should be behind a version guard
     return ax
 end
 
@@ -66,13 +85,38 @@ given by `Rs::DirectBasis`. Possible kwargs are (defaults in brackets)
 
 If both `filling` and `isoval` kwargs simultaneously not equal 
 to `nothing`, then `isoval` takes precedence.
+
+## Examples
+
+Compute a modulated `FourierLattice` for a lattice in plane group 16 and plot it via
+PyPlot.jl:
+
+```julia-repl
+julia> using Crystalline, PyPlot
+julia> flat = modulate(levelsetlattice(16, Val(2)))
+julia> Rs    = directbasis(16, Val(2)) 
+julia> plot(flat, Rs)
+```
 """
 function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
-              N::Integer=(D==2 ? 100 : 20), 
-              filling::Union{Real, Nothing}=0.5, 
+              N::Integer=(D==2 ? 100 : 20),
+              filling::Union{Real, Nothing}=0.5,
               isoval::Union{Real, Nothing}=nothing,
               repeat::Union{Integer, Nothing}=nothing,
-              fig=nothing) where D
+              fig=nothing,
+              ax=nothing) where D
+
+    xyz, vals, isoval = _create_isosurf_plot_data(flat; N, filling, isoval)
+    plotiso(xyz, vals, isoval, Rs, repeat, fig, ax)
+
+    return xyz, vals, isoval
+end
+
+function _create_isosurf_plot_data(
+            flat::AbstractFourierLattice{D};
+            N::Integer=(D==2 ? 100 : 20),
+            filling::Union{Real, Nothing}=0.5,
+            isoval::Union{Real, Nothing}=nothing) where D
  
     xyz = range(-.5, .5, length=N)
     vals = calcfouriergridded(xyz, flat, N)
@@ -80,13 +124,12 @@ function plot(flat::AbstractFourierLattice, Rs::DirectBasis{D};
         isnothing(filling) && error(ArgumentError("`filling` and `isoval` cannot both be `nothing`"))
         # we don't want to "double count" the BZ edges - so to avoid that, exclude the last 
         # index of each dimension (same approach as in `MPBUtils.filling2isoval`)
-        isoidxs = OneTo(N-1)
+        isoidxs = Base.OneTo(N-1)
         vals′ = if D == 2;     (@view vals[isoidxs, isoidxs])
                 elseif D == 3; (@view vals[isoidxs, isoidxs, isoidxs])
                 end
         isoval = quantile(Iterators.flatten(vals′), filling)
     end
-    plotiso(xyz, vals, isoval, Rs, repeat, fig)
 
     return xyz, vals, isoval
 end
@@ -94,14 +137,18 @@ end
 # plot isocontour of data
 function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
                  repeat::Union{Integer, Nothing}=nothing, 
-                 fig=nothing) where D
+                 fig=nothing,
+                 ax=nothing) where D
 
-    if isnothing(fig)
-        fig = plt.figure()
-    else
-        fig.clf()
+    # If `fig` is nothing and `ax`` is nothing, we make a figure and add a subplot
+    # If `fig` is nothing but `ax`` is not nothing, we plot directly into the provided axis
+    # If `fig` is not nothing but `ax`` is nothing, we add an axis to the provided figure
+    if isnothing(ax)
+        if isnothing(fig)
+            fig = plt.figure()
+        end
+        ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
     end
-    ax = fig.add_subplot(projection= D==3 ? (using3D(); "3d") : "rectilinear")
 
     if D == 2
     # convert to a cartesian coordinate system rather than direct basis of Ri
@@ -205,12 +252,12 @@ function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::Ab
     verts′ = Matrix{Float64}(undef, Nᵛᵉʳᵗˢ, 3)
     @inbounds @simd for j in (1,2,3) # Cartesian xyz-coordinates
         R₁ⱼ, R₂ⱼ, R₃ⱼ = Rs[1][j], Rs[2][j], Rs[3][j]
-        for i in OneTo(Nᵛᵉʳᵗˢ) # vertices
+        for i in Base.OneTo(Nᵛᵉʳᵗˢ) # vertices
             verts′[i,j] = verts[i][1]*R₁ⱼ + verts[i][2]*R₂ⱼ + verts[i][3]*R₃ⱼ
         end
     end
     # convert `faces` from Nᶠᵃᶜᵉˢ-vector of 3-vectors to Nᶠᵃᶜᵉˢ×3 matrix
-    faces′ = [faces[i][j] for i in OneTo(Nᶠᵃᶜᵉˢ), j in (1,2,3)]
+    faces′ = [faces[i][j] for i in Base.OneTo(Nᶠᵃᶜᵉˢ), j in (1,2,3)]
     return verts′, faces′
 end
 
@@ -295,3 +342,5 @@ function plot(vs::AbstractVector{<:AbstractVec{D}}) where D
 end
 # Plotting a `LittleGroup`
 plot(lgs::AbstractVector{<:LittleGroup}) = plot(position.(lgs))
+
+end # module CrystallinePyPlotExt

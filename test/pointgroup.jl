@@ -44,9 +44,14 @@ end
 @testset "Generators" begin
     for (Dᵛ, gtype) in ((Val(1), PointGroup{1}), (Val(2), PointGroup{2}), (Val(3), PointGroup{3}))
         D = typeof(Dᵛ).parameters[1]
-        for iuclab in Crystalline.PGS_IUCs[D]
-            ops1 = sort(pointgroup(iuclab, Dᵛ), by=xyzt)
-            ops2 = sort(generate(generators(iuclab, gtype)), by=xyzt)
+        for iuclab in Crystalline.PG_IUCs[D]
+            ops1 = sort!(pointgroup(iuclab, Dᵛ))
+            ops2 = sort!(generate(generators(iuclab, gtype)))
+            @test ops1 ≈ ops2
+        end
+        for pgnum in 1:length(Crystalline.PG_NUM2IUC[D])
+            ops1 = sort!(pointgroup(pgnum, Dᵛ))
+            ops2 = sort!(generate(generators(pgnum, gtype)))
             @test ops1 ≈ ops2
         end
     end
@@ -60,7 +65,7 @@ end
 # conversionn to "physically real" irreps; see `corep_orthogonality_factor(..)`.
 @testset "2ⁿᵈ orthogonality theorem" begin
 for D in 1:3
-    for pgiuc in PGS_IUCs[D]
+    for pgiuc in PG_IUCs[D]
         pgirs′ = pgirreps(pgiuc, Val(D))
         Nₒₚ = order(first(pgirs′))
         # check both "ordinary" irreps and "physically real" irreps (coreps)
@@ -89,7 +94,7 @@ end # @testset "2ⁿᵈ orthogonality theorem"
 @testset "Great orthogonality theorem" begin
     αβγ = nothing
     for D in 1:3
-        for pgiuc in PGS_IUCs[D]
+        for pgiuc in PG_IUCs[D]
             pgirs = pgirreps(pgiuc, Val(D))
             Nₒₚ = order(first(pgirs))
             for (a, pgir⁽ᵃ⁾) in enumerate(pgirs) 

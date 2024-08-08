@@ -10,7 +10,7 @@ if !isdefined(Main, :LGIRS)
 end
 
 @testset "Test equivalence of parsed and loaded LGIrreps" begin
-    addition_klabs = ("WA", "HA", "KA", "PA")
+    addition_klabs = ("WA", "HA", "KA", "PA", "PC")
     for sgnum in 1:MAX_SGNUM[3]
         lgirsd′ = LGIRS′[sgnum] # parsed variant
         lgirsd  = LGIRS[sgnum]  # loaded variant; may contain more irreps than parsed ISOTROPY (cf. `manual_lgirrep_additions.jl`)

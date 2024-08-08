@@ -1,7 +1,3 @@
-```@meta
-Author = "Thomas Christensen"
-```
-
 # Symmetry operations
 
 A [`SymOperation{D}`](@ref) is a representation of a spatial symmetry operation $g=\{\mathbf{W}|\mathbf{w}\}$, composed of a rotational $\mathbf{W}$ and a translation part $\mathbf{w}$.
@@ -44,7 +40,7 @@ op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
 op1 * op2′ # equivalent to compose(op1, op2′, true)
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.
-To compute "unreduced" composition, the more precise [`compose`](@ref) variant of [`*`](@ref) can be used with an optional third argument `false`:
+To compute "unreduced" composition, the more precise [`compose`](@ref) variant of `*` can be used with an optional third argument `false`:
 ```@example operations
 compose(op1, op2′, false)
 ```
@@ -58,3 +54,6 @@ inv(op1) # inv(3₁₁₁⁺)
 ## Action of symmetry operators
 A `SymOperation` can act on vectors in direct ([`RVec`](@ref)) or reciprocal ([`KVec`](@ref)) space.
 When acting in reciprocal space, translation parts of a `SymOperation` have no effect.
+
+# Magnetic symmetry operations
+Magnetic symmetry operations that may incorporate composition with an anti-unitary time-reversal operation can be created via [`MSymOperation`](@ref) (see also [`mspacegroup`](@ref)).

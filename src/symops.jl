@@ -16,198 +16,34 @@ macro S_str(s)
     SymOperation(s)
 end
 
-"""
-    read_sgops_xyzt(sgnum::Integer, D::Integer=3)
-
-Obtains the symmetry operations in xyzt format for a given space group number `sgnum` and
-dimensionality `D` by reading from .csv files in `data/operations/sgs/`; see
-[`spacegroup`](@ref) for additional details.
-"""
-function read_sgops_xyzt(sgnum::Integer, D::Integer)
-    @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
-
-    filepath = joinpath(DATA_DIR, "operations/sgs/"*string(D)*"d/"*string(sgnum)*".csv")
-
-    return readlines(filepath)
-end
-
-function read_sggens_xyzt(sgnum::Integer, D::Integer)
-    @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
-
-    filepath = joinpath(DATA_DIR, "generators/sgs/"*string(D)*"d/"*string(sgnum)*".csv")
-
-    return readlines(filepath)
-end
-
-function _check_valid_sgnum_and_dim(sgnum::Integer, D::Integer)
-    if D == 3 
-        sgnum > 230 && _throw_invalid_sgnum(sgnum, D)
-    elseif D == 2
-        sgnum > 17  && _throw_invalid_sgnum(sgnum, D)
-    elseif D == 1
-        sgnum > 2   && _throw_invalid_sgnum(sgnum, D)
-    else
-        _throw_invalid_dim(D)
-    end
-    sgnum < 1 && throw(DomainError(sgnum, "group number must be a positive integer"))
-    return nothing
-end
-
-"""
-    spacegroup(sgnum::Integer, ::Val{D}=Val(3))
-    spacegroup(sgnum::Integer, D::Integer)          --> SpaceGroup{D}
-
-Return the space group symmetry operations for a given space group number `sgnum` and 
-dimensionality `D` as a `SpaceGroup{D}`.
-The returned symmetry operations are specified relative to the conventional basis vectors,
-i.e. are not necessarily primitive (see [`centering`](@ref)).
-If desired, operations for the primitive unit cell can subsequently be generated using 
-[`primitivize`](@ref) or [`Crystalline.reduce_ops`](@ref).
-
-The default choices for the conventional basis vectors follow the conventions of the Bilbao
-Crystallographic Server (or, equivalently, the International Tables of Crystallography), 
-which are:
-
-- Unique axis *b* (cell choice 1) for monoclinic space groups.
-- Obverse triple hexagonal unit cell for rhombohedral space groups.
-- Origin choice 2: inversion centers are placed at (0,0,0). (relevant for certain
-  centrosymmetric space groups with two possible choices; e.g., in the orthorhombic,
-  tetragonal or cubic crystal systems).
-
-See also [`directbasis`](@ref).
-
-## Data sources
-
-The symmetry operations returned by this function were originally retrieved from the [Bilbao
-Crystallographic Server, SPACEGROUP GENPOS](https://www.cryst.ehu.es/cryst/get_gen.html).
-The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
-(2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
-"""
-@inline function spacegroup(sgnum::Integer, ::Val{D}=Val(3)) where D
-    ops_str = read_sgops_xyzt(sgnum, D)
-    ops = SymOperation{D}.(ops_str)
-
-    return SpaceGroup{D}(sgnum, ops)
-end
-spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
-
-"""
-    generators(num::Integer, T::Type{AbstractGroup{D}}[, optargs])
-    generators(pgiuc::String, T::PointGroup{D}})              -->  Vector{SymOperation{D}}
-
-Return the generators of the group type `T` which may be a `SpaceGroup{D}` or a 
-`PointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group is
-determined by inputting as the first argument:
-
-- `SpaceGroup{D}`: the space group number `num::Integer`.
-- `PointGroup{D}`: the point group IUC label `pgiuc::String` (see also
-  [`pointgroup(::String)`) or the canonical point group number `num::Integer`, which can
-  optionally be supplemented by an integer-valued setting choice `setting::Integer` (see
-  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
-- `SubperiodicGroup{D}`: the subperiodic group number `num::Integer`.
-
-Setting choices match those in [`spacegroup`](@ref), [`pointgroup`](@ref), and
-[`subperiodicgroup`](@ref).
-
-Iterated composition of the returned symmetry operations will generate all operations of the
-associated space or point group (see [`generate`](@ref)).
-As an example, `generate(generators(num, `SpaceGroup{D}))` and `spacegroup(num, D)` return
-identical operations (with different sorting typically); and similarly so for point and
-subperiodic groups.
-
-## Example
-
-Generators of space group 200:
-```jldoctest
-julia> generators(200, SpaceGroup{3})
-4-element Vector{SymOperation{3}}:
- 2₀₀₁
- 2₀₁₀
- 3₁₁₁⁺
- -1
-```
-
-Generators of point group m-3m:
-```jldoctest
-julia> generators("2/m", PointGroup{3})
-2-element Vector{SymOperation{3}}:
- 2₀₁₀
- -1
-```
-
-Generators of the Frieze group 𝓅2mg:
-```jldoctest
-julia> generators(7, SubperiodicGroup{2, 1})
-2-element Vector{SymOperation{2}}:
- 2
- {m₁₀|½,0}
-```
-
-## Citing
-
-Please cite the original data sources if used in published work:
-
-- Space groups:
-  [Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
-  (2006)](https://doi.org/10.1524/zkri.2006.221.1.15);
-- Point group: Bilbao Crystallographic Server's
-  [2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html);
-- Subperiodic groups: Bilbao Crystallographic Server's
-  [SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
-
-## Extended help
-
-Note that the returned generators are not guaranteed to be the smallest possible set of
-generators; i.e., there may exist other generators with fewer elements (an example is space
-group 168 (P6), for which the returned generators are `[2₀₀₁, 3₀₀₁⁺]` even though the group
-could be generated by just `[6₀₀₁⁺]`).
-The returned generators, additionally, are not guaranteed to be
-[minimal](https://en.wikipedia.org/wiki/Generating_set_of_a_module), i.e., they may include
-proper subsets that generate the group themselves (e.g., in space group 75 (P4), the
-returned generators are `[2₀₀₁, 4₀₀₁⁺]` although the subset `[4₀₀₁⁺]` is sufficient to
-generate the group).
-The motivation for this is to expose as similar generators as possible for similar crystal
-systems (see e.g. Section 8.3.5 of the International Tables of Crystallography, Vol. A,
-Ed. 5 (ITA) for further background).
-
-Note also that, contrary to conventions in ITA, the identity operation is excluded among the
-returned generators (except in space group 1) since it composes trivially and adds no
-additional context.
-"""
-function generators(sgnum::Integer, ::Type{SpaceGroup{D}}=SpaceGroup{3}) where D
-    ops_str = read_sggens_xyzt(sgnum, D)
-
-    return SymOperation{D}.(ops_str)
-end
-# TODO: Would be cool to be able to get _minimal_ generators
-
 function xyzt2matrix(s::AbstractString, Dᵛ::Val{D}) where D
     W, w = xyzt2components(s, Dᵛ)
     return hcat(SMatrix(W), SVector(w))
 end
 
+if !isdefined(Base, :eachsplit) # compat (https://github.com/JuliaLang/julia/pull/39245)
+    eachsplit(str::T, splitter; limit::Integer=0, keepempty::Bool=true) where T = 
+                                                    split(str, splitter; limit, keepempty)
+end
 function xyzt2components(s::AbstractString, ::Val{D}) where D
-    xyzts = split(s, ',')
-    length(xyzts) == D || throw(DimensionMismatch("incompatible matrix size and string format"))
-
     # initialize zero'd MArrays for rotation/translation parts (allocation will be elided)
     W = zero(MMatrix{D, D, Float64}) # rotation
     w = zero(MVector{D, Float64})    # translation
     
     # "fill in" `W` and `w` according to content of `xyzts`
+    xyzts = eachsplit(s, ',')
     xyzt2components!(W, w, xyzts)
 
     # convert to SArrays (elides allocation since `xyzt2components!` is inlined)
     return SMatrix(W), SVector(w)
 end
 
-
-const IDX2XYZ = ('x', 'y', 'z')
-
 @inline function xyzt2components!(W::MMatrix{D,D,T}, w::MVector{D,T},
-                                  xyzts::AbstractVector{<:AbstractString}) where {D,T<:Real}
+                                  xyzts #= iterator of AbstractStrings =#) where {D,T<:Real}
 
     chars = D == 3 ? ('x','y','z') : D == 2 ? ('x','y') : ('x',)
+    d = 0 # dimension-consistency check
+
     @inbounds for (i,s) in enumerate(xyzts)
         # rotation/inversion/reflection part
         firstidx = nextidx = firstindex(s)
@@ -247,12 +83,14 @@ const IDX2XYZ = ('x', 'y', 'z')
                 w[i] = parse(T, SubString(s, nextidx, lastidx))
             end
         end
+        d = i
     end
+    d == D || throw(DimensionMismatch("incompatible matrix size and string format"))
 
     return W, w
 end
 
-
+const IDX2XYZ = ('x', 'y', 'z')
 function matrix2xyzt(O::AbstractMatrix{<:Real})
     D = size(O,1)
     buf = IOBuffer()
@@ -373,8 +211,8 @@ By default, the translation part of the ``\\{W₁W₂|w₁+W₁w₂\\}`` is redu
 ``[0,1[``, i.e. computed modulo 1. This can be toggled off (or on) by the Boolean flag
 `modτ` (enabled, i.e. `true`, by default). Returns another `SymOperation`.
 
-The multiplication operator [`*`](@ref) is overloaded for `SymOperation`s to call `compose`,
-in the manner `op1 * op2 = compose(op1, op2, modτ=true)`.
+The multiplication operator `*` is overloaded for `SymOperation`s to call `compose`, in the
+manner `op1 * op2 = compose(op1, op2, modτ=true)`.
 """
 function compose(op1::T, op2::T, modτ::Bool=true) where T<:SymOperation
     T(compose(unpack(op1)..., unpack(op2)..., modτ)...)
@@ -391,24 +229,28 @@ function compose(W₁::T, w₁::R, W₂::T, w₂::R, modτ::Bool=true) where T<:
 end
 (*)(op1::T, op2::T) where T<:SymOperation = compose(op1, op2)
 
-function reduce_translation_to_unitrange(w::SVector{D, <:Real}) where D # reduces components to range [0.0, 1.0[
-    # naïve approach to achieve semi-robust reduction of integer-translation
-    # via a slightly awful "approximate" modulo approach; basically just the
-    # equivalent of w′ .= mod.(w′,1.0), but reducing in a range DEFAULT_ATOL 
-    # around each integer.
-    w′ = mod.(w, one(eltype(w)))
-    # sometimes, mod.(w, 1.0) can omit reducing values that are very nearly 1.0
-    # due to floating point errors: we use a tolerance here to round everything 
-    # close to 0.0 or 1.0 exactly to 0.0
-    w′_cleanup = ntuple(Val(D)) do i
-        @inbounds w′ᵢ = w′[i]
-        if isapprox(round(w′ᵢ), w′ᵢ, atol=DEFAULT_ATOL)
-            zero(eltype(w))
-        else
-            w′ᵢ
+"""
+    reduce_translation_to_unitrange_q(w::AbstractVector{<:Real}) --> :: typeof(w)
+
+Reduce the components of the vector `w` to range [0.0, 1.0[, incorporating a tolerance
+`atol` in the reduction.
+"""
+function reduce_translation_to_unitrange(w::AbstractVector{<:Real}; atol=DEFAULT_ATOL)
+    # naïve approach to achieve semi-robust reduction of integer-translation via a slightly
+    # awful "approximate" modulo approach; basically just the equivalent of mod.(w′,1.0),
+    # but reducing in a range DEFAULT_ATOL around each value.
+    w′ = similar(w)
+    for (i, wᵢ) in enumerate(w)
+        w′ᵢ = mod(wᵢ, one(eltype(w)))
+        if _fastpath_atol_isapprox(round(w′ᵢ), w′ᵢ; atol)
+            # mod.(w, 1.0) occassionally does not reduce values that are very nearly 1.0
+            # due to floating point errors: we use a tolerance here to round everything 
+            # close to 0.0 or 1.0 exactly to 0.0
+            w′ᵢ = zero(eltype(w))
         end
+        @inbounds w′[i] = w′ᵢ
     end
-    return SVector{D, eltype(w)}(w′_cleanup)
+    return typeof(w)(w′)
 end
 
 """
@@ -450,20 +292,19 @@ end
 
 
 """
-    MultTable(ops::AbstractVector{<:SymOperation{D}}, modτ=true)
+    MultTable(ops::AbstractVector, modτ=true)
 
-Compute the multiplication (or Cayley) table of `ops`, an `AbstractVector` of
-`SymOperation{D}`s.
-The `modτ` keyword argument controls whether composition of operations is taken modulo
-lattice vectors (`true`, default) or not (`false`).
+Compute the multiplication (or Cayley) table of `ops`, an iterable of `SymOperation`s.
 
-A `MultTable{D}` is returned, which contains symmetry operations resulting from composition 
+A `MultTable` is returned, which contains symmetry operations resulting from composition 
 of `row` and `col` operators; the table of indices give the symmetry operators relative to
 the ordering of `ops`.
+
+## Keyword arguments
+- `modτ` (default: `true`): whether composition of operations is taken modulo lattice
+vectors (`true`) or not (`false`).
 """
-function MultTable(ops::AbstractVector{SymOperation{D}};
-                   modτ::Bool=true) where D
-    havewarned = false
+function MultTable(ops; modτ::Bool=true)
     N = length(ops)
     table = Matrix{Int}(undef, N,N)
     for (row,oprow) in enumerate(ops)
@@ -471,12 +312,12 @@ function MultTable(ops::AbstractVector{SymOperation{D}};
             op′ = compose(oprow, opcol, modτ)
             match = findfirst(≈(op′), ops)
             if isnothing(match)
-                throw(DomainError(ops, "provided operations do not form a group"))
+                throw(DomainError(ops, "provided operations do not form a group; group does not contain $op′"))
             end
             @inbounds table[row,col] = match
         end
     end
-    return MultTable{D}(ops, table)
+    return MultTable(ops, table)
 end
 
 
@@ -586,8 +427,8 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
                 cntr::Char='P') where D
     k₀, kabc = parts(kv)
     checkabc = !iszero(kabc)
-    idxlist = [1]
-    for (idx, op) in enumerate(@view ops[2:end]) # note: `idx` is offset by 1 relative to position of op in ops
+    idxlist = Int[]
+    for (idx, op) in enumerate(ops)
         k₀′, kabc′ = parts(compose(op, kv, checkabc)) # this is k₀(𝐆)′ = [g(𝐑)ᵀ]⁻¹k₀(𝐆)  
         diff = k₀′ .- k₀
         diff = primitivebasismatrix(cntr, Val(D))'*diff 
@@ -595,14 +436,23 @@ function littlegroup(ops::AbstractVector{SymOperation{D}}, kv::KVec{D},
         abcbool = checkabc ? isapprox(kabc′, kabc, atol=DEFAULT_ATOL) : true # check if kabc == kabc′; no need to check for difference by a reciprocal vec, since kabc is in interior of BZ
 
         if kbool && abcbool # ⇒ part of little group
-            push!(idxlist, idx+1) # `idx+1` is due to previously noted `idx` offset 
+            push!(idxlist, idx)
         end
     end
     return idxlist, view(ops, idxlist)
 end
-function littlegroup(sg::SpaceGroup, kv::KVec) 
+
+"""
+$(TYPEDSIGNATURES)
+
+Return the little group associated with space group `sg` at the **k**-vector `kv`.
+
+Optionally, an associated **k**-vector label `klab` can be provided; if not provided, the
+empty string is used as label.
+"""
+function littlegroup(sg::SpaceGroup, kv::KVec, klab::String="") 
     _, lgops = littlegroup(operations(sg), kv, centering(sg))
-    return LittleGroup{dim(sg)}(num(sg), kv, "", lgops)
+    return LittleGroup{dim(sg)}(num(sg), kv, klab, lgops)
 end
 
 
@@ -646,18 +496,77 @@ function orbit(g::AbstractVector{SymOperation{D}},
 end
 orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
 
+"""
+    cosets(G, H)
+
+For a subgroup `H` ``=H`` of `G` = ``G``, find a set of (left) coset representatives 
+``\\{g_i\\}`` of ``H`` in ``G``, such that (see e.g., Inui et al., Section 2.7)
+```math
+    G = \\bigcup_i g_i H.
+```
+The identity operation ``1`` is always included in ``\\{g_i\\}``.
+
+## Example
+```jldoctest cosets
+julia> G = pointgroup("6mm");
+
+julia> H = pointgroup("3");
+
+julia> Q = cosets(G, H)
+4-element Vector{SymOperation{3}}:
+ 1
+ 2₀₀₁
+ m₁₁₀
+ m₋₁₁₀
+```
+To generate the associated cosets, simply compose the representatives with `H`:
+```jldoctest cosets
+julia> [compose.(Ref(q), H) for q in Q]
+4-element Vector{Vector{SymOperation{3}}}:
+ [1, 3₀₀₁⁺, 3₀₀₁⁻]
+ [2₀₀₁, 6₀₀₁⁻, 6₀₀₁⁺]
+ [m₁₁₀, m₁₀₀, m₀₁₀]
+ [m₋₁₁₀, m₁₂₀, m₂₁₀]
+```
+"""
+function cosets(
+            G::AbstractVector{T},
+            H::AbstractVector{T}
+            ) where T<:AbstractOperation
+
+    iszero(rem(length(G), length(H))) || error("H must be a subgroup of G: failed Lagrange's theorem")
+    ind = div(length(G), length(H)) # [H:G]
+    
+    representatives = [one(T)]
+    _cosets         = Vector{T}[operations(H)]
+    sizehint!(representatives, ind)
+    sizehint!(_cosets, ind)
+    for g in G
+        any(_coset -> isapproxin(g, _coset), _cosets) && continue
+        
+        push!(representatives, g)
+        push!(_cosets, compose.(Ref(g), H))
+
+        length(representatives) == ind && break
+    end
+    length(representatives) == ind || error("failed to find a set of coset representatives")
+    return representatives
+end
+
 @doc raw"""
     compose(op::SymOperation, kv::KVec[, checkabc::Bool=true])  -->  KVec
 
-Return the composition `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a reciprocal-space vector `kv`
-``= \mathbf{k}``.
+Return the composition `op` ``= \{\mathbf{W}|\mathbf{w}\}`` and a reciprocal-space vector
+`kv` ``= \mathbf{k}``.
 
-The operation is taken to act directly, returning
+The operation is assumed to be specified the direct lattice basis, and `kv` in the
+reciprocal lattice basis. If both were specified in the Cartesian basis, `op` would act
+directly via its rotation part. However, because of the different bases, it now acts as:
 ```math
-    \mathbf{k}' = \{\mathbf{W}|\mathbf{w}\}\mathbf{k} = \mathbf{W}^{\text{T}}\mathbf{k}.
+    \mathbf{k}' = (\mathbf{W}^{\text{T}})^{-1}\mathbf{k}.
 ```
-Note the transposition of ``\mathbf{W}``, arising as a result of the implicit real-space
-basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis specification of
+Note the transposition _and_ inverse of ``\mathbf{W}``, arising as a result of the implicit
+real-space basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis of
 ``\mathbf{k}``.
 Note also that the composition of ``\{\mathbf{W}|\mathbf{w}\}`` with ``\mathbf{k}`` is
 invariant under ``\mathbf{w}``, i.e., translations do not act in reciprocal space.
@@ -669,8 +578,9 @@ performance in situations when `kabc` is zero, and several transformations are r
 """
 @inline function compose(op::SymOperation{D}, kv::KVec{D}, checkabc::Bool=true) where D
     k₀, kabc = parts(kv)
-    k₀′ = rotation(op)'*k₀
-    kabc′ = checkabc ? rotation(op)'*kabc : kabc
+    W⁻¹ᵀ = transpose(inv(rotation(op)))
+    k₀′ = W⁻¹ᵀ*k₀
+    kabc′ = checkabc ? W⁻¹ᵀ * kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
 
@@ -839,17 +749,39 @@ function transform_translation(op::SymOperation, P::AbstractMatrix{<:Real},
     end
 end
 
-# TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in many usecases
+# TODO: Maybe implement this in mutating form; lots of unnecessary allocations below in
+#       many usecases
+"""
+    reduce_ops(ops::AbstractVector{SymOperation{D}},
+               cntr::Char,
+               conv_or_prim::Bool=true,
+               modw::Bool=true) --> Vector{SymOperation{D}}
+
+Reduce the operations `ops`, removing operations that are identical in the primitive basis
+associated with the centering `cntr`. 
+
+If `conv_or_prim = false`, the reduced operations are returned in the primitive basis
+associated with `cntr`; otherwise, in the conventional.
+If `modw = true`, the comparison in the primitive basis is done modulo unit primitive
+lattice vectors; otherwise not.
+A final argument of type `::Val{P}` can be specified to indicate a subperiodic group of
+periodicity dimension `P`, different from the spatial embedding dimension `D`.
+"""
 function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
-                    conv_or_prim::Bool=true, modw::Bool=true) where D
-    P = primitivebasismatrix(cntr, Val(D))
-    ops′ = transform.(ops, Ref(P), nothing, modw) # equiv. to `primitivize.(ops, cntr, modw)` [but avoids loading P anew for each SymOperation]
+                    conv_or_prim::Bool=true, modw::Bool=true,
+                    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
+    
+    P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
+    # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
+    # for each SymOperation
+    ops′ = transform.(ops, Ref(P), nothing, modw)
+
     # remove equivalent operations
     ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
 
-    if conv_or_prim # (true) return in conventional basis
-        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw) # equiv. to conventionalize.(ops′_reduced, cntr, modw)
-    else            # (false) return in primitive basis
+    if conv_or_prim # `true`: return in conventional basis
+        return transform.(ops′_reduced, Ref(inv(P)), nothing, modw)
+    else            # `false`: return in primitive basis
         return ops′_reduced
     end
 end
@@ -857,13 +789,15 @@ end
                             conv_or_prim::Bool=true, modw::Bool=true)
     return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-primitivize(sg::T, modw::Bool=true) where T<:SpaceGroup = T(num(sg), reduce_ops(sg, false, modw))
-function primitivize(lg::T, modw::Bool=true) where T<:LittleGroup 
+function primitivize(sg::SpaceGroup, modw::Bool=true)
+    return typeof(sg)(num(sg), reduce_ops(sg, false, modw))
+end
+function primitivize(lg::LittleGroup, modw::Bool=true)
     cntr = centering(lg)
     # transform both k-point and operations
     kv′  = primitivize(position(lg), cntr)
     ops′ = reduce_ops(operations(lg), cntr, false, modw)
-    return T(num(lg), kv′, klabel(lg), ops′)
+    return typeof(lg)(num(lg), kv′, klabel(lg), ops′)
 end
 
 """
@@ -893,7 +827,9 @@ function cartesianize(op::SymOperation{D}, Rs::DirectBasis{D}) where D
     op′ = SymOperation{D}([𝐑*rotation(op)/𝐑 𝐑*translation(op)])
     return op′
 end
-cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D = SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
+function cartesianize(sg::SpaceGroup{D}, Rs::DirectBasis{D}) where D
+    return SpaceGroup{D}(num(sg), cartesianize.(operations(sg), Ref(Rs)))
+end
 
 """
     findequiv(op::SymOperation, ops::AbstractVector{SymOperation{D}}, cntr::Char) 
@@ -933,13 +869,14 @@ end
 
 """
     _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
-                                                    --> (Bool, Vector{Int})
+                                                    --> Tuple{Bool, Vector{Int}}
 
-Determine whether the group ``H`` (with operators `opsᴴ`) is a subgroup
-of the group ``G`` (with operators `opsᴳ`), i.e. whether ``H<G``, and returns
-an indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `false`), such
-that `opsᴳ[idxs]` ``≡ H``. 
-The first return argument is a Boolean (whether ``H<G``); the second is `idxs`.
+Returns a 2-tuple with elements:
+
+1. A boolean, indicating whether the group ``H`` (with operators `opsᴴ`) is a subgroup of
+   the group ``G`` (with operators `opsᴳ`), i.e. whether ``H < G``.
+2. An indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of `G`),
+   such that `opsᴳ[idxs] == opsᴴ`.
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                        opsᴴ::AbstractVector{SymOperation{D}}) where D
@@ -973,7 +910,12 @@ conventional settings, they must first be transformed to a shared setting.
 function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
                     opsᴴ::AbstractVector{SymOperation{D}}) where D
 
-    length(opsᴳ) < length(opsᴴ) && return false # fast-path early return
+    _subgroup_fastpath_checks(length(opsᴳ), length(opsᴴ)) || return false
+    return _is_setting_matched_subgroup(opsᴳ, opsᴴ)
+end
+
+function _is_setting_matched_subgroup(opsᴳ::AbstractVector{SymOperation{D}},
+                                      opsᴴ::AbstractVector{SymOperation{D}}) where D
     for h in opsᴴ
         found = false
         for g in opsᴳ
@@ -988,6 +930,12 @@ function issubgroup(opsᴳ::AbstractVector{SymOperation{D}},
         found || return false
     end
     return true
+end
+
+function _subgroup_fastpath_checks(Nᴳ::Integer, Nᴴ::Integer)
+    # "fast-path" checks for H !< G (returns false if violated, true as sentinel otherwise)
+    Nᴳ > Nᴴ || return false   # 1. Must be a proper supergroup (i.e. higher order)
+    return rem(Nᴳ, Nᴴ) == 0   # 2. Must obey Lagrange's theorem (index is an integer)
 end
 
 """
@@ -1035,9 +983,12 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Generate a group from a finite set of generators `gens`. Returns a `GenericGroup`.
+Return the group generated from a finite set of generators `gens`.
 
 ## Keyword arguments
+- `cntr` (default, `nothing`): check equivalence of operations modulo primitive lattice
+  vectors (see also `isapprox(::SymOperation, ::SymOperation, cntr::Union{Nothing, Char})`; 
+  only nonequivalent operations are included in the returned group.
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
   case, the provided generators will also be taken modulo integer lattice translations.
@@ -1057,24 +1008,25 @@ function generate(gens::AbstractVector{SymOperation{D}};
         collect(gens)
     end
     unique!(ops)
+    Ngens = length(ops)
     
+    # FIXME: there's probably a more efficient way to do this?
+    # Ideas: apparently, the group order can be inferred from the generators without
+    #        needing to compute the group itself (Schreier-Sims algorithm, see GAP; &
+    #        also the Orbit-Stabilizer theorem; https://math.stackexchange.com/a/1706006).
     while true
         Nₒₚ = length(ops)
-        # fixme: there's probably a more efficient way to do this?
-        for opᵢ in (@view ops[OneTo(Nₒₚ)]) 
-            for opⱼ in (@view ops[OneTo(Nₒₚ)])
+        for opᵢ in (@view ops[OneTo(Nₒₚ)])
+            for opⱼ in (@view ops[OneTo(Ngens)]) # every op can be written as products w/ original generators
                 opᵢⱼ = compose(opᵢ, opⱼ, modτ)
-                # FIXME: there are some _really_ strange allocations going on here, related
-                #        to the interplay between the `∉` and `push!`ing operations here; no 
-                #        clue why this happens... some sort of stack/heap conflict?
-                if !isapproxin(opᵢⱼ, ops, cntr, modτ; atol=DEFAULT_ATOL)
+                if !isapproxin(opᵢⱼ, ops, cntr, modτ)
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
-                    length(ops) > Nmax && return _throw_overflowed_generation()
+                    length(ops) > Nmax && _throw_overflowed_generation()
                 end
             end
         end
-        Nₒₚ == length(ops) && (return GenericGroup{D}(ops))
+        Nₒₚ == length(ops) && return GenericGroup{D}(ops)
     end
 end
 

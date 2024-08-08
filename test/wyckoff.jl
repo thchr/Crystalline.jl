@@ -9,14 +9,16 @@ using Crystalline: constant, free
             sg  = spacegroup(sgnum, Dᵛ)
             wps = wyckoffs(sgnum, Dᵛ)
             for wp in wps
-                g = SiteGroup(sg, wp)
+                g = sitegroup(sg, wp)
                 @test g isa SiteGroup
 
                 rv = parent(wp)
                 # test that ops in `g` leave the Wyckoff position `wp` invariant
                 for op in g
                     rv′ = op*rv
-                    @test isapprox(rv, rv′, nothing, false)
+                    @test isapprox(rv, rv′, nothing, false) # isapprox(::RVec, ::RVec)
+                    wp′ = op*wp
+                    @test isapprox(wp, wp′, nothing, false) # isapprox(::WyckoffPosition, ::WyckoffPosition)
                 end
 
                 # test that all the constant parts of the positions in the Wyckoff orbit
@@ -38,7 +40,7 @@ end
     for sgnum in 1:MAX_SGNUM[3]
         sg  = spacegroup(sgnum, Val(3))
         wps = wyckoffs(sgnum, Val(3))
-        sitegs = SiteGroup.(Ref(sg), wps)
+        sitegs = sitegroup.(Ref(sg), wps)
 
         max_sitegs = findmaximal(sitegs)
         max_wps    = position.(max_sitegs)

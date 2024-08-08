@@ -8,7 +8,35 @@ const NULL_ATOL    = 1e-11        # absolute tolerance for nullspace
 Return the number of distinct space group types across dimensions 1, 2, and 3 (indexable by
 dimensionality).
 """
-const MAX_SGNUM    = (2, 17, 230) # number of space groups in dimensions 1, 2, and 3
+const MAX_SGNUM    = (2, 17, 230)
+
+@doc raw"""
+    MAX_SUBGNUM :: ImmutableDict
+
+An immutable dictionary with values `v::Int` and keys `k::Tuple{Int,Int}`, where `v` is
+the number of distinct subperiodic group types for a given key `k = (D,P)` describing a
+subperiodic group of dimensionality `D` and periodicity `P`:
+
+- layer groups: `(D,P) = (3,2)`
+- rod groups: `(D,P) = (3,1)`
+- frieze groups: `(D,P) = (2,1)`
+"""
+const MAX_SUBGNUM = ImmutableDict((3,2)=>80, (3,1)=>75, (2,1)=>7)
+
+@doc raw"""
+    MAX_MSGNUM :: Tuple{Int,Int,Int}
+
+Analogous to `MAX_SUBGNUM`, but for the number of magnetic space groups.
+"""
+const MAX_MSGNUM  = (7, 80, 1651) # Figure 1.2.1 of Litvin's book
+
+
+@doc raw"""
+    MAX_MSUBGNUM :: Tuple{Int,Int,Int}
+
+Analogous to `MAX_SUBGNUM`, but for the number of magnetic subperiodic groups.
+"""
+const MAX_MSUBGNUM = ImmutableDict((3,2)=>528, (3,1)=>394, (2,1)=>31) # Litvin, Fig. 1.2.1
 
 # --- VECTORS ---
 # arbitrary test vector for e.g. evaluating KVecs lines/planes/volumes; 3D by default

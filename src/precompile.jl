@@ -7,7 +7,7 @@
 #                   lgirreps(MAX_SGNUM[D], Val(D))
 #                   directbasis(MAX_SGNUM[D], Val(D))
 #                   wyckoffs(MAX_SGNUM[D], Val(D))
-#                   pointgroup(PGS_IUCs[D][end], Val(D))
+#                   pointgroup(PG_IUCs[D][end], Val(D))
 #                   bandreps(MAX_SGNUM[D], D)
 #                   characters(lgirreps(MAX_SGNUM[D], Val(D))["Γ"])
 #                   MultTable(primitivize(littlegroups(MAX_SGNUM[D], Val(D))["Γ"]))

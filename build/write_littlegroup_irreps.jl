@@ -10,7 +10,7 @@ in order to ease subsequent loading of `LGIrrep`s. Input is of the type
     `LGIRS::Vector{Dict{Vector{LGIrrep}}}`
 
 intended as vector-indexed across space group number, then dict-indexed across distinct
-k-point labels, and finally vector-indexed across distinct irreps; in practice, calling 
+**k**-point labels, and finally vector-indexed across distinct irreps; in practice, calling 
 
     `__write_littlegroupirreps()`
 
@@ -19,7 +19,8 @@ There is generally no reason for a user to **ever** do this.
 
 Returns the filepath of the saved .jld2 files.
 """
-function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}}}) where D
+function __write_littlegroupirreps(
+            LGIRS::Vector{Dict{String, <:AbstractVector{LGIrrep{D}}}}) where D
 
     savepath = (@__DIR__)*"/../data/irreps/lgs/"*string(D)*"d"
     filename_lgs    = joinpath(savepath, "littlegroups_data.jld2")
@@ -50,7 +51,7 @@ function __write_littlegroupirreps(LGIRS::Vector{Dict{String, Vector{LGIrrep{D}}
         # don't want to save a bunch of zeros if all translations are zero: 
         # instead, save `nothing` as a sentinel value
         translations_list = [Union{Nothing, Vector{Vector{Float64}}}[
-                                    all(iszero, translations(lgir)) ? nothing : translations(lgir) 
+                                    all(iszero, Crystalline.translations(lgir)) ? nothing : Crystalline.translations(lgir) 
                                     for lgir in lgirs] for lgirs in values(lgirsd)] # dreadful generator, but OK...
         realities_list = [[Integer(reality(lgir)) for lgir in lgirs] for lgirs in values(lgirsd)]
         cdml_list      = [[label(lgir) for lgir in lgirs] for lgirs in values(lgirsd)]

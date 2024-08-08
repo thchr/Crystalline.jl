@@ -9,7 +9,7 @@ function show(io::IO, ::MIME"text/plain", Vs::DirectBasis)
 end
 
 # --- SymOperation ---
-function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
+function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
     
@@ -41,18 +41,19 @@ function show(io::IO, ::MIME"text/plain", op::SymOperation{D}) where D
             else
                 # just use the same sep even if the symop is specified in a nonstandard basis (e.g.
                 # cartesian); probably isn't a good general solution, but good enough for now
-                printstyled(io, sep, round(c, digits=4), color=:light_black)
+                printstyled(io, sep, round(c; digits=4), color=:light_black)
             end
         end
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
+        op isa MSymOperation && i == 1 && timereversal(op) && print(io, '′')
         i ≠ D && println(io)
     end
     return nothing
 end
 _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 # print vectors of `SymOperation`s compactly
-show(io::IO, op::SymOperation) = print(io, seitz(op))
+show(io::IO, op::AbstractOperation) = print(io, seitz(op))
 
 # --- MultTable ---
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
@@ -61,8 +62,10 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     seitz_ops = seitz.(mt.operations)
     pretty_table(io,
         getindex.(Ref(seitz_ops), mt.table);
-        row_names = seitz_ops, header = seitz_ops,
-        vlines = [1,], hlines = [:begin, 1, :end]
+        row_labels = seitz_ops,
+        header = seitz_ops,
+        vlines = [1,],
+        hlines = [:begin, 1, :end]
         )
     return nothing
 end
@@ -74,7 +77,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     if isspecial(v)
         for i in eachindex(cnst) 
             coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
-            print(io, coord)
+            prettyprint_scalar(io, coord)
             # prepare for next coordinate/termination
             i == length(cnst) ? print(io, ']') : print(io, ", ")
         end
@@ -83,7 +86,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
             # constant/fixed parts
             if !iszero(cnst[i]) || iszero(@view free[i,:]) # don't print zero, if it adds unto anything nonzero
                 coord = cnst[i] == -0.0 ? 0.0 : cnst[i] # normalize -0.0 to 0.0
-                print(io, coord)
+                prettyprint_scalar(io, coord)
             end
             # free-parameter parts
             for j in eachindex(cnst) 
@@ -93,7 +96,7 @@ function show(io::IO, ::MIME"text/plain", v::AbstractVec)
                         print(io, sgn)
                     end
                     if abs(free[i,j]) != oneunit(eltype(free)) # don't print prefactors of 1
-                        print(io, abs(free[i,j]))
+                        prettyprint_scalar(io, abs(free[i,j]))
                     end
                     print(io, j==1 ? 'α' : (j == 2 ? 'β' : 'γ'))
                 end
@@ -107,107 +110,146 @@ end
 # print arrays of `AbstractVec`s compactly
 show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 
-# --- AbstractGroup ---
-function summary(io::IO, g::T) where T<:AbstractGroup 
-    print(io, T)
-    if !(T <: GenericGroup)
-        print(io, " ⋕", num(g), " (", label(g), ")")
+function prettyprint_scalar(io, v::Real)
+    if isinteger(v)
+        print(io, Int(v))
+    else
+        # print all fractions divisible by 2, ..., 10 as fractions, and everything else
+        # as decimal
+        rv = rationalize(Int, v; tol=1e-2)
+        if isapprox(v, rv; atol=DEFAULT_ATOL)
+            print(io, rv.num, "/", rv.den)
+        else
+            print(io, v)
+        end
     end
+end
+
+function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
+    print(io, wp.mult, wp.letter, ": ") # TODO: This is `=` elsewhere; change?
+    show(io, MIME"text/plain"(), parent(wp))
+end
+
+# --- AbstractGroup ---
+function summary(io::IO, g::AbstractGroup)
+    print(io, typeof(g))
+    _print_group_descriptor(io, g; prefix=" ")
     print(io, " with ", order(g), " operations")
 end
-function show(io::IO, ::MIME"text/plain", g::T) where T<:AbstractGroup
+function show(io::IO, ::MIME"text/plain", g::AbstractGroup)
     if !haskey(io, :compact)
         io = IOContext(io, :compact => true)
     end
     summary(io, g)
     println(io, ':')
-    for (i,op) in enumerate(g)
+    for (i, op) in enumerate(g)
         print(io, ' ')
         show(io, MIME"text/plain"(), op)
         if i < order(g); println(io); end
     end
 end
-function show(io::IO, g::T) where T<:AbstractGroup
-    print(io, T, '[')
+function show(io::IO, g::AbstractGroup)
+    print(io, '[')
     join(io, g, ", ")
     print(io, ']')
 end
+function show(io::IO, g::Union{LittleGroup, SiteGroup})
+    print(io, '[')
+    join(io, g, ", ")
+    print(io, ']')
+    printstyled(io, " (", position(g), ")", color=:light_black)
+end
 
+function _print_group_descriptor(io::IO, g::AbstractGroup; prefix::AbstractString="")
+    print(io, prefix)
+    g isa GenericGroup && return nothing
+    print(io, "⋕")
+    join(io, num(g), '.') # this slightly odd approach to treat magnetic groups also
+    print(io, " (", label(g), ")")
+    if position(g) !== nothing
+        print(io, " at ")
+        print(io, fullpositionlabel(g))
+    end
+    return nothing
+end
+function _group_descriptor(g; prefix::AbstractString="")
+    return sprint( (io, _g) -> _print_group_descriptor(io, _g; prefix), g)
+end
 
 # --- LGIrrep & PGIrrep ---
-function show(io::IO, ::MIME"text/plain", plgir::Union{<:LGIrrep, <:PGIrrep})
-    lgirlab = formatirreplabel(label(plgir))
-    lablen = length(lgirlab)
+function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
+    irlab = label(ir)
+    lablen = length(irlab)
     nindent = lablen+1
-    prettyprint_header(io, lgirlab)
-    prettyprint_irrep_matrices(io, plgir, nindent)
+    prettyprint_header(io, irlab)
+    prettyprint_irrep_matrices(io, ir, nindent)
 end
-function show(io::IO, ::MIME"text/plain", plgirs::AbstractVector{T}) where T<:Union{<:LGIrrep, <:PGIrrep}
-    # TODO: This kind of show extension is bad style, afaik...
-    # Header line
-    plg = group(first(plgirs))
-    print(io, "$T: ")
-    prettyprint_group_header(io, plg)
-
-    Nᵢᵣ = length(plgirs)
-    for (i,plgir) in enumerate(plgirs)
-        show(io, MIME"text/plain"(), plgir)
-        if i != Nᵢᵣ; println(io); end
-    end
+function show(io::IO, ir::AbstractIrrep)
+    print(io, label(ir))
 end
 
 # ... utilities to print PGIrreps and LGIrreps
-function prettyprint_group_header(io::IO, plg::AbstractGroup)
-    print(io, "⋕", num(plg), " (", iuc(plg), ")")
-    if plg isa LittleGroup
-        print(io, " at " , klabel(plg), " = ")
-        show(io, MIME"text/plain"(), position(plg))
+function prettyprint_group_header(io::IO, g::AbstractGroup)
+    print(io, "⋕", num(g), " (", iuc(g), ")")
+    if g isa LittleGroup
+        print(io, " at " , klabel(g), " = ")
+        show(io, MIME"text/plain"(), position(g))
     end
     println(io)
 end
+
 function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
-                                      ϕabc_contrib::Bool=false)
+                                      ϕabc_contrib::Bool=false, digits::Int=4)
     if size(printP) == (1,1) # scalar case
         v = @inbounds printP[1]
-        prettyprint_irrep_scalars(io, v, ϕabc_contrib)
+        prettyprint_irrep_scalars(io, v, ϕabc_contrib; digits)
 
     else # matrix case
-        formatter(x) = round(x, digits=4)
+        formatter(x) = _stringify_characters(x; digits)
         # FIXME: not very optimal; e.g. makes a whole copy and doesn't handle displaysize
         compact_print_matrix(io, printP, prefix, formatter)
     end
 end
-function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
-                                    atol::Real=DEFAULT_ATOL)
 
-    if isapprox(v, real(v), atol=atol)          # real scalar
+function prettyprint_irrep_scalars(
+        io::IO, v::Number, ϕabc_contrib::Bool=false;
+        atol::Real=DEFAULT_ATOL, digits::Int=4
+    )
+
+    if norm(v) < atol
+        print(io, 0)
+    elseif isapprox(v, real(v), atol=atol)     # real scalar
         if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
             signbit(real(v)) && print(io, '-')
         else
-            print(io, real(v))
+            print(io, _stringify_characters(real(v); digits))
         end
     elseif isapprox(v, imag(v)*im, atol=atol)   # imaginary scalar
         if ϕabc_contrib && isapprox(abs(imag(v)), 1.0, atol=atol)
             signbit(imag(v)) && print(io, '-')
         else
-            print(io, imag(v))
+            print(io, _stringify_characters(imag(v); digits))
         end
         print(io, "i")
     else                                        # complex scalar (print as polar)
         vρ, vθ = abs(v), angle(v)
         vθ /= π
-        isapprox(vρ, 1.0, atol=atol) && print(io, vρ)
+        isapprox(vρ, 1.0, atol=atol) || print(io, _stringify_characters(vρ; digits))
         print(io, "exp(") 
         if isapprox(abs(vθ), 1.0, atol=atol)
             signbit(vθ) && print(io, '-')
         else
-            print(io, vθ)
+            print(io, _stringify_characters(vθ; digits))
         end
         print(io, "iπ)")
         #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
-function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString)
+
+function prettyprint_irrep_matrix(
+        io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
+        digits::Int=4
+    )
     # unpack
     k₀, kabc = parts(position(group(lgir)))
     P = lgir.matrices[i]
@@ -231,7 +273,9 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
             i = findfirst(c->abs(c)>DEFAULT_ATOL, ϕabc)
             c = ϕabc[i]
             signbit(c) && print(io, "-")
-            abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+            if !(abs(c) ≈ 0.5) # do not print if multiplicative factor is 1
+                print(io, _stringify_characters(abs(2c); digits))
+            end
 
             print(io, "iπ", 'ΰ'+i, ")") # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
 
@@ -246,7 +290,9 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
                     else
                         print(io, signaschar(c))
                     end
-                    abs(c) ≈ 0.5 || print(io, abs(2c)) # do not print if multiplicative factor is 1
+                    if !(abs(c) ≈ 0.5) # do not print if multiplicative factor is 1
+                        print(io, _stringify_characters(abs(2c); digits))
+                    end
                     print(io, 'ΰ'+i) # prints 'α', 'β', and 'γ' for i = 1, 2, and 3, respectively ('ΰ'='α'-1)
                 end
             end
@@ -254,13 +300,23 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
         end
     end
 end
-function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
-                                  nindent::Integer, nboxdelims::Integer=45)  
+
+function prettyprint_irrep_matrix(
+        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer, prefix::AbstractString
+    )
+    P = ir.matrices[i]
+    prettyprint_scalar_or_matrix(io, P, prefix, false)
+end
+
+function prettyprint_irrep_matrices(
+        io::IO, ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep}, nindent::Integer,
+        nboxdelims::Integer=45
+    )
     indent = repeat(" ", nindent)
     boxdelims = repeat("─", nboxdelims)
     linelen = nboxdelims + 4 + nindent
-    Nₒₚ = order(plgir)
-    for (i,op) in enumerate(operations(plgir))
+    Nₒₚ = order(ir)
+    for (i,op) in enumerate(operations(ir))
         print(io, indent, " ├─ ")
         opseitz, opxyzt  = seitz(op), xyzt(op)
         printstyled(io, opseitz, ": ", 
@@ -268,28 +324,54 @@ function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep},
                         " (", opxyzt, ")\n"; color=:light_black)
         #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
-        prettyprint_irrep_matrix(io, plgir, i, indent*" │     ")
+        prettyprint_irrep_matrix(io, ir, i, indent*" │     ")
         if i < Nₒₚ; println(io, '\n', indent, " │"); end
     end
     print(io, "\n", indent, " └", boxdelims)
 end
-function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Integer=45)
-    println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
+
+function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=45)
+    println(io, irlab, " ─┬", repeat("─", nboxdelims))
+end
+
+# --- IrrepCollection ---
+function summary(io::IO, c::IrrepCollection{T}) where T
+    print(io, length(c), "-element IrrepCollection{", T, "}")
+end
+function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
+    summary(io, c)
+    isassigned(c, firstindex(c)) && _print_group_descriptor(io, group(first(c)); prefix=" for ")
+    println(io, ":")
+    for i in eachindex(c)
+        if isassigned(c, i)
+            show(io, MIME"text/plain"(), c[i])
+        else
+            print(io, " #undef")
+        end
+        i ≠ length(c) && println(io)
+    end
+end
+function show(io::IO, c::IrrepCollection)
+    show(io, c.irs)
+    g = group(first(c))
+    if position(g) !== nothing
+        printstyled(io, " (", fullpositionlabel(g), ")"; color=:light_black)
+    end
 end
 
 
 # --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars = matrix(ct)
-    chars_formatted = _stringify_characters.(chars, digits=6)
+    chars_formatted = _stringify_characters.(chars; digits=4)
 
     ops = operations(ct)
-    println(io, typeof(ct), ": ", tag(ct)) # type name and space group/k-point tags
+    println(io, typeof(ct), " for ", tag(ct), ":") # type name and space group/k-point tags
     pretty_table(io,
         chars_formatted;
         # row/column names
-        row_names = seitz.(ops),                # seitz labels
-        header = formatirreplabel.(labels(ct)), # irrep labels
+        row_labels = seitz.(ops), # seitz labels
+        header = labels(ct),     # irrep labels
         tf = tf_unicode,
         vlines = [1,], hlines = [:begin, 1, :end]
         )
@@ -317,8 +399,8 @@ function _print_class_representatives(io::IO, ct::ClassCharacterTable)
     end
 end
 
-function _stringify_characters(c::Number; digits=6)
-    c′ = round(c, digits=digits)
+function _stringify_characters(c::Number; digits::Int=4)
+    c′ = round(c; digits)
     cr, ci = reim(c′)
     if iszero(ci)     # real
         isinteger(cr) && return string(Int(cr))
@@ -414,7 +496,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
                 length(BRS), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(BRS) ? "½" : "1", " ",
-                istimeinvar(BRS) ? "w/" : "w/o", " TR)")
+                BRS.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
     k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters
@@ -424,16 +506,16 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         # table contents
         matrix(BRS; includedim=true);
         # row/column names
-        row_names = vcat(irreplabels(BRS), "μ"),
+        row_labels = vcat(irreplabels(BRS), "μ"),
         header = (position.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_name_alignment = :l,
+        row_label_alignment = :l,
         alignment = :c, 
         highlighters = (h_odd, h_μ), 
         header_crayon = crayon"bold"
-        # TODO: Would be nice to highlight the `row_names` in a style matching the contents,
+        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 

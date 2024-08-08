@@ -11,14 +11,14 @@
 # │  82   │  PA₁, PA₂, PA₃, PA₄                                                         │  PA           │  S:  MonoOrthTetraCubic        │              │
 # │  121  │  PA₁, PA₂, PA₃, PA₄, PA₅                                                    │  PA           │  S:  MonoOrthTetraCubic ┐      │              │
 # │  122  │  PA₁, PA₂                                                                   │  PA           │  NS: Inherits from      └ 121  │              │
-# │  143  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
-# │  144  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
-# │  145  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │  ÷           │
+# │  143  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PC₁, PC₂, PC₃                                │  HA, KA, PC   │  S:  TriHex                    │              │
+# │  144  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PC₁, PC₂, PC₃                                │  HA, KA, PC   │  NS: Orphan (type b) ┐         │  ÷           │
+# │  145  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PC₁, PC₂, PC₃                                │  HA, KA, PC   │  NS: Orphan (type b) ┘         │  ÷           │
 # │  150  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex                    │              │
 # │  152  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┐         │  ÷           │
 # │  154  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Orphan (type b) ┘         │              │
-# │  157  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
-# │  159  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PA₁, PA₂, PA₃                                │  HA, KA, PA   │  NS: Inherits from └ 157       │              │
+# │  157  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PC₁, PC₂, PC₃                                │  HA, KA, PC   │  S:  TriHex ───────┐           │              │
+# │  159  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, PC₁, PC₂, PC₃                                │  HA, KA, PC   │  NS: Inherits from └ 157       │              │
 # │  174  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex                    │              │
 # │  189  │  HA₁, HA₂, HA₃, HA₄, HA₅, HA₆, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃  │  HA, KA, PA   │  S:  TriHex ───────┐           │              │
 # │  190  │  HA₁, HA₂, HA₃, KA₁, KA₂, KA₃, KA₄, KA₅, KA₆, PA₁, PA₂, PA₃                 │  HA, KA, PA   │  NS: Inherits from └ 189       │              │
@@ -75,7 +75,7 @@ end
 
 function assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
     lg, sgops = prepare_lg_and_sgops(sgnum, kv, klab, lgops)
-    cdmls     = Ref(klab) .* string.(1:length(Psτs))
+    cdmls     = Crystalline.formatirreplabel.(Ref(klab) .* string.(1:length(Psτs)))
     lgirs     = build_lgirrep_with_type.(cdmls, Ref(lg), Psτs, Ref(sgops))
 end
 
@@ -175,8 +175,8 @@ kv   = KVec(-1/3,-1/3,0)
 # ... same lgops & irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
-# PA₁, PA₂, PA₃
-klab = "PA"
+# PC₁, PC₂, PC₃
+klab = "PC"
 kv   = KVec("-1/3,-1/3,-w")
 # ... same lgops & irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
@@ -200,8 +200,8 @@ Psτs = [[1, 1, 1],
         [1, cispi(2/3), cispi(-2/3)],]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
-# PA₁, PA₂, PA₃
-klab = "PA"
+# PC₁, PC₂, PC₃
+klab = "PC"
 kv   = KVec("-1/3,-1/3,-w")
 Psτs = [([1, 1, 1],                    [[0.0,0,0], [0,0,1/3], [0,0,2/3]]), # nonzero τs
         ([1, cispi(-2/3), cispi(2/3)], [[0.0,0,0], [0,0,1/3], [0,0,2/3]]),
@@ -228,8 +228,8 @@ Psτs = [[1, 1, 1],
         [1, cispi(2/3), cispi(-2/3)],]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
 
-# PA₁, PA₂, PA₃
-klab = "PA"
+# PC₁, PC₂, PC₃
+klab = "PC"
 kv   = KVec("-1/3,-1/3,-w")
 # ... same lgops as HA₁, HA₂, HA₃
 Psτs = [([1, 1, 1],                    [[0.0,0,0], [0,0,2/3], [0,0,1/3]]), # nonzero τs
@@ -247,11 +247,13 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, 1, 1, -1, -1, -1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
 # ... same lgops & irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
@@ -271,6 +273,7 @@ Psτs = [[1, -1, 1, 1, 1, -1],
         [1, -1, 1, -1, -1, 1],
         [[1 0; 0 1], [cispi(-1/3) 0; 0 cispi(1/3)], [cispi(-2/3) 0; 0 cispi(2/3)], [0 1; 1 0], [0 cispi(-2/3); cispi(2/3) 0], [0 cispi(-1/3); cispi(1/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
@@ -279,6 +282,7 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, 1, 1, -1, -1, -1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
@@ -298,6 +302,7 @@ Psτs = [[1, 1, -1, -1, 1, -1],
         [1, 1, -1, 1, -1, 1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(-1/3) 0; 0 cispi(1/3)], [0 1; 1 0], [0 cispi(-1/3); cispi(1/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
@@ -306,6 +311,7 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, 1, 1, -1, -1, -1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
@@ -325,13 +331,15 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, 1, 1, -1, -1, -1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
 # ... same lgops & irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
-# PA₁, PA₂, PA₃
-klab = "PA"
+
+# PC₁, PC₂, PC₃
+klab = "PC"
 kv   = KVec("-1/3,-1/3,-w")
 # ... same lgops & irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
@@ -346,6 +354,7 @@ Psτs = [[1, 1, 1, -1im, -1im, -1im],
         [1, 1, 1, 1im, 1im, 1im],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 -1; 1 0], [0 cispi(-1/3); cispi(-2/3) 0], [0 cispi(1/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
@@ -354,8 +363,9 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, 1, 1, -1, -1, -1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
-# PA₁, PA₂, PA₃
-klab = "PA"
+
+# PC₁, PC₂, PC₃
+klab = "PC"
 kv   = KVec("-1/3,-1/3,-w")
 # ... same lgops as HA₁, HA₂, HA₃
 Psτs = [([1, 1, 1, 1, 1, 1],
@@ -380,11 +390,13 @@ Psτs = [[1, 1, 1, 1, 1, 1],
         [1, cispi(2/3), cispi(-2/3), 1, cispi(2/3), cispi(-2/3)],
         [1, cispi(2/3), cispi(-2/3), -1, cispi(-1/3), cispi(1/3)], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃, KA₄, KA₅, KA₆
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
 # ... same lgops and irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
@@ -408,11 +420,13 @@ Psτs = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [-1 0; 0 -1], [cispi(1/3) 0; 0 cispi(-1/3)], [cispi(-1/3) 0; 0 cispi(1/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0], [0 -1; -1 0], [0 cispi(-1/3); cispi(1/3) 0], [0 cispi(1/3); cispi(-1/3) 0]],
         ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃, KA₄, KA₅, KA₆
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
 # ... same lgops and irreps as HA₁, HA₂, HA₃
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")
@@ -433,6 +447,7 @@ Psτs = [[[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3
         [[1 0; 0 1], [cispi(2/3) 0; 0 cispi(-2/3)], [cispi(-2/3) 0; 0 cispi(2/3)], [1 0; 0 -1], [cispi(2/3) 0; 0 cispi(1/3)],   [cispi(-2/3) 0; 0 cispi(-1/3)], [0 1; 1 0], [0 cispi(-2/3); cispi(2/3) 0], [0 cispi(2/3); cispi(-2/3) 0], [0 1; -1 0], [0 cispi(-2/3); cispi(-1/3) 0], [0 cispi(2/3); cispi(1/3) 0]], 
         [[1 0; 0 1], [1 0; 0 1], [1 0; 0 1], [1 0; 0 -1], [1 0; 0 -1], [1 0; 0 -1], [0 1; 1 0], [0 1; 1 0], [0 1; 1 0], [0 1; -1 0], [0 1; -1 0], [0 1; -1 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # KA₁, KA₂, KA₃, KA₄, KA₅, KA₆
 klab = "KA"
 kv   = KVec(-1/3,-1/3,0)
@@ -444,6 +459,7 @@ Psτs = [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [1 0; 0 1],   [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0], [0 1; 1 0],   [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0]],
         [[1 0; 0 1], [cispi(-2/3) 0; 0 cispi(2/3)], [cispi(2/3) 0; 0 cispi(-2/3)], [-1 0; 0 -1], [cispi(1/3) 0; 0 cispi(-1/3)], [cispi(-1/3) 0; 0 cispi(1/3)], [0 1; 1 0], [0 cispi(2/3); cispi(-2/3) 0], [0 cispi(-2/3); cispi(2/3) 0], [0 -1; -1 0], [0 cispi(-1/3); cispi(1/3) 0], [0 cispi(1/3); cispi(-1/3) 0]], ]
 LGIRS_add[sgnum][klab] = assemble_lgirreps(sgnum, kv, klab, lgops, Psτs)
+
 # PA₁, PA₂, PA₃
 klab = "PA"
 kv   = KVec("-1/3,-1/3,-w")

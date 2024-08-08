@@ -1,61 +1,4 @@
 # ---------------------------------------------------------------------------------------- #
-# STRUCTS
-
-# Wyckoff positions
-struct WyckoffPosition{D} <: AbstractVec{D}
-    mult   :: Int
-    letter :: Char
-    rv     :: RVec{D} # associated with a single representative
-end
-parent(wp::WyckoffPosition)   = wp.rv
-free(wp::WyckoffPosition)     = free(parent(wp))
-constant(wp::WyckoffPosition) = constant(parent(wp))
-
-multiplicity(wp::WyckoffPosition) = wp.mult
-label(wp::WyckoffPosition) = string(multiplicity(wp), wp.letter)
-function transform(wp::WyckoffPosition, P::AbstractMatrix{<:Real})
-    return typeof(wp)(wp.mult, wp.letter, transform(parent(wp), P))
-end
-
-function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
-    print(io, wp.mult, wp.letter, ": ")
-    show(io, MIME"text/plain"(), parent(wp))
-end
-
-# Site symmetry groups
-struct SiteGroup{D} <: AbstractGroup{D}
-    num::Int
-    wp::WyckoffPosition{D}
-    operations::Vector{SymOperation{D}}
-    cosets::Vector{SymOperation{D}}
-end
-label(g::SiteGroup) = iuc(num(g), dim(g))*" at "*string(position(g))
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the cosets of a `SiteGroup` `g`.
-
-The cosets generate the orbit of the Wyckoff position `position(g)` (see
-[`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
-group, jointly with the operations in `g` itself.
-"""
-cosets(g::SiteGroup) = g.cosets
-
-"""
-$(TYPEDSIGNATURES)
-
-Return the Wyckoff position associated with a `SiteGroup`.
-"""
-position(g::SiteGroup) = g.wp
-
-function summary(io::IO, g::SiteGroup)
-    print(io, typeof(g), " ⋕", num(g), " at ", label(position(g)), " = ")
-    show(io, MIME"text/plain"(), parent(position(g)))
-    print(io, " with ", length(g), " operations")
-end
-
-# ---------------------------------------------------------------------------------------- #
 # CONSTRUCTORS/GETTERS FOR WYCKPOS
 
 """
@@ -72,9 +15,9 @@ Bilbao Crystallographic Server (from which the underlying data is sourced [^1]).
 julia> wps = wyckoffs(16, 2)
 4-element Vector{WyckoffPosition{2}}:
  6d: [α, β]
- 3c: [0.5, 0.0]
- 2b: [0.3333333333333333, 0.6666666666666666]
- 1a: [0.0, 0.0]
+ 3c: [1/2, 0]
+ 2b: [1/3, 2/3]
+ 1a: [0, 0]
 ```
 
 ## References
@@ -125,12 +68,12 @@ julia> sgnum = 16;
 julia> D = 2;
 
 julia> wp = wyckoffs(sgnum, D)[3] # pick a Wyckoff position
-2b: [0.3333333333333333, 0.6666666666666666]
+2b: [1/3, 2/3]
 
 julia> sg = spacegroup(sgnum, D);
 
-julia> g  = SiteGroup(sg, wp)
-SiteGroup{2} ⋕16 at 2b = [0.333333, 0.666667] with 3 operations:
+julia> g  = sitegroup(sg, wp)
+SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
  1
  {3⁺|1,1}
  {3⁻|0,1}
@@ -139,7 +82,7 @@ SiteGroup{2} ⋕16 at 2b = [0.333333, 0.666667] with 3 operations:
 The group structure of a `SiteGroup` can be inspected with `MultTable`:
 ```jldoctest sitegroup
 julia> MultTable(g)
-3×3 MultTable{2}:
+3×3 MultTable{SymOperation{2}}:
 ──────────┬──────────────────────────────
           │        1  {3⁺|1,1}  {3⁻|0,1} 
 ──────────┼──────────────────────────────
@@ -163,7 +106,7 @@ true
 Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
 in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
 """
-function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
+function sitegroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     Nsg  = order(sg)
     Ncoset = multiplicity(wp)
     Nsite, check = divrem(Nsg, Ncoset)
@@ -197,7 +140,7 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
         # primitive basis. This is consistent with e.g. Bilbao and makes good sense.
         # The caller is of course free to do this themselves (via their choice of basis for
         # the specified `sg` and `wp`).
-        if ( # tolerance'd equiv. of `all(isinteger, Δcnst) && all(iszero, Δfree))`
+        if ( # tolerance'd equiv. of `all(isinteger, Δcnst) && all(iszero, Δfree)`
              all(x->isapprox(x, round(x), atol=DEFAULT_ATOL), Δcnst) && 
              all(x->abs(x)≤(DEFAULT_ATOL), Δfree) )             # ⇒ site symmetry operation
 
@@ -230,9 +173,9 @@ function SiteGroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     end
     return SiteGroup{D}(num(sg), wp, siteops, cosets)
 end
-function SiteGroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
+function sitegroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
     sg = spacegroup(sgnum, Val(D))
-    return SiteGroup(sg, wp)
+    return sitegroup(sg, wp)
 end
 
 # `MulTable`s of `SiteGroup`s should be calculated with `modτ = false` always
@@ -265,8 +208,8 @@ Given a vector of `SiteGroup`s associated with the Wyckoff positions of a space 
 return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
 
 Results are returned as a `view` into the input vector (i.e. as an 
-`AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can subsequently be
-retrieved via [`wyck`](@ref).
+`AbstractVector{<:SiteGroup}`). The associated Wyckoff positions can be retrieved via
+[`position`](@ref).
 
 ## Definition
 A Wyckoff position is maximal if its site symmetry group has higher order than the site
@@ -285,13 +228,13 @@ julia> wps = wyckoffs(sgnum, Val(D));
 julia> sg  = spacegroup(sgnum, Val(D));
 
 
-julia> sitegs = SiteGroup.(Ref(sg), wps)
+julia> sitegs = sitegroup.(Ref(sg), wps)
 2-element Vector{SiteGroup{2}}:
- SiteGroup{2}[1]
- SiteGroup{2}[1, m₁₀]
+ [1] (4b: [α, β])
+ [1, m₁₀] (2a: [0, β])
 
 julia> only(findmaximal(sitegs))
-SiteGroup{2} ⋕5 at 2a = [0.0, β] with 2 operations:
+SiteGroup{2} ⋕5 (c1m1) at 2a = [0, β] with 2 operations:
  1
  m₁₀
 ```
@@ -335,7 +278,6 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     return @view sitegs[maximal]
 end
 
-
 function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
                         atol::Real=DEFAULT_ATOL) where D
     # check if solution exists to [A] v′ = v(αβγ) or [B] v′(αβγ′) = v(αβγ) by solving
@@ -349,24 +291,104 @@ function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
     # fact zero, in which can the least squares solution is a "proper" solution, signaling
     # that `v` and `v′` can intersect (at the found values of `αβγ` and `αβγ′`)
     Δcnst = constant(v′) - constant(v)
-    Δfree = if isspecial(v′) # `v′` is special; `v` is not
-        free(v)
+    if isspecial(v′) # `v′` is special; `v` is not
+        Δfree = free(v)                                     # D×D matrix
+        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
     else                     # neither `v′` nor `v` are special
-        hcat(free(v), -free(v′))
+        Δfree = hcat(free(v), -free(v′))                    # D×2D matrix
+        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
     end
-    Δfree⁻¹ = pinv(Δfree)
+    # NB: the above seemingly trivial splitting of return statements is intentional & to
+    #     avoid type-instability (because the type of `Δfree` differs in the two brances)
+end
 
-    # tedious detail:
+function _can_intersect_equivalence_check(Δcnst::StaticVector{D}, Δfree::StaticMatrix{D},
+                                          atol::Real) where D
     # to be safe, we have to check for equivalence between `v` and `v′` while accounting
     # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
     # listings that we have have in 3D, this seems to only make a difference in a single 
     # case (SG 130, wyckoff position 8f) - but there the distinction is actually needed
-    for V in Iterators.product(ntuple(_->(0.0,-1.0,1.0), Val(D))...) # loop over nearest lattice vecs
+    Δfree⁻¹ = pinv(Δfree)
+    for V in Iterators.product(ntuple(_->(0.0, -1.0, 1.0), Val(D))...) # loop over adjacent lattice vectors
         Δcnst_plus_V = Δcnst + SVector{D,Float64}(V)
         αβγ = Δfree⁻¹*Δcnst_plus_V   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
         Δ = Δcnst_plus_V - Δfree*αβγ # residual of least squares solve
         norm(Δ) < atol && return true
     end
-
     return false
 end
+
+# ---------------------------------------------------------------------------------------- #
+
+
+"""
+    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
+
+Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
+search over isomorphic point groups. The `SiteIrrep`s are in general a permutation of the
+irreps of the associated isomorphic point group.
+
+## Example
+```jldoctest
+julia> sgnum = 16;
+
+julia> sg = spacegroup(sgnum, 2);
+
+julia> wp = wyckoffs(sgnum, 2)[3] # pick the third Wyckoff position
+2b: [1/3, 2/3]
+
+julia> siteg = sitegroup(sg, wp)
+SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
+ 1
+ {3⁺|1,1}
+ {3⁻|0,1}
+
+julia> siteirs = siteirreps(siteg)
+3-element IrrepCollection{SiteIrrep{2}} for ⋕16 (p6) at 2b = [1/3, 2/3]:
+Γ₁ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     1
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     1
+    └─────────────────────────────────────────────
+Γ₂ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(-0.6667iπ)
+    └─────────────────────────────────────────────
+Γ₃ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(-0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(0.6667iπ)
+    └─────────────────────────────────────────────
+```
+"""
+function siteirreps(siteg::SiteGroup{D}) where D
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
+    pglabel = label(parent_pg)
+    pgirs = pgirreps(pglabel, Val(D))
+    
+    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
+    # .jld files apparently cache accessed content; so if we modify it, we mess with the
+    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
+    siteirs = map(pgirs) do pgir
+        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
+                     pglabel)
+    end
+    return IrrepCollection(siteirs)
+end
+mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))

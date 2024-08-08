@@ -10,18 +10,19 @@ using Combinatorics           # → `find_isomorphic_parent_pointgroup` in point
 using Requires
 using Reexport
 using DocStringExtensions
+import Graphs
 
 using Base: OneTo, @propagate_inbounds
 
 import Base: getindex, setindex!,      # → iteration/AbstractArray interface
              IndexStyle, size, copy,   # ⤶
              iterate,
-             string, isapprox, zero,
+             string, zero,
              readuntil, show, summary,
              *, +, -, ==, ImmutableDict,
              isone, one,
              convert, parent,
-             position                  # cf. https://github.com/JuliaLang/julia/issues/33799
+             sort!
 import LinearAlgebra: inv
 
 
@@ -36,12 +37,13 @@ import .SmithNormalForm: smith, Smith # TODO: remove explicit import when we upd
 export smith, Smith # export, so that loading Crystalline effectively also provides SmithNormalForm
 
 @reexport using Bravais
-import Bravais: primitivize, conventionalize, transform, centering
-using Bravais: stack, all_centeringtranslations, centeringtranslation
+import Bravais: primitivize, conventionalize, cartesianize, transform, centering
+using Bravais: stack, all_centeringtranslations, centeringtranslation,
+               centering_volume_fraction
 
 # included files and exports
 include("constants.jl")
-export MAX_SGNUM, ENANTIOMORPHIC_PAIRS
+export MAX_SGNUM, MAX_SUBGNUM, MAX_MSGNUM, MAX_MSUBGNUM, ENANTIOMORPHIC_PAIRS
 
 include("utils.jl") # useful utility methods (seldom needs exporting)
 export splice_kvpath, interpolate_kvpath
@@ -50,38 +52,66 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
-       MultTable, LGIrrep, PGIrrep,
+       IrrepCollection,
+       MultTable, LGIrrep, PGIrrep, SiteIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
-       matrix, xyzt,                        # ::SymOperation
-       getindex, rotation, translation, 
-       issymmorph,
+       matrix, xyzt,                        # ::AbstractOperation
+       rotation, translation, 
+       issymmorph,                          # ::SymOperation
        num, order, operations,              # ::AbstractGroup
        klabel, characters,                  # ::AbstractIrrep
        classcharacters,
        label, reality, group,
+       ⊕,
        israyrep,                            # ::LGIrrep
-       isspecial, translations,
+       isspecial,
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
-include("show.jl") # custom printing for structs defined in src/types.jl
-
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
 
+include("subperiodic.jl")
+export SubperiodicGroup
+
+include("magnetic/notation-data.jl")
+include("magnetic/types.jl")
+export MSymOperation, MSpaceGroup
+
+include("tables/rotation_translation.jl")
+include("tables/groups/pointgroup.jl")
+include("tables/groups/spacegroup.jl")
+include("tables/groups/subperiodicgroup.jl")
+include("tables/groups/mspacegroup.jl")
+include("tables/generators/pointgroup.jl")
+include("tables/generators/spacegroup.jl")
+include("tables/generators/subperiodicgroup.jl")
+
+include("assembly/groups/pointgroup.jl")
+include("assembly/groups/spacegroup.jl")
+include("assembly/groups/subperiodicgroup.jl")
+include("assembly/groups/mspacegroup.jl")
+export pointgroup, spacegroup, subperiodicgroup, mspacegroup
+
+include("assembly/generators/pointgroup.jl")
+include("assembly/generators/spacegroup.jl")
+include("assembly/generators/subperiodicgroup.jl")
+export generate, generators
+
+include("show.jl") # custom printing for structs defined in src/types.jl
+
+include("orders.jl")
+
 include("symops.jl") # symmetry operations for space, plane, and line groups
-export @S_str, spacegroup, compose,
+export @S_str, compose,
        issymmorph, littlegroup, orbit,
-       pointgroup,
-       cartesianize,
        reduce_ops,
-       issubgroup, isnormal,
-       generate, generators
+       issubgroup, isnormal
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
@@ -89,18 +119,18 @@ export classes, is_abelian
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, cosets,
-       findmaximal
+       SiteGroup, sitegroup, cosets,
+       findmaximal,
+       siteirreps
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation
 
 include("pointgroup.jl") # symmetry operations for crystallographic point groups
-export pointgroup, pgirreps,
-       PGS_IUCs, find_isomorphic_parent_pointgroup
+export pgirreps, PG_IUCs, find_isomorphic_parent_pointgroup
 
 include("irreps_reality.jl")
-export calc_reality, realify
+export realify, realify!, calc_reality
 
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the
@@ -125,7 +155,7 @@ include("compatibility.jl")
 export subduction_count
 
 include("bandrep.jl")
-export bandreps, matrix, classification, basisdim
+export bandreps, matrix, classification, nontrivial_factors, basisdim
 
 include("calc_bandreps.jl")
 export calc_bandreps, SiteIrrep, siteirreps
@@ -133,8 +163,18 @@ export calc_bandreps, SiteIrrep, siteirreps
 include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
-include("subperiodic.jl")
-export SubperiodicGroup, subperiodicgroup
+include("grouprelations/grouprelations.jl")
+export maximal_subgroups, minimal_supergroups
+
+# some functions are extensions of base-owned names; we need to (re)export them in order to 
+# get the associated docstrings listed by Documeter.jl
+export position, inv, isapprox
+
+# ---------------------------------------------------------------------------------------- #
+# EXTENSIONS AND JLD-FILE INITIALIZATION
+if !isdefined(Base, :get_extension)
+    using Requires # load extensions via Requires.jl on Julia versions <v1.9
+end
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
@@ -167,10 +207,15 @@ function __init__()
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
 
-    # Plotting utitilities when PyPlot is loaded (also loads Meshing.jl)
-    @require PyPlot="d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
-        include("compat/pyplot.jl") # loads PyPlot and Meshing
-        export mesh_3d_levelsetlattice
+    # load extensions via Requires.jl on Julia versions <v1.9
+    @static if !isdefined(Base, :get_extension)
+        @require PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
+            include("../ext/CrystallinePyPlotExt.jl") # loads PyPlot and Meshing
+            export mesh_3d_levelsetlattice
+        end
+        @require GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2" begin
+            include("../ext/CrystallineGraphMakieExt.jl")
+        end
     end
 end
 

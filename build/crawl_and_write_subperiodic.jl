@@ -53,8 +53,8 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 ## Use crawling functions & write information to:
-#      `/data/generators/subperiodic/{layer|rod|frieze}/`
-#      `/data/operations/subperiodic/{layer|rod|frieze}/`
+#      `/test/data/xyzt-operations/generators/subperiodic/{layer|rod|frieze}/`
+#      `/test/data/xyzt-operations/subperiodic/{layer|rod|frieze}/`
 for (D, P, sub, maxnum) in [(3,2,"layer",80), (3,1,"rod",75), (2,1,"frieze",7)]
     println(sub)
     for kind in ["operations", "generators"]
@@ -62,7 +62,7 @@ for (D, P, sub, maxnum) in [(3,2,"layer",80), (3,1,"rod",75), (2,1,"frieze",7)]
         for num in 1:maxnum
             println("    ", num)
             gens_str = crawl_subperiodic_xyzt(num, D, P, kind)
-            filename = (@__DIR__)*"/../data/$kind/subperiodic/$sub/"*string(num)*".csv"
+            filename = (@__DIR__)*"/../test/data/xyzt-$kind/subperiodic/$sub/"*string(num)*".csv"
             open(filename; write=true, create=true, truncate=true) do io
                 first = true
                 for str in gens_str

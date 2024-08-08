@@ -119,7 +119,6 @@ function find_representation(symvals::AbstractVector{<:Number},
         #       we ever actually rely on this
         return convert.(assert_return_T, msℝ)
     end
-
 end
 function find_representation(multiplet_symvals::AbstractVector{<:AbstractVector{<:Number}}, 
                              lgirs::AbstractVector{<:LGIrrep}, 

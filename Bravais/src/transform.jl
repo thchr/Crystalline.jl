@@ -65,11 +65,32 @@ const PRIMITIVE_BASIS_MATRICES = (
         'C'=>SMatrix{3,3,Float64}([1 1 0; -1 1 0; 0 0 2]./2))   # base-centered (along z)
     )
 
+function canonicalize_centering(cntr, ::Val{D}, ::Val{P}) where {D,P}
+    if D == P # space/plane/line groups
+        return cntr
+    elseif D == 3 && P == 2 # layer groups
+        return cntr == '𝑝' ? 'P' : 
+               cntr == '𝑐' ? 'C' : error(DomainError(cntr, "invalid layer group centering"))
+    elseif D == 3 && P == 1 # rod groups
+        return cntr == '𝓅' ? 'P' : error(DomainError(cntr, "invalid rod group centering"))
+    elseif D == 2 && P == 1 # frieze groups
+        return cntr == '𝓅' ? 'p' : error(DomainError(cntr, "invalid frieze group centering"))
+    else
+        throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+    end
+end
+
 @doc raw"""
     primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) --> SMatrix{D,D,Float64}
+    primitivebasismatrix(cntr::Char, ::Val{D}, ::Val{P}) --> SMatrix{D,D,Float64}
 
-Return the transformation matrix `P` that transforms a conventional unit cell with centering
-`cntr` to the corresponding primitive unit cell (in dimension `D`) in CDML setting.
+Return the transformation matrix ``\mathbf{P}`` that transforms a conventional unit cell
+with centering `cntr` to the corresponding primitive unit cell (in dimension `D` and
+periodicity `P`) in CDML setting.
+
+If `P` is not provided, it default to `D` (as e.g., applicable to Crystalline.jl's 
+`spacegroup`). If `D` and `P` differ, a subperiodic group setting is assumed (as e.g.,
+applicable to Crystalline.jl's `subperiodicgroup`).
 
 ## Transformations in direct and reciprocal space
 
@@ -140,12 +161,19 @@ frequently and more ambiguously, as the crystallographic primitive setting.
            Thus, Bravais.jl and [Spglib.jl](https://github.com/singularitti/Spglib.jl)
            transform to identical primitive settings and are hence mutually compatible.
 """
-@inline function primitivebasismatrix(cntr::Char, ::Val{D}=Val(3)) where D
-    D∉1:3 && _throw_invalid_dim(D)
+@inline function primitivebasismatrix(cntr::Char,
+                                      Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     return PRIMITIVE_BASIS_MATRICES[D][cntr]
 end
 
-@inline function centeringtranslation(cntr::Char, ::Val{D}=Val(3)) where D
+@inline function centeringtranslation(cntr::Char,
+                                      Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && throw(DomainError((D,P), "invalid combination of dimensionality D and periodicity P"))
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
     if D == 3
         if     cntr == 'P'; return zeros(SVector{3})
         elseif cntr == 'I'; return SVector((1,1,1)./2)
@@ -164,21 +192,50 @@ end
         if     cntr == 'p'; return zeros(SVector{1})
         else;               _throw_invalid_cntr(cntr, 1)
         end
-    else 
-        _throw_invalid_dim(D)
     end
+    error("unreachable reached")
 end
 
-function all_centeringtranslations(cntr::Char, Dᵛ::Val{D}=Val(3)) where D
-    if D == 3 && cntr == 'F'
+function all_centeringtranslations(cntr::Char,
+                                   Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && _throw_invalid_dim(P)
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    if cntr == 'P' || cntr == 'p'
+        # primitive cell is equal to conventional cell: 0 extra centers
+        return SVector{D,Float64}[]
+    elseif D == 3 && cntr == 'F'
         # primitive cell has 1/4th the volume of conventional cell: 3 extra centers
-        return [SVector((1,0,1)./2), SVector((0,1,1)./2), SVector((1,1,0)./2)]
+        return [SVector((0,1,1)./2), SVector((1,0,1)./2), SVector((1,1,0)./2)]
     elseif D == 3 && cntr == 'R'
         # primitive cell has 1/3rd the volume of conventional cell: 2 extra centers
         return [SVector((2,1,1)./3), SVector((1,2,2)./3)]
-    else
+    else # 'I', 'C', 'c', 'A'
         # primitive cell has half the volume of conventional cell: 1 extra center
         return [centeringtranslation(cntr, Dᵛ)]
+    end
+end
+
+"""
+    centering_volume_fraction(cntr, Dᵛ, Pᵛ) --> Int
+
+Return the (integer-) ratio between the volumes of the conventional and primitive unit cells
+for a space or subperiodic group with centering `cntr`, embedding dimension `D`, and
+periodicity dimension `P`.
+"""
+@inline function centering_volume_fraction(cntr::Char,
+                                   Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(D)) where {D,P}
+    D ∉ 1:3 && _throw_invalid_dim(D)
+    P ∉ 1:D && _throw_invalid_dim(P)
+    cntr = canonicalize_centering(cntr, Dᵛ, Pᵛ)
+    if cntr == 'P' || cntr == 'p'
+        return 1
+    elseif D == 3 && cntr == 'F'
+        return 4
+    elseif D == 3 && cntr == 'R'
+        return 3
+    else # 'I', 'C', 'c', 'A'
+        return 2
     end
 end
 
@@ -188,11 +245,10 @@ end
     reciprocalbasis(Rs)  -->  ::ReciprocalBasis{D}
     
 Return the reciprocal basis of a direct basis `Rs` in `D` dimensions, provided as a
-`DirectBasis{D}`, a `D`-dimensional `NTuple`, or a `StaticVector` of `AbstractVector`s
-(or, type-unstably, as any iterable of `AbstractVector`s).
+`StaticVector` of `AbstractVector`s (e.g., a `DirectBasis{D}`) or a `D`-dimensional `NTuple`
+of `AbstractVector`s, or a (or, type-unstably, as any iterable of `AbstractVector`s).
 """
-function reciprocalbasis(Rs::Union{DirectBasis{D}, 
-                                   NTuple{D, <:AbstractVector{<:Real}},
+function reciprocalbasis(Rs::Union{NTuple{D, <:AbstractVector{<:Real}},
                                    StaticVector{D, <:AbstractVector{<:Real}}}) where D
     if D == 3
         G₁′ = Rs[2]×Rs[3]
@@ -216,7 +272,7 @@ function reciprocalbasis(Rs::Union{DirectBasis{D},
 
     return ReciprocalBasis{D}(vecs)
 end
-reciprocalbasis(Rs) = reciprocalbasis(tuple(Rs...)) # type-unstable convenience accesor
+reciprocalbasis(Rs) = reciprocalbasis(Tuple(Rs)) # type-unstable convenience accesor
 
 # TODO: Provide a utility to go from ReciprocalBasis -> DirectBasis. Maybe deprecate
 #       `reciprocalbasis` and have a more general function `dualbasis` instead?
@@ -394,3 +450,72 @@ Return the reciprocal point `k` with coordinates in a conventional basis, corres
 the input point `k′` with coordinates in a primitive basis. 
 """
 conventionalize(::ReciprocalPoint, ::Union{Char, <:Integer})
+
+# ---------------------------------------------------------------------------------------- #
+
+const _basis_explain_str = "Depending on the object, the basis may be inferrable " * 
+            "directly from the object; if not, it must be supplied explicitly."
+
+@doc """
+    cartesianize!
+
+In-place transform an object with coordinates in an lattice basis to an object with
+coordinates in a Cartesian basis.
+
+$_basis_explain_str
+"""
+function cartesianize! end
+
+@doc """
+    cartesianize
+
+Transform an object with coordinates in an lattice basis to an object with coordinates in a
+Cartesian basis.
+
+$_basis_explain_str
+@doc """
+function cartesianize end
+
+@doc """
+    latticize!
+
+In-place transform object with coordinates in a Cartesian basis to an object with
+coordinates in a lattice basis.
+
+$_basis_explain_str
+"""
+function latticize! end
+
+@doc """
+    latticize
+
+Transform an object with coordinates in a Cartesian basis to an object with coordinates in
+a lattice basis.
+
+$_basis_explain_str
+"""
+function latticize end
+
+@doc """
+    cartesianize(v::AbstractVector{<:Real}, basis)
+
+Transform a vector `v` with coordinates referred to a lattice basis to a vector with
+coordinates referred to the Cartesian basis implied by the columns (or vectors) of `basis`.
+"""
+cartesianize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis*v
+function cartesianize(v::AbstractVector{<:Real},
+                      basis::AbstractVector{<:AbstractVector{<:Real}})
+    return v'basis
+end
+
+@doc """
+    latticize(v::AbstractVector{<:Real}, basis)
+
+Transform a vector `v` with coordinates referred to the Cartesian basis to a vector with
+coordinates referred to the lattice basis implied by the columns (or vectors) of `basis`.
+"""
+latticize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis\v
+function latticize(v::AbstractVector{<:Real},
+                   basis::AbstractVector{<:AbstractVector{<:Real}})
+    return latticize(v, reduce(hcat, basis))
+end

@@ -2,7 +2,7 @@
 # in here to avoid taking on that dependency (long load time; ~7 s)
 uniform_rand(low::Real, high::Real) = low + (high - low) * rand()
 
-"""
+#=
     relrand(lims::NTuple{2,Real}) --> Float64
 
 Computes a random number in the range specified by the two-element 
@@ -14,7 +14,7 @@ interval [-1/`lims[1]`, -1] ∪ [1, `lims[2]`].
 This is useful for ensuring an even sampling of numbers that are
 either smaller or larger than unity. E.g. for `x = relrand((0.2,5.0))`,
 `x` is equally probable to fall in inv(`x`)∈[1,5] or `x`∈[1,5].
-"""
+=#
 function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
     lowthres = (invlow - 1.0)/(invlow + high - 2.0)

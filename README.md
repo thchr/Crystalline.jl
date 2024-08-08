@@ -2,26 +2,23 @@
 
 [![Documentation (stable)][docs-stable-img]][docs-stable-url] [![Documentation (dev)][docs-dev-img]][docs-dev-url] [![Build status][ci-status-img]][ci-status-url] [![Coverage][coverage-img]][coverage-url]
 
-Tools for crystalline symmetry implemented in the Julia language.
+Tools for crystalline symmetry analysis implemented in the Julia language.
 
-This package provides access e.g. to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
+This package provides access to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
 
 ## Installation
 
-The package is registered in the General registry and can be installed via Julia's package manager from the `pkg>` prompt (accessed by typing `]` at the Julia REPL):
+The package can be installed via Julia's package manager:
 ```julia
-pkg> add Crystalline
-```
-whereafter Crystalline.jl can be loaded via
-```julia
+julia> using Pkg; Pkg.add("Crystalline")
 julia> using Crystalline
 ```
 
 ## Functionality
 
-Crystalline.jl currently provides several functionalities for line groups, plane groups, and space groups, as well as crystallographic point groups.
+Crystalline.jl provides several functionalities for line groups, plane groups, and space groups, as well as crystallographic point groups.
 
-Example usage includes:
+Example use includes:
 ```julia
 # construct a 3D `SymOperation` from its triplet form
 julia> S"x,-y,-z"
@@ -42,25 +39,25 @@ SpaceGroup{3} ⋕16 (P222) with 4 operations:
 # indexed by their k-point labels; then inspect the small irreps at the A point
 julia> lgirs = lgirreps(16, Val(3))
 julia> lgirs["A"]
-LGIrrep{3}: ⋕16 (P222) at A = [α, 0.0, 0.5]
+2-element IrrepCollection{LGIrrep{3}} for ⋕16 (P222) at A = [α, 0, 1/2]:
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1.0
-    │     
+    │     1
+    │
     ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     1.0
+    │     1
     └─────────────────────────────────────────────
 A₂ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1.0
-    │     
+    │     1
+    │
     ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     -1.0
+    │     -1
     └─────────────────────────────────────────────
 
 # construct the character table for the small irreps at the Γ point
 julia> characters(lgirs["Γ"])
-CharacterTable{3}: ⋕16 (P222 at Γ = [0.0, 0.0, 0.0])
+CharacterTable{3} for ⋕16 (P222) at Γ = [0, 0, 0]:
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
 ──────┼────────────────
@@ -71,7 +68,9 @@ CharacterTable{3}: ⋕16 (P222 at Γ = [0.0, 0.0, 0.0])
 ──────┴────────────────
 ```
 
-Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), physically real irreps (`realify`), and Bravais lattice utilities and conventions (accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais)).
+Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), subperiodic groups (`subperiodicgroup`), 3D magnetic space groups (`mspacegroup`), and physically real irreps (`realify`).
+In addition, Bravais lattice utilities and conventions are accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais).
+
 For a full description of the public API, see the [documentation][docs-dev-url].
 
 ### Current limitations
@@ -82,11 +81,11 @@ Crystalline.jl is a research package in active development: breaking changes are
 
 ## Citation
 
-If you find this package useful in your reseach, please cite our arXiv paper:
+If you find this package useful in your reseach, please cite our paper:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [arXiv:2106.10267 (2021)](https://arxiv.org/abs/2106.10267).
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [Phys. Rev. X **12**, 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066).
 
-In addition, please cite any works explicitly referenced in documentation for individual methods that you use.
+In addition, please cite any earlier works explicitly referenced in the documentation of individual functions.
 
 
 [ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg

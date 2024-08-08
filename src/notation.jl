@@ -22,13 +22,13 @@ The notation is sometimes also known as the
 @inline function iuc(sgnum::Integer, D::Integer=3)
     if D==3
         @boundscheck (sgnum ∈ 1:230) || _throw_invalid_sgnum(sgnum, 3)
-        return @inbounds SGS_IUC_NOTATION[3][sgnum]
+        return @inbounds SG_IUCs[3][sgnum]
     elseif D==2
         @boundscheck (sgnum ∈ 1:17) || _throw_invalid_sgnum(sgnum, 2)
-        return @inbounds SGS_IUC_NOTATION[2][sgnum]
+        return @inbounds SG_IUCs[2][sgnum]
     elseif D==1
         @boundscheck (sgnum ∈ 1:2) || _throw_invalid_sgnum(sgnum, 1)
-        return @inbounds SGS_IUC_NOTATION[1][sgnum]
+        return @inbounds SG_IUCs[1][sgnum]
     else
         _throw_invalid_dim(D)
     end
@@ -99,7 +99,7 @@ const SCHOENFLIES_TABLE = (
 )
 
 # IUC/Hermann-Mauguin notation, ordered relative to space/plane group number
-const SGS_IUC_NOTATION = (
+const SG_IUCs = (
 # ------------------------------------------------------------------------------------------
 # line-group notation (one dimension) [see https://en.wikipedia.org/wiki/Line_group]
 # ------------------------------------------------------------------------------------------    
@@ -413,7 +413,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     # Γ-labels there do not always refer to the CDML convention; more likely, the B&C 
     # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
     # point group irrep crawl script
-    # includes all labels in PGS_IUCs[3]
+    # includes all labels in PG_IUCs[3]
     "1"     => ImmutableDict("Γ₁"=>"A"),
     "-1"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ"),
     "2"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"B"),
@@ -478,27 +478,29 @@ Return the Mulliken label of a point group irrep `pgir`.
 
 ## Notes
 This functionality is a simple mapping between the tabulated CDML point group irrep labels
-and associated Mulliken labels, using the listings at the Bilbao Crystallographic
-Database [^1].
+and associated Mulliken labels [^1], using the listings from the Bilbao Crystallographic
+Database [^2].
 
 Ignoring subscript, the rough rules associated with assignment of Mulliken labels are:
 
 1. **Irrep dimensionality**: 
     - **1D irreps**: if a real irrep, assign A or B (B if antisymmetric under a principal 
       rotation); if a complex irrep, assigned label ¹E or ²E.
-    - **2D irreps**: assign label E
-    - **3D irreps**: assign label T
+    - **2D irreps**: assign label E.
+    - **3D irreps**: assign label T.
 2. **_u_ and _g_ subscripts**: if the group contains inversion, indicate whether irrep is
-   symmetric (g ~ gerade) or antisymmetric (ᵤ ~ ungerade) under inversion.
+   symmetric (g ~ gerade) or antisymmetric (u ~ ungerade) under inversion.
 3. **Prime superscripts**: if the group contains a mirror *m* aligned with a principal 
    rotation axis, but does *not* contain inversion, indicate whether irrep is symmetric (′) 
    or antisymmetric (′′) under this mirror.
 4. **Numeral subscripts**: the rules for assignment of numeral subscripts are too
-   too complicated in general - and indeed, we are unaware of a general coherent rule -- to
+   complicated in general - and indeed, we are unaware of a general coherent rule -- to
    describe here.
 
 ## References
-[^1]: Bilbao Crystallographic Database's
+[^1]: Mulliken, Report on Notation for the Spectra of Polyatomic Molecules, 
+      [J. Chem. Phys. *23*, 1997 (1955)](https://doi.org/10.1063/1.1740655).
+[^2]: Bilbao Crystallographic Database's
       [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
 function mulliken(pgir::PGIrrep{D}) where D

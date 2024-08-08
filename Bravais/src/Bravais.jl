@@ -23,9 +23,12 @@ export crystal,
     bravaistype,
     centering,
     primitivebasismatrix,
+    centering_volume_fraction,
     directbasis,
     reciprocalbasis,
     AbstractBasis,
+    volume,
+    metricmatrix,
     DirectBasis,
     ReciprocalBasis,
     AbstractPoint,
@@ -33,7 +36,9 @@ export crystal,
     ReciprocalPoint,
     transform,
     primitivize,
-    conventionalize
+    conventionalize,
+    cartesianize,
+    latticize
 
 # ---------------------------------------------------------------------------------------- #
 

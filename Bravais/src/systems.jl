@@ -103,7 +103,7 @@ There are 4 crystal systems in 2D and 7 in 3D (see Section 2.1.2(iii) of [^ITA5]
 
 The `Rs` must specify a set of conventional basis vectors, i.e., not generally primitive.
 For primitive basis vectors, the crystal system can be further reduced into 5 Bravais types
-in 2D and 14 in 3D (see [`@bravaistype`](@ref)).
+in 2D and 14 in 3D (see [`bravaistype`](@ref)).
 
 [^ITA6]: M.I. Aroyo, International Tables of Crystallography, Vol. A, 6th ed. (2016): Tables
          3.1.2.1 and 3.1.2.2 (or Tables 2.1.2.1, 9.1.7.1, and 9.1.7.2 of [^ITA5]).
@@ -364,8 +364,8 @@ dimension `D`.
 
 The centering type is equal to the first letter of the Hermann-Mauguin notation's label,
 i.e., `centering(sgnum, D) == first(Crystalline.iuc(sgnum, D))`. Equivalently, the
-centering type is the second and last letter of the Bravais type ([`bravais`](@ref)), i.e.,
-`centering(sgnum, D) == bravaistype(sgnum, D)`.
+centering type is the second and last letter of the Bravais type ([`bravaistype`](@ref)),
+i.e., `centering(sgnum, D) == bravaistype(sgnum, D)`.
 
 Possible values of `cntr`, depending on dimensionality `D`, are (see ITA Sec. 9.1.4):
 

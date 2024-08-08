@@ -31,7 +31,7 @@ HOLOSYMMETRIC_SGNUMS = (
 # ordered in ascending point group order (number of operators).
 # For 3D, we used Table 2 of J. Appl. Cryst. (2018). 51, 1481–1491 (https://doi.org/10.1107/S1600576718012724)
 # For 2D and 1D, the cases can be inferred from case-by-case enumeration.
-const HOLOSYMMETRIC_PGS_IUCLAB = (
+const HOLOSYMMETRIC_PG_IUCLABs = (
     ("m",),                                                         # 1D
     ("2", "mm2", "4mm",  "6mm"),                                    # 2D
     ("-1", "2/m", "mmm", "-31m", "-3m1", "4/mmm", "6/mmm", "m-3m")  # 3D
@@ -230,9 +230,9 @@ function find_holosymmetric_superpointgroup(G::SpaceGroup)
     else
         # No tricky cornercasees in 2D or 1D: we can iterate through 
         # the holosymmetric point groups to find the minimal holosymmetric
-        # supergroup, because we already sorted HOLOSYMMETRIC_PGS_IUCLAB 
+        # supergroup, because we already sorted HOLOSYMMETRIC_PG_IUCLABs 
         # by the point group order      
-        for pglab in HOLOSYMMETRIC_PGS_IUCLAB[D]
+        for pglab in HOLOSYMMETRIC_PG_IUCLABs[D]
             P = pointgroup(pglab, D) # holosymmetric point group (::PointGroup)
             if issubgroup(operations(P), F)
                 return P
