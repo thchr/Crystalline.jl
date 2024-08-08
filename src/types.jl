@@ -302,7 +302,7 @@ for op in (:(-), :(+))
     end
     @eval function $op(cnst1::AbstractVector, v2::T) where T<:AbstractVec
         length(cnst1) == dim(v2) || throw(DimensionMismatch("argument dimensions must be equal"))
-        cnst2, free2 = parts(v1)
+        cnst2, free2 = parts(v2)
         return T($op(cnst1, cnst2), $op(free2))
     end
 end
