@@ -47,7 +47,6 @@ using Crystalline, Test
     include("classification.jl")  # does topo classification agree w/ Adrian?
     include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
     include("calc_bandreps.jl")   # tests of /src/calc_bandreps.jl
-    
 
     # magnetic space groups
     include("mspacegroup.jl")
