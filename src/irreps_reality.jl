@@ -1,4 +1,27 @@
 """
+    realify(lgirsd::AbstractDict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}}) 
+                        --> Dict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}}
+
+Apply `realify` to each value of `lgirsd`, returning a new `Dict` of realified irreps.
+"""
+function realify(lgirsd::AbstractDict{<:AbstractString, <:AbstractVector{<:AbstractIrrep}})
+    return Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd)
+end
+
+"""
+    realify!(lgirsd::AbstractDict{<:AbstractIrrep, <:AbstractVector{<:AbstractIrrep}})
+
+Apply `realify` to each value of `lgirsd` in-place, returning the mutated `lgirsd`.
+"""
+function realify!(lgirsd::AbstractDict{<:AbstractString, <:AbstractVector{<:AbstractIrrep}})
+    for (klab, lgirs) in lgirsd
+        lgirsd[klab] = realify(lgirs)
+    end
+    return lgirsd
+end
+
+# ---------------------------------------------------------------------------------------- #
+"""
     realify(lgirs::AbstractVector{<:LGIrrep}; verbose::Bool=false)
                                                         --> AbstractVector{<:LGIrrep}
 
@@ -153,7 +176,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
 
                         if match # ⇒ a match
                             partner = j
-                            if verbose; 
+                            if verbose
                                 println(label(lgir)*label(lgirs[j]), " (complex) ⇒  doubles degeneracy")
                             end
                         end
@@ -209,7 +232,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
         end
     end
     
-    return lgirs′
+    return IrrepCollection(lgirs′)
 end
 
 """
@@ -291,8 +314,10 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
                       # `AbstractIrrep`, which is probably not a great idea, but meh)
                       ntuple(i->getfield(ir, 5+i), Val(T_extrafields))...))
     end
-    return irs′
+    return IrrepCollection(irs′)
 end
+
+# ---------------------------------------------------------------------------------------- #
 
 @noinline function _check_not_corep(ir::AbstractIrrep)
     if iscorep(ir)
