@@ -4,24 +4,21 @@
 
 Tools for crystalline symmetry analysis implemented in the Julia language.
 
-This package provides access e.g. to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
+This package provides access to the symmetry operations of crystalline point groups, space groups, Wyckoff positions, their irreducible representations and band representations, as well as tools for their associated manipulation.
 
 ## Installation
 
-The package can be installed via Julia's package manager from the `pkg>` prompt (accessed by typing `]` at the Julia REPL):
+The package can be installed via Julia's package manager:
 ```julia
-pkg> add Crystalline
-```
-whereafter Crystalline.jl can be loaded via
-```julia
+julia> using Pkg; Pkg.add("Crystalline")
 julia> using Crystalline
 ```
 
 ## Functionality
 
-Crystalline.jl currently provides several functionalities for line groups, plane groups, and space groups, as well as crystallographic point groups.
+Crystalline.jl provides several functionalities for line groups, plane groups, and space groups, as well as crystallographic point groups.
 
-Example usage includes:
+Example use includes:
 ```julia
 # construct a 3D `SymOperation` from its triplet form
 julia> S"x,-y,-z"
@@ -42,25 +39,25 @@ SpaceGroup{3} ⋕16 (P222) with 4 operations:
 # indexed by their k-point labels; then inspect the small irreps at the A point
 julia> lgirs = lgirreps(16, Val(3))
 julia> lgirs["A"]
-LGIrrep{3}: ⋕16 (P222) at A = [α, 0, 1/2]
+2-element IrrepCollection{LGIrrep{3}} for ⋕16 (P222) at A = [α, 0, 1/2]:
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1.0
-    │     
+    │     1
+    │
     ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     1.0
+    │     1
     └─────────────────────────────────────────────
 A₂ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1.0
-    │     
+    │     1
+    │
     ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     -1.0
+    │     -1
     └─────────────────────────────────────────────
 
 # construct the character table for the small irreps at the Γ point
 julia> characters(lgirs["Γ"])
-CharacterTable{3}: ⋕16 (P222) at Γ = [0, 0, 0]
+CharacterTable{3} for ⋕16 (P222) at Γ = [0, 0, 0]:
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
 ──────┼────────────────
@@ -86,9 +83,9 @@ Crystalline.jl is a research package in active development: breaking changes are
 
 If you find this package useful in your reseach, please cite our paper:
 
-- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and Topology of the Fundamental Gap in Photonic Crystals*, [Phys. Rev. X **12**, 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066).
+- T. Christensen, H.C. Po, J.D. Joannopoulos, & M. Soljačić, *Location and topology of the fundamental gap in photonic crystals*, [Phys. Rev. X **12**, 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066).
 
-In addition, please consider citing any earlier works explicitly referenced in the documentation of individual functions.
+In addition, please cite any earlier works explicitly referenced in the documentation of individual functions.
 
 
 [ci-status-img]:   https://github.com/thchr/Crystalline.jl/workflows/CI/badge.svg
