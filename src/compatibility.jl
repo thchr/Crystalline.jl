@@ -169,3 +169,109 @@ function _can_intersect_equivalence_check(Δcnst::StaticVector{D}, Δfree::Stati
     sentinel = zero(SVector{D, Int})
     return (; bool=false, αβγ=sentinel, αβγ′=sentinel, L=sentinel)
 end
+
+
+function remap_lgirreps_to_point_in_kstar(
+            lgirs::AbstractVector{LGIrrep{D}},
+            kv′::KVec{D},
+            coset_representatives::AbstractVector{SymOperation{D}} = 
+                        cosets(reduce_ops(spacegroup(num(first(lgirs)), Val{D}()),
+                                          centering(num(first(lgirs)))),
+                               group(first(lgirs)))
+            ) where D
+    
+    kv = position(first(lgirs))
+    kv′ == kv && return IrrepCollection(lgirs)
+
+    # feasibility checks
+    if freeparams(kv) != freeparams(kv′)
+        error(lazy"kv=$kv and kv′=$kv′ do not have the same free parameters")
+    end
+    special_bool = isspecial(kv)
+
+    # check if `kv′` is in the star of `kv`
+    kv_star = map(coset_representatives) do g # compute {star(k)}
+        g * kv
+    end
+    idx = begin
+        idx′ = findfirst(≈(kv′), kv_star)
+        if !isnothing(idx′)
+            # as first priority, we return an exact match if it exists
+            idx′
+        else
+            # otherwise, we look for any compatible match
+            findfirst(kv_star) do kv′′
+                if special_bool
+                    can_intersect(kv′′, kv′).bool
+                else
+                    # nonspecial pts: check if parallel & possibly separated by a reciprocal
+                    # vector; this is slightly more annoying because we might then have to deal
+                    # later with a nonzero reciprocal vector
+                    (kv′′.free == kv′.free || kv′′.free == -kv′.free) && 
+                    all(isinteger, kv′′.cnst - kv′.cnst)
+                end
+            end
+        end
+    end
+    isnothing(idx) && error(lazy"kv′=$kv′ is not compatible with any element in star(k)=$kv_star")
+    g = coset_representatives[something(idx)] # g ∘ kv = kv′
+
+    # remap irrep operations according to D′(h′) = D(h) = D(g⁻¹h′g),  (w/ D referencing
+    # `kv′`, and D′ referencing `kv`). I.e., we have h = g⁻¹h′g s.t. h′ = ghg⁻¹
+    lg = group(first(lgirs))
+    ops′ = similar(operations(lg));
+    for (idx, h) in enumerate(lg)
+        h′ = compose(g, compose(h, inv(g), #=modτ=#false), #=modτ=#false)
+        ops′[idx] = h′
+    end
+    lg′ = LittleGroup{D}(num(lg), kv′, klabel(lg), ops′)
+
+    # build provisional `LGIrrep`s with above operator-sorting
+    lgirs′ = map(lgirs) do lgir
+        matrices = [copy(m) for m in lgir.matrices]
+        translations = [rotation(g) * τ for τ in lgir.translations] # see (⋆)
+        # (⋆) note the rotation of the translation vector: this is necessary since the 
+        #     translation part of the original irrep has a form exp(ik⋅τ) - and in the new
+        #     setting, it needs to be in the form exp(ik′⋅τ′) but to agree with the original
+        #     phase for every free parameter, i.e., we need exp(ik⋅τ)=exp(ik′⋅τ′). Since
+        #     k′(G) = g(R)⁻¹ᵀk(G), this translates to the requirement that 
+        #     τ′(R) = rotation(g)(R)τ(R).
+        LGIrrep{D}(lgir.cdml, lg′, matrices, translations, lgir.reality, lgir.iscorep)
+    end
+
+    # if the equivalence between kv and kv′ involves a nonzero G-vector, _AND_ if the 
+    # any of `lgirs` depends on k explicitly, i.e., if any τ∈`translations.(lgirs)` are
+    # nonzero, and this dependence could impart a dependence on the nonzero G-vector,
+    # i.e., if exp(2πik(αβγ)⋅τ) could actually vary with αβγ, we need to revise the irrep
+    # data accordingly, to account for the new "starting point"; for now, we don't do this,
+    # but just throw an error to be conservative. To figure out if we're in this case, 
+    # recall that k(αβγ) = constant(k) + free(k)⋅αβγ, so that the αβγ-dependent part of the
+    # phase factor depends on a term αβγ ⋅ free(k)ᵀτ - so if free(k)ᵀτ is zero, we are safe
+    # TODO: Try to actually do this without failing; should be possible if we decompose G
+    #       into parts that are ∥/⟂ to free(k)ᵀτ (only parallel parts matter)
+    ΔG = kv_star[something(idx)].cnst - kv′.cnst
+    if (!special_bool && 
+        norm(ΔG) > DEFAULT_ATOL &&
+        any(lgir -> 
+            any(τ -> norm(transpose(free(kv)) * τ) > DEFAULT_ATOL, lgir.translations), 
+            lgirs)
+        )
+        error("nonzero reciprocal vector between nonspecial kv and kv′ requires explicit handling: not yet implemented")
+    end
+
+    # the remapped little group `lg′` might have translations that are not in a primitive 
+    # setting; that's not great for comparison with tables later, so we need to change the
+    # irreps accordingly now. This may affect the irreps of nonsymmorphic groups. We correct
+    # by effectivly "multiplying" - via the translations term - with a suitable Bloch phase
+    lg′_reduced = reduce_ops(lg′, centering(num(lg′), D))
+    for i in eachindex(lg′)
+        Δt = translation(lg′_reduced[i]) - translation(lg′[i])
+        norm(Δt) > Crystalline.DEFAULT_ATOL || continue
+        for lgir′ in lgirs′
+            lgir′.translations[i] += Δt
+        end
+        lg′.operations[i] = lg′_reduced[i]
+    end
+
+    return IrrepCollection(lgirs′)
+end
