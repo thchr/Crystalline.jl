@@ -25,8 +25,8 @@ function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:AbstractVector}) where F
     # get total number of elements across vectors in `d`
     N = sum(((_, v),) -> length(v), d)
     # preallocate output vector
-    w      = Vector{eltype}(undef, N)
-    start  = 1
+    w     = Vector{eltype}(undef, N)
+    start = 1
     for v in values(d)
         stop = start + length(v) - 1
         @inbounds for (i, j) in enumerate(start:stop)
