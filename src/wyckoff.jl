@@ -375,6 +375,7 @@ julia> siteirs = siteirreps(siteg)
     ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
     │     exp(0.6667iπ)
     └─────────────────────────────────────────────
+```
 """
 function siteirreps(siteg::SiteGroup{D}) where D
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
