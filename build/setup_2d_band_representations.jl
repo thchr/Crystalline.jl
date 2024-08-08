@@ -220,7 +220,7 @@ function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
     allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
-    timereversal && (lgirsd = realify(lgirsd))
+    timereversal && realify!(lgirsd)
 
     irlabs = reduce_dict_of_vectors(label, lgirsd)
     irdims = reduce_dict_of_vectors(irdim, lgirsd)
