@@ -130,7 +130,7 @@ include("pointgroup.jl") # symmetry operations for crystallographic point groups
 export pgirreps, PG_IUCs, find_isomorphic_parent_pointgroup
 
 include("irreps_reality.jl")
-export calc_reality, realify
+export realify, realify!, calc_reality
 
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the
