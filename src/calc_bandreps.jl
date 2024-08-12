@@ -1,10 +1,4 @@
-using LinearAlgebra
-using Crystalline
-using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
-                   _mulliken, DEFAULT_ATOL
-import Crystalline: mulliken, realify, group
-using StaticArrays
-using DocStringExtensions
+using LinearAlgebra: dot, \
 
 # The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
