@@ -484,6 +484,9 @@ function show(io::IO, ::MIME"text/plain", BR::BandRep)
     print(io, ":\n ")
     prettyprint_symmetryvector(io, BR, irreplabels(BR))
 end
+function show(io::IO, BR::BandRep)
+    prettyprint_symmetryvector(io, BR, irreplabels(BR))
+end
 
 
 # --- BandRepSet ---
