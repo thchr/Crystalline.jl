@@ -43,10 +43,12 @@ using Crystalline, Test
     # additional k-vectors in Φ-Ω ("special" representation domain vectors)
     include("holosymmetric.jl")
 
-    # band representations
-    include("classification.jl")  # does topo classification agree w/ Adrian?
-    include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
-    include("calc_bandreps.jl")   # tests of /src/calc_bandreps.jl
+    # band representations & site symmetry groups
+    include("classification.jl")  # => does topo classification agree w/ Adrian?
+    include("bandrep.jl")         # => do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
+    include("calc_bandreps.jl")   # => tests of /src/calc_bandreps.jl
+    include("isomorphic_parent_pointgroup.jl") # => do we find the same "parent" point
+                                               #    groups as Bilbao?
 
     # magnetic space groups
     include("mspacegroup.jl")
