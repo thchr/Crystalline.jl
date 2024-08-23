@@ -566,7 +566,7 @@ struct PointGroup{D} <: AbstractGroup{D, SymOperation{D}}
 end
 label(pg::PointGroup) = pg.label
 iuc(pg::PointGroup) = label(pg)
-centering(pg::PointGroup) = nothing
+centering(::PointGroup) = nothing
 
 # --- Little group ---
 """
@@ -597,6 +597,7 @@ struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
 label(g::SiteGroup) = iuc(num(g), dim(g))
+centering(::SiteGroup) = nothing
 
 """
 $(TYPEDSIGNATURES)
