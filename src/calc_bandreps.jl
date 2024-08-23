@@ -123,7 +123,12 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
         site_symmetry_index = findfirst(≈(gα′⁻¹ggα′), siteg)
         if site_symmetry_index !== nothing
             χᴳₖ += cis(2π*dot(kv′, tα′α′)) * χs[site_symmetry_index]
-            # TODO: The sign in this `cis(...)` above is different from in Elcoro's. Why?
+            # NB: The sign in this `cis(...)` above is different from in Elcoro's. 
+            #     I think this is consistent with our overall sign convention (see #12),
+            #     however, and flipping the sign causes problems for the calculation of some
+            #     subductions to `LGIrrep`s, which would be consistent with this. I.e.,
+            #     I'm fairly certain this is consistent and correct given our phase
+            #     conventions for `LGIrrep`s.
         end
     end
     return χᴳₖ
@@ -187,9 +192,16 @@ Compute the band representations of space group `sgnum` in dimension `D`, return
   **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
   just to high-symmetry points.
 
-## implementation
-The implementation is based on Elcoro et al., [Phys. Rev. B 97, 035139
-(2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
+## Notes
+All band representations associated with maximal Wyckoff positions are returned, 
+irregardless of whether they are elementary (i.e., no regard is made to whether the band
+representation is "composite"). As such, the returned band representations generally are
+a superset of the set of elementary band representations (and so contain all elementary
+band representations).
+
+## Implementation
+The implementation is based on Cano, Bradlyn, Wang, Elcoro, et al., [Phys. Rev. B **97**,
+035139 (2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
 """
 function calc_bandreps(
         sgnum::Integer,
