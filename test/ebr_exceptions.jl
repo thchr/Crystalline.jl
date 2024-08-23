@@ -30,7 +30,7 @@ function is_exceptional_br(sgnum::Integer, br::BandRep; timereversal::Bool=true)
     
     # check if site symmetry group matches
     br_sitesym_iuc = br.sitesym == "32" ? "321" : br.sitesym
-    br_sitesym_schoenflies = Crystalline.IUC2SCHOENFLIES_PGS[br_sitesym_iuc]
+    br_sitesym_schoenflies = Crystalline.PG_IUC2SCHOENFLIES[br_sitesym_iuc]
     except_sitesym == br_sitesym_schoenflies || return false # didn't match
 
     # check if site irrep matches
@@ -45,7 +45,7 @@ function is_exceptional_tr_br(sgnum::Integer, br::BandRep)
 
     # check if site symmetry group is S₄
     br_sitesym_iuc = br.sitesym == "32" ? "321" : br.sitesym
-    br_sitesym_schoenflies = Crystalline.IUC2SCHOENFLIES_PGS[br_sitesym_iuc]
+    br_sitesym_schoenflies = Crystalline.PG_IUC2SCHOENFLIES[br_sitesym_iuc]
     br_sitesym_schoenflies == "S₄" || return false
 
     # check if site irrep is E
