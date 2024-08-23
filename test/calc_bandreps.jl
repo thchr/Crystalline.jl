@@ -6,7 +6,8 @@ using Crystalline: dlm2struct
 
 # defines `is_exceptional_br` to check if a BR induced by a maximal Wyckoff position is an
 # "exceptional" BR, i.e., is in fact not an elementary BR (EBR)
-include("ebr_exceptions.jl")
+# include("ebr_exceptions.jl")
+# TODO: currently unused - figure out if we need it or not & keep/delete accordingly
 
 # ---------------------------------------------------------------------------------------- #
 
