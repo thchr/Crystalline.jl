@@ -322,11 +322,14 @@ end
 
 
 """
-    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
+    siteirreps(sitegroup::SiteGroup; mulliken::Bool=false]) --> Vector{PGIrrep}
 
 Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
 search over isomorphic point groups. The `SiteIrrep`s are in general a permutation of the
 irreps of the associated isomorphic point group.
+
+By default, the labels of the site symmetry irreps are given in the CDML notation; to
+use the Mulliken notation, set the keyword argument `mulliken` to `true` (default, `false`).
 
 ## Example
 ```jldoctest
@@ -377,10 +380,10 @@ julia> siteirs = siteirreps(siteg)
     └─────────────────────────────────────────────
 ```
 """
-function siteirreps(siteg::SiteGroup{D}) where D
+function siteirreps(siteg::SiteGroup{D}; mulliken::Bool=false) where D
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
     pglabel = label(parent_pg)
-    pgirs = pgirreps(pglabel, Val(D))
+    pgirs = pgirreps(pglabel, Val(D); mulliken)
     
     # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
     # .jld files apparently cache accessed content; so if we modify it, we mess with the
