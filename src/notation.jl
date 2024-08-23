@@ -261,7 +261,8 @@ function seitz(op::SymOperation{D}) where D
         if order > 2
             x = rand(-1:1, SVector{3, Int})
             while iszero(x×u) # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
-                x = rand(-1:1, SVector{3, Int}) 
+                x = rand(-1:1, SVector{3, Int})
+                iszero(u) && error("rotation axis has zero norm; input is likely invalid")
             end
             Z = hcat(u, x, detW*(W*x))
             print(io_pgop, signbit(det(Z)) ? '⁻' : '⁺')
@@ -369,7 +370,11 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
         # there is near-infinitesimal chance that u′ is zero for random v, but check anyway
         u′ = Yₖ*rand(SVector{3, Float64})
     end
-    norm = minimum(Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
+    # TODO: this ought to be more robust: the below doesn't allow for axes that are e.g.,
+    #       [2 3 0]; only axes that have a `1` somewhere; in general, we need to find a way
+    #       to e.g., "multiply-up" [1, 1.333333, 0] to [3, 4, 0]. Conceptually, it is
+    #       related to identifying a floating-point analogue of gcd.
+    norm = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
     u′ = u′/norm # normalize
     u  = round.(Int, u′) # convert from float to integer and check validity of conversion
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
