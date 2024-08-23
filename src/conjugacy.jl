@@ -27,7 +27,8 @@ explicitly as `nothing`.
 """
 function classes(
             ops::AbstractVector{SymOperation{D}},
-            cntr::Union{Char, Nothing}=nothing
+            cntr::Union{Char, Nothing}=nothing,
+            _modτ::Bool=!(ops isa SiteGroup) # `SiteGroup` elements compose w/ `modτ=false`
             ) where D
 
     ops⁻¹ = inv.(ops)
@@ -47,7 +48,7 @@ function classes(
         conj_class = push!(conj_classes, [a])[end]
         push!(classified, i)
         for (g, g⁻¹) in zip(ops, ops⁻¹)
-            b = g*a*g⁻¹
+            b = compose(compose(g, a, _modτ), g⁻¹, _modτ)
             if all(Base.Fix1(!≈, b), conj_class) # check that `b` is not already in class
                 add_to_class!(classified, conj_class, b, ops)
             end
@@ -67,7 +68,7 @@ function classes(
                     # translation additions to `conj_class`, i.e. to ensure convergence
                     new_additions = 0
                     for cntr_op in cntr_ops
-                        b′ = cntr_op*b
+                        b′ = compose(cntr_op, b, _modτ)
                         if all(Base.Fix1(!≈, b′), conj_class)
                             new_additions += add_to_class!(classified, conj_class, b′, ops)
                         end
@@ -107,7 +108,10 @@ A group ``G`` is Abelian if all its elements commute mutually, i.e., if
 
 See discussion of the setting argument `cntr` in [`classes`](@ref).
 """
-function is_abelian(ops::AbstractVector{SymOperation{D}}, cntr::Union{Char, Nothing}=nothing) where D
+function is_abelian(
+            ops::AbstractVector{SymOperation{D}},
+            cntr::Union{Char, Nothing}=nothing
+            ) where D
     return length(classes(ops, cntr)) == length(ops)
 end
 is_abelian(g::AbstractGroup) = is_abelian(g, centering(g))
