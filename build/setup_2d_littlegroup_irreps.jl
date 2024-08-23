@@ -73,7 +73,7 @@ function _find_isomorphic_parent_pointgroup(G)
             return P
         end
     end
-    return nothing # in case we didn't find any isomorphic parent
+    error("failed to find an isomorphic parent point group")
 end
 
 # build little group irreps of tabulated k-points by matching up to the assoc. point group

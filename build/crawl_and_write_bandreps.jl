@@ -2,7 +2,8 @@ using Crystalline, HTTP
 import ProgressMeter: @showprogress
 
 # crawling functionality
-const BANDREP_URL="http://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl"
+const BANDREP_URL="https://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl"
+
 """
     crawlbandreps(sgnum::Integer, allpaths::Bool=false, timereversal::Bool=true)
                                                        --> ::String (valid HTML table)
@@ -26,16 +27,16 @@ function crawlbandreps(sgnum::Integer, allpaths::Bool=false, timereversal::Bool=
     # with (true ⇒ "Elementary TR") or without (false ⇒ "Elementary") time-reversal symmetry
     brtype = timereversal ? "Elementary TR" : "Elementary"
     brtypename = lowercasefirst(filter(!isspace, brtype))
-    
-    inputs = "super=$(sgnum)&"*                     # inputs to <form> ... </form>, in POST mode; 
-             "$(brtypename)=$(brtype)&"*            # inputs are supplied as name=value pairs, 
-             "nomaximal=$(allpaths ? "yes" : "no")" # with distinct inputs separated by '&' 
-                                                    # (see e.g. https://stackoverflow.com/a/8430062/9911781)
+    allpaths_post = allpaths ? "yes" : "no"
+    inputs = "super=$(sgnum)&"*          # inputs to <form> ... </form>, in POST mode;
+             "$(brtypename)=$(brtype)&"* # inputs are supplied as name=value pairs, with
+             "nomaximal=$allpaths_post"  # distinct inputs separated by '&' (see e.g.,
+                                         # (see e.g. https://stackoverflow.com/a/8430062/9911781)
     response = HTTP.post(BANDREP_URL, [], inputs)
     body = String(response.body)
     startstring = r"\<tr\>\<td(?:.*?)\>Wyckoff pos."
-    startidx=findfirst(startstring, body)[1]
-    stopidx=findlast("</td></tr></table>",body)[end]
+    startidx = findfirst(startstring, body)[1]
+    stopidx = findlast("</td></tr></table>",body)[end]
     table_html="<table>"*body[startidx:stopidx]
 
     return table_html
@@ -110,8 +111,8 @@ function writebandreps(sgnum, allpaths, timereversal=true)
 end
 
 # run to crawl everything... (takes ∼5 min)
-for allpaths in [true, false]
-    for timereversal in [true, false]
+for allpaths in (true, false)
+    for timereversal in (true, false)
         @info "allpaths=$allpaths, timereversal=$timereversal"
         @showprogress 0.1 "Crawling ..." for sgnum in 1:MAX_SGNUM[3]
             writebandreps(sgnum, allpaths, timereversal)
