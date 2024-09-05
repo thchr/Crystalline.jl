@@ -26,3 +26,4 @@ abc = norm.(Rs′)
 
 @test abc ≈ [2.0,3.0,3.0]      atol=1e-3 # norm accuracy from [1] is low
 @test αβγ ≈ [60.0,75.31,70.32] atol=3e-1 # angle accuracy from [1] is _very_ low
+@test Rs′ ≈ transform(Rs, P)

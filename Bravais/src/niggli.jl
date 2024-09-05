@@ -4,7 +4,7 @@
 Reduce a set of primitive basis vectors `Rs` to a basis for the corresponding Niggli-reduced
 unit cell. 
 Returns the reduced basis `Rs′` and the corresponding transformation matrix `P`, such that
-`Rs′ = Rs * P`.
+`Rs′ = transform(Rs, P)` (see [`transform`](@ref)).
 
 ## Keyword arguments
 
@@ -72,14 +72,14 @@ function niggli_reduce(
         if A > B + ϵ || (abs(A-B) < ϵ && abs(ξ) < abs(η) + ϵ)
             P′ = @SMatrix [0 -1 0; -1 0 0; 0 0 -1] # swap (A,ξ) ↔ (B,η)
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
         end
 
         # step A2                                      B > C || (B == C && abs(η) > abs(ζ))
         if B > C + ϵ || (abs(B-C) < ϵ && abs(η) > abs(ζ) + ϵ)
             P′ = @SMatrix [-1 0 0; 0 0 -1; 0 -1 0] # swap (B,η) ↔ (C,ζ)
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
             continue # restart from step A1
         end
 
@@ -88,7 +88,7 @@ function niggli_reduce(
             i, j, k = ifelse(ξ < -ϵ, -1, 1), ifelse(η < -ϵ, -1, 1), ifelse(ζ < -ϵ, -1, 1)
             P′ = @SMatrix [i 0 0; 0 j 0; 0 0 k] # update (ξ,η,ζ) to (|ξ|,|η|,|ζ|) 
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
         end
 
         # step A4                                                                 ξ*η*ζ ≤ 0
@@ -97,14 +97,14 @@ function niggli_reduce(
             i, j, k = _stepA4_ijk(l, m, n)
             P′ = @SMatrix [i 0 0; 0 j 0; 0 0 k] # update (ξ,η,ζ) to (-|ξ|,-|η|,-|ζ|)
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
         end
 
         # step A5                      abs(ξ) > B || (ξ == B && 2η < ζ) || (ξ == -B, ζ < 0)
         if abs(ξ) > B + ϵ || (abs(B-ξ) < ϵ && 2η < ζ - ϵ) || (abs(ξ + B) < ϵ && ζ < -ϵ)
             P′ = @SMatrix [1 0 0; 0 1 ifelse(ξ > 0, -1, 1); 0 0 1]
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
             continue # restart from step A1
         end
 
@@ -112,7 +112,7 @@ function niggli_reduce(
         if abs(η) > A + ϵ || (abs(η-A) < ϵ && 2ξ < ζ - ϵ) || (abs(η+A) < η && ζ < -ϵ)
             P′ = @SMatrix [1 0 ifelse(η > 0, -1, 1); 0 1 0; 0 0 1]
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
             continue # restart from step A1
         end
 
@@ -120,7 +120,7 @@ function niggli_reduce(
         if abs(ζ) > A + ϵ || (abs(ζ-A) < ϵ && 2ξ < η - ϵ) || (abs(ζ+A) < ϵ && η < -ϵ)
             P′ = @SMatrix [1 ifelse(ζ > 0, -1, 1) 0; 0 1 0; 0 0 1]
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
             continue # restart from step A1
         end
 
@@ -128,26 +128,16 @@ function niggli_reduce(
         if ξ + η + ζ + A + B < -ϵ || (abs(ξ + η + ζ + A + B) < ϵ && 2(A + η) + ζ > ϵ)
             P′ = @SMatrix [1 0 1; 0 1 1; 0 0 1]
             P *= P′
-            A, B, C, ξ, η, ζ = niggli_parameters(update_basis_vectors(Rs, P))
+            A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
             continue # restart from step A1
         end
 
         # end of steps, without being returned to step A1 → we are done
-        Rs′ = update_basis_vectors(Rs, P)
+        Rs′ = transform(Rs, P)
         return Rs′, P
     end
 
     error("Niggli reduction did not converge after $max_iterations iterations")
-end
-
-intsign(x::Real) = signbit(x) ? -1 : 1
-tolsign(x::Real, ϵ::Real) = abs(x) > ϵ ? intsign(x) : 0 # -1 if x<-ϵ, +1 if x>ϵ, else 0
-
-function update_basis_vectors(Rs, P)
-    Rm = stack(Rs)
-    Rm′ = Rm * P
-    Rs′ = DirectBasis{3}(Rm′[:,1], Rm′[:,2], Rm′[:,3])
-    return Rs′
 end
 
 function niggli_parameters(Rs)
@@ -164,6 +154,9 @@ function niggli_parameters(Rs)
     ζ = 2dot(a, b)
     return A, B, C, ξ, η, ζ
 end
+
+intsign(x::Real) = signbit(x) ? -1 : 1
+tolsign(x::Real, ϵ::Real) = abs(x) > ϵ ? intsign(x) : 0 # -1 if x<-ϵ, +1 if x>ϵ, else 0
 
 function _stepA4_ijk(l::Int, m::Int, n::Int)
     i = j = k = 1
