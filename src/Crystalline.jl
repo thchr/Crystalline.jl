@@ -175,6 +175,9 @@ export position, inv, isapprox
 if !isdefined(Base, :get_extension)
     using Requires # load extensions via Requires.jl on Julia versions <v1.9
 end
+# define functions we want to extend and have accessible via `Crystalline.(...)` if an
+# extension is loaded
+function _create_isosurf_plot_data end # implemented on CrystallinePyPlotExt load
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
