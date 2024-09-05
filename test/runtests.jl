@@ -2,11 +2,14 @@ using Crystalline, Test
 
 @testset "Crystalline" begin
     # basic symmetry operations
-    include("basisvecs.jl")
     include("symops.jl")
     include("SquareStaticMatrices.jl")
     include("groups_xyzt_vs_coded.jl")
     include("generators_xyzt_vs_coded.jl")
+
+    # Bravais.jl
+    include("niggli.jl")
+    include("basisvecs.jl")
 
     # abstractvecs
     include("kvecs.jl")

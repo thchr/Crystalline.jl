@@ -38,7 +38,8 @@ export crystal,
     primitivize,
     conventionalize,
     cartesianize,
-    latticize
+    latticize,
+    niggli_reduce
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -46,5 +47,6 @@ include("utils.jl")
 include("types.jl")
 include("systems.jl")
 include("transform.jl")
+include("niggli.jl")
 
 end # module
