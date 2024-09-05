@@ -1,4 +1,4 @@
-using Bravais
+using Crystalline # reexports Bravais's API
 using LinearAlgebra: norm
 
 # Example from Krivy & Gruber [1](https://doi.org/10.1107/S0567739476000636):
