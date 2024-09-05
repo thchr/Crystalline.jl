@@ -9,13 +9,16 @@ Returns the reduced basis `Rs′` and the corresponding transformation matrix `P
 ## Definition
 
 A Niggli-reduced basis ``(\\mathbf{a}, \\mathbf{b}, \\mathbf{c})`` represents a unique
-choice of basis for any given lattice; this is one of the main motivations for computing
-the Niggli reduction procedure.
+choice of basis for any given lattice (or, more precisely, a unique choice of the basis
+vector lengths ``|\\mathbf{a}|, |\\mathbf{b}|, |\\mathbf{c}|``, and mutual angles between 
+``\\mathbf{a}, \\mathbf{b}, \\mathbf{c}``): this is one of the main motivations for
+computing the Niggli reduction procedure.
 Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\mathbf{b},
 \\mathbf{c})``, fulfil several conditions [3]:
 
 1. **"Main" conditions:**
-    - The basis vectors are ordered by increasing length: ``a ≤ b ≤ c``.
+    - The basis vectors are sorted by increasing length:
+      ``|\\mathbf{a}| ≤ |\\mathbf{b}| ≤ |\\mathbf{c}|``.
     - The angles between basis vectors are either all acute or all non-acute.
 2. **"Special" conditions:**
     - Several special conditions, applied in "special" cases, such as

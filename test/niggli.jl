@@ -27,3 +27,24 @@ abc = norm.(Rs′)
 @test abc ≈ [2.0,3.0,3.0]      atol=1e-3 # norm accuracy from [1] is low
 @test αβγ ≈ [60.0,75.31,70.32] atol=3e-1 # angle accuracy from [1] is _very_ low
 @test Rs′ ≈ transform(Rs, P)
+
+# the angles and lengths of the Niggli bases extracted from two equivalent lattice bases,
+# mutually related by an element of SL(3, ℤ), must be the same (Niggli cell is unique)
+P1 = [1 2 3; 0 1 8; 0 0 1]
+P2 = [1 0 0; -3 1 0; -9 2 1]
+P  = P2 * P1 # random an element of SL(3, ℤ) (i.e., `det(P) == 1`)
+for sgnum in 1:MAX_SGNUM[3]
+    Rs  = directbasis(sgnum)
+    Rs′ = transform(Rs, P)
+    niggli_Rs  = niggli_reduce(Rs)[1]
+    niggli_Rs′ = niggli_reduce(Rs′)[1]
+    abc  = norm.(niggli_Rs)
+    abc′ = norm.(niggli_Rs′)
+    αβγ  = [Bravais.angles(niggli_Rs)...]
+    αβγ′ = [Bravais.angles(niggli_Rs′)...]
+    @test abc ≈ abc′
+    @test αβγ ≈ αβγ′
+    @test sort(abc) == abc # sorted by increasing norm
+    ϵ_ϕ = 1e-10 # angle tolerance in comparisons below
+    @test all(ϕ -> ϕ<π/2 + ϵ_ϕ, αβγ) || all(ϕ -> ϕ>π/2 - ϵ_ϕ, αβγ)
+end
