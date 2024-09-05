@@ -6,6 +6,22 @@ unit cell.
 Returns the reduced basis `Rs′` and the corresponding transformation matrix `P`, such that
 `Rs′ = transform(Rs, P)` (see [`transform`](@ref)).
 
+## Definition
+
+A Niggli-reduced basis ``(\\mathbf{a}, \\mathbf{b}, \\mathbf{c})`` represents a unique
+choice of basis for any given lattice; this is one of the main motivations for computing
+the Niggli reduction procedure.
+Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\mathbf{b},
+\\mathbf{c})``, fulfil several conditions [3]:
+
+1. **"Main" conditions:**
+    - The basis vectors are ordered by increasing length: ``a ≤ b ≤ c``.
+    - The angles between basis vectors are either all acute or all non-acute.
+2. **"Special" conditions:**
+    - Several special conditions, applied in "special" cases, such as
+      ``|\\mathbf{a}| = |\\mathbf{b}|`` or 
+      `\\mathbf{b}\\cdot\\mathbf{c} = \\tfrac{1}{2}|\\mathbf{b}|^2`. See [3] for details.
+
 ## Keyword arguments
 
 - `rtol :: Real`: relative tolerance used in the Grosse-Kunstleve approach for floating point
@@ -29,6 +45,7 @@ algorithm proposed in [1] simply does not work on floating point hardware).
 [2] R.W. Grosse-Kunstleve, N.K. Sauter, & P.D. Adams, Numerically stable algorithms for the
     computation of reduced unit cells,
     [Acta Crystallogr. A **60**, 1 (2004)](https://doi.org/10.1107/S010876730302186X)
+[3] Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
 """
 function niggli_reduce(
             Rs :: AbstractVector{<:AbstractVector{<:Real}};
