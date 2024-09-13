@@ -80,9 +80,13 @@ end
 
 """ 
     crystalsystem(Rs::DirectBasis{D})  -->  String
+    crystalsystem(Gs::ReciprocalBasis{D})  -->  String
 
-Determine the crystal system of a point lattice `Rs`, assuming the conventional setting
-choice defined in the International Tables of Crystallography [^ITA6].
+Determine the crystal system of a point lattice with `DirectBasis` `Rs`, assuming the
+conventional setting choice defined in the International Tables of Crystallography [^ITA6].
+
+If a `ReciprocalBasis` `Gs` is provided for the associated reciprocal point lattice, the
+crystal system is determined by first transforming to the direct lattice.
 
 There are 4 crystal systems in 2D and 7 in 3D (see Section 2.1.2(iii) of [^ITA5]):
 
@@ -131,8 +135,7 @@ function crystalsystem(Rs::DirectBasis{D}) where D
             
     elseif D == 3 
         # TODO: Generalize this to work for non-standard orientations of the lattice/
-        #       lattice-vector orderings. If that is done, this can be safely applied to 
-        #       ReciprocalBasis as well (only a problem in 3D).
+        #       lattice-vector orderings
         a,b,c = norm.(Rs)
         α,β,γ = angles(Rs)
         if a≈b≈c && α≈β≈γ≈°(90)             # cubic        (cP, cI, cF)
@@ -156,6 +159,10 @@ function crystalsystem(Rs::DirectBasis{D}) where D
         throw(DomainError(D, "dimension must be 1, 2, or 3"))
     end
     return system
+end
+function crystalsystem(Gs::ReciprocalBasis{D}) where D
+    Rs = DirectBasis{D}(reciprocalbasis(Gs).vs)
+    return crystalsystem(Rs)
 end
 
 

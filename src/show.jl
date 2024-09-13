@@ -1,14 +1,5 @@
-# --- DirectBasis ---
-function show(io::IO, ::MIME"text/plain", Vs::DirectBasis)
-    # cannot use for ReciprocalBasis at the moment (see TODO in `crystalsystem`)
-    print(io, typeof(Vs))
-    print(io, " ($(crystalsystem(Vs))):")
-    for (i,V) in enumerate(Vs)
-        print(io, "\n   ", V)
-    end
-end
-
-# --- SymOperation ---
+# ---------------------------------------------------------------------------------------- #
+# SymOperation
 function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
@@ -55,7 +46,9 @@ _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 # print vectors of `SymOperation`s compactly
 show(io::IO, op::AbstractOperation) = print(io, seitz(op))
 
-# --- MultTable ---
+# ---------------------------------------------------------------------------------------- #
+# MultTable
+
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
     summary(io, mt)
     println(io, ":")
@@ -70,7 +63,9 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     return nothing
 end
 
-# --- AbstractVec ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractVec
+
 function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     cnst, free = parts(v)
     print(io, '[')
@@ -130,7 +125,9 @@ function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
     show(io, MIME"text/plain"(), parent(wp))
 end
 
-# --- AbstractGroup ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractGroup
+
 function summary(io::IO, g::AbstractGroup)
     print(io, typeof(g))
     _print_group_descriptor(io, g; prefix=" ")
@@ -176,7 +173,9 @@ function _group_descriptor(g; prefix::AbstractString="")
     return sprint( (io, _g) -> _print_group_descriptor(io, _g; prefix), g)
 end
 
-# --- LGIrrep & PGIrrep ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractIrrep
+
 function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
     irlab = label(ir)
     lablen = length(irlab)
@@ -334,7 +333,9 @@ function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=4
     println(io, irlab, " ─┬", repeat("─", nboxdelims))
 end
 
-# --- IrrepCollection ---
+# ---------------------------------------------------------------------------------------- #
+# IrrepCollection
+
 function summary(io::IO, c::IrrepCollection{T}) where T
     print(io, length(c), "-element IrrepCollection{", T, "}")
 end
@@ -359,8 +360,9 @@ function show(io::IO, c::IrrepCollection)
     end
 end
 
+# ---------------------------------------------------------------------------------------- #
+# CharacterTable
 
-# --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars = matrix(ct)
     chars_formatted = _stringify_characters.(chars; digits=4)
@@ -421,8 +423,9 @@ function _complex_as_compact_string(c::Complex) # usual string(::Complex) has sp
     return String(take!(io))
 end
 
+# ---------------------------------------------------------------------------------------- #
+# BandRep
 
-# --- BandRep ---
 function prettyprint_symmetryvector(
             io::IO, 
             irvec::AbstractVector{<:Real},
@@ -488,8 +491,9 @@ function show(io::IO, BR::BandRep)
     prettyprint_symmetryvector(io, BR, irreplabels(BR))
 end
 
+# ---------------------------------------------------------------------------------------- #
+# BandRepSet
 
-# --- BandRepSet ---
 function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
     Nⁱʳʳ = length(irreplabels(BRS))
     Nᵉᵇʳ = length(BRS)

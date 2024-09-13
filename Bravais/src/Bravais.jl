@@ -45,6 +45,7 @@ export crystal,
 
 include("utils.jl")
 include("types.jl")
+include("show.jl")
 include("systems.jl")
 include("transform.jl")
 include("niggli.jl")

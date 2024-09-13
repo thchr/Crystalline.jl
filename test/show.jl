@@ -33,23 +33,31 @@ test_tp_show(v, observed::AbstractString) = test_show(repr(MIME"text/plain"(), v
 Rs = DirectBasis([1,0,0], [0,1,0], [0,0,1]) # cubic
 str = """
       DirectBasis{3} (cubic):
-         [1.0, 0.0, 0.0]
-         [0.0, 1.0, 0.0]
-         [0.0, 0.0, 1.0]"""
+       [1.0, 0.0, 0.0]
+       [0.0, 1.0, 0.0]
+       [0.0, 0.0, 1.0]"""
 test_tp_show(Rs, str)
 
 Rs = DirectBasis([1,0,0], [-0.5, √(3)/2, 0.0], [0, 0, 1.5]) # hexagonal
 str = """
       DirectBasis{3} (hexagonal):
-         [1.0, 0.0, 0.0]
-         [-0.5, 0.8660254037844386, 0.0]
-         [0.0, 0.0, 1.5]"""
+       [1.0, 0.0, 0.0]
+       [-0.5, 0.8660254037844386, 0.0]
+       [0.0, 0.0, 1.5]"""
 test_tp_show(Rs, str)
 Rs′ = directbasis(183, Val(3))
 @test Rs[1] ≈ Rs′[1] && Rs[2] ≈ Rs′[2]
 @test abs(dot(Rs[1], Rs′[3])) < 1e-14
 @test abs(dot(Rs[2], Rs′[3])) < 1e-14
 @test abs(dot(Rs[3], Rs′[3])) > 1e-1
+
+Gs = reciprocalbasis(Rs)
+str = """
+      ReciprocalBasis{3} (hexagonal):
+       [6.283185307179586, 3.6275987284684357, -0.0]
+       [0.0, 7.255197456936871, 0.0]
+       [0.0, -0.0, 4.1887902047863905]"""
+test_tp_show(Gs, str)
 
 # -------------------------------
 # SymOperation
@@ -425,7 +433,7 @@ BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
 ────┼────────────────────────
  μ  │ 1   1   1   1   2   2
 ────┴────────────────────────
-  KVecs (maximal only): Γ, T, Y, Z, L"""
+  KVecs: Γ, T, Y, Z, L"""
 test_tp_show(brs, str)
 
 test_tp_show(brs[1],   "1-band BandRep (A₁↑G at 4a):\n [Γ₁, T₁, Y₁, Z₁, L₁]")
