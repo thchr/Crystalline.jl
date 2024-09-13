@@ -39,7 +39,7 @@ export crystal,
     conventionalize,
     cartesianize,
     latticize,
-    niggli_reduce
+    nigglibasis
 
 # ---------------------------------------------------------------------------------------- #
 

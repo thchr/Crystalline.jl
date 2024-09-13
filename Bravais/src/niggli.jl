@@ -1,9 +1,8 @@
 """
-    niggli_reduce(Rs; rtol=1e-5, max_iterations=200)
+    nigglibasis(Rs; rtol=1e-5, max_iterations=200)
 
-Reduce a set of primitive basis vectors `Rs` to a basis for the corresponding Niggli-reduced
-unit cell. 
-Returns the reduced basis `Rs′` and the corresponding transformation matrix `P`, such that
+Given a set of primitive basis vectors `Rs`, return a basis `Rs′` for the corresponding
+Niggli-reduced unit cell, as well as a transformation matrix `P`, such that
 `Rs′ = transform(Rs, P)` (see [`transform`](@ref)).
 
 ## Definition
@@ -11,8 +10,8 @@ Returns the reduced basis `Rs′` and the corresponding transformation matrix `P
 A Niggli-reduced basis ``(\\mathbf{a}, \\mathbf{b}, \\mathbf{c})`` represents a unique
 choice of basis for any given lattice (or, more precisely, a unique choice of the basis
 vector lengths ``|\\mathbf{a}|, |\\mathbf{b}|, |\\mathbf{c}|``, and mutual angles between 
-``\\mathbf{a}, \\mathbf{b}, \\mathbf{c}``): this is one of the main motivations for
-computing the Niggli reduction procedure.
+``\\mathbf{a}, \\mathbf{b}, \\mathbf{c}``). This uniqueness is one of the main motivations
+for computing the Niggli reduction procedure, as it enables easy comparison of lattices.
 Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\mathbf{b},
 \\mathbf{c})``, fulfil several conditions [3]:
 
@@ -25,17 +24,20 @@ Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\math
       ``|\\mathbf{a}| = |\\mathbf{b}|`` or 
       `\\mathbf{b}\\cdot\\mathbf{c} = \\tfrac{1}{2}|\\mathbf{b}|^2`. See [3] for details.
 
+Equivalently, the Niggli-reduced basis fulfils the following geometric conditions (Section
+9.3.1 of [3]):
+- The basis vectors are sorted by increasing length.
+- The basis vectors have least possible total length, i.e., ``|\\mathbf{a}| + |\\mathbf{b}|
+  + |\\mathbf{c}|`` is minimum. I.e., the associated Niggli cell is a Buerger cell.
+- The associated Buerger cell has maximum deviation among all other Buerger cells, i.e., the
+  basis vector angles ``α, β, γ`` maximize ``|90° - α| + |90° - β| + |90° - γ|``.
+  
 ## Keyword arguments
 
 - `rtol :: Real`: relative tolerance used in the Grosse-Kunstleve approach for floating point
   comparisons (default: `1e-5`).
 - `max_iterations :: Int`: maximum number of iterations in which to cycle the Krivy-Gruber
   steps (default: `200`).
-
-## Limitations
-
-The algorithm presently assumes and requires a 3D setting, i.e., the provided basis vectors
-must represent a 3D lattice.
 
 ## Implementation
 
@@ -50,11 +52,11 @@ algorithm proposed in [1] simply does not work on floating point hardware).
     [Acta Crystallogr. A **60**, 1 (2004)](https://doi.org/10.1107/S010876730302186X)
 [3] Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
 """
-function niggli_reduce(
-            Rs :: AbstractVector{<:AbstractVector{<:Real}};
+function nigglibasis(
+            Rs :: DirectBasis{3};
             rtol :: Real = 1e-5, # default relative tolereance, following [2]
             max_iterations :: Int = 200
-        )
+    )
 
     # check input
     if length(Rs) ≠ 3
@@ -89,7 +91,7 @@ function niggli_reduce(
         # to step A1.
 
         # step A1                                      A > B || (A == B && abs(ξ) > abs(η))
-        if A > B + ϵ || (abs(A-B) < ϵ && abs(ξ) < abs(η) + ϵ)
+        if A > B + ϵ || (abs(A-B) < ϵ && abs(ξ) > abs(η) + ϵ)
             P′ = @SMatrix [0 -1 0; -1 0 0; 0 0 -1] # swap (A,ξ) ↔ (B,η)
             P *= P′
             A, B, C, ξ, η, ζ = niggli_parameters(transform(Rs, P))
@@ -164,7 +166,7 @@ function niggli_parameters(Rs)
     # The Gram matrix G (or metric tensor) is related to the Niggli parameters (A, B, C, ξ,
     # η, ζ) via
     #       G = [A ζ/2 η/2; ζ/2 B ξ/2; η ξ/2 C/2]
-    # and `G = matrix(Rs)'*matrix(Rs)` = RᵀR.
+    # and `G = matrix(Rs)'*matrix(Rs)` = VᵀV.
     a, b, c = Rs[1], Rs[2], Rs[3]
     A = dot(a, a)
     B = dot(b, b)
@@ -210,4 +212,78 @@ function _stepA4_ijk(l::Int, m::Int, n::Int)
         end
     end
     return i, j, k
+end
+
+# ---------------------------------------------------------------------------------------- #
+# Implementations in 1D & 2D
+
+niggle_reduce(Rs :: DirectBasis{1}; kws...) = Rs # 1D (trivial)
+function nigglibasis( # 2D by 3D-piggybacking
+            Rs :: DirectBasis{2}; 
+            rtol :: Real = 1e-5, kws...) 
+    max_norm = maximum(norm, Rs)
+    # create trivially 3D-extended basis by appending a basis vector along z (& make this
+    # interim vector longer than any other basis vector, so it is necessarily last in the
+    # Niggli basis so it can be readily removed)
+    Rs³ᴰ = DirectBasis{3}(SVector(Rs[1]..., 0.0),
+                          SVector(Rs[2]..., 0.0), 
+                          SVector(0.0, 0.0, 2max_norm)) 
+    Rs³ᴰ′, P³ᴰ = nigglibasis(Rs³ᴰ; rtol=rtol, kws...)
+    # extract associated 2D basis and transformation
+    Rs′ = DirectBasis{2}(Rs³ᴰ′[1][1:2], Rs³ᴰ′[2][1:2])
+    P   = P³ᴰ[SOneTo(2), SOneTo(2)]
+    # the 2D basis is now Niggli-reduced, but we want to maintain its original handedness: 
+    # even though P³ᴰ is guaranteed to have det(P³ᴰ) = 1, the same is not necessarily true
+    # for P = P³ᴰ[1:2,1:2], if P³ᴰ[3,3] == -1; in that case, we have to fix it - doing so is
+    # not trickier than one might naively think: one cannot simply rotate the basis (this
+    # could correspond to rotating the lattice, which might not preserve the lattice), nor 
+    # simply swap the signs of `Rs′[1]` or `Rs′[2]`, since that change their mutual angles -
+    # nor even generically swap `Rs[1]` to `Rs′[2]`; instead, the appropriate change depends
+    # on the relative lengths and angles of `Rs′[1]` & `Rs′[2]`
+    if P³ᴰ[3,3] == -1
+        ϵ = rtol * abs(volume(Rs′))^(1/2)
+        local P_flip :: SMatrix{2,2,Int,4}
+        if abs(dot(Rs′[1], Rs′[1]) - dot(Rs′[2], Rs′[2])) < ϵ # Rs′[1] ≈ Rs′[2]
+            # then we can just swap 𝐚 and 𝐛 to get a right-handed basis, without worrying
+            # about breaking the Niggli-rule |𝐚|≤|𝐛|
+            P_flip = @SMatrix [0 1; 1 0]
+        else # norm(Rs′[1]) > norm(Rs′[2])
+            # we either swap the sign of 𝐛 or check if 𝐛=𝐚-𝐛 gives a bigger ∠(𝐚, 𝐛) while
+            # having the same length as |𝐛| (cf. Sec. 9.3.1 ITA5)
+            candidate1 = -Rs′[2]
+            candidate2 = Rs′[1] - Rs′[2]
+            if abs(dot(candidate1, candidate1) - dot(candidate2, candidate2)) < ϵ
+                # pick the candidate that maximizes the term |π/2 - ∠(𝐚,𝐛)| (Buerger 
+                # condition (iv))
+                γ1 = signed_angle²ᴰ(Rs′[1], candidate1) # ∠(𝐚, candidate1)
+                γ2 = signed_angle²ᴰ(Rs′[1], candidate2) # ∠(𝐚, candidate2)
+                if abs(π/2 - γ1) < abs(π/2 - γ2)  # pick `candidate2` for 𝐛
+                    P_flip = @SMatrix [1 0; 1 -1]
+                else                              # pick `candidate1` for 𝐛
+                    P_flip = @SMatrix [1 0; 0 -1]
+                end
+            else # use `candidate1` for 𝐛
+                P_flip = @SMatrix [1 0; 0 -1]
+            end
+        end           
+        P *= P_flip
+        Rs′ = transform(Rs′, P_flip)      
+    end
+    if det(P) < 0 # basis change did not preserve handedness, contrary to intent
+        error("2D Niggli reduction failed to produce a preserve handedness")
+    end
+    if P³ᴰ[1,3] ≠ 0 || P³ᴰ[2,3] ≠ 0 || P³ᴰ[3,1] ≠ 0 || P³ᴰ[3,2] ≠ 0
+        error(lazy"interim 3D transformation has unexpected nonzero elements: P³ᴰ=$P³ᴰ")
+    end
+    return Rs′, P
+end
+# computes the angle between 2D vectors a & b in [-π,π)
+signed_angle²ᴰ(a::StaticVector{2}, b::StaticVector{2}) = atan(a[1]*b[2]-a[2]*b[1], dot(a,b))
+
+# ---------------------------------------------------------------------------------------- #
+# Reciprocal lattice vector by Niggli reduction of the direct lattice first
+function nigglibasis(Gs :: ReciprocalBasis{D}; kws...) where D
+    Rs = DirectBasis(reciprocalbasis(Gs).vs) # TODO: replace by `dualbasis` when implemented
+    Rs′, P = nigglibasis(Rs; kws...)
+    return reciprocalbasis(Rs′), P
 end
