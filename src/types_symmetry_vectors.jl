@@ -3,9 +3,33 @@
 abstract type AbstractSymmetryVector{D} <: AbstractVector{Int} end
 
 # ::: API :::
-# multiplicities(::AbstractSymmetryVector)  -->  AbstractVector{<:AbstractVector{Int}}
-# irreps(::AbstractSymmetryVector)          -->  AbstractVector{<:IrrepCollection}
-# occupation(::AbstractSymmetryVector)      -->  Int
+"""
+    irreps(n::AbstractSymmetryVector) -> AbstractVector{<:IrrepCollection}
+
+Return the irreps referenced by `n`. 
+
+The returned value is an `AbstractVector` of `IrrepCollection`s, with irreps for distinct
+groups and **k**-manifolds belonging to the same `IrrepCollection`.
+
+See also [`multiplicities(::AbstractSymmetryVector)`](@ref).
+"""
+function irreps(::AbstractSymmetryVector) end
+
+"""
+    multiplicities(n::AbstractSymmetryVector) -> AbstractVector{<:AbstractVector{Int}}
+
+Return the multiplicities of the irreps referenced by `n`.
+
+See also [`irreps(::AbstractSymmetryVector)`](@ref).
+"""
+function multiplicities(::AbstractSymmetryVector) end
+
+"""
+    occupation(n::AbstractSymmetryVector) -> Int
+
+Return the occupation of (i.e., number of bands contained within) `n`.
+"""
+function occupation(::AbstractSymmetryVector) end
 
 # ::: AbstractArray interface :::
 Base.size(n::AbstractSymmetryVector) = (mapreduce(length, +, multiplicities(n)) + 1,)

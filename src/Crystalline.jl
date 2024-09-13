@@ -75,6 +75,7 @@ export SymOperation,                        # types
 
 include("types_symmetry_vectors.jl")
 export SymmetryVector, NewBandRep, Collection
+export irreps, multiplicities, occupation
 
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
