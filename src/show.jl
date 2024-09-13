@@ -334,12 +334,12 @@ function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=4
 end
 
 # ---------------------------------------------------------------------------------------- #
-# IrrepCollection
+# Collection{<:AbstractIrrep}
 
-function summary(io::IO, c::IrrepCollection{T}) where T
-    print(io, length(c), "-element IrrepCollection{", T, "}")
+function summary(io::IO, c::Collection{T}) where T <: AbstractIrrep
+    print(io, length(c), "-element Collection{", T, "}")
 end
-function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
+function show(io::IO, ::MIME"text/plain", c::Collection{T}) where T <: AbstractIrrep
     summary(io, c)
     isassigned(c, firstindex(c)) && _print_group_descriptor(io, group(first(c)); prefix=" for ")
     println(io, ":")
@@ -352,8 +352,8 @@ function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
         i ≠ length(c) && println(io)
     end
 end
-function show(io::IO, c::IrrepCollection)
-    show(io, c.irs)
+function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
+    show(io, c.vs)
     g = group(first(c))
     if position(g) !== nothing
         printstyled(io, " (", fullpositionlabel(g), ")"; color=:light_black)

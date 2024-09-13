@@ -47,7 +47,7 @@ littlegroups(sgnum::Integer, D::Integer) = littlegroups(sgnum, Val(D))
 
 """
     lgirreps(sgnum::Integer, D::Union{Val{Int}, Integer}=Val(3))
-                                            -> Dict{String, IrrepCollection{LGIrrep{D}}}
+                                            -> Dict{String, Collection{LGIrrep{D}}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little group
 (or "small") irreps (`LGIrrep{D}`s) at high-symmetry k-points, lines, and planes. 
@@ -88,11 +88,11 @@ function lgirreps(sgnum::Integer, Dᵛ::Val{D}=Val(3),
 
     Ps_list, τs_list, realities_list, cdmls_list = _load_lgirreps_data(sgnum, irs_jldfile)
 
-    lgirsd = Dict{String, IrrepCollection{LGIrrep{D}}}()
+    lgirsd = Dict{String, Collection{LGIrrep{D}}}()
     for (Ps, τs, realities, cdmls) in zip(Ps_list, τs_list, realities_list, cdmls_list)
         klab = klabel(first(cdmls))
         lg   = lgs[klab]
-        lgirsd[klab] = IrrepCollection(
+        lgirsd[klab] = Collection(
             [LGIrrep{D}(cdml, lg, P, τ, Reality(reality))
                              for (P, τ, reality, cdml) in zip(Ps, τs, realities, cdmls)])
     end

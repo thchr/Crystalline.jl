@@ -196,7 +196,7 @@ test_tp_show(sitegroup(sg, wps[end-1]), str)
 # LGIrrep
 # -------------------------------
 str = """
-4-element IrrepCollection{LGIrrep{3}} for ⋕16 (P222) at Γ = [0, 0, 0]:
+4-element Collection{LGIrrep{3}} for ⋕16 (P222) at Γ = [0, 0, 0]:
 Γ₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1
@@ -252,7 +252,7 @@ str = """
 test_tp_show(lgirreps(16)["Γ"], str)
 
 str = """
-4-element IrrepCollection{LGIrrep{3}}:
+4-element Collection{LGIrrep{3}}:
  #undef
  #undef
  #undef
@@ -349,8 +349,8 @@ str = """
 pgirs = pgirreps("6")
 pgirs′ = realify(pgirs)
 test_tp_show(pgirs′[end], str)
-@test summary(pgirs) == "6-element IrrepCollection{PGIrrep{3}}"
-@test summary(pgirs′) == "4-element IrrepCollection{PGIrrep{3}}"
+@test summary(pgirs) == "6-element Collection{PGIrrep{3}}"
+@test summary(pgirs′) == "4-element Collection{PGIrrep{3}}"
 
 # -------------------------------
 # CharacterTable

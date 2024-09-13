@@ -137,7 +137,7 @@ function pgirreps(iuclab::String, ::Val{3}=Val(3); mulliken::Bool=false)
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 2D
 function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
@@ -152,7 +152,7 @@ function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
 function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
@@ -171,7 +171,7 @@ function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
     end
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
+    return Collection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
 end
 pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
 pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
@@ -181,7 +181,7 @@ function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3);
     return pgirreps(iuc, Dᵛ; kws...)
 end
 function pgirreps(pgnum::Integer, D::Integer; kws...)
-    return pgirreps(pgnum, Val(D); kws...) :: IrrepCollection{<:PGIrrep}
+    return pgirreps(pgnum, Val(D); kws...) :: Collection{<:PGIrrep}
 end
 
 function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D

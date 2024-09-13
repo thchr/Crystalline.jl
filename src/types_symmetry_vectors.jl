@@ -4,12 +4,13 @@ abstract type AbstractSymmetryVector{D} <: AbstractVector{Int} end
 
 # ::: API :::
 """
-    irreps(n::AbstractSymmetryVector) -> AbstractVector{<:IrrepCollection}
+    irreps(n::AbstractSymmetryVector{D}) -> AbstractVector{<:Collection{<:AbstractIrrep{D}}}
 
 Return the irreps referenced by `n`. 
 
-The returned value is an `AbstractVector` of `IrrepCollection`s, with irreps for distinct
-groups and **k**-manifolds belonging to the same `IrrepCollection`.
+The returned value is an `AbstractVector` of `Collection{<:AbstractIrrep}`s, with irreps for
+distinct groups, usually associated with specific **k**-manifolds, belonging to the same
+`Collection`.
 
 See also [`multiplicities(::AbstractSymmetryVector)`](@ref).
 """
@@ -68,7 +69,7 @@ end
 # SymmetryVector
 
 mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
-    const lgirsv :: Vector{IrrepCollection{LGIrrep{D}}}
+    const lgirsv :: Vector{Collection{LGIrrep{D}}}
     const multsv :: Vector{Vector{Int}}
     occupation   :: Int
 end
@@ -151,26 +152,14 @@ function Base.convert(::Type{BandRep}, br::NewBandRep{D}) where D
 end
 
 # ---------------------------------------------------------------------------------------- #
-# Collection
-struct Collection{T} <: AbstractVector{T}
-    vs :: Vector{T}
-end
-
-# ::: AbstractArray interface :::
-Base.size(c::Collection) = size(c.vs)
-Base.getindex(c::Collection, i::Int) = c.vs[i]
-Base.setindex!(c::Collection{T}, v::T, i::Int) where T = (c.vs[i]=v)
-Base.similar(c::Collection{T}) where T = Collection{T}(similar(c.vs))
-Base.iterate(c::Collection) = iterate(c.vs)
-Base.iterate(c::Collection, state) = iterate(c.vs, state)
+# Collection{<:NewBandRep}
 
 # ::: Utilities :::
-num(brs::Collection{NewBandRep}) = num(first(brs).siteir)
-irreplabels(brs::Collection{NewBandRep}) = irreplabels(first(brs).n)
-klabels(brs::Collection{NewBandRep}) = klabels(first(brs).n)
+irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(first(brs).n)
+klabels(brs::Collection{<:NewBandRep}) = klabels(first(brs).n)
 
 # ::: Conversion to BandRepSet :::
-function Base.convert(::Type{BandRepSet}, brs::Collection{NewBandRep{D}}) where D
+function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})
     sgnum = num(first(brs))
     bandreps = convert.(Ref(BandRep), brs)
     kvs = [position(first(lgirs)) for lgirs in irreps(first(brs))]

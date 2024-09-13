@@ -232,7 +232,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
         end
     end
     
-    return IrrepCollection(lgirs′)
+    return Collection(lgirs′)
 end
 
 """
@@ -320,7 +320,7 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
                       # `AbstractIrrep`, which is probably not a great idea, but meh)
                       ntuple(i->getfield(ir, 5+i), Val(T_extrafields))...))
     end
-    return IrrepCollection(irs′)
+    return Collection(irs′)
 end
 
 # ---------------------------------------------------------------------------------------- #

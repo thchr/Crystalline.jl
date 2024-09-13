@@ -347,7 +347,7 @@ SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
  {3⁻|0,1}
 
 julia> siteirs = siteirreps(siteg)
-3-element IrrepCollection{SiteIrrep{2}} for ⋕16 (p6) at 2b = [1/3, 2/3]:
+3-element Collection{SiteIrrep{2}} for ⋕16 (p6) at 2b = [1/3, 2/3]:
 Γ₁ ─┬─────────────────────────────────────────────
     ├─ 1: ────────────────────────────────── (x,y)
     │     1
@@ -392,6 +392,6 @@ function siteirreps(siteg::SiteGroup{D}; mulliken::Bool=false) where D
         SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
                      pglabel)
     end
-    return IrrepCollection(siteirs)
+    return Collection(siteirs)
 end
 mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))

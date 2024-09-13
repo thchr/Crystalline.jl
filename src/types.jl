@@ -781,21 +781,36 @@ end
 Base.position(siteir::SiteIrrep) = position(group(siteir))
 
 # ---------------------------------------------------------------------------------------- #
-# IrrepCollection
+# Collection{T}
 # ---------------------------------------------------------------------------------------- #
 
-struct IrrepCollection{T<:AbstractIrrep} <: AbstractVector{T}
-    irs :: Vector{T}
+""" 
+    Collection{T} <: AbstractVector{T}
+
+A wrapper around a `Vector{T}`, that allows custom printing and dispatch rules of custom
+`T` (e.g., `AbstractIrrep` & `NewBandRep`).
+
+In Crystalline, it is assumed that all elements of the wrapped vector are associated with
+the _same_ space or point group. Accordingly, if `T` implements [`dim`](@ref) or 
+[`num`](@ref), either must return the same element for each element of the `Collection`
+(and is equal to `dim(::Collection)` and `num(::Collection)`).
+"""
+struct Collection{T} <: AbstractVector{T}
+    vs :: Vector{T}
 end
-Base.size(c::IrrepCollection) = size(c.irs)
-Base.IndexStyle(::Type{<:IrrepCollection}) = IndexLinear()
-@propagate_inbounds Base.getindex(c::IrrepCollection, i::Int) = c.irs[i]
-@propagate_inbounds function Base.setindex!(
-    c::IrrepCollection{T}, ir::T, i::Int) where T<:AbstractIrrep
-    c.irs[i] = ir
-end
-IrrepCollection(c::IrrepCollection) = c
-Base.similar(c::IrrepCollection{T}) where T = IrrepCollection{T}(similar(c.irs))
+
+# ::: AbstractArray interface :::
+Base.size(c::Collection) = size(c.vs)
+Base.IndexStyle(::Type{<:Collection}) = IndexLinear()
+@propagate_inbounds Base.getindex(c::Collection{T}, i::Integer) where T = c.vs[i]::T
+@propagate_inbounds Base.setindex!(c::Collection{T}, v::T, i::Integer) where T = (c.vs[i]=v)
+Base.similar(c::Collection{T}) where T = Collection{T}(similar(c.vs))
+Base.iterate(c::Collection) = iterate(c.vs)
+Base.iterate(c::Collection, state) = iterate(c.vs, state)
+
+# ::: Interface :::
+dim(vs::Collection) = dim(first(vs))
+num(vs::Collection) = num(first(vs))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable

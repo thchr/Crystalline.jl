@@ -52,7 +52,7 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
-       IrrepCollection,
+       Collection,
        MultTable, LGIrrep, PGIrrep, SiteIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
@@ -74,7 +74,7 @@ export SymOperation,                        # types
        isspinful
 
 include("types_symmetry_vectors.jl")
-export SymmetryVector, NewBandRep, Collection
+export SymmetryVector, NewBandRep
 export irreps, multiplicities, occupation
 
 include("notation.jl")

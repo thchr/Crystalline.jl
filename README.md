@@ -39,7 +39,7 @@ SpaceGroup{3} ⋕16 (P222) with 4 operations:
 # indexed by their k-point labels; then inspect the small irreps at the A point
 julia> lgirs = lgirreps(16, Val(3))
 julia> lgirs["A"]
-2-element IrrepCollection{LGIrrep{3}} for ⋕16 (P222) at A = [α, 0, 1/2]:
+2-element Collection{LGIrrep{3}} for ⋕16 (P222) at A = [α, 0, 1/2]:
 A₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1
