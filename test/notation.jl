@@ -61,11 +61,12 @@ using Crystalline, Test
             pgirs_mulliken = pgirreps("6", Val(D); mulliken=true)
             @test label.(pgirs_mulliken) == mulliken.(pgirs)
 
-            # FIXME: we currently don't do nontrivial reductions of Mulliken labels during
-            # "realification"...
+            # we do some reductions of Mulliken labels during "realification"; check that
+            # this works the same across `label.(realify(pgirreps(..; mulliken=true)))`
+            # and `mulliken.(realify(pgirreps(..)))`
             pgirs′          = realify(pgirs)
             pgirs_mulliken′ = realify(pgirs_mulliken)
-            @test_broken label.(pgirs_mulliken′) == mulliken.(pgirs′)
+            @test label.(pgirs_mulliken′) == mulliken.(pgirs′)
         end
         # 1D
         @test label.(pgirreps("m", Val(1); mulliken=true)) == mulliken.(pgirreps("m", Val(1))) == ["A′", "A′′"]
