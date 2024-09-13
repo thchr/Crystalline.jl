@@ -504,8 +504,27 @@ or, alternatively, fields with names `num` and `operations`, behaving accordingl
 """
 abstract type AbstractGroup{D,O} <: AbstractVector{O} end # where O <: AbstractOperation{D}
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
+
+"""
+    num(g::AbstractGroup) -> Int
+
+Return the conventional number assigned to the group `g`.
+"""
 num(g::AbstractGroup) = g.num
+
+"""
+    operations(g::AbstractGroup) -> Vector{<:AbstractOperation}
+
+Return an `Vector` containing the operations of the group `g`.
+"""
 operations(g::AbstractGroup) = g.operations
+
+"""
+    dim(g::AbstractGroup) -> Int
+
+Return the dimensionality of the coordinate space of the group `g`.
+This is a statically known number, either equaling 1, 2, or 3.
+"""
 dim(::AbstractGroup{D}) where D = D
 
 # define the AbstractArray interface for AbstractGroup
