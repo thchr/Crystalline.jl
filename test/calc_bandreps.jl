@@ -16,7 +16,8 @@ using Crystalline: dlm2struct
     # by the latter; basically check that the data behind the former is up-to-date)
     for sgnum in 1:17
         for timereversal in (false, true)
-            @test calc_bandreps(sgnum, Val(2); timereversal, allpaths = false) ==
+            @test convert.(BandRep,
+                           calc_bandreps(sgnum, Val(2); timereversal, allpaths = false)) ==
                   bandreps(sgnum, 2; timereversal, allpaths = false)
         end
     end
@@ -30,7 +31,8 @@ end
         for timereversal in (false, true)
             had_tr_error = false
 
-            brsᶜ = calc_bandreps(sgnum, Val(3); timereversal, allpaths = false)
+            _brsᶜ = calc_bandreps(sgnum, Val(3); timereversal, allpaths = false)
+            brsᶜ = convert(BandRepSet, _brsᶜ)
             brsʳ = bandreps(sgnum, 3; timereversal, allpaths = false)
                       
             # find a permutation of the irreps in `brsʳ` that matches `brsᶜ`'s sorting, s.t.

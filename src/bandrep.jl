@@ -20,10 +20,15 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
 
     temp .= split_paren.(@view M[2,2:end]) # same size, so reuse array
     label, dim = getindex.(temp, 1), parse.(Int, getindex.(temp, 2)) # label of bandrep
+    
+    # whether M contains info on decomposability; we don't use this anymore, but need to
+    # know to parse the rest of the contents correctly (we used to always include this info
+    # but might not in the future; so protect against this)
+    has_decomposable_info = M[3,1] == "Decomposable"
+    # decomposable = parse.(Bool, vec(@view M[3,2:end])) # whether BR can be BR-decomposed
 
-    decomposable = parse.(Bool, vec(@view M[3,2:end])) # whether bandrep can be further decomposed
-
-    brtags = collect(eachcol(@view M[4:end, 2:end])) # set of irreps that jointly make up the bandrep
+    # set of irreps that jointly make up the bandrep
+    brtags = collect(eachcol(@view M[3+has_decomposable_info:end, 2:end]))
     for br in brtags 
         br .= replace.(br, Ref(r"\([1-9]\)"=>""))  # get rid of irrep dimension info
     end
@@ -34,15 +39,15 @@ function array2struct(M::Matrix{String}, sgnum::Integer, allpaths::Bool=false, s
     else        # single-valued irreps only (spinless systems)
         delidxs = findall(map(isspinful, brtags))
     end
-    for vars in (brtags, wyckpos, sitesym, label, dim, decomposable)
+    for vars in (brtags, wyckpos, sitesym, label, dim)
         deleteat!(vars, delidxs) 
     end
     irlabs, irvecs = get_irrepvecs(brtags)              
 
-    BRs = BandRep.(wyckpos, sitesym, label, dim, decomposable, map(isspinful, brtags), 
-                   irvecs, Ref(irlabs))
+    BRs = BandRep.(wyckpos, sitesym, label, dim, map(isspinful, brtags), irvecs,
+                   Ref(irlabs))
     
-    return BandRepSet(sgnum, BRs, kvs, klabs, irlabs, allpaths, spinful, timereversal)
+    return BandRepSet(sgnum, BRs, kvs, klabs, irlabs, spinful, timereversal)
 end
 
 

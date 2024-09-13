@@ -527,109 +527,42 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         )
 
     # print k-vec labels
-    print(io, "  KVecs (", hasnonmax(BRS) ? "incl. non-maximal" : "maximal only", "): ")
+    print(io, "  KVecs: ")
     join(io, klabels(BRS), ", ")
-    
-    # EARLIER MANUAL LAYOUTS: DISCONTINUED
+end
 
-    #=
-    # === EBRS-by-column layout ===
-    # prep-work to figure out how many bandreps we can write to the io
-    cols_avail = displaysize(io)[2]   # available cols in io (cannot write to all of it; subtract 2)
-    indent     = 3
-    μ_maxdigs  = maximum(ndigits∘dim, BRS) # implicitly assuming this to be ≤2...
-    maxcols_irr   = maximum(length, irreplabels(BRS))
-    cols_brlabs = length.(label.(BRS))
-    cumcols_brlabs = cumsum(cols_brlabs .+ 1)
-    cols_requi  = cumcols_brlabs .+ (indent + maxcols_irr + 2)
-    @show cols_requi
-    room_for = findlast(≤(cols_avail), cols_requi)
-    abbreviate = room_for < length(BRS) ? true : false
-    rowend = abbreviate ? '…' : '║'
+# ---------------------------------------------------------------------------------------- #
+# SymmetryVector
 
-    # print EBR header
-    print(io, ' '^(indent+maxcols_irr+1), '║')
-    for idxᵇʳ in 1:room_for
-        br = BRS[idxᵇʳ]
-        print(io, ' ', chop(label(br), tail=2),' ', idxᵇʳ ≠ room_for ? '│' : rowend)
+function Base.show(io :: IO, ::MIME"text/plain", n :: SymmetryVector)
+    print(io, length(n)-1, "-irrep ", typeof(n), ":\n ")
+    show(io, n)
+end
+function Base.show(io :: IO, n :: SymmetryVector)
+    print(io, "[")
+    for (i, (mults_k, lgirs_k)) in enumerate(zip(n.multsv, n.lgirsv))
+        printstyled(io, 
+                    Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false);
+                    color=iseven(i) ? :normal : :light_blue)
+        i ≠ length(n.multsv) && print(io, ", ")
     end
-    println(io)
+    print(io, "]")
+    printstyled(io, " (", n.occupation, " band", n.occupation ≠ 1 ? "s" : "", ")"; 
+                    color=:light_black)
+end
 
-    # print irrep content, line by line
-    for idxⁱʳʳ in 1:Nⁱʳʳ
-        irlab = irreplabels(BRS)[idxⁱʳʳ]
-        print(io, ' '^indent, irlab, ' '^(maxcols_irr + 1 - length(irlab)), '║')
-        for idxᵇʳ in 1:room_for
-            x = BRS[idxᵇʳ][idxⁱʳʳ]
-            addspace = div(cols_brlabs[idxᵇʳ], 2)
-            print(io, ' '^addspace)
-            iszero(x) ? print(io, '·') : print(io, x)
-            print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace-1))
-            print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
-        end
-        println(io)
-    end
+# ---------------------------------------------------------------------------------------- #
+# NewBandRep
 
-    # print band filling
-    print(io, ' '^indent, 'μ', ' '^maxcols_irr, '║')
-    for idxᵇʳ in 1:room_for
-        μ = dim(BRS[idxᵇʳ])
-        addspace = div(cols_brlabs[idxᵇʳ], 2)+1
-        print(io, ' '^(addspace-ndigits(μ)), μ)
-        print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace))
-        print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
-    end
-    =#
-
-    #=
-    # === EBRs-by-rows layout ===
-    μ_maxdigs = maximum(ndigits∘dim, BRS)
-    cols_brlab = maximum(x->length(label(x)), BRS)+1
-    cols_irstart = cols_brlab+4
-    cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
-    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+μ_maxdigs+3 # required cols for irrep labels & band reps
-    if cols_requi > cols_avail
-        cols_toomany    = ceil(Int, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
-        cols_midpoint   = div(cols_requi-cols_irstart,2)+cols_irstart
-        cols_skipmin    = cols_midpoint - cols_toomany
-        cols_skipmax    = cols_midpoint + cols_toomany
-        cols_eachstart  = [0; cumsum(length.(irreplabels(BRS)).+3)].+cols_irstart
-        iridx_skiprange = [idx for (idx, col_pos) in enumerate(cols_eachstart) if cols_skipmin ≤ col_pos ≤ cols_skipmax]
-        abbreviate = true
-    else
-        abbreviate = false
-    end
-
-    print(io, " "^(cols_irstart-1),'║'); # align with spaces
-    for (iridx,lab) in enumerate(irreplabels(BRS)) # irrep labels
-        if abbreviate && iridx ∈ iridx_skiprange
-            if iridx == first(iridx_skiprange)
-                print(io, "\b  …  ")
-            end
-        else
-            print(io, ' ', lab, " │")
-        end
-    end
-    println(io, ' '^μ_maxdigs, "μ", " ║") # band-filling column header
-    # print each bandrep
-    for (bridx,BR) in enumerate(BRS)
-        μ = dim(BR)
-        print(io, "   ", label(BR),                      # bandrep label
-                  " "^(cols_brlab-length(label(BR))), '║')
-        for (iridx,x) in enumerate(BR) # iterate over vector representation of band rep
-            if abbreviate && iridx ∈ iridx_skiprange
-                if iridx == first(iridx_skiprange)
-                    print(io, mod(bridx,4) == 0 ? "\b  …  " : "\b     ")
-                end
-            else
-                print(io, "  ")
-                !iszero(x) ? print(io, x) : print(io, '·')
-                print(io, " "^(length(irreplabels(BRS)[iridx])-1), '│') # assumes we will never have ndigit(x) != 1
-            end
-        end
-        
-        print(io, ' '^(1+μ_maxdigs-ndigits(μ)), μ, " ║") # band-filling
-        if bridx != length(BRS); println(io); end
-    end
-    =#
+function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
+    print(io, length(br.n)-1, "-irrep ", typeof(br), ":\n ")
+    print(io, "(", )
+    printstyled(io, label(position(br.siteir)); bold=true)
+    print(io, "|")
+    printstyled(io, label(br.siteir); bold=true)
+    print(io, "): ")
+    show(io, br.n)
+end
+function Base.show(io :: IO, br :: NewBandRep)
+    print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
 end

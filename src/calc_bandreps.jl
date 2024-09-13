@@ -98,7 +98,6 @@ Return the band representation induced by the provided `SiteIrrep` evaluated at 
 a `SymOperation` `h`.
 """
 function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D
-
     siteg  = group(siteir)
     wp     = position(siteg)   
     kv′    = constant(h*kv) # <-- TODO: Why only constant part?
@@ -151,27 +150,35 @@ function subduce_onto_lgirreps(
     return m′
 end
 
+# ---------------------------------------------------------------------------------------- #
+
 function calc_bandrep(
-        siteir::SiteIrrep{D}, 
-        lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
-        irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
-        irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)
+        siteir :: SiteIrrep{D}, 
+        lgirsv :: AbstractVector{<:AbstractVector{LGIrrep{D}}},
+        timereversal :: Bool
     ) where D
 
-    irvec = Int[]
-    for (_, lgirs) in lgirsd
-        kv_array = subduce_onto_lgirreps(siteir, lgirs)
-        append!(irvec, Int.(kv_array))
-    end    
+    multsv = [subduce_onto_lgirreps(siteir, lgirs) for lgirs in lgirsv]
     
-    irdims_Γmask = [irlab[1]=='Γ' for irlab in irlabs] .* irdims # masked w/ Γ-irreps only
-    brdim   = dot(irvec, irdims_Γmask)
-    wycklab = label(position(group(siteir)))
-    spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
-    decomposable = false # NB: placeholder, because we don't know the true answer presently
+    occupation = sum(zip(first(multsv), first(lgirsv)); init=0) do (m, lgir)
+        m * irdim(lgir)
+    end
+    n = SymmetryVector(lgirsv, multsv, occupation)
+    
+    spinful = false # NB: default; Crystalline currently doesn't have spinful irreps
 
-    return BandRep(wycklab, siteir.pglabel, mulliken(siteir)*"↑G", brdim, decomposable,
-                   spinful, irvec, irlabs)
+    return NewBandRep(siteir, n, timereversal, spinful)
+end
+function calc_bandrep(
+        siteir :: SiteIrrep{D}; 
+        timereversal :: Bool=true, 
+        allpaths :: Bool=false
+    ) where D
+    lgirsd = lgirreps(num(siteir), Val(D))
+    allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
+    timereversal && realify!(lgirsd)
+    lgirsv = [lgirs for lgirs in values(lgirsd)]
+    return calc_bandrep(siteir, lgirsv, timereversal)
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -212,29 +219,20 @@ function calc_bandreps(
 
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
-    allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
+    allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
-
-    irlabs = reduce_dict_of_vectors(label, lgirsd)
-    irdims = reduce_dict_of_vectors(irdim, lgirsd)
+    lgirsv = [lgirs for lgirs in values(lgirsd)]
 
     # get the bandreps induced by every maximal site symmetry irrep
     wps    = wyckoffs(sgnum, Dᵛ)
     sg     = spacegroup(sgnum, Dᵛ)
     sitegs = findmaximal(sitegroup.(Ref(sg), wps))
-    brs    = BandRep[]
+    brs    = NewBandRep{D}[]
     for siteg in sitegs
-        siteirs = siteirreps(siteg)
+        siteirs = siteirreps(siteg; mulliken=true)
         timereversal && (siteirs = realify(siteirs))
-        append!(brs, calc_bandrep.(siteirs, Ref(lgirsd); irlabs=irlabs, irdims=irdims))
+        append!(brs, calc_bandrep.(siteirs, Ref(lgirsv), Ref(timereversal)))
     end
 
-    # TODO: There's potentially some kind of bad implicit dependence/overreliance on fixed
-    #       on iteration order of `Dict`s here and related methods; probably OK, but unwise
-    klabs  = collect(keys(lgirsd))
-    kvs    = position.(first.(values(lgirsd)))
-    spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
-    decomposable = false # NB: placeholder, because we don't know the true answer presently
-
-    return BandRepSet(sgnum, brs, kvs, klabs, irlabs, allpaths, spinful, timereversal)
+    return Collection(brs)
 end

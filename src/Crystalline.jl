@@ -73,6 +73,9 @@ export SymOperation,                        # types
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
+include("types_symmetry_vectors.jl")
+export SymmetryVector, NewBandRep, Collection
+
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
 
@@ -103,7 +106,7 @@ include("assembly/generators/spacegroup.jl")
 include("assembly/generators/subperiodicgroup.jl")
 export generate, generators
 
-include("show.jl") # custom printing for structs defined in src/types.jl
+include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl]
 
 include("orders.jl")
 

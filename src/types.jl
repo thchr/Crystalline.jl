@@ -906,11 +906,10 @@ end
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct BandRep <: AbstractVector{Int}
-    wyckpos::String  # Wyckoff position that induces the BR (TODO: type as `::WyckoffPosition` instead of `::String`)
+    wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
     dim::Int         # Dimension (i.e. # of bands) in band rep
-    decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
     irvec::Vector{Int}  # Vector that references irlabs of a parent BandRepSet; nonzero
                            # entries correspond to an element in the band representation
@@ -925,11 +924,8 @@ irreplabels(BR::BandRep) = BR.irlabs
     dim(BR::BandRep) --> Int
 
 Return the number of bands included in the provided `BandRep`.
-
-If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
-band connectivity μ.
 """
-dim(BR::BandRep) = BR.dim
+dim(BR::BandRep) = BR.dim # TODO: Deprecate to `occupation` instead
 
 # define the AbstractArray interface for BandRep
 size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
@@ -956,13 +952,11 @@ struct BandRepSet <: AbstractVector{BandRep}
     kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
-    allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
     timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
 num(BRS::BandRepSet)         = BRS.sgnum
 klabels(BRS::BandRepSet)     = BRS.klabs
-hasnonmax(BRS::BandRepSet)   = BRS.allpaths
 irreplabels(BRS::BandRepSet) = BRS.irlabs
 isspinful(BRS::BandRepSet)   = BRS.spinful
 reps(BRS::BandRepSet)        = BRS.bandreps

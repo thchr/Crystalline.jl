@@ -28,12 +28,6 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
     end
     println(io)
 
-    print(io, "Decomposable")
-    for br in BRS
-        print(io, "|", br.decomposable)
-    end
-    println(io)
-
     irlabs = BRS.irlabs
     for (idx, (klab,kv)) in enumerate(zip(BRS.klabs, BRS.kvs))
         print(io, klab, ":")
