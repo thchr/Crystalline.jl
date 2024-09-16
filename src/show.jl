@@ -321,7 +321,6 @@ function prettyprint_irrep_matrices(
         printstyled(io, opseitz, ": ", 
                         repeat("─", linelen-11-nindent-length(opseitz)-length(opxyzt)),
                         " (", opxyzt, ")\n"; color=:light_black)
-        #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
         prettyprint_irrep_matrix(io, ir, i, indent*" │     ")
         if i < Nₒₚ; println(io, '\n', indent, " │"); end
@@ -494,27 +493,27 @@ end
 # ---------------------------------------------------------------------------------------- #
 # BandRepSet
 
-function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
-    Nⁱʳʳ = length(irreplabels(BRS))
-    Nᵉᵇʳ = length(BRS)
+function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
+    Nⁱʳʳ = length(irreplabels(brs))
+    Nᵉᵇʳ = length(brs)
 
     # print a "title" line and the irrep labels
-    println(io, "BandRepSet (⋕", num(BRS), "): ",
-                length(BRS), " BandReps, ",
+    println(io, "BandRepSet (⋕", num(brs), "): ",
+                length(brs), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
-                "(spin-", isspinful(BRS) ? "½" : "1", " ",
-                BRS.timereversal ? "w/" : "w/o", " TR)")
+                "(spin-", isspinful(brs) ? "½" : "1", " ",
+                brs.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
-    k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
     h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
     h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
-        matrix(BRS; includedim=true);
+        stack(brs);
         # row/column names
-        row_labels = vcat(irreplabels(BRS), "μ"),
-        header = (position.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
+        row_labels = vcat(irreplabels(brs), "μ"),
+        header = (position.(brs), chop.(label.(brs), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
@@ -528,7 +527,7 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
 
     # print k-vec labels
     print(io, "  KVecs: ")
-    join(io, klabels(BRS), ", ")
+    join(io, klabels(brs), ", ")
 end
 
 # ---------------------------------------------------------------------------------------- #

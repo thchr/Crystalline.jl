@@ -999,29 +999,3 @@ reps(BRS::BandRepSet)        = BRS.bandreps
 size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
 @propagate_inbounds getindex(BRS::BandRepSet, i::Int) = reps(BRS)[i]
 IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
-
-"""
-    matrix(BRS::BandRepSet; includedim::Bool=true)
-
-Return a matrix representation of `BRS::BandRepSet`, with band representations as columns 
-and irreps over rows.
-
-By default, the last row will give the "filling" of each `BandRep` (or, more precisely,
-number of included bands per `BandRep`, i.e. `dim.(BRS)`. To toggle this off, set the
-keyword argument `includedim` to `false` (default is `includedim = true`).
-"""
-function matrix(BRS::BandRepSet; includedim::Bool=true)
-    Nⁱʳʳ, Nᵉᵇʳ = length(first(BRS)), length(BRS)
-    M = Matrix{Int}(undef, Nⁱʳʳ - !includedim, Nᵉᵇʳ)
-    @inbounds for (j, BR) in enumerate(BRS)
-        for (i, v) in enumerate(BR.irvec)
-            M[i,j] = v
-        end
-        if includedim
-            M[Nⁱʳʳ,j] = dim(BR)
-        end
-    end
-
-    return M
-end 
-@deprecate matrix(BRS::BandRepSet, includedim::Bool) matrix(BRS::BandRepSet; includedim=includedim)

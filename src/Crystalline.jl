@@ -160,7 +160,7 @@ include("compatibility.jl")
 export subduction_count
 
 include("bandrep.jl")
-export bandreps, matrix, classification, nontrivial_factors, basisdim
+export bandreps, classification, nontrivial_factors, basisdim
 
 include("calc_bandreps.jl")
 export calc_bandreps

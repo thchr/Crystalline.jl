@@ -166,7 +166,7 @@ function niggli_parameters(Rs)
     # The Gram matrix G (or metric tensor) is related to the Niggli parameters (A, B, C, ξ,
     # η, ζ) via
     #       G = [A ζ/2 η/2; ζ/2 B ξ/2; η ξ/2 C/2]
-    # and `G = matrix(Rs)'*matrix(Rs)` = VᵀV.
+    # and `G = stack(Rs)'*stack(Rs)` = VᵀV.
     a, b, c = Rs[1], Rs[2], Rs[3]
     A = dot(a, a)
     B = dot(b, b)
