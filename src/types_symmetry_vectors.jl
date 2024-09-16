@@ -4,6 +4,16 @@ abstract type AbstractSymmetryVector{D} <: AbstractVector{Int} end
 
 # ::: API :::
 """
+    SymmetryVector(n::AbstractSymmetryVector) -> SymmetryVector
+
+Return a `SymmetryVector` realization of `n`. If `n` is already a `SymmetryVector`,
+return `n` directly; usually, the returned value will directly reference information in `n`
+(i.e., will not be a copy).
+"""
+function SymmetryVector(::AbstractSymmetryVector) end
+
+# ::: Optional API (if not `SymmetryVector`; otherwise fall-back to `SymmetryVector`) :::
+"""
     irreps(n::AbstractSymmetryVector{D}) -> AbstractVector{<:Collection{<:AbstractIrrep{D}}}
 
 Return the irreps referenced by `n`. 
@@ -14,7 +24,7 @@ distinct groups, usually associated with specific **k**-manifolds, belonging to 
 
 See also [`multiplicities(::AbstractSymmetryVector)`](@ref).
 """
-function irreps(::AbstractSymmetryVector) end
+irreps(n::AbstractSymmetryVector) = irreps(SymmetryVector(n))
 
 """
     multiplicities(n::AbstractSymmetryVector) -> AbstractVector{<:AbstractVector{Int}}
@@ -23,14 +33,19 @@ Return the multiplicities of the irreps referenced by `n`.
 
 See also [`irreps(::AbstractSymmetryVector)`](@ref).
 """
-function multiplicities(::AbstractSymmetryVector) end
+multiplicities(n::AbstractSymmetryVector) = multiplicities(SymmetryVector(n))
 
 """
     occupation(n::AbstractSymmetryVector) -> Int
 
 Return the occupation of (i.e., number of bands contained within) `n`.
 """
-function occupation(::AbstractSymmetryVector) end
+occupation(n::AbstractSymmetryVector) = occupation(SymmetryVector(n))
+
+# misc convenience accessors
+irreplabels(n::AbstractSymmetryVector) = irreplabels(SymmetryVector(n))
+klabels(n::AbstractSymmetryVector) = klabels(SymmetryVector(n))
+num(n::AbstractSymmetryVector) = num(SymmetryVector(n))
 
 # ::: AbstractArray interface :::
 Base.size(n::AbstractSymmetryVector) = (mapreduce(length, +, multiplicities(n)) + 1,)
@@ -64,7 +79,30 @@ function Base.iterate(n::AbstractSymmetryVector, state::Tuple{Int, Int})
     end
     return multiplicities(n)[i][j], (i, j)
 end
-    
+
+# ::: Algebraic operations :::
+function Base.:+(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D
+    _n = SymmetryVector{D}(n)
+    _m = SymmetryVector{D}(m)
+    irreps(_n) === irreps(_m)
+    return SymmetryVector(irreps(_n), 
+                          multiplicities(_n) .+ multiplicities(_m),
+                          occupation(_n) + occupation(_m))
+end
+function Base.:-(n::AbstractSymmetryVector{D}) where D
+    SymmetryVector{D}(irreps(n), -multiplicities(n), -occupation(n))
+end
+Base.:-(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D = n + (-m)
+function Base.:*(n::AbstractSymmetryVector{D}, k::Integer) where D
+    SymmetryVector{D}(irreps(n), [ms .* k for ms in multiplicities(n)], occupation(n) * k)
+end
+function Base.zero(n::AbstractSymmetryVector{D}) where D
+    SymmetryVector{D}(irreps(n), zero.(multiplicities(n)), 0)
+end
+
+# ::: Utilities & misc :::
+dim(::AbstractSymmetryVector{D}) where D = D
+
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
 
@@ -73,10 +111,12 @@ mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
     const multsv :: Vector{Vector{Int}}
     occupation   :: Int
 end
+
 # ::: AbstractSymmetryVector interface :::
 irreps(n::SymmetryVector) = n.lgirsv
 multiplicities(n::SymmetryVector) = n.multsv
 occupation(n::SymmetryVector) = n.occupation
+SymmetryVector(n::SymmetryVector) = n
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
 function Base.similar(n::SymmetryVector{D}) where D
@@ -101,16 +141,17 @@ end
 function Base.Vector(n::SymmetryVector)
     nv = Vector{Int}(undef, length(n))
     i = 1
-    for mults in n.multsv
+    for mults in multiplicities(n)
         N = length(mults)
         copyto!(nv, i, mults, 1, N)
         i += N
     end
-    nv[end] = n.occupation
+    nv[end] = occupation(n)
     return nv
 end
-irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(n.lgirsv)]
-klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in n.lgirsv]
+irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(irreps(n))]
+klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in irreps(n)]
+num(n::SymmetryVector) = num(first(first(irreps(n))))
 
 # ---------------------------------------------------------------------------------------- #
 # NewBandRep
@@ -123,9 +164,7 @@ struct NewBandRep{D} <: AbstractSymmetryVector{D}
 end
 
 # ::: AbstractSymmetryVector interface :::
-irreps(br::NewBandRep) = irreps(br.n)
-multiplicities(br::NewBandRep) = multiplicities(br.n)
-occupation(br::NewBandRep) = occupation(br.n)
+SymmetryVector(br::NewBandRep) = br.n
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
 Base.setindex!(br::NewBandRep{D}, v::Int, i::Int) where D = (br.n[i] = v)
@@ -135,9 +174,8 @@ end
 Base.Vector(br::NewBandRep) = Vector(br.n)
 
 # ::: Utilities :::
-num(br::NewBandRep) = num(br.siteir)
-irreplabels(br::NewBandRep) = irreplabels(br.n)
-klabels(br::NewBandRep) = klabels(br.n)
+group(br::NewBandRep) = group(br.siteir)
+Base.position(br::NewBandRep) = position(group(br))
 
 # ::: Conversion to BandRep :::
 function Base.convert(::Type{BandRep}, br::NewBandRep{D}) where D
