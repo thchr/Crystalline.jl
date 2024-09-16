@@ -13,7 +13,7 @@ vector lengths ``|\\mathbf{a}|, |\\mathbf{b}|, |\\mathbf{c}|``, and mutual angle
 ``\\mathbf{a}, \\mathbf{b}, \\mathbf{c}``). This uniqueness is one of the main motivations
 for computing the Niggli reduction procedure, as it enables easy comparison of lattices.
 Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\mathbf{b},
-\\mathbf{c})``, fulfil several conditions [3]:
+\\mathbf{c})``, fulfil several conditions [^3]:
 
 1. **"Main" conditions:**
     - The basis vectors are sorted by increasing length:
@@ -22,10 +22,11 @@ Additionally, the associated Niggli-reduced basis vectors ``(\\mathbf{a}, \\math
 2. **"Special" conditions:**
     - Several special conditions, applied in "special" cases, such as
       ``|\\mathbf{a}| = |\\mathbf{b}|`` or 
-      `\\mathbf{b}\\cdot\\mathbf{c} = \\tfrac{1}{2}|\\mathbf{b}|^2`. See [3] for details.
+      `\\mathbf{b}\\cdot\\mathbf{c} = \\tfrac{1}{2}|\\mathbf{b}|^2`. See Ref. [^3] for
+      details.
 
 Equivalently, the Niggli-reduced basis fulfils the following geometric conditions (Section
-9.3.1 of [3]):
+9.3.1 of Ref. [^3]):
 - The basis vectors are sorted by increasing length.
 - The basis vectors have least possible total length, i.e., ``|\\mathbf{a}| + |\\mathbf{b}|
   + |\\mathbf{c}|`` is minimum. I.e., the associated Niggli cell is a Buerger cell.
@@ -41,16 +42,16 @@ Equivalently, the Niggli-reduced basis fulfils the following geometric condition
 
 ## Implementation
 
-Implementation follows the algorithm originally described by Krivy & Gruber [1], with the
-stability modificiations proposed by Grosse-Kunstleve et al. [2] (without which the 
-algorithm proposed in [1] simply does not work on floating point hardware).
+Implementation follows the algorithm originally described by Krivy & Gruber [^1], with the
+stability modificiations proposed by Grosse-Kunstleve et al. [^2] (without which the 
+algorithm proposed in [^1] simply does not work on floating point hardware).
 
-[1] I. Krivy & B. Gruber. A unified algorithm for determinign the reduced (Niggli) cell,
+[^1] I. Krivy & B. Gruber. A unified algorithm for determinign the reduced (Niggli) cell,
     [Acta Crystallogr. A **32**, 297 (1976)](https://doi.org/10.1107/S0567739476000636).
-[2] R.W. Grosse-Kunstleve, N.K. Sauter, & P.D. Adams, Numerically stable algorithms for the
+[^2] R.W. Grosse-Kunstleve, N.K. Sauter, & P.D. Adams, Numerically stable algorithms for the
     computation of reduced unit cells,
     [Acta Crystallogr. A **60**, 1 (2004)](https://doi.org/10.1107/S010876730302186X)
-[3] Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
+[^3] Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
 """
 function nigglibasis(
             Rs :: DirectBasis{3};
