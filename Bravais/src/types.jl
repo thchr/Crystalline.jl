@@ -53,7 +53,7 @@ function angles(Rs::AbstractBasis{3})
 end
 angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
 
-if VERSION < v"1.9.0-DEV.1163" 
+if VERSION > v"1.9.0-DEV.1163" 
     # since https://github.com/JuliaLang/julia/pull/43334, Julia defines its own `stack`;
     # however, it is still much slower than a naive implementation based on `reduce` cf.
     # https://github.com/JuliaLang/julia/issues/52590. As such, we extend `Base.stack` even
