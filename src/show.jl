@@ -565,3 +565,40 @@ end
 function Base.show(io :: IO, br :: NewBandRep)
     print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
 end
+
+# ---------------------------------------------------------------------------------------- #
+# Collection{<:NewBandRep}
+
+@eval Crystalline function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
+    irlabs = irreplabels(brs)
+    Nⁱʳʳ = length(irlabs)
+
+    # print a "summary" line
+    print(io, length(brs), "-element ", typeof(brs), " for ⋕", num(brs))
+    print(io, " (", iuc(num(brs), dim(brs)), ") ")
+    print(io, "over ", Nⁱʳʳ, " irreps")
+    print(io, " (spin-", first(brs).spinful ? "½" : "1", 
+              " w/", first(brs).timereversal ? "" : "o", "TR):")
+    println(io)
+
+    # print band representations as table
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
+    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+    pretty_table(io, 
+        # table contents
+        stack(brs);
+        # row/column names
+        row_labels = vcat(irlabs, "μ"),
+        header = (label.(position.(brs)), label.(siteirrep.(brs))),
+        # options/formatting/styling
+        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
+        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
+        row_label_alignment = :l,
+        alignment = :c, 
+        highlighters = (h_odd, h_μ), 
+        header_crayon = crayon"bold"
+        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
+        #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
+        )
+end
