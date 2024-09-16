@@ -9,9 +9,7 @@ using Test
     for sgnum in 1:MAX_SGNUM[3]
         brs = bandreps(sgnum, 3)
         sg  = spacegroup(sgnum, Val(3))
-        wps = wyckoffs(sgnum, Val(3))
-        sitegs = sitegroup.(Ref(sg), wps)
-        sitegs = findmaximal(sitegs)
+        sitegs = findmaximal(sitegroups(sg))
         for siteg in sitegs           
             # "our" label
             pg, _, _ = find_isomorphic_parent_pointgroup(siteg)

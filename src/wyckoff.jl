@@ -48,13 +48,29 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Return all site symmetry groups associated with a space group, specified either as 
+`sg :: SpaceGroup{D}` or by its conventional number `sgnum` and dimension `D`.
+
+See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
+Wyckoff position.
+"""
+function sitegroups(sg::SpaceGroup{D}) where D
+    wps = wyckoffs(num(sg), Val(D))
+    return sitegroup.(Ref(sg), wps)
+end
+sitegroups(sgnum::Integer, Dᵛ::Val{D}) where D = sitegroups(spacegroup(sgnum, Dᵛ))
+sitegroups(sgnum::Integer, D::Integer) = sitegroups(spacegroup(sgnum, D))
+
+"""
+$(TYPEDSIGNATURES)
+
 Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in space group
 `sg` (or with space group number `sgnum`; in this case, the dimensionality is inferred from
 `wp`).
 
 `g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
 that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
-invariant, such that `all(op -> wp == op*wp, g) == true`.
+invariant, such that `all(op -> wp == compose(op, wp), g) == true`.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
@@ -105,6 +121,9 @@ true
 
 Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
 in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
+
+See also [`sitegroups`](@ref) for calculation of all site symmetry groups of a given space
+group.
 """
 function sitegroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     Nsg  = order(sg)
@@ -204,7 +223,7 @@ end
 """
     findmaximal(sitegs::AbstractVector{<:SiteGroup})
 
-Given a vector of `SiteGroup`s associated with the Wyckoff positions of a space group,
+Given an `AbstractVector{<:SiteGroup}` over the distinct Wyckoff positions of a space group,
 return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
 
 Results are returned as a `view` into the input vector (i.e. as an 
@@ -223,12 +242,9 @@ julia> sgnum = 5;
 
 julia> D = 2;
 
-julia> wps = wyckoffs(sgnum, Val(D));
-
 julia> sg  = spacegroup(sgnum, Val(D));
 
-
-julia> sitegs = sitegroup.(Ref(sg), wps)
+julia> sitegs = sitegroups(sg)
 2-element Vector{SiteGroup{2}}:
  [1] (4b: [α, β])
  [1, m₁₀] (2a: [0, β])

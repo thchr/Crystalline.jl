@@ -123,7 +123,8 @@ export classes, is_abelian
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, sitegroup, cosets,
+       SiteGroup, sitegroup, sitegroups,
+       cosets,
        findmaximal,
        siteirreps
 

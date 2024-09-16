@@ -224,9 +224,8 @@ function calc_bandreps(
     lgirsv = [lgirs for lgirs in values(lgirsd)]
 
     # get the bandreps induced by every maximal site symmetry irrep
-    wps    = wyckoffs(sgnum, Dᵛ)
     sg     = spacegroup(sgnum, Dᵛ)
-    sitegs = findmaximal(sitegroup.(Ref(sg), wps))
+    sitegs = findmaximal(sitegroups(sg))
     brs    = NewBandRep{D}[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
