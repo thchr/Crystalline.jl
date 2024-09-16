@@ -109,8 +109,8 @@ function is_compatible(kv::KVec{D}, kv′::KVec{D}) where D
 end
 
 #=
-function compatibility_matrix(BRS::BandRepSet)
-    lgirs_in, lgirs_out = matching_lgirreps(BRS::BandRepSet)
+function compatibility_matrix(brs::BandRepSet)
+    lgirs_in, lgirs_out = matching_lgirreps(brs::BandRepSet)
     for (iᴳ, Dᴳᵢ) in enumerate(lgirs_in)         # super groups
         for (jᴴ, Dᴴⱼ) in enumerate(lgirs_out)    # sub groups
             # we ought to only check this on a per-kvec basis instead of 

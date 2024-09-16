@@ -1,9 +1,9 @@
 # Utility to write a ::BandRepSet to a .csv file
 using Crystalline
 
-function bandrep2csv(filename::String, BRS::BandRepSet)
+function bandrep2csv(filename::String, brs::BandRepSet)
     open(filename, "w") do io
-        bandrep2csv(io, BRS)
+        bandrep2csv(io, brs)
     end
 end
 
@@ -15,26 +15,26 @@ function extract_klabel(s::String)
     return s[1:prevind(s, stopidx)] # `prevind` needed since labels are not just ascii
 end
 
-function bandrep2csv(io::IO, BRS::BandRepSet)
+function bandrep2csv(io::IO, brs::BandRepSet)
     print(io, "Wyckoff pos.")
-    for br in BRS
+    for br in brs
         print(io, "|", br.wyckpos, "(", br.sitesym, ")")
     end
     println(io)
 
     print(io, "Band-Rep.")
-    for br in BRS
+    for br in brs
         print(io, "|", br.label, "(", br.dim, ")")
     end
     println(io)
 
-    irlabs = BRS.irlabs
-    for (idx, (klab,kv)) in enumerate(zip(BRS.klabs, BRS.kvs))
+    irlabs = brs.irlabs
+    for (idx, (klab,kv)) in enumerate(zip(brs.klabs, brs.kvs))
         print(io, klab, ":")
         print(io, '('*strip(replace(string(kv), " "=>""), ('[', ']'))*')')
 
         iridxs = findall(irlab -> extract_klabel(irlab) == klab, irlabs)
-        for br in BRS
+        for br in brs
             print(io, "|", )
             has_multiple = false
             for iridx in iridxs
@@ -49,7 +49,7 @@ function bandrep2csv(io::IO, BRS::BandRepSet)
                 end
             end
         end
-        idx ≠ length(BRS.klabs) && println(io)
+        idx ≠ length(brs.klabs) && println(io)
     end
 end
 
@@ -63,9 +63,9 @@ for allpaths in (false, true)
     for timereversal in (false, true)
         tr_tag = timereversal ? "elementaryTR" : "elementary"
         for sgnum in 1:MAX_SGNUM[2]
-            BRS = calc_bandreps(sgnum, Val(2); allpaths=allpaths, timereversal=timereversal)
+            brs = calc_bandreps(sgnum, Val(2); allpaths=allpaths, timereversal=timereversal)
             filename = joinpath(basepath, tr_tag, path_tag, string(sgnum)*".csv")
-            bandrep2csv(filename, BRS)
+            bandrep2csv(filename, brs)
         end
     end
 end

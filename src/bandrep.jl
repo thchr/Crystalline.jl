@@ -121,7 +121,7 @@ function bandreps(sgnum::Integer, D::Integer=3;
     filename = joinpath(DATA_DIR, 
                         "bandreps/$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv")
     open(filename) do io
-        BRS = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
+        brs = dlm2struct(io, sgnum, allpaths, spinful, timereversal)
     end 
 end
 
@@ -143,9 +143,9 @@ end
 is_not_one_or_zero(x) = !(isone(x) || iszero(x))
 
 """
-    classification(BRS_or_F::Union{BandRepSet, Smith}) --> String
+    classification(brs_or_F::Union{BandRepSet, Smith}) --> String
 
-Return the symmetry indicator group ``X^{\\text{BS}}`` of an EBR basis `F_or_BRS`, provided
+Return the symmetry indicator group ``X^{\\text{BS}}`` of an EBR basis `F_or_brs`, provided
 as a `BandRepSet` or `Smith` decomposition.
 
 Technically, the calculation answers the question "what direct product of 
@@ -161,12 +161,12 @@ function classification(nontriv_Λ::AbstractVector{<:Integer})
         return "Z"*subscriptify(join(nontriv_Λ, "×Z"))
     end
 end
-function classification(BRS_or_F::Union{BandRepSet, Smith})
-    return classification(nontrivial_factors(BRS_or_F))
+function classification(brs_or_F::Union{BandRepSet, Smith})
+    return classification(nontrivial_factors(brs_or_F))
 end
 
 """
-    basisdim(BRS::BandRepSet) --> Int
+    basisdim(brs::BandRepSet) --> Int
 
 Return the dimension of the (linearly independent parts) of a band representation set.
 This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of [Po, Watanabe, & Vishwanath,
@@ -226,9 +226,9 @@ end
 
 # TODO: Remove this (unexported method)
 """
-    matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3))
+    matching_littlegroups(brs::BandRepSet, ::Val{D}=Val(3))
 
-Finds the matching little groups for each *k*-point referenced in `BRS`. This is mainly a 
+Finds the matching little groups for each *k*-point referenced in `brs`. This is mainly a 
 a convenience accessor, since e.g. [`littlegroup(::SpaceGroup, ::KVec)`](@ref) could also
 return the required little groups. The benefit here is that the resulting operator sorting
 of the returned little group is identical to the operator sortings assumed in
@@ -243,10 +243,10 @@ Unlike the operations returned by [`spacegroup`](@ref), the returned little grou
 include copies of operators that would be identical when transformed to a primitive basis.
 The operators are, however, still given in a conventional basis.
 """
-function matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3)) where D
-    lgs = littlegroups(num(BRS), Val(D)) # TODO: generalize to D≠3
+function matching_littlegroups(brs::BandRepSet, ::Val{D}=Val(3)) where D
+    lgs = littlegroups(num(brs), Val(D)) # TODO: generalize to D≠3
 
-    klabs_in_brs = klabels(BRS) # find all k-point labels in BandRepSet
+    klabs_in_brs = klabels(brs) # find all k-point labels in BandRepSet
     if !issubset(klabs_in_brs, keys(lgs))
         throw(DomainError(klabs_in_brs, "Could not locate all LittleGroups from BandRep"))
     end
@@ -255,10 +255,10 @@ function matching_littlegroups(BRS::BandRepSet, ::Val{D}=Val(3)) where D
 end
 
 
-function matching_lgirreps(BRS::BandRepSet)
-    lgirsd = lgirreps(num(BRS), Val(3))
-    # create "physical/real" irreps if `BRS` assumes time-reversal symmetry
-    if BRS.timereversal 
+function matching_lgirreps(brs::BandRepSet)
+    lgirsd = lgirreps(num(brs), Val(3))
+    # create "physical/real" irreps if `brs` assumes time-reversal symmetry
+    if brs.timereversal 
         for (klab, lgirs) in lgirsd
             lgirsd[klab] = realify(lgirs)
         end
@@ -269,7 +269,7 @@ function matching_lgirreps(BRS::BandRepSet)
     # find all the irreps in lgirs that feature in the BandRepSet, and 
     # sort them according to BandRepSet's sorting
     lgirlabs = label.(lgirs)
-    brlabs   = normalizesubsup.(irreplabels(BRS))
+    brlabs   = normalizesubsup.(irreplabels(brs))
 
     find_and_sort_idxs = Vector{Int}(undef, length(brlabs))
     @inbounds for (idx, brlab) in enumerate(brlabs)
@@ -282,9 +282,9 @@ function matching_lgirreps(BRS::BandRepSet)
     end
 
     # find all the irreps _not_ in the BandRepSet; keep existing sorting
-    not_in_BRS_idxs = filter(idx -> idx∉find_and_sort_idxs, eachindex(lgirlabs))
+    not_in_brs_idxs = filter(idx -> idx∉find_and_sort_idxs, eachindex(lgirlabs))
 
     # return: 1st element = lgirs ∈ BandRepSet (matching)
     #         2nd element = lgirs ∉ BandRepSet (not matching)
-    return (@view lgirs[find_and_sort_idxs]), (@view lgirs[not_in_BRS_idxs])
+    return (@view lgirs[find_and_sort_idxs]), (@view lgirs[not_in_brs_idxs])
 end

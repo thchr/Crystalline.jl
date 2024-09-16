@@ -989,13 +989,13 @@ struct BandRepSet <: AbstractVector{BandRep}
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
     timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
-num(BRS::BandRepSet)         = BRS.sgnum
-klabels(BRS::BandRepSet)     = BRS.klabs
-irreplabels(BRS::BandRepSet) = BRS.irlabs
-isspinful(BRS::BandRepSet)   = BRS.spinful
-reps(BRS::BandRepSet)        = BRS.bandreps
+num(brs::BandRepSet)         = brs.sgnum
+klabels(brs::BandRepSet)     = brs.klabs
+irreplabels(brs::BandRepSet) = brs.irlabs
+isspinful(brs::BandRepSet)   = brs.spinful
+reps(brs::BandRepSet)        = brs.bandreps
 
 # define the AbstractArray interface for BandRepSet
-size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
-@propagate_inbounds getindex(BRS::BandRepSet, i::Int) = reps(BRS)[i]
+size(brs::BandRepSet) = (length(reps(brs)),) # number of distinct band representations
+@propagate_inbounds getindex(brs::BandRepSet, i::Int) = reps(brs)[i]
 IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
