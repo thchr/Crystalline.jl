@@ -569,7 +569,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 # Collection{<:NewBandRep}
 
-@eval Crystalline function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
+function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
     irlabs = irreplabels(brs)
     Nⁱʳʳ = length(irlabs)
 

@@ -71,9 +71,9 @@ julia> brs = calc_bandreps(220);
 julia> lgirsv = irreps(brs); # irreps at P, H, Γ, & PA
 julia> s = "[2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃]"
 julia> parse(SymmetryVector, s, lgirsv)
+```
 """
-
-@eval Crystalline function Base.parse(
+function Base.parse(
             T::Type{<:SymmetryVector},
             s::AbstractString, 
             lgirsv::Vector{Collection{LGIrrep{D}}}) where D
