@@ -16,6 +16,8 @@ irreps(n::SymmetryVector) = n.lgirsv
 multiplicities(n::SymmetryVector) = n.multsv
 occupation(n::SymmetryVector) = n.occupation
 SymmetryVector(n::SymmetryVector) = n
+SymmetryVector{D}(n::SymmetryVector{D}) where D = n
+SymmetryVector{D′}(::SymmetryVector{D}) where {D′, D} = error("incompatible dimensions")
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
 function Base.similar(n::SymmetryVector{D}) where D
@@ -190,8 +192,8 @@ end
 
 # ::: Algebraic operations :::
 function Base.:+(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D
-    _n = SymmetryVector{D}(n)
-    _m = SymmetryVector{D}(m)
+    _n = SymmetryVector(n)
+    _m = SymmetryVector(m)
     irreps(_n) === irreps(_m)
     return SymmetryVector(irreps(_n), 
                           multiplicities(_n) .+ multiplicities(_m),
