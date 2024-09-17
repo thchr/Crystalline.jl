@@ -40,9 +40,9 @@ end
 function Base.Vector(n::SymmetryVector)
     nv = Vector{Int}(undef, length(n))
     i = 1
-    for mults in multiplicities(n)
+    @inbounds for mults in multiplicities(n)
         N = length(mults)
-        copyto!(nv, i, mults, 1, N)
+        nv[i:N] .= mults
         i += N
     end
     nv[end] = occupation(n)
