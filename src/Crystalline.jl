@@ -73,7 +73,7 @@ export SymOperation,                        # types
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
-include("types_symmetry_vectors.jl")
+include("types_symmetryvectors.jl")
 export SymmetryVector, NewBandRep
 export irreps, multiplicities, occupation
 

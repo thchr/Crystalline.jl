@@ -1,6 +1,59 @@
 # ---------------------------------------------------------------------------------------- #
-# AbstractSymmetryVector
+# AbstractSymmetryVector definition
 abstract type AbstractSymmetryVector{D} <: AbstractVector{Int} end
+
+# ---------------------------------------------------------------------------------------- #
+# SymmetryVector
+
+mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
+    const lgirsv :: Vector{Collection{LGIrrep{D}}}
+    const multsv :: Vector{Vector{Int}}
+    occupation   :: Int
+end
+
+# ::: AbstractSymmetryVector interface :::
+irreps(n::SymmetryVector) = n.lgirsv
+multiplicities(n::SymmetryVector) = n.multsv
+occupation(n::SymmetryVector) = n.occupation
+SymmetryVector(n::SymmetryVector) = n
+
+# ::: AbstractArray interface beyond AbstractSymmetryVector :::
+function Base.similar(n::SymmetryVector{D}) where D
+    SymmetryVector{D}(n.lgirsv, similar(n.multsv), 0)
+end
+@propagate_inbounds function Base.setindex!(n::SymmetryVector, v::Int, i::Int)
+    Nⁱʳ = length(n)
+    @boundscheck i > Nⁱʳ && throw(BoundsError(n, i))
+    i == Nⁱʳ && (n.occupation = v; return v)
+    i₀ = i₁ = 0
+    for mults in multiplicities(n)
+        i₁ += length(mults)
+        if i ≤ i₁
+            mults[i-i₀] = v
+            return v
+        end
+        i₀ = i₁
+    end
+end
+
+# ::: Optimizations and utilities :::
+function Base.Vector(n::SymmetryVector)
+    nv = Vector{Int}(undef, length(n))
+    i = 1
+    for mults in multiplicities(n)
+        N = length(mults)
+        copyto!(nv, i, mults, 1, N)
+        i += N
+    end
+    nv[end] = occupation(n)
+    return nv
+end
+irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(irreps(n))]
+klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in irreps(n)]
+num(n::SymmetryVector) = num(first(first(irreps(n))))
+
+# ---------------------------------------------------------------------------------------- #
+# AbstractSymmetryVector interface & shared implementation
 
 # ::: API :::
 """
@@ -102,56 +155,6 @@ end
 
 # ::: Utilities & misc :::
 dim(::AbstractSymmetryVector{D}) where D = D
-
-# ---------------------------------------------------------------------------------------- #
-# SymmetryVector
-
-mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
-    const lgirsv :: Vector{Collection{LGIrrep{D}}}
-    const multsv :: Vector{Vector{Int}}
-    occupation   :: Int
-end
-
-# ::: AbstractSymmetryVector interface :::
-irreps(n::SymmetryVector) = n.lgirsv
-multiplicities(n::SymmetryVector) = n.multsv
-occupation(n::SymmetryVector) = n.occupation
-SymmetryVector(n::SymmetryVector) = n
-
-# ::: AbstractArray interface beyond AbstractSymmetryVector :::
-function Base.similar(n::SymmetryVector{D}) where D
-    SymmetryVector{D}(n.lgirsv, similar(n.multsv), 0)
-end
-@propagate_inbounds function Base.setindex!(n::SymmetryVector, v::Int, i::Int)
-    Nⁱʳ = length(n)
-    @boundscheck i > Nⁱʳ && throw(BoundsError(n, i))
-    i == Nⁱʳ && (n.occupation = v; return v)
-    i₀ = i₁ = 0
-    for mults in multiplicities(n)
-        i₁ += length(mults)
-        if i ≤ i₁
-            mults[i-i₀] = v
-            return v
-        end
-        i₀ = i₁
-    end
-end
-
-# ::: Optimizations and utilities :::
-function Base.Vector(n::SymmetryVector)
-    nv = Vector{Int}(undef, length(n))
-    i = 1
-    for mults in multiplicities(n)
-        N = length(mults)
-        copyto!(nv, i, mults, 1, N)
-        i += N
-    end
-    nv[end] = occupation(n)
-    return nv
-end
-irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(irreps(n))]
-klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in irreps(n)]
-num(n::SymmetryVector) = num(first(first(irreps(n))))
 
 # ---------------------------------------------------------------------------------------- #
 # NewBandRep
