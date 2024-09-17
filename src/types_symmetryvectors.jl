@@ -44,7 +44,7 @@ function Base.Vector(n::SymmetryVector)
     i = 1
     @inbounds for mults in multiplicities(n)
         N = length(mults)
-        nv[i:N] .= mults
+        nv[i:i+N-1] .= mults
         i += N
     end
     nv[end] = occupation(n)
