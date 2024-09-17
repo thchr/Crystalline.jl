@@ -702,6 +702,7 @@ order(ir::AbstractIrrep)  = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(::AbstractIrrep{D}) where D = D
+Base.position(ir::AbstractIrrep) = position(group(ir))
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
@@ -778,7 +779,6 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-Base.position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
@@ -830,6 +830,9 @@ Base.iterate(c::Collection, state) = iterate(c.vs, state)
 # ::: Interface :::
 dim(vs::Collection) = dim(first(vs))
 num(vs::Collection) = num(first(vs))
+
+# ::: Methods for `Collection{<:AbstractIrrep}` :::
+Base.position(c::Collection{<:AbstractIrrep}) = position(first(c))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable

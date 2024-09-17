@@ -52,6 +52,61 @@ irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(irreps(n
 klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in irreps(n)]
 num(n::SymmetryVector) = num(first(first(irreps(n))))
 
+# ::: Parsing from string :::
+
+
+""" 
+    parse(::Type{SymmetryVector{D}}, 
+          s::AbstractString,
+          lgirsv::Vector{Collection{LGIrrep{D}}})  ->  SymmetryVector{D}
+
+Parse a string `s` to a `SymmetryVector` over the irreps provided in `lgirsv`. The labels of
+`lgirsv` and `s` must be provided in a shared convention.
+
+## Example
+```julia
+julia> brs = calc_bandreps(220);
+julia> lgirsv = irreps(brs); # irreps at P, H, Γ, & PA
+julia> s = "[2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃]"
+julia> parse(SymmetryVector, s, lgirsv)
+"""
+
+@eval Crystalline function Base.parse(
+            T::Type{<:SymmetryVector},
+            s::AbstractString, 
+            lgirsv::Vector{Collection{LGIrrep{D}}}) where D
+    if !isnothing(dim(T)) && dim(T) != D
+        # small dance to allow using both `T=SymmetryVector` & `T=SymmetryVector{D}`
+        error("incompatible dimensions of requested SymmetryVector and provided `lgirsv`")
+    end
+    s′ = replace(s, " "=>"", "*"=>"")
+    multsv = [zeros(Int, length(lgirs)) for lgirs in lgirsv]
+    μ = typemax(Int) # sentinel for uninitialized
+    for (i, lgirs) in enumerate(lgirsv)
+        found_irrep = false
+        for (j, lgir) in enumerate(lgirs)
+            irlab = label(lgir)
+            idxs = findfirst(irlab, s′)
+            isnothing(idxs) && continue
+            found_irrep = true
+            pos₂ = first(idxs)
+            m = searchpriornumerals(s′, pos₂, Int)
+            multsv[i][j] = m
+        end
+        if !found_irrep
+            error("could not identify any irreps associated with the \
+                   $(klabel(first(lgirs)))-point in the input string $s")
+        end
+        μ′ = sum(multsv[i][j]*irdim(lgirs[j]) for j in eachindex(lgirs))
+        if μ == typemax(Int) # uninitialized
+            μ = μ′
+        else
+            # validate that occupation number is invariant across all k-points
+            μ == μ′ || error("inconsistent occupation numbers across k-points")
+        end
+    end
+    return SymmetryVector(lgirsv, multsv, μ)
+end
 # ---------------------------------------------------------------------------------------- #
 # AbstractSymmetryVector interface & shared implementation
 
@@ -155,6 +210,8 @@ end
 
 # ::: Utilities & misc :::
 dim(::AbstractSymmetryVector{D}) where D = D
+dim(::Type{<:AbstractSymmetryVector{D}}) where D = D
+dim(::Type{<:AbstractSymmetryVector}) = nothing
 
 # ---------------------------------------------------------------------------------------- #
 # NewBandRep
@@ -196,16 +253,17 @@ end
 # Collection{<:NewBandRep}
 
 # ::: Utilities :::
-irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(first(brs).n)
-klabels(brs::Collection{<:NewBandRep}) = klabels(first(brs).n)
+irreps(brs::Collection{<:NewBandRep}) = irreps(SymmetryVector(first(brs)))
+irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(SymmetryVector(first(brs)))
+klabels(brs::Collection{<:NewBandRep}) = klabels(SymmetryVector(first(brs)))
 
 # ::: Conversion to BandRepSet :::
 function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})
-    sgnum = num(first(brs))
+    sgnum = num(brs)
     bandreps = convert.(Ref(BandRep), brs)
-    kvs = [position(first(lgirs)) for lgirs in irreps(first(brs))]
-    klabs = klabels(first(brs))
-    irlabs = irreplabels(first(brs))
+    kvs = [position(lgirs) for lgirs in irreps(brs)]
+    klabs = klabels(brs)
+    irlabs = irreplabels(brs)
     spinful = first(brs).spinful
     timereversal = first(brs).timereversal
     return BandRepSet(sgnum, bandreps, kvs, klabs, irlabs, spinful, timereversal)
