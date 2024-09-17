@@ -62,15 +62,20 @@ num(n::SymmetryVector) = num(first(first(irreps(n))))
           s::AbstractString,
           lgirsv::Vector{Collection{LGIrrep{D}}})  ->  SymmetryVector{D}
 
-Parse a string `s` to a `SymmetryVector` over the irreps provided in `lgirsv`. The labels of
-`lgirsv` and `s` must be provided in a shared convention.
+Parse a string `s` to a `SymmetryVector` over the irreps provided in `lgirsv`. 
+The irrep labels of `lgirsv` and `s` must use the same convention.
 
 ## Example
-```julia
+```jldoctest
 julia> brs = calc_bandreps(220);
+
 julia> lgirsv = irreps(brs); # irreps at P, H, Γ, & PA
-julia> s = "[2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃]"
+
+julia> s = "[2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃]";
+
 julia> parse(SymmetryVector, s, lgirsv)
+15-irrep SymmetryVector{3}:
+ [2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃] (8 bands)
 ```
 """
 function Base.parse(
