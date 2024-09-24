@@ -211,9 +211,14 @@ Base.:-(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D = n 
 function Base.:*(n::AbstractSymmetryVector{D}, k::Integer) where D
     SymmetryVector{D}(irreps(n), [ms .* k for ms in multiplicities(n)], occupation(n) * k)
 end
+Base.:*(k::Integer, n::AbstractSymmetryVector) = n * k
 function Base.zero(n::AbstractSymmetryVector{D}) where D
     SymmetryVector{D}(irreps(n), zero.(multiplicities(n)), 0)
 end
+# make sure `sum(::AbstractSymmetryVector)` is type-stable (necessary since the + operation
+# now may change the type of an `AbstractSymmetryVector` - so `n[1]` and `n[1]+n[2]` may
+# be of different types) and always returns a `SymmetryVector`
+Base.reduce_first(::typeof(+), n::AbstractSymmetryVector) = SymmetryVector(n)
 
 # ::: Utilities & misc :::
 dim(::AbstractSymmetryVector{D}) where D = D

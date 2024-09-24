@@ -540,9 +540,12 @@ end
 function Base.show(io :: IO, n :: SymmetryVector)
     print(io, "[")
     for (i, (mults_k, lgirs_k)) in enumerate(zip(n.multsv, n.lgirsv))
-        printstyled(io, 
-                    Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false);
-                    color=iseven(i) ? :normal : :light_blue)
+        str = if !iszero(mults_k)
+            Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false)
+        else # if there are no occupied irreps at the considered k-point print "0kᵢ"
+            "0" * klabel(first(lgirs_k)) * "ᵢ"
+        end
+        printstyled(io, str; color=iseven(i) ? :normal : :light_blue)
         i ≠ length(n.multsv) && print(io, ", ")
     end
     print(io, "]")

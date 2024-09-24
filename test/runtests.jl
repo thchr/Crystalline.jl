@@ -15,6 +15,9 @@ using Crystalline, Test
     include("kvecs.jl")
     include("wyckoff.jl")
 
+    # symmetry vectors
+    include("symmetryvectors.jl")
+
     # show, notation, and cached info
     include("show.jl")
     include("notation.jl")
