@@ -21,5 +21,5 @@ using Crystalline
     # printing SymmetryVector that have zero-contents
     n = SymmetryVector(brs[1])
     @test n*0 == zero(n)
-    @test string(n) == "[0Mᵢ, 0Xᵢ, 0Γᵢ, 0Rᵢ] (0 bands)"
+    @test string(zero(n)) == "[0Mᵢ, 0Xᵢ, 0Γᵢ, 0Rᵢ] (0 bands)"
 end # @testset "(Abstract)SymmetryVectors"
