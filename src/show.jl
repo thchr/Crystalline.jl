@@ -612,9 +612,9 @@ end
 
 function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
     first = true
-    for (j, c) in cbr.coefs
+    for (j, c) in enumerate(cbr.coefs)
+        iszero(c) && continue
         absc = abs(c)
-        iszero(absc) && continue
         if first
             first = false
             c < 0 && print(io, "-")
