@@ -12,4 +12,8 @@ using Test
         # test that a primitivize -> conventionalize cycle leaves the lattice unchanged
         @test flat ≈ conventionalize(flat′, cntr)
     end
+
+    # convert-to-integer bug found by Ali
+    flat = levelsetlattice(sgnum, Val(3), ntuple(_->2, Val(3)))
+    @test primitivize(flat, centering(sgnum)) isa UnityFourierLattice{3} # = doesn't throw
 end

@@ -226,7 +226,12 @@ function transform(flat::AbstractFourierLattice{D}, P::AbstractMatrix{<:Real}) w
     # transform all k-vecs in the orbits
     for (i, orb) in enumerate(orbits)
         for (j, k) in enumerate(orb)
-            orbits′[i][j] = convert(SVector{D, Int}, P'*k)
+            k′ = P'*k
+            int_k′ = round.(Int, k′)
+            if !isapprox(k′, k, atol=DEFAULT_ATOL)
+                error("unexpectedly obtained non-integer k-vector in orbit")
+            end
+            orbits′[i][j] = int_k′::SVector{D,Int}
         end
     end
     # --- Comment regarding the `convert(SVector{D, Int}, ...)` call above: ---
