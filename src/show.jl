@@ -549,7 +549,7 @@ function Base.show(io :: IO, n :: SymmetryVector)
         i ≠ length(n.multsv) && print(io, ", ")
     end
     print(io, "]")
-    printstyled(io, " (", n.occupation, " band", n.occupation ≠ 1 ? "s" : "", ")"; 
+    printstyled(io, " (", occupation(n), " band", abs(occupation(n)) ≠ 1 ? "s" : "", ")"; 
                     color=:light_black)
 end
 
@@ -565,6 +565,7 @@ function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
     print(io, "): ")
     show(io, br.n)
 end
+
 function Base.show(io :: IO, br :: NewBandRep)
     print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
 end
@@ -604,4 +605,38 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
+end
+
+# ---------------------------------------------------------------------------------------- #
+# CompositeBandRep
+
+function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
+    first = true
+    for (j, c) in cbr.coefs
+        absc = abs(c)
+        iszero(absc) && continue
+        if first
+            first = false
+            c < 0 && print(io, "-")
+        else
+            print(io, " ", Crystalline.signaschar(c), " ")
+        end
+        if !isone(absc)
+            if isinteger(absc)
+                print(io, Int(absc))
+            else
+                print(io, "(", numerator(absc), "/", denominator(absc), ")×")
+            end
+        end
+        print(io, cbr.brs[j])
+    end
+    first && print(io, "0")
+end
+
+function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
+    println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
+    print(io, " ")
+    show(io, cbr)
+    μ = occupation(cbr)
+    printstyled(io, " (", μ, " band", abs(μ) ≠ 1 ? "s" : "", ")", color=:light_black)
 end

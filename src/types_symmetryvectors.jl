@@ -280,3 +280,159 @@ function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})
     timereversal = first(brs).timereversal
     return BandRepSet(sgnum, bandreps, kvs, klabs, irlabs, spinful, timereversal)
 end
+
+
+# ---------------------------------------------------------------------------------------- #
+# CompositeBandRep
+
+"""
+CompositeBandRep{D} <: AbstractSymmetryVector{D}
+
+A type representing a linear rational-coefficient combination of `NewBandRep{D}`s. 
+
+Although the coefficients may be rational numbers in general, their superposition must
+correspond to integer-valued irrep multiplicities and band occupation numbers; in
+particular, if they do not, conversion to a `SymmetryVector` will error.
+
+## Fields
+- `coefs::Dict{Int, Rational{Int}}`: the coefficients of the band representations, stored as
+  a dictionary mapping key-value pairs to index-coefficient pairs, corresponding to indices
+  into `brs`.
+- `brs::Collection{NewBandRep{D}}`: the band representations referenced by `coefs`.
+
+## Example
+```julia
+julia> brs = calc_bandreps(2);
+
+julia> cbr = CompositeBandRep([1, 1, 2, 6], brs)
+
+# example: a fragilely topological combination of band representations
+julia> cbr = CompositeBandRep(Dict(16=>-1//1, 7=>1//1, 6=>1//1, 3=>1//1), brs)
+16-irrep CompositeBandRep{3}:
+ -(1a|Aᵤ) + (1e|Ag) + (1f|Aᵤ) + (1g|Ag) (2 bands)
+
+julia> SymmetryVector(cbr)
+ [2Z₁⁺, 2Y₁⁻, 2U₁⁻, 2X₁⁺, 2T₁⁺, 2Γ₁⁺, 2V₁⁺, 2R₁⁺] (2 bands)
+
+# example: nontrivial topology & fractional coefficients (but integer irrep multiplicities)
+julia> cbr = CompositeBandRep{3}(Dict(16=>1, 15=>1//4, 13=>-1//4, 11=>1//4, 9=>1//4,
+                                      7=>1//4, 5=>-1//4, 3=>-1//4, 1=>-1//4),
+                                 brs)
+16-irrep CompositeBandRep{3}:
+ -(1/4)×(1f|Ag) - (1/4)×(1b|Ag) + (1a|Aᵤ) + (1/4)×(1a|Ag) + (1/4)×(1c|Ag) + (1/4)×(1e|Ag) + (1/4)×(1d|Ag) - (1/4)×(1g|Ag) - (1/4)×(1h|Ag) (1 band)
+
+julia> SymmetryVector(cbr)
+16-irrep SymmetryVector{3}:
+ [Z₁⁺, Y₁⁻, U₁⁻, X₁⁻, T₁⁻, Γ₁⁻, V₁⁻, R₁⁻] (1 band)
+```
+"""
+struct CompositeBandRep{D} <: AbstractSymmetryVector{D}
+    coefs :: Dict{Int, Rational{Int}}
+    brs   :: Collection{NewBandRep{D}}
+end
+
+# ::: Convenience constructor :::
+"""
+    CompositeBandRep(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
+
+Return a `CompositeBandRepSet` whose symmetry content is equal to the sum the band
+representations of `brs` over `idxs`.
+In terms of irrep multiplicity, this is equivalent to `sum(brs[idxs])`, in the sense that
+`SymmetryVector(CompositeBandRep(idxs, brs))` is equal to `sum(brs[idxs])`. 
+
+The difference, and primary motivation for using `CompositeBandRep`, is that  
+`CompositeBandRep` retains information about which band representations are included and
+with what multiplicity (the multiplicity of the `i`th `brs`-element being equaling to
+`count(==(i), idxs)`).
+
+## Example
+```julia
+julia> brs = calc_bandreps(2);
+
+julia> cbr = CompositeBandRep([1, 1, 2, 6], brs)
+16-irrepCompositeBandRep{3}:
+ (1f|Aᵤ) + (1h|Aᵤ) + 2(1h|Ag) (4 bands)
+
+julia> cbr == brs[1] + brs[1] + brs[2] + brs[6]
+true
+
+julia> SymmetryVector(cbr)
+16-irrep SymmetryVector{3}:
+ [2Z₁⁺+2Z₁⁻, Y₁⁺+3Y₁⁻, 2U₁⁺+2U₁⁻, 2X₁⁺+2X₁⁻, 3T₁⁺+T₁⁻, 2Γ₁⁺+2Γ₁⁻, 3V₁⁺+V₁⁻, R₁⁺+3R₁⁻] (4 bands)
+```
+"""
+function CompositeBandRep(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
+    coefs = Dict{Int, Rational{Int}}()
+    for i in idxs
+        @boundscheck checkbounds(brs, i)
+        coefs[i] = get(coefs, i, zero(valtype(coefs))) + 1
+    end
+    CompositeBandRep(coefs, brs)
+end
+
+# ::: AbstractSymmetryVector interface :::
+function SymmetryVector(cbr::CompositeBandRep{D}) where {D}
+    brs = cbr.brs
+    lgirsv = irreps(brs)
+    multsv_r = zeros.(Rational{Int}, size.(multiplicities(first(brs))))
+    μ = 0
+    for (j, c) in cbr.coefs
+        multsv_r .+= c * multiplicities(brs[j])
+        μ += c * occupation(brs[j])
+    end
+    multsv = similar.(multsv_r, Int)
+    for (i, (mults_r, mults)) in enumerate(zip(multsv_r, multsv))
+        for (j, m_r) in enumerate(mults_r)
+            m_int = round(Int, m_r)
+            if m_int ≠ m_r
+                error(LazyString("CompositeBandRep has non-integer multiplicity ",
+                                 m_r, " for irrep ", label(lgirsv[i][j]), 
+                                 ": cannot convert to SymmetryVector"))
+            end
+            mults[j] = m_int
+        end
+    end
+    multsv = [Int.(mults) for mults in multsv_r]
+    μ = Int(μ)
+    return SymmetryVector{D}(lgirsv, multsv, μ)
+end
+function occupation(cbr::CompositeBandRep)
+    μ_r = sum(c * occupation(cbr.brs[j]) for (j, c) in cbr.coefs; 
+              init=zero(valtype(cbr.coefs)))
+    isinteger(μ_r) || error(lazy"CompositeBandRep has non-integer occupation (= $μ_r)")
+    return round(Int, μ_r)
+end
+
+# ::: overloads to avoid materializing a SymmetryVector unnecessarily :::
+irreps(cbr::CompositeBandRep) = irreps(first(cbr.brs))
+klabels(cbr::CompositeBandRep) = klabels(first(cbr.brs))
+irreplabels(cbr::CompositeBandRep) = irreplabels(first(cbr.brs))
+num(cbr::CompositeBandRep) = num(first(cbr.brs))
+
+# ::: AbstractArray interface :::
+Base.size(cbr::CompositeBandRep) = size(first(cbr.brs))
+Base.getindex(cbr::CompositeBandRep{D}, i::Int) where {D} = Int(sum(c * cbr.brs[j][i] for (j, c) in cbr.coefs; init=zero(valtype(cbr.coefs))))
+
+# ::: Arithmetic operations :::
+function Base.:+(cbr1::CompositeBandRep{D}, cbr2::CompositeBandRep{D}) where D
+    if cbr1.brs !== cbr2.brs
+        error("provided CompositeBandReps must reference egal `brs`")
+    end
+    coefs = mergewith(+, cbr1.coefs, cbr2.coefs)
+    foreach(coefs) do (k, c)
+        iszero(c) && delete!(coefs, k)
+    end
+    return CompositeBandRep{D}(coefs, cbr1.brs)
+end
+function Base.:-(cbr::CompositeBandRep{D}) where D
+    coefs = Dict(k=>-c for (k,c) in cbr.coefs)
+    CompositeBandRep{D}(coefs, cbr.brs)
+end
+Base.:-(cbr1::CompositeBandRep{D}, cbr2::CompositeBandRep{D}) where D = cbr1 + (-cbr2)
+function Base.:*(cbr::CompositeBandRep{D}, n::Integer) where D
+    coefs = Dict(k=>c*n for (k,c) in cbr.coefs)
+    return CompositeBandRep{D}(coefs, cbr.brs)
+end
+function Base.zero(cbr::CompositeBandRep{D}) where D
+    CompositeBandRep{D}(typeof(cbr.coefs)(), cbr.brs)
+end
