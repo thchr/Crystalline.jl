@@ -74,6 +74,14 @@ function nigglibasis(
     # tolerance
     D = 3 # algorithm assumes 3D setting (TODO: extend to 2D?)
     ϵ = rtol * abs(volume(Rs))^(1/D)
+
+    # NB: it would make sense in principle to start by doing a conventional lattice
+    #     reduction step here, e.g., `lll` from LLLplus.jl, to make sure we have a good
+    #     "starting point" for the algorithm; this would mean we'd need to do fewer of the
+    #     iterations below, especially for very skewed input. But LLLplus.jl is not very
+    #     fast - usually slower than `nigglibasis` itself, so don't do it for now.
+	# Rs_lll = lll(stack(Rs))[1] # LLL-reduced basis
+	# Rs = DirectBasis(eachcol(Rs))
     
     # initialization
     A, B, C, ξ, η, ζ = niggli_parameters(Rs)
