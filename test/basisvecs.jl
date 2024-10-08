@@ -83,7 +83,7 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         @test -k isa ReciprocalPoint{3}
         @test 2.3k isa ReciprocalPoint{3} && 2.3k == 2.3s
         @test 2.3r - r + 3r isa DirectPoint{3} && 2.3r - r + 3r ≈ 4.3r ≈ 4.3s
-        @test_throws r + k # cannot add ReciprocalPoint to DirectPoint
+        @test_throws ErrorException r + k # cannot add ReciprocalPoint to DirectPoint
 
         # isapprox on near-zero-difference
         a = 4.3r
