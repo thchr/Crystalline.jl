@@ -7,9 +7,9 @@ end
 
 function divide(y::R, x::R) where {R}
     if x != -one(R)
-        return div(y,x)
+        return R(div(y,x))
     else
-        return y * x
+        return R(y * x)
     end
 end
 
