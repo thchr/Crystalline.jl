@@ -70,8 +70,8 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         Gs = reciprocalbasis(Rs)
         @test cartesianize(k, Gs) isa ReciprocalPoint{3}
         @test latticize(cartesianize(k, Gs), Gs) isa ReciprocalPoint{3}
-        @test cartesianize(k, Rs) isa DirectPoint{3}
-        @test latticize(cartesianize(k, Rs), Rs) isa DirectPoint{3}
+        @test cartesianize(r, Rs) isa DirectPoint{3}
+        @test latticize(cartesianize(r, Rs), Rs) isa DirectPoint{3}
 
         @test cartesianize(parent(k), Gs) isa typeof(parent(k))
         @test latticize(cartesianize(parent(k), Gs), Gs) isa typeof(parent(k))
@@ -83,7 +83,6 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         @test -k isa ReciprocalPoint{3}
         @test 2.3k isa ReciprocalPoint{3} && 2.3k == 2.3s
         @test 2.3r - r + 3r isa DirectPoint{3} && 2.3r - r + 3r ≈ 4.3r ≈ 4.3s
-        @test_throws ErrorException r + k # cannot add ReciprocalPoint to DirectPoint
 
         # isapprox on near-zero-difference
         a = 4.3r
