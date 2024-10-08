@@ -53,15 +53,27 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         t = (.1,.2,.3)
         v = [.1,.2,.3]
         s = @SVector [.1,.2,.3]
-        r = ReciprocalPoint(.1,.2,.3)
+        k = ReciprocalPoint(.1,.2,.3)
 
         # conversion
-        @test r == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
-        @test r == convert(ReciprocalPoint{3}, s)  # StaticVector conversion
+        @test k == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
+        @test k == convert(ReciprocalPoint{3}, s)  # StaticVector conversion
 
         # construction
-        @test r == ReciprocalPoint(s) == ReciprocalPoint{3}(s)
-        @test r == ReciprocalPoint(t) == ReciprocalPoint{3}(t)
-        @test r == ReciprocalPoint(v) == ReciprocalPoint{3}(v)
+        @test k == ReciprocalPoint(s) == ReciprocalPoint{3}(s)
+        @test k == ReciprocalPoint(t) == ReciprocalPoint{3}(t)
+        @test k == ReciprocalPoint(v) == ReciprocalPoint{3}(v)
+
+        # transformation
+        Rs = directbasis(2)
+        Gs = reciprocalbasis(Rs)
+        @test cartesianize(k, Gs) isa ReciprocalPoint{3}
+        @test latticize(cartesianize(k, Gs), Gs) isa ReciprocalPoint{3}
+        r = DirectPoint(.1,.2,.3)
+        @test cartesianize(k, Rs) isa DirectPoint{3}
+        @test latticize(cartesianize(k, Rs), Rs) isa DirectPoint{3}
+
+        @test cartesianize(parent(k), Gs) isa typeof(parent(k))
+        @test latticize(cartesianize(parent(k), Gs), Gs) isa typeof(parent(k))
     end
 end

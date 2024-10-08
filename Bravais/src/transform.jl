@@ -503,9 +503,13 @@ Transform a vector `v` with coordinates referred to a lattice basis to a vector 
 coordinates referred to the Cartesian basis implied by the columns (or vectors) of `basis`.
 """
 cartesianize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis*v
-function cartesianize(v::AbstractVector{<:Real},
-                      basis::AbstractVector{<:AbstractVector{<:Real}})
+cartesianize(v::AbstractPoint, basis::AbstractMatrix{<:Real}) = typeof(v)(basis*v)
+function cartesianize(
+        v::AbstractVector{<:Real}, basis::AbstractVector{<:AbstractVector{<:Real}})
     return v'basis
+end
+function cartesianize(v::AbstractPoint, basis::AbstractVector{<:AbstractVector{<:Real}})
+    return typeof(v)(v'basis)
 end
 
 @doc """
@@ -515,6 +519,7 @@ Transform a vector `v` with coordinates referred to the Cartesian basis to a vec
 coordinates referred to the lattice basis implied by the columns (or vectors) of `basis`.
 """
 latticize(v::AbstractVector{<:Real}, basis::AbstractMatrix{<:Real}) = basis\v
+latticize(v::AbstractPoint, basis::AbstractMatrix{<:Real}) = typeof(v)(basis\v)
 function latticize(v::AbstractVector{<:Real},
                    basis::AbstractVector{<:AbstractVector{<:Real}})
     return latticize(v, reduce(hcat, basis))
