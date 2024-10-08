@@ -346,9 +346,10 @@ function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
+    v1, v2 = parent(v1), parent(v2) # for wrapped RVec or KVec types like WyckoffPosition
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
     
-    T′ = typeof(parent(v1)) # for wrapped RVec or KVec types like WyckoffPosition
+    T′ = typeof(v1)
     if modw # equivalence modulo a primitive lattice vector
         δ₀ = v₀1 - v₀2
         if cntr !== nothing
@@ -361,7 +362,12 @@ function Base.isapprox(v1::T, v2::T,
                  T′ <: RVec ? P  \ δ₀ :
                  error("`isapprox` is not implemented for type $T")
         end
-        all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false
+        iδ₀ = round.(δ₀)
+        if !iszero(iδ₀)
+            isapprox(δ₀, iδ₀; kwargs...) || return false
+        else
+            isapprox(v₀1, v₀2; kwargs...) || return false
+        end
     else # ordinary equivalence
         isapprox(v₀1, v₀2; kwargs...) || return false
     end
@@ -375,7 +381,8 @@ function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractPoint{D} where D
-    if modw # equivalence modulo a primitive lattice vector
+    if modw
+        # equivalence modulo a primitive lattice vector
         δ = v1 - v2
         if cntr !== nothing
             P = if cntr isa Char
@@ -383,14 +390,16 @@ function Base.isapprox(v1::T, v2::T,
             else # AbstractMatrix{<:Real}
                 convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
             end
-            δ = T <: ReciprocalPoint ? P' * δ :
-                T <: DirectPoint     ? P  \ δ :
-                error("`isapprox` is not implemented for type $T")
+            δ = transform(δ, P)
         end
-        return all(x -> isapprox(x, round(x); kwargs...), δ)
-    else # ordinary equivalence
-        return isapprox(v1, v2; kwargs...)
+        δ = parent(δ)
+        iδ = round.(δ)
+        if !iszero(iδ)
+            return isapprox(δ, iδ; kwargs...)
+        end
     end
+    # ordinary equivalence
+    return isapprox(parent(v1), parent(v2); kwargs...)
 end
 
 # Note that the _coefficients_ of a general 𝐤- or 𝐫-vector transforms differently than the

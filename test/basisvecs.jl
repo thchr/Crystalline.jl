@@ -54,6 +54,7 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         v = [.1,.2,.3]
         s = @SVector [.1,.2,.3]
         k = ReciprocalPoint(.1,.2,.3)
+        r = DirectPoint(.1,.2,.3)
 
         # conversion
         @test k == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
@@ -69,11 +70,25 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         Gs = reciprocalbasis(Rs)
         @test cartesianize(k, Gs) isa ReciprocalPoint{3}
         @test latticize(cartesianize(k, Gs), Gs) isa ReciprocalPoint{3}
-        r = DirectPoint(.1,.2,.3)
         @test cartesianize(k, Rs) isa DirectPoint{3}
         @test latticize(cartesianize(k, Rs), Rs) isa DirectPoint{3}
 
         @test cartesianize(parent(k), Gs) isa typeof(parent(k))
         @test latticize(cartesianize(parent(k), Gs), Gs) isa typeof(parent(k))
+
+        # arithmetic
+        @test k + k isa ReciprocalPoint{3} && k + k == s + s
+        @test k - k isa ReciprocalPoint{3} && k - k == zero(k)
+        @test zero(k) isa ReciprocalPoint{3}
+        @test -k isa ReciprocalPoint{3}
+        @test 2.3k isa ReciprocalPoint{3} && 2.3k == 2.3s
+        @test 2.3r - r + 3r isa DirectPoint{3} && 2.3r - r + 3r ≈ 4.3r ≈ 4.3s
+        @test_throws r + k # cannot add ReciprocalPoint to DirectPoint
+
+        # isapprox on near-zero-difference
+        a = 4.3r
+        b = 2.3r - r + 3r
+        @test isapprox(a, b)
+        @test isapprox(RVec(a), RVec(b))
     end
 end

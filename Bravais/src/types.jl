@@ -144,3 +144,12 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
         @eval $PT(v::Real...) = $PT{length(v)}(v)
     end
 end
+
+# arithmetic
+Base.:+(v::T, w::T) where T<:AbstractPoint = T(v.v + w.v)
+Base.:-(v::T, w::T) where T<:AbstractPoint = T(v.v - w.v)
+Base.:-(v::T) where T<:AbstractPoint = T(-v.v)
+Base.:*(v::T, c::Real) where T<:AbstractPoint = T(v.v * c)
+Base.:*(c::Real, v::AbstractPoint) = v*c
+Base.:/(v::T, c::Real) where T<:AbstractPoint = T(v.v / c)
+Base.zero(::Type{<:T}) where T<:AbstractPoint{D} where D = T(zero(SVector{D, Float64}))
