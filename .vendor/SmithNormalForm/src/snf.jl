@@ -79,11 +79,10 @@ function rowpivot(U::AbstractArray{R,2},
                   Uinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in reverse!(findall(!iszero, view(D, :, j)))
-        a = D[i,j]
+    for k in size(D, 1):-1:1
         b = D[k,j]
-
-        i == k && continue
+        (iszero(b) || i == k) && continue
+        a = D[i,j]
 
         s, t, g = bezout(a, b)
         x = divide(a, g)
@@ -99,11 +98,10 @@ function colpivot(V::AbstractArray{R,2},
                   Vinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in reverse!(findall(!iszero, view(D, i, :)))
-        a = D[i,j]
+    for k in size(D, 2):-1:1
         b = D[i,k]
-
-        j == k && continue
+        (iszero(b) || j == k) && continue
+        a = D[i,j]
 
         s, t, g = bezout(a, b)
         x = divide(a, g)
@@ -134,17 +132,12 @@ function init(M::AbstractSparseMatrix{R,Ti}; inverse=true) where {R, Ti}
     D = copy(M)
     rows, cols = size(M)
 
-    U = spzeros(R, rows, rows)
-    for i in 1:rows
-        U[i,i] = one(R)
-    end
-    Uinv = inverse ? copy(U) : spzeros(R, 0, 0)
+    U = sparse(R, Ti, I, rows, rows)
+    Uinv = inverse ? copy(U) : spzeros(R, Ti, 0, 0)
 
-    V = spzeros(R, cols, cols)
-    for i in 1:cols
-        V[i,i] = one(R)
-    end
-    Vinv = inverse ? copy(V) : spzeros(R, 0, 0)
+
+    V = sparse(R, Ti, I, cols, cols)
+    Vinv = inverse ? copy(V) : spzeros(R, Ti, 0, 0)
 
     return U, V, D, Uinv, Vinv
 end
@@ -153,16 +146,10 @@ function init(M::AbstractMatrix{R}; inverse=true) where {R}
     D = copy(M)
     rows, cols = size(M)
 
-    U = zeros(R, rows, rows)
-    for i in 1:rows
-        U[i,i] = one(R)
-    end
+    U = Matrix{R}(I, rows, rows)
     Uinv = inverse ? copy(U) : zeros(R, 0, 0)
 
-    V = zeros(R, cols, cols)
-    for i in 1:cols
-        V[i,i] = one(R)
-    end
+    V = Matrix{R}(I, cols, cols)
     Vinv = inverse ? copy(V) : zeros(R, 0, 0)
 
     return U, V, D, Uinv, Vinv
@@ -176,16 +163,14 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
 
     t = 1
     for j in 1:cols
-        @debug "Working on column $j out of $cols" D=formatmtx(D)
-
+        # @debug "Working on column $j out of $cols" D=formatmtx(D)
         rcountnz(D,j) == 0 && continue
 
         prow = 1
         if D[t,t] != zero(R)
             prow = t
         else
-            # Good pivot row for j-th column is the one
-            # that have a smallest number of elements
+            # the good pivot row for j-th column is the one that has fewest elements
             rsize = typemax(R)
             for i in 1:rows
                 if D[i,j] != zero(R)
@@ -198,12 +183,12 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
             end
         end
 
-        @debug "Pivot Row selected: t = $t, pivot = $prow" D=formatmtx(D)
+        # @debug "Pivot Row selected: t = $t, pivot = $prow" D=formatmtx(D)
         rswap!(D, t, prow)
         inverse && rswap!(Uinv, t, prow)
         cswap!(U, t, prow)
 
-        @debug "Performing the pivot step at (t=$t, j=$j)" D=formatmtx(D)
+        # @debug "Performing the pivot step at (t=$t, j=$j)" D=formatmtx(D)
         smithpivot(U, Uinv, V, Vinv, D, t, j, inverse=inverse)
 
         cswap!(D, t, j)
@@ -211,8 +196,6 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
         rswap!(V, t, j)
 
         t += 1
-
-        @logmsg (Base.CoreLogging.Debug-1) "Factorization" D=formatmtx(D) U=formatmtx(U) V=formatmtx(V) U⁻¹=formatmtx(Uinv) V⁻¹=formatmtx(Vinv)
     end
 
     # Make sure that d_i is divisible be d_{i+1}.
@@ -247,7 +230,6 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
             D[j,j] = abs(Λⱼ)            # Λ′ = Λ*sign(Λ)
         end
     end
-    @logmsg (Base.CoreLogging.Debug-1) "Factorization" D=formatmtx(D) U=formatmtx(U) V=formatmtx(V) U⁻¹=formatmtx(Uinv) V⁻¹=formatmtx(Vinv)
 
     if issparse(D)
         return dropzeros!(U), dropzeros!(V), dropzeros!(D), dropzeros!(Uinv), dropzeros!(Vinv)

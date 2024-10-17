@@ -1,5 +1,8 @@
 """
-Calculates Bézout coefficients (see `gcdx`)
+Calculates Bézout coefficients.
+
+This is analogous to `gcdx`, and solves the same problem, but does not necessarily return
+identical solutions.
 """
 function bezout(a::R, b::R) where {R}
     rev = a < b
