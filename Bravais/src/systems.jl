@@ -17,17 +17,21 @@ function crystal(a::Real, b::Real, c::Real, α::Real, β::Real, γ::Real)
     if !isvalid_sphericaltriangle(α,β,γ)
         throw(DomainError((α,β,γ), "The provided angles α,β,γ cannot be mapped to a spherical triangle, and thus do not form a valid axis system"))
     end
-    sinγ, cosγ = sincos(γ)
+    # for many of the "special" input values (e.g., π/2, π/3), we can get better floating
+    # point accuracy by dividing the angles by π and then using `cospi` instead of `cos`
+    # etc.; e.g., this makes sure that if γ = π/2, then cosγ = 0.0, not ~6e-17.
+    α′, β′, γ′ = α/π, β/π, γ/π
+    sinγ, cosγ = sincospi(γ′)
     # R₁ and R₂ are easy
     R₁ = SVector{3,Float64}(a, 0.0, 0.0)
     R₂ = SVector{3,Float64}(b*cosγ, b*sinγ, 0.0)
     # R3 is harder
-    cosα = cos(α)
-    cosβ = cos(β)
+    cosα = cospi(α′)
+    cosβ = cospi(β′)
     ϕ = atan(cosα - cosγ*cosβ, sinγ*cosβ)
-    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 - 2*cosα*cosγ*cosβ)/abs(sin(γ))) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
-    sinθ, cosθ = sincos(θ)
-    sinϕ, cosϕ = sincos(ϕ)
+    θ = asin(sign(β)*sqrt(cosα^2 + cosβ^2 - 2*cosα*cosγ*cosβ)/abs(sinγ)) # more stable than asin(cosβ/cosϕ) when β or γ ≈ π/2
+    sinθ, cosθ = sincospi(θ/π)
+    sinϕ, cosϕ = sincospi(ϕ/π)
     R₃ = SVector{3,Float64}(c.*(sinθ*cosϕ, sinθ*sinϕ, cosθ))
 
     Rs = DirectBasis(R₁, R₂, R₃)

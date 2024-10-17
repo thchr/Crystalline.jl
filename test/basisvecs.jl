@@ -31,6 +31,12 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         end
     end
 
+    @testset "crystal(...)" begin
+        # zero-elements should be _exactly_ =0 for π/2 angles; not merely approximately 0
+        Rs = crystal(1.0, 1.0, 1.0, π/2, π/2, π/2)
+        @test all(iszero, (map(filter(R->abs(R)<0.1), Rs)))
+    end
+
     @testset "Mixed inputs for constructors" begin
         Rs = ([1.0, 0.0, 0.0], [-0.5, sqrt(3)/2, 0.0],   [0, 0, 1.25])
         Rs′ = DirectBasis{3}(Rs)
