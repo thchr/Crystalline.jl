@@ -135,7 +135,6 @@ function init(M::AbstractSparseMatrix{R,Ti}; inverse=true) where {R, Ti}
     U = sparse(R, Ti, I, rows, rows)
     Uinv = inverse ? copy(U) : spzeros(R, Ti, 0, 0)
 
-
     V = sparse(R, Ti, I, cols, cols)
     Vinv = inverse ? copy(V) : spzeros(R, Ti, 0, 0)
 
@@ -143,7 +142,7 @@ function init(M::AbstractSparseMatrix{R,Ti}; inverse=true) where {R, Ti}
 end
 
 function init(M::AbstractMatrix{R}; inverse=true) where {R}
-    D = copy(M)
+    D = Matrix{R}(copy(M))
     rows, cols = size(M)
 
     U = Matrix{R}(I, rows, rows)
