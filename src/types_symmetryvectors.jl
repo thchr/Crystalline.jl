@@ -21,7 +21,7 @@ SymmetryVector{D′}(::SymmetryVector{D}) where {D′, D} = error("incompatible 
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
 function Base.similar(n::SymmetryVector{D}) where D
-    SymmetryVector{D}(n.lgirsv, similar(n.multsv), 0)
+    SymmetryVector{D}(irreps(n), similar(multiplicities(n)), 0)
 end
 @propagate_inbounds function Base.setindex!(n::SymmetryVector, v::Int, i::Int)
     Nⁱʳ = length(n)

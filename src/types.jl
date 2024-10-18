@@ -210,7 +210,7 @@ function parse_abstractvec(xyz::Vector{<:SubString}, T::Type{<:AbstractVec{D}}) 
         end
         
         # --- "fixed"/constant coordinate, cnst[i] ---
-        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|\.)*[αuxβvyγwz])", coord)
+        m = match(r"(?:\+|\-)?(?:(?:[0-9]|/|\.)+)(?!(?:[0-9]|/|\.)*[\*αuxβvyγwz])", coord)
         # regex matches any digit sequence, possibly including slashes, that is _not_
         # followed by one of the free-part identifiers αuβvγw (this is the '(?!' bit). 
         # If a '+' or '-' exist before the first digit, it is included in the match. 
@@ -630,11 +630,14 @@ centering(::SiteGroup) = nothing
 """
 $(TYPEDSIGNATURES)
 
-Return the cosets of a `SiteGroup` `g`.
+Return the left coset representatives of a `SiteGroup` `g` (in its parent space group).
 
 The cosets generate the orbit of the Wyckoff position [`position(g)`](@ref) (see also
 [`orbit(::SiteGroup)`](@ref)) and furnish a left-coset decomposition of the underlying space
 group, jointly with the operations in `g` itself.
+
+See also [`cosets(::AbstractVector, ::AbstractVector)`](@ref). This method is equivalent
+(but may return different representatives in general) to `cosets(spacegroup(sgnum), g)`.
 """
 cosets(g::SiteGroup) = g.cosets
 
