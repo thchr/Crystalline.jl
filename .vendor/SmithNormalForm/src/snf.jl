@@ -221,7 +221,7 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
     #    Λ′ = Λ*sign(Λ),   T′ = sign(Λ)*T,    and    T⁻¹′ = T⁻¹*sign(Λ),
     # with the convention that sign(0) = 1. Then we still have that X = SΛT = SΛ′T′
     # and also that Λ = S⁻¹XT⁻¹ ⇒ Λ′ = S⁻¹XT⁻¹′.
-    for j in axes(M, 2) # over column indices
+    for j in one(T):minimum(size(M))
         Λⱼ = D[j,j]
         if Λⱼ < zero(R)
             @views V[j,:] .*= -one(R)        # T′   = sign(Λ)*T    [rows]
