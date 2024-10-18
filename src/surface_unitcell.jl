@@ -139,8 +139,9 @@ DirectBasis{3} (hexagonal):
 ```
 
 !!! warning
-   This function will likely be moved from Crystalline to Bravais.jl at some point in the
-   future.
+
+    This function will likely be moved from Crystalline to Bravais.jl at some point in the
+    future.
 """
 function surface_basis(
 			Rs :: DirectBasis{3}, 
