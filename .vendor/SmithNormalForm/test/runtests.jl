@@ -7,12 +7,12 @@ using SmithNormalForm
     a = 12
     b = 42
 
-    s,t,g = SmithNormalForm.bezout(a,b)
+    g,s,t = SmithNormalForm.bezout(a,b)
     @test s*a + t*b == g
     g,s,t = gcdx(a,b)
     @test s*a + t*b == g
 
-    s,t,g = SmithNormalForm.bezout(b,a)
+    g,s,t = SmithNormalForm.bezout(b,a)
     @test s*b + t*a == g
     g,s,t = gcdx(b,a)
     @test s*b + t*a == g
@@ -81,4 +81,23 @@ end
     F = smith(M, inverse=true)
     @test F.SNF == [2, 6, 12]
     @test F.S*diagm(F)*F.T == M
+end
+
+@testset "BigInt example" begin 
+    # cannot be done with Int64 or Int128 due to overflow (large entries in SNF matrices); 
+    # from https://github.com/wildart/SmithNormalForm.jl/issues/7
+    X = [ 8   0  -18  -2    0   65   9  0   0  0  0   6   9  0   22;
+         -4   0    0   1    0   -1   0  0   0  0  0   6   0  0   -4;
+        -60   6  -54   6   13  -12  -3  0   0  0  0  42   0  0  -16;
+         34  -7   71   2   -6  -23  -6  0  -1  0  0  -3  -4  0   -9;
+          0   0    0   0    0    0  -1  0   0  0  0   0   0  0    0;
+          0   0   -2   0    0    7   0  0   0  0  0   2   1  0    2;
+          0   0    0   0    0    0   0  0   0  0  0   0   0  0    1;
+         -6   1   -9   0    2   -1   0  0   0  0  0   1   0  0    0;
+         28  -9   97   7  -18  -54  -1  0   0  0  0  17  -8  0  -48;
+         -8   4  -50  -4    8   49  -9  0   0  0  0  -6   7  0   31 ];
+    bigX = big.(X) 
+    F = smith(bigX)
+    @test F.S * diagm(F) * F.T == X
+    @test F.Sinv * X * F.Tinv == diagm(F)
 end

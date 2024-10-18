@@ -7,9 +7,9 @@ end
 
 function divide(y::R, x::R) where {R}
     if x != -one(R)
-        return div(y,x)
+        return R(div(y,x))
     else
-        return y * x
+        return R(y * x)
     end
 end
 
@@ -79,13 +79,12 @@ function rowpivot(U::AbstractArray{R,2},
                   Uinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in reverse!(findall(!iszero, view(D, :, j)))
-        a = D[i,j]
+    for k in reverse(axes(D, 1))
         b = D[k,j]
+        (iszero(b) || i == k) && continue
+        a = D[i,j]
 
-        i == k && continue
-
-        s, t, g = bezout(a, b)
+        g, s, t = bezout(a, b)
         x = divide(a, g)
         y = divide(b, g)
 
@@ -99,13 +98,12 @@ function colpivot(V::AbstractArray{R,2},
                   Vinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in reverse!(findall(!iszero, view(D, i, :)))
-        a = D[i,j]
+    for k in reverse(axes(D, 2))
         b = D[i,k]
+        (iszero(b) || j == k) && continue
+        a = D[i,j]
 
-        j == k && continue
-
-        s, t, g = bezout(a, b)
+        g, s, t = bezout(a, b)
         x = divide(a, g)
         y = divide(b, g)
 
@@ -134,35 +132,23 @@ function init(M::AbstractSparseMatrix{R,Ti}; inverse=true) where {R, Ti}
     D = copy(M)
     rows, cols = size(M)
 
-    U = spzeros(R, rows, rows)
-    for i in 1:rows
-        U[i,i] = one(R)
-    end
-    Uinv = inverse ? copy(U) : spzeros(R, 0, 0)
+    U = sparse(R, Ti, I, rows, rows)
+    Uinv = inverse ? copy(U) : spzeros(R, Ti, 0, 0)
 
-    V = spzeros(R, cols, cols)
-    for i in 1:cols
-        V[i,i] = one(R)
-    end
-    Vinv = inverse ? copy(V) : spzeros(R, 0, 0)
+    V = sparse(R, Ti, I, cols, cols)
+    Vinv = inverse ? copy(V) : spzeros(R, Ti, 0, 0)
 
     return U, V, D, Uinv, Vinv
 end
 
 function init(M::AbstractMatrix{R}; inverse=true) where {R}
-    D = copy(M)
+    D = Matrix{R}(copy(M))
     rows, cols = size(M)
 
-    U = zeros(R, rows, rows)
-    for i in 1:rows
-        U[i,i] = one(R)
-    end
+    U = Matrix{R}(I, rows, rows)
     Uinv = inverse ? copy(U) : zeros(R, 0, 0)
 
-    V = zeros(R, cols, cols)
-    for i in 1:cols
-        V[i,i] = one(R)
-    end
+    V = Matrix{R}(I, cols, cols)
     Vinv = inverse ? copy(V) : zeros(R, 0, 0)
 
     return U, V, D, Uinv, Vinv
@@ -171,25 +157,23 @@ end
 formatmtx(M) =  size(M,1) == 0 ? "[]" : repr(collect(M); context=IOContext(stdout, :compact => true))
 
 function snf(M::AbstractMatrix{R}; inverse=true) where {R}
-    rows, cols = size(M)
     U, V, D, Uinv, Vinv = init(M, inverse=inverse)
 
-    t = 1
-    for j in 1:cols
-        @debug "Working on column $j out of $cols" D=formatmtx(D)
-
+    T = eltype(eachindex(M))
+    t = one(T)
+    for j in axes(M, 2) # over column indices
+        # @debug "Working on column $j out of $cols" D=formatmtx(D)
         rcountnz(D,j) == 0 && continue
 
-        prow = 1
+        prow = one(T)
         if D[t,t] != zero(R)
             prow = t
         else
-            # Good pivot row for j-th column is the one
-            # that have a smallest number of elements
-            rsize = typemax(R)
-            for i in 1:rows
+            # the good pivot row for j-th column is the one that has fewest elements
+            rsize = typemax(T)
+            for i in axes(M, 1) # over row indices
                 if D[i,j] != zero(R)
-                    c = count(!iszero, view(D, i, :))
+                    c = count(!iszero, view(D, i, :); init=zero(T))
                     if c < rsize
                         rsize = c
                         prow = i
@@ -198,35 +182,35 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
             end
         end
 
-        @debug "Pivot Row selected: t = $t, pivot = $prow" D=formatmtx(D)
+        # @debug "Pivot Row selected: t = $t, pivot = $prow" D=formatmtx(D)
         rswap!(D, t, prow)
         inverse && rswap!(Uinv, t, prow)
         cswap!(U, t, prow)
 
-        @debug "Performing the pivot step at (t=$t, j=$j)" D=formatmtx(D)
+        # @debug "Performing the pivot step at (t=$t, j=$j)" D=formatmtx(D)
         smithpivot(U, Uinv, V, Vinv, D, t, j, inverse=inverse)
 
         cswap!(D, t, j)
         inverse && cswap!(Vinv, t, j)
         rswap!(V, t, j)
 
-        t += 1
-
-        @logmsg (Base.CoreLogging.Debug-1) "Factorization" D=formatmtx(D) U=formatmtx(U) V=formatmtx(V) U⁻¹=formatmtx(Uinv) V⁻¹=formatmtx(Vinv)
+        t += one(T)
     end
 
     # Make sure that d_i is divisible be d_{i+1}.
     r = minimum(size(D))
+    one_r = one(typeof(r))
     pass = true
     while pass
         pass = false
-        for i in 1:r-1
-            divisable(D[i+1,i+1], D[i,i]) && continue
+        for i in one_r:r-one_r
+            ip1 = i + one_r
+            divisable(D[ip1,ip1], D[i,i]) && continue
             pass = true
-            D[i+1,i] = D[i+1,i+1]
+            D[ip1,i] = D[ip1,ip1]
 
-            colelimination(Vinv, one(R), one(R), zero(R), one(R), i, i+1)
-            rowelimination(V, one(R), zero(R), -one(R), one(R), i, i+1)
+            colelimination(Vinv, one(R), one(R), zero(R), one(R), i, ip1)
+            rowelimination(V, one(R), zero(R), -one(R), one(R), i, ip1)
 
             smithpivot(U, Uinv, V, Vinv, D, i, i, inverse=inverse)
         end
@@ -236,18 +220,16 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
     #    Λ′ = Λ*sign(Λ),   T′ = sign(Λ)*T,    and    T⁻¹′ = T⁻¹*sign(Λ),
     # with the convention that sign(0) = 1. Then we still have that X = SΛT = SΛ′T′
     # and also that Λ = S⁻¹XT⁻¹ ⇒ Λ′ = S⁻¹XT⁻¹′.
-    for j in 1:rows
-        j > cols && break
+    for j in one(T):minimum(size(M))
         Λⱼ = D[j,j]
-        if Λⱼ < 0
-            @views V[j,:] .*= -1        # T′   = sign(Λ)*T    [rows]
+        if Λⱼ < zero(R)
+            @views V[j,:] .*= -one(R)        # T′   = sign(Λ)*T    [rows]
             if inverse
-                @views Vinv[:,j] .*= -1 # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
+                @views Vinv[:,j] .*= -one(R) # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
             end
-            D[j,j] = abs(Λⱼ)            # Λ′ = Λ*sign(Λ)
+            D[j,j] = abs(Λⱼ)                 # Λ′ = Λ*sign(Λ)
         end
     end
-    @logmsg (Base.CoreLogging.Debug-1) "Factorization" D=formatmtx(D) U=formatmtx(U) V=formatmtx(V) U⁻¹=formatmtx(Uinv) V⁻¹=formatmtx(Vinv)
 
     if issparse(D)
         return dropzeros!(U), dropzeros!(V), dropzeros!(D), dropzeros!(Uinv), dropzeros!(Vinv)

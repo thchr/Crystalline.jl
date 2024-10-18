@@ -31,6 +31,12 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         end
     end
 
+    @testset "crystal(...)" begin
+        # zero-elements should be _exactly_ =0 for π/2 angles; not merely approximately 0
+        Rs = crystal(1.0, 1.0, 1.0, π/2, π/2, π/2)
+        @test all(iszero, (map(filter(R->abs(R)<0.1), Rs)))
+    end
+
     @testset "Mixed inputs for constructors" begin
         Rs = ([1.0, 0.0, 0.0], [-0.5, sqrt(3)/2, 0.0],   [0, 0, 1.25])
         Rs′ = DirectBasis{3}(Rs)
@@ -53,15 +59,41 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         t = (.1,.2,.3)
         v = [.1,.2,.3]
         s = @SVector [.1,.2,.3]
-        r = ReciprocalPoint(.1,.2,.3)
+        k = ReciprocalPoint(.1,.2,.3)
+        r = DirectPoint(.1,.2,.3)
 
         # conversion
-        @test r == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
-        @test r == convert(ReciprocalPoint{3}, s)  # StaticVector conversion
+        @test k == convert(ReciprocalPoint{3}, v)  # AbstractVector conversion
+        @test k == convert(ReciprocalPoint{3}, s)  # StaticVector conversion
 
         # construction
-        @test r == ReciprocalPoint(s) == ReciprocalPoint{3}(s)
-        @test r == ReciprocalPoint(t) == ReciprocalPoint{3}(t)
-        @test r == ReciprocalPoint(v) == ReciprocalPoint{3}(v)
+        @test k == ReciprocalPoint(s) == ReciprocalPoint{3}(s)
+        @test k == ReciprocalPoint(t) == ReciprocalPoint{3}(t)
+        @test k == ReciprocalPoint(v) == ReciprocalPoint{3}(v)
+
+        # transformation
+        Rs = directbasis(2)
+        Gs = reciprocalbasis(Rs)
+        @test cartesianize(k, Gs) isa ReciprocalPoint{3}
+        @test latticize(cartesianize(k, Gs), Gs) isa ReciprocalPoint{3}
+        @test cartesianize(r, Rs) isa DirectPoint{3}
+        @test latticize(cartesianize(r, Rs), Rs) isa DirectPoint{3}
+
+        @test cartesianize(parent(k), Gs) isa typeof(parent(k))
+        @test latticize(cartesianize(parent(k), Gs), Gs) isa typeof(parent(k))
+
+        # arithmetic
+        @test k + k isa ReciprocalPoint{3} && k + k == s + s
+        @test k - k isa ReciprocalPoint{3} && k - k == zero(k)
+        @test zero(k) isa ReciprocalPoint{3}
+        @test -k isa ReciprocalPoint{3}
+        @test 2.3k isa ReciprocalPoint{3} && 2.3k == 2.3s
+        @test 2.3r - r + 3r isa DirectPoint{3} && 2.3r - r + 3r ≈ 4.3r ≈ 4.3s
+
+        # isapprox on near-zero-difference
+        a = 4.3r
+        b = 2.3r - r + 3r
+        @test isapprox(a, b)
+        @test isapprox(RVec(a), RVec(b))
     end
 end

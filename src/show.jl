@@ -1,14 +1,5 @@
-# --- DirectBasis ---
-function show(io::IO, ::MIME"text/plain", Vs::DirectBasis)
-    # cannot use for ReciprocalBasis at the moment (see TODO in `crystalsystem`)
-    print(io, typeof(Vs))
-    print(io, " ($(crystalsystem(Vs))):")
-    for (i,V) in enumerate(Vs)
-        print(io, "\n   ", V)
-    end
-end
-
-# --- SymOperation ---
+# ---------------------------------------------------------------------------------------- #
+# SymOperation
 function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
@@ -55,7 +46,9 @@ _has_negative_sign_and_isnonzero(x) = !iszero(x) && signbit(x)
 # print vectors of `SymOperation`s compactly
 show(io::IO, op::AbstractOperation) = print(io, seitz(op))
 
-# --- MultTable ---
+# ---------------------------------------------------------------------------------------- #
+# MultTable
+
 function show(io::IO, ::MIME"text/plain", mt::MultTable)
     summary(io, mt)
     println(io, ":")
@@ -70,7 +63,9 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     return nothing
 end
 
-# --- AbstractVec ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractVec
+
 function show(io::IO, ::MIME"text/plain", v::AbstractVec)
     cnst, free = parts(v)
     print(io, '[')
@@ -130,7 +125,9 @@ function show(io::IO, ::MIME"text/plain", wp::WyckoffPosition)
     show(io, MIME"text/plain"(), parent(wp))
 end
 
-# --- AbstractGroup ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractGroup
+
 function summary(io::IO, g::AbstractGroup)
     print(io, typeof(g))
     _print_group_descriptor(io, g; prefix=" ")
@@ -176,7 +173,9 @@ function _group_descriptor(g; prefix::AbstractString="")
     return sprint( (io, _g) -> _print_group_descriptor(io, _g; prefix), g)
 end
 
-# --- LGIrrep & PGIrrep ---
+# ---------------------------------------------------------------------------------------- #
+# AbstractIrrep
+
 function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
     irlab = label(ir)
     lablen = length(irlab)
@@ -211,8 +210,10 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
     end
 end
 
-function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
-                                    atol::Real=DEFAULT_ATOL, digits::Int=4)
+function prettyprint_irrep_scalars(
+        io::IO, v::Number, ϕabc_contrib::Bool=false;
+        atol::Real=DEFAULT_ATOL, digits::Int=4
+    )
 
     if norm(v) < atol
         print(io, 0)
@@ -244,8 +245,10 @@ function prettyprint_irrep_scalars(io::IO, v::Number, ϕabc_contrib::Bool=false;
     end
 end
 
-function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
-                                  digits::Int=4)
+function prettyprint_irrep_matrix(
+        io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
+        digits::Int=4
+    )
     # unpack
     k₀, kabc = parts(position(group(lgir)))
     P = lgir.matrices[i]
@@ -297,40 +300,45 @@ function prettyprint_irrep_matrix(io::IO, lgir::LGIrrep, i::Integer, prefix::Abs
     end
 end
 
-function prettyprint_irrep_matrix(io::IO, pgir::PGIrrep, i::Integer, prefix::AbstractString)
-    P = pgir.matrices[i]
+function prettyprint_irrep_matrix(
+        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer, prefix::AbstractString
+    )
+    P = ir.matrices[i]
     prettyprint_scalar_or_matrix(io, P, prefix, false)
 end
 
-function prettyprint_irrep_matrices(io::IO, plgir::Union{<:LGIrrep, <:PGIrrep}, 
-                                  nindent::Integer, nboxdelims::Integer=45)  
+function prettyprint_irrep_matrices(
+        io::IO, ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep}, nindent::Integer,
+        nboxdelims::Integer=45
+    )
     indent = repeat(" ", nindent)
     boxdelims = repeat("─", nboxdelims)
     linelen = nboxdelims + 4 + nindent
-    Nₒₚ = order(plgir)
-    for (i,op) in enumerate(operations(plgir))
+    Nₒₚ = order(ir)
+    for (i,op) in enumerate(operations(ir))
         print(io, indent, " ├─ ")
         opseitz, opxyzt  = seitz(op), xyzt(op)
         printstyled(io, opseitz, ": ", 
                         repeat("─", linelen-11-nindent-length(opseitz)-length(opxyzt)),
                         " (", opxyzt, ")\n"; color=:light_black)
-        #Base.print_matrix(IOContext(io, :compact=>true), ir, indent*(i == Nₒₚ ? " ╰" : " │")*"    ")
         print(io, indent, " │     ")
-        prettyprint_irrep_matrix(io, plgir, i, indent*" │     ")
+        prettyprint_irrep_matrix(io, ir, i, indent*" │     ")
         if i < Nₒₚ; println(io, '\n', indent, " │"); end
     end
     print(io, "\n", indent, " └", boxdelims)
 end
 
-function prettyprint_header(io::IO, plgirlab::AbstractString, nboxdelims::Integer=45)
-    println(io, plgirlab, " ─┬", repeat("─", nboxdelims))
+function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=45)
+    println(io, irlab, " ─┬", repeat("─", nboxdelims))
 end
 
-# --- IrrepCollection ---
-function summary(io::IO, c::IrrepCollection{T}) where T
-    print(io, length(c), "-element IrrepCollection{", T, "}")
+# ---------------------------------------------------------------------------------------- #
+# Collection{<:AbstractIrrep}
+
+function summary(io::IO, c::Collection{T}) where T <: AbstractIrrep
+    print(io, length(c), "-element Collection{", T, "}")
 end
-function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
+function show(io::IO, ::MIME"text/plain", c::Collection{T}) where T <: AbstractIrrep
     summary(io, c)
     isassigned(c, firstindex(c)) && _print_group_descriptor(io, group(first(c)); prefix=" for ")
     println(io, ":")
@@ -343,16 +351,17 @@ function show(io::IO, ::MIME"text/plain", c::IrrepCollection)
         i ≠ length(c) && println(io)
     end
 end
-function show(io::IO, c::IrrepCollection)
-    show(io, c.irs)
+function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
+    show(io, c.vs)
     g = group(first(c))
     if position(g) !== nothing
         printstyled(io, " (", fullpositionlabel(g), ")"; color=:light_black)
     end
 end
 
+# ---------------------------------------------------------------------------------------- #
+# CharacterTable
 
-# --- CharacterTable ---
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars = matrix(ct)
     chars_formatted = _stringify_characters.(chars; digits=4)
@@ -413,8 +422,9 @@ function _complex_as_compact_string(c::Complex) # usual string(::Complex) has sp
     return String(take!(io))
 end
 
+# ---------------------------------------------------------------------------------------- #
+# BandRep
 
-# --- BandRep ---
 function prettyprint_symmetryvector(
             io::IO, 
             irvec::AbstractVector{<:Real},
@@ -476,30 +486,34 @@ function show(io::IO, ::MIME"text/plain", BR::BandRep)
     print(io, ":\n ")
     prettyprint_symmetryvector(io, BR, irreplabels(BR))
 end
+function show(io::IO, BR::BandRep)
+    prettyprint_symmetryvector(io, BR, irreplabels(BR))
+end
 
+# ---------------------------------------------------------------------------------------- #
+# BandRepSet
 
-# --- BandRepSet ---
-function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
-    Nⁱʳʳ = length(irreplabels(BRS))
-    Nᵉᵇʳ = length(BRS)
+function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
+    Nⁱʳʳ = length(irreplabels(brs))
+    Nᵉᵇʳ = length(brs)
 
     # print a "title" line and the irrep labels
-    println(io, "BandRepSet (⋕", num(BRS), "): ",
-                length(BRS), " BandReps, ",
+    println(io, "BandRepSet (⋕", num(brs), "): ",
+                length(brs), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
-                "(spin-", isspinful(BRS) ? "½" : "1", " ",
-                BRS.timereversal ? "w/" : "w/o", " TR)")
+                "(spin-", isspinful(brs) ? "½" : "1", " ",
+                brs.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
-    k_idx = (i) -> findfirst(==(klabel(irreplabels(BRS)[i])), klabels(BRS)) # highlighters
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
     h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
     h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
-        matrix(BRS; includedim=true);
+        stack(brs);
         # row/column names
-        row_labels = vcat(irreplabels(BRS), "μ"),
-        header = (position.(BRS), chop.(label.(BRS), tail=2)), # remove repetitive "↑G" postfix
+        row_labels = vcat(irreplabels(brs), "μ"),
+        header = (position.(brs), chop.(label.(brs), tail=2)), # remove repetitive "↑G" postfix
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
@@ -512,109 +526,117 @@ function show(io::IO, ::MIME"text/plain", BRS::BandRepSet)
         )
 
     # print k-vec labels
-    print(io, "  KVecs (", hasnonmax(BRS) ? "incl. non-maximal" : "maximal only", "): ")
-    join(io, klabels(BRS), ", ")
-    
-    # EARLIER MANUAL LAYOUTS: DISCONTINUED
-
-    #=
-    # === EBRS-by-column layout ===
-    # prep-work to figure out how many bandreps we can write to the io
-    cols_avail = displaysize(io)[2]   # available cols in io (cannot write to all of it; subtract 2)
-    indent     = 3
-    μ_maxdigs  = maximum(ndigits∘dim, BRS) # implicitly assuming this to be ≤2...
-    maxcols_irr   = maximum(length, irreplabels(BRS))
-    cols_brlabs = length.(label.(BRS))
-    cumcols_brlabs = cumsum(cols_brlabs .+ 1)
-    cols_requi  = cumcols_brlabs .+ (indent + maxcols_irr + 2)
-    @show cols_requi
-    room_for = findlast(≤(cols_avail), cols_requi)
-    abbreviate = room_for < length(BRS) ? true : false
-    rowend = abbreviate ? '…' : '║'
-
-    # print EBR header
-    print(io, ' '^(indent+maxcols_irr+1), '║')
-    for idxᵇʳ in 1:room_for
-        br = BRS[idxᵇʳ]
-        print(io, ' ', chop(label(br), tail=2),' ', idxᵇʳ ≠ room_for ? '│' : rowend)
+    print(io, "  KVecs: ")
+    join(io, klabels(brs), ", ")
     end
+
+# ---------------------------------------------------------------------------------------- #
+# SymmetryVector
+
+function Base.show(io :: IO, ::MIME"text/plain", n :: SymmetryVector)
+    print(io, length(n)-1, "-irrep ", typeof(n), ":\n ")
+    show(io, n)
+end
+function Base.show(io :: IO, n :: SymmetryVector)
+    print(io, "[")
+    for (i, (mults_k, lgirs_k)) in enumerate(zip(n.multsv, n.lgirsv))
+        str = if !iszero(mults_k)
+            Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false)
+        else # if there are no occupied irreps at the considered k-point print "0kᵢ"
+            "0" * klabel(first(lgirs_k)) * "ᵢ"
+        end
+        printstyled(io, str; color=iseven(i) ? :normal : :light_blue)
+        i ≠ length(n.multsv) && print(io, ", ")
+    end
+    print(io, "]")
+    printstyled(io, " (", occupation(n), " band", abs(occupation(n)) ≠ 1 ? "s" : "", ")"; 
+                    color=:light_black)
+end
+
+# ---------------------------------------------------------------------------------------- #
+# NewBandRep
+
+function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
+    print(io, length(br.n)-1, "-irrep ", typeof(br), ":\n ")
+    print(io, "(", )
+    printstyled(io, label(position(br.siteir)); bold=true)
+    print(io, "|")
+    printstyled(io, label(br.siteir); bold=true)
+    print(io, "): ")
+    show(io, br.n)
+end
+
+function Base.show(io :: IO, br :: NewBandRep)
+    print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
+end
+
+# ---------------------------------------------------------------------------------------- #
+# Collection{<:NewBandRep}
+
+function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
+    irlabs = irreplabels(brs)
+    Nⁱʳʳ = length(irlabs)
+
+    # print a "summary" line
+    print(io, length(brs), "-element ", typeof(brs), " for ⋕", num(brs))
+    print(io, " (", iuc(num(brs), dim(brs)), ") ")
+    print(io, "over ", Nⁱʳʳ, " irreps")
+    print(io, " (spin-", first(brs).spinful ? "½" : "1", 
+              " w/", first(brs).timereversal ? "" : "o", "TR):")
     println(io)
 
-    # print irrep content, line by line
-    for idxⁱʳʳ in 1:Nⁱʳʳ
-        irlab = irreplabels(BRS)[idxⁱʳʳ]
-        print(io, ' '^indent, irlab, ' '^(maxcols_irr + 1 - length(irlab)), '║')
-        for idxᵇʳ in 1:room_for
-            x = BRS[idxᵇʳ][idxⁱʳʳ]
-            addspace = div(cols_brlabs[idxᵇʳ], 2)
-            print(io, ' '^addspace)
-            iszero(x) ? print(io, '·') : print(io, x)
-            print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace-1))
-            print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
-        end
-        println(io)
+    # print band representations as table
+    k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
+    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+    pretty_table(io, 
+        # table contents
+        stack(brs);
+        # row/column names
+        row_labels = vcat(irlabs, "μ"),
+        header = (label.(position.(brs)), label.(getfield.(brs, :siteir))),
+        # options/formatting/styling
+        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
+        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
+        row_label_alignment = :l,
+        alignment = :c, 
+        highlighters = (h_odd, h_μ), 
+        header_crayon = crayon"bold"
+        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
+        #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
+        )
     end
 
-    # print band filling
-    print(io, ' '^indent, 'μ', ' '^maxcols_irr, '║')
-    for idxᵇʳ in 1:room_for
-        μ = dim(BRS[idxᵇʳ])
-        addspace = div(cols_brlabs[idxᵇʳ], 2)+1
-        print(io, ' '^(addspace-ndigits(μ)), μ)
-        print(io, ' '^(cols_brlabs[idxᵇʳ] - addspace))
-        print(io, idxᵇʳ ≠ room_for ? '│' : rowend)
-    end
-    =#
+# ---------------------------------------------------------------------------------------- #
+# CompositeBandRep
 
-    #=
-    # === EBRs-by-rows layout ===
-    μ_maxdigs = maximum(ndigits∘dim, BRS)
-    cols_brlab = maximum(x->length(label(x)), BRS)+1
-    cols_irstart = cols_brlab+4
-    cols_avail = displaysize(io)[2]-2                                 # available cols in io (cannot write to all of it; subtract 2)
-    cols_requi = sum(x->length(x)+3, irreplabels(BRS))+cols_irstart+μ_maxdigs+3 # required cols for irrep labels & band reps
-    if cols_requi > cols_avail
-        cols_toomany    = ceil(Int, (cols_requi-cols_avail)/2) + 2  # +2 is to make room for '  …  ' extender
-        cols_midpoint   = div(cols_requi-cols_irstart,2)+cols_irstart
-        cols_skipmin    = cols_midpoint - cols_toomany
-        cols_skipmax    = cols_midpoint + cols_toomany
-        cols_eachstart  = [0; cumsum(length.(irreplabels(BRS)).+3)].+cols_irstart
-        iridx_skiprange = [idx for (idx, col_pos) in enumerate(cols_eachstart) if cols_skipmin ≤ col_pos ≤ cols_skipmax]
-        abbreviate = true
+function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
+    first = true
+    for (j, c) in enumerate(cbr.coefs)
+        iszero(c) && continue
+        absc = abs(c)
+        if first
+            first = false
+            c < 0 && print(io, "-")
     else
-        abbreviate = false
+            print(io, " ", Crystalline.signaschar(c), " ")
+        end
+        if !isone(absc)
+            if isinteger(absc)
+                print(io, Int(absc))
+            else
+                print(io, "(", numerator(absc), "/", denominator(absc), ")×")
+            end
+        end
+        print(io, cbr.brs[j])
+    end
+    first && print(io, "0")
     end
 
-    print(io, " "^(cols_irstart-1),'║'); # align with spaces
-    for (iridx,lab) in enumerate(irreplabels(BRS)) # irrep labels
-        if abbreviate && iridx ∈ iridx_skiprange
-            if iridx == first(iridx_skiprange)
-                print(io, "\b  …  ")
-            end
-        else
-            print(io, ' ', lab, " │")
-        end
-    end
-    println(io, ' '^μ_maxdigs, "μ", " ║") # band-filling column header
-    # print each bandrep
-    for (bridx,BR) in enumerate(BRS)
-        μ = dim(BR)
-        print(io, "   ", label(BR),                      # bandrep label
-                  " "^(cols_brlab-length(label(BR))), '║')
-        for (iridx,x) in enumerate(BR) # iterate over vector representation of band rep
-            if abbreviate && iridx ∈ iridx_skiprange
-                if iridx == first(iridx_skiprange)
-                    print(io, mod(bridx,4) == 0 ? "\b  …  " : "\b     ")
-                end
-            else
+function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
+    println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
                 print(io, "  ")
-                !iszero(x) ? print(io, x) : print(io, '·')
-                print(io, " "^(length(irreplabels(BRS)[iridx])-1), '│') # assumes we will never have ndigit(x) != 1
-            end
-        end
-        
-        print(io, ' '^(1+μ_maxdigs-ndigits(μ)), μ, " ║") # band-filling
-        if bridx != length(BRS); println(io); end
-    end
-    =#
+    show(io, cbr)
+    μ = occupation(cbr)
+    printstyled(io, " (", μ, " band", abs(μ) ≠ 1 ? "s" : "", ")", color=:light_black)
 end

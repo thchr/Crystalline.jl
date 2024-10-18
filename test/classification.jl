@@ -25,8 +25,8 @@ spinful  = false
     table4[2]                         = "Z₂×Z₂×Z₂×Z₄"
 
     for sgnum = 1:230
-        BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-        @test classification(BRS) == table4[sgnum]
+        brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
+        @test classification(brs) == table4[sgnum]
     end
 end
 
@@ -57,8 +57,8 @@ end
     table4[[47, 123]] .= 27
 
     for sgnum = 1:230
-        BRS = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-        @test basisdim(BRS) == table4[sgnum]
+        brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
+        @test basisdim(brs) == table4[sgnum]
     end
 end
 end

@@ -262,6 +262,7 @@ function seitz(op::SymOperation{D}) where D
             x = rand(-1:1, SVector{3, Int})
             while iszero(x×u) # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
                 x = rand(-1:1, SVector{3, Int}) 
+                iszero(u) && error("rotation axis has zero norm; input is likely invalid")
             end
             Z = hcat(u, x, detW*(W*x))
             print(io_pgop, signbit(det(Z)) ? '⁻' : '⁺')
@@ -369,7 +370,11 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
         # there is near-infinitesimal chance that u′ is zero for random v, but check anyway
         u′ = Yₖ*rand(SVector{3, Float64})
     end
-    n = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum-norm nonzero element
+    # TODO: this ought to be more robust: the below doesn't allow for axes that are e.g.,
+    #       [2 3 0]; only axes that have a `1` somewhere; in general, we need to find a way
+    #       to e.g., "multiply-up" [1, 1.333333, 0] to [3, 4, 0]. Conceptually, it is
+    #       related to identifying a floating-point analogue of gcd.
+    n = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
     u′ = u′/n # normalize
     u  = round.(Int, u′) # convert from float to integer and check validity of conversion
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
@@ -428,7 +433,23 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     "422"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"),
     "4mm"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"),
     "-42m"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"), # setting 1
-    "-4m2"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"A₂", "Γ₄"=>"B₂", "Γ₅"=>"E"), # setting 2 *** swapped B₂ and A₂; seems to be a typo in Bilbao? ***
+    "-4m2"  => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"B₁", "Γ₃"=>"B₂", "Γ₄"=>"A₂", "Γ₅"=>"E"), # setting 2 *** see notes below ***
+    # NB: Bilbao has chosen a convention where the Mulliken irrep labels of -4m2 are a bit
+    #     strange, at least in one perspective: specifically, the labels do not make sense
+    #     when compared to the labels of -42m and break with the usual "Mulliken rules",
+    #     (to establish a correspondence between the irrep labels of -4m2 and -42m, one
+    #     ought to make the swaps (-4m2 → -42m): B₁ → B₂, B₂ → A₂, A₂ → B₁); the cause of
+    #     this is partly also that the Γᵢ labels are permuted seemingly unnecessarily
+    #     -42m and -4m2; but this is because those irrep labels are "inherited" from space
+    #     groups 111 (P-42m) and 115 (P-4m2); ultimately, Bilbao chooses to retain
+    #     consistency between space & point groups and a simple Γᵢ and Mulliken label
+    #     matching rule. We follow their conventions; otherwise comparisons are too hard
+    #     (and it seems Bilba's conventions are also motivated by matching ISOTROPY's).
+    #     The Mulliken label assignment that "makes sense" in comparison to the labels of
+    #     -42m is:
+    #         `ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₁", "Γ₄"=>"B₂", "Γ₅"=>"E")`
+    #     More discussion and context in issue #57; and a similar issue affects the irreps
+    #     in point group -6m2
     "4/mmm" => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"B₁g", "Γ₂⁻"=>"B₁ᵤ", "Γ₃⁺"=>"A₂g", "Γ₃⁻"=>"A₂ᵤ", "Γ₄⁺"=>"B₂g", "Γ₄⁻"=>"B₂ᵤ", "Γ₅⁺"=>"Eg", "Γ₅⁻"=>"Eᵤ"),
     "3"     => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"²E", "Γ₃"=>"¹E"),
     "-3"    => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"²Eg", "Γ₂⁻"=>"²Eᵤ", "Γ₃⁺"=>"¹Eg", "Γ₃⁻"=>"¹Eᵤ"),
@@ -444,7 +465,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     "622"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
     "6mm"   => ImmutableDict("Γ₁"=>"A₁", "Γ₂"=>"A₂", "Γ₃"=>"B₂", "Γ₄"=>"B₁", "Γ₅"=>"E₂", "Γ₆"=>"E₁"),
     "-62m"  => ImmutableDict("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 1
-    "-6m2"  => ImmutableDict("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 2
+    "-6m2"  => ImmutableDict("Γ₁"=>"A₁′", "Γ₂"=>"A₁′′", "Γ₃"=>"A₂′′", "Γ₄"=>"A₂′", "Γ₅"=>"E′", "Γ₆"=>"E′′"),  # setting 2 *** see also (*) above for discussion of label "issues" **
     "6/mmm" => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"B₂g", "Γ₃⁻"=>"B₂ᵤ", "Γ₄⁺"=>"B₁g", "Γ₄⁻"=>"B₁ᵤ", "Γ₅⁺"=>"E₂g", "Γ₅⁻"=>"E₂ᵤ", "Γ₆⁺"=>"E₁g", "Γ₆⁻"=>"E₁ᵤ"),
     "23"    => ImmutableDict("Γ₁"=>"A", "Γ₂"=>"¹E", "Γ₃"=>"²E", "Γ₄"=>"T"),
     "m-3"   => ImmutableDict("Γ₁⁺"=>"Ag", "Γ₁⁻"=>"Aᵤ", "Γ₂⁺"=>"¹Eg", "Γ₂⁻"=>"¹Eᵤ", "Γ₃⁺"=>"²Eg", "Γ₃⁻"=>"²Eᵤ", "Γ₄⁺"=>"Tg", "Γ₄⁻"=>"Tᵤ"),

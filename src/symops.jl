@@ -583,6 +583,10 @@ performance in situations when `kabc` is zero, and several transformations are r
     kabc′ = checkabc ? W⁻¹ᵀ * kabc : kabc
     return KVec{D}(k₀′, kabc′)
 end
+function compose(op::SymOperation{D}, k::ReciprocalPoint{D}) where D
+    W⁻¹ᵀ = transpose(inv(rotation(op)))
+    return ReciprocalPoint{D}(W⁻¹ᵀ*parent(k))
+end
 
 @doc raw"""
     compose(op::SymOperation, rv::RVec)  -->  RVec
@@ -607,7 +611,12 @@ function compose(op::SymOperation{D}, rv::RVec{D}) where D
 
     return RVec{D}(cnst′, free′)
 end
-(*)(op::SymOperation{D}, v::AbstractVec{D}) where D = compose(op, v)
+function compose(op::SymOperation{D}, r::DirectPoint{D}) where D
+    W, w = unpack(op)
+    return DirectPoint{D}(W*parent(r) + w)
+end
+
+(*)(op::SymOperation{D}, v::Union{AbstractVec{D}, AbstractPoint{D}}) where D = compose(op, v)
 
 """
     primitivize(op::SymOperation, cntr::Char, modw::Bool=true) --> typeof(op)

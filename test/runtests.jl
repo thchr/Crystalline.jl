@@ -2,15 +2,21 @@ using Crystalline, Test
 
 @testset "Crystalline" begin
     # basic symmetry operations
-    include("basisvecs.jl")
     include("symops.jl")
     include("SquareStaticMatrices.jl")
     include("groups_xyzt_vs_coded.jl")
     include("generators_xyzt_vs_coded.jl")
 
+    # Bravais.jl
+    include("niggli.jl")
+    include("basisvecs.jl")
+
     # abstractvecs
     include("kvecs.jl")
     include("wyckoff.jl")
+
+    # symmetry vectors
+    include("symmetryvectors.jl")
 
     # show, notation, and cached info
     include("show.jl")
@@ -43,9 +49,12 @@ using Crystalline, Test
     # additional k-vectors in Φ-Ω ("special" representation domain vectors)
     include("holosymmetric.jl")
 
-    # band representations
-    include("classification.jl")  # does topo classification agree w/ Adrian?
-    include("bandrep.jl")         # do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
+    # band representations & site symmetry groups
+    include("classification.jl")  # => does topo classification agree w/ Adrian?
+    include("bandrep.jl")         # => do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
+    include("calc_bandreps.jl")   # => tests of /src/calc_bandreps.jl
+    include("isomorphic_parent_pointgroup.jl") # => do we find the same "parent" point
+                                               #    groups as Bilbao?
 
     # magnetic space groups
     include("mspacegroup.jl")

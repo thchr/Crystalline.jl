@@ -137,7 +137,7 @@ function pgirreps(iuclab::String, ::Val{3}=Val(3); mulliken::Bool=false)
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 2D
 function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
@@ -152,7 +152,7 @@ function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
     matrices, realities, cdmls = _load_pgirreps_data(iuclab)
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
 function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
@@ -171,7 +171,7 @@ function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
     end
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return IrrepCollection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
+    return Collection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
 end
 pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
 pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
@@ -181,7 +181,7 @@ function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3);
     return pgirreps(iuc, Dᵛ; kws...)
 end
 function pgirreps(pgnum::Integer, D::Integer; kws...)
-    return pgirreps(pgnum, Val(D); kws...) :: IrrepCollection{<:PGIrrep}
+    return pgirreps(pgnum, Val(D); kws...) :: Collection{<:PGIrrep}
 end
 
 function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D
@@ -227,9 +227,10 @@ the sorting of operators is unlucky (i.e., if permutation between sortings in `g
 differ by many pairwise permutations).
 
 Beyond mere isomorphisms of multiplication tables, the search also guarantees that all
-rotation orders are shared between `pg` and `g`. This disambiguates point groups that are
-intrinsically isomorphic to eachother, e.g. "m" and "-1", but which still differ in their
-spatial interpretation.
+rotation orders are shared between `pg` and `g`; similarly, the rotation senses (e.g., 4⁺ &
+4⁻ have opposite rotation senses or directions) are shared. This disambiguates point groups 
+that are intrinsically isomorphic to eachother, e.g. "m" and "-1", but which still differ in
+their spatial interpretation.
 
 ## Properties
 The following properties hold for `g`, `pg`, and `Iᵖ²ᵍ`:
@@ -262,7 +263,7 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     # where t denotes translation by the site group's wyckoff position. In practice, we can
     # just "drop the translation" parts to get the same result though; this is faster
     g′ = pointgroup(g) # get rid of any repeated point group operations, if they exist
-    ordersᵍ = rotation_order.(g′)
+    ordersᵍ = rotation_order_and_sense.(g′)
 
     # first sorting step: by rotation order
     Iᵍ = sortperm(ordersᵍ)
@@ -277,34 +278,54 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     # we can check for group equality rather than isomorphism, and get combinatorial speedup
     # since we don't have to attempt a search over permutations of multiplication tables
     Iᵖ      = Vector{Int}(undef, Nᵍ)
-    ordersᵖ = Vector{Int}(undef, Nᵍ)
+    ordersᵖ = Vector{Tuple{Int, Int}}(undef, Nᵍ)
     for iuclab in PG_IUCs[D]
-        PG_ORDERs[iuclab] == Nᵍ || continue
-        pg = pointgroup(iuclab, Val(D))
+        pg = _fast_path_necessary_checks!(iuclab, ordersᵖ, Iᵖ, Nᵍ, ordersᵍ, Val(D))
+        isnothing(pg) && continue
 
-        # sorting by rotation order & check if rotation orders agree
-        ordersᵖ .= rotation_order.(pg)
-        sortperm!(Iᵖ, ordersᵖ)
-        permute!(ordersᵖ, Iᵖ)
-        ordersᵍ == ordersᵖ || continue
+        # check if there is a permutation of operators that makes `g` and `pg` equal
+        bool, permᵖ²ᵍ = _has_equal_pg_operations(g′, pg, I_groups, nothing)
+        bool || continue 
+        
+        # we have a match: compute "unwinding" compound permutation, s.t. `g ~ pg[Iᵖ²ᵍ]`
+        Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, permᵖ²ᵍ), Iᵍ) # Iᵖ[permᵖ²ᵍ][invperm(Iᵍ)], but faster
+        invpermute!(permute!(pg.operations, permᵖ²ᵍ), Iᵍ) # sort `pg` to match `g`
 
-        # check if the group operations literally are equal, but (maybe) just shuffled
-        permute!(pg.operations, Iᵖ)
-        P = Vector{Int}(undef, sum(length, I_groups))
-        equal = true
-        for I_group in I_groups
-            for i in I_group
-                idx = findfirst(==(g′[i]), (@view pg[I_group]))
-                idx === nothing && (equal = false; break) # ... not equal
-                P[i] = idx + I_group[1] - 1
-            end
-            equal || break
-        end
-        if equal
-            # "unwind" compound permutation, s.t. g ~ pg[Iᵖ²ᵍ]
-            Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, P), Iᵍ) # = Iᵖ[P][invperm(Iᵍ)], but faster
-            invpermute!(permute!(pg.operations, P), Iᵍ) # sort pg to match g
             return pg, Iᵖ²ᵍ, true
+        end
+
+    # --------------------------------------------------------------------------------------
+    # if there is a rotation order with only one element, which is not simply the identity,
+    # then we can compare that element directly with an associated point group element,
+    # even if we are in different settings: whatever the mapping is between them, it will be
+    # uniquely defined (up to a sign); so if this the case, we can do the "exact check"
+    # also for groups that are related by an orthogonal transformation
+    unique_op_idx_into_I_groups = findfirst(I_groups) do I_group
+        length(I_group) == 1 || return false
+        isone(g′[I_group[1]]) && return false
+        return true
+    end
+    if !isnothing(unique_op_idx_into_I_groups)
+        unique_op_idx = only(I_groups[something(unique_op_idx_into_I_groups)]) # into `g′`
+        unique_opᵍ = g′[unique_op_idx]
+        unique_Wᵍ  = rotation(unique_opᵍ)
+        for iuclab in PG_IUCs[D]
+            pg = _fast_path_necessary_checks!(iuclab, ordersᵖ, Iᵖ, Nᵍ, ordersᵍ, Val(D))
+            isnothing(pg) && continue
+    
+            # compute the unique transformation between the two group's "unique" elements
+            # s.t. `unique_Wᵖ = transformation * unique_Wᵍ * transformation⁻¹`
+            unique_Wᵖ = rotation(pg[unique_op_idx])
+            transformation = find_similarity_transform(unique_Wᵍ, unique_Wᵖ)
+            # check if there is a permutation of operators that makes `g` and `pg` equal
+            bool, permᵖ²ᵍ = _has_equal_pg_operations(g′, pg, I_groups, transformation)
+            bool || continue
+            
+            # we have a match: compute "unwinding" compound permutation, s.t. `g ~ pg[Iᵖ²ᵍ]`
+            Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, permᵖ²ᵍ), Iᵍ) # = Iᵖ[permᵖ²ᵍ][invperm(Iᵍ)]
+            invpermute!(permute!(pg.operations, permᵖ²ᵍ), Iᵍ) # sort `pg` to match `g`
+            
+            return pg, Iᵖ²ᵍ, false
         end
     end
 
@@ -323,17 +344,10 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     for iuclab in PG_IUCs[D]
         # NB: in principle, this could probably be sped up a lot by using subgroup relations
         #     to "group up" meaningful portions (in addition to grouping by rotation order)
-        Crystalline.PG_ORDERs[iuclab] == Nᵍ || continue
-        pg = pointgroup(iuclab, Val(D))
+        pg = _fast_path_necessary_checks!(iuclab, ordersᵖ, Iᵖ, Nᵍ, ordersᵍ, Val(D))
+        isnothing(pg) && continue
 
-        # sorting by rotation order & check if rotation orders agree
-        ordersᵖ .= rotation_order.(pg)
-        sortperm!(Iᵖ, ordersᵖ)
-        permute!(ordersᵖ, Iᵖ)
-        ordersᵍ == ordersᵖ || continue
-
-        # create pg's multiplication table, "order-sorted"
-        permute!(pg.operations, Iᵖ)
+        # create `pg`'s multiplication table, "order-sorted"
         mtᵖ = MultTable(pg).table
         
         # rigorous, slow, combinatorial search
@@ -377,6 +391,69 @@ function _find_equal_groups_in_sorted(v::AbstractVector)
         start = stop
     end
     return idx_groups
+end
+
+# checks two necessary (but not sufficient) conditions for a reference (point) group ("g";
+# specified by its order `Nᵍ` and sorted rotation-order-&-sense vector `ordersᵍ`) to be 
+# isomorphic to the conventional point group ("p") with label `iuclab` and dimension `D`; 
+# the rotation-order-&-sense values of `pg` are written into `ordersᵖ` which is mutated
+# (provided the first check succeeds); similarly, the sorting-permutation is written into
+# `Iᵖ` in mutating fashion
+# if the conditions are not met, we can bail early to save time, returning `nothing` - but
+# if they are met, we return the rotation-order-&-sense sorted point group operations `pg`
+# associated with `iuclab` as well as a permutation vector `Iᵖ` that implements the sorting
+function _fast_path_necessary_checks!(
+        iuclab::AbstractString,
+        ordersᵖ::Vector{Tuple{Int, Int}}, # ← mutated: must be `similar` to `ordersᵍ`
+        Iᵖ::Vector{Int},                  # ← mutated: must have same length as `ordersᵍ`
+        Nᵍ::Integer,
+        ordersᵍ::Vector{Tuple{Int, Int}}, 
+        Dᵛ::Val{D} where D
+        )
+    
+    # fast-path check: number of group elements (order) must agree
+    PG_ORDERs[iuclab] == Nᵍ || return nothing
+
+    # go ahead and load the point group operations for closer inspection
+    pg = pointgroup(iuclab, Dᵛ)
+
+    # copare in rotation-order-&-sense-sorting + check if they agree between "g" and "p"
+    ordersᵖ .= rotation_order_and_sense.(pg)
+    sortperm!(Iᵖ, ordersᵖ)
+    permute!(ordersᵖ, Iᵖ)
+    ordersᵍ == ordersᵖ || return nothing
+
+    # checks passed; return point group rotation-order-&-sense-sorted
+    permute!(pg.operations, Iᵖ)
+    return pg
+end
+
+# check if the group `g′` has the same operations as the point group with label `iuclab`,
+# possibly with in a different sorting
+function _has_equal_pg_operations(
+        g′::AbstractVector{SymOperation{D}},
+        pg::AbstractVector{SymOperation{D}},
+        I_groups::AbstractVector{<:AbstractVector{<:Integer}},
+        transformation::Union{Nothing, AbstractMatrix{<:Real}}
+        # ↑ assumes mapping `Ref(pg) = transformation .* Ref(g′) .* inv(transformation)`
+    ) where D
+
+    # check if the group operations literally are equal, but (maybe) just shuffled
+    permᵖ²ᵍ = Vector{Int}(undef, sum(length, I_groups))
+    for I_group in I_groups
+        for i in I_group
+            opᵢ = if isnothing(transformation)
+                g′[i]
+            else
+                transform(g′[i], transformation) # `transformation * g′[i] * transformation⁻¹`
+            end
+            idx = findfirst(≈(opᵢ), (@view pg[I_group]))
+            idx === nothing && return false, permᵖ²ᵍ # ... not equal
+            permᵖ²ᵍ[i] = idx + I_group[1] - 1
+        end
+    end
+    
+    return true, permᵖ²ᵍ
 end
 
 """
@@ -435,4 +512,77 @@ function rigorous_isomorphism_search(I_orders::AbstractVector{<:AbstractVector{I
         end
     end
     return nothing # failed to find an isomorphism (because there wasn't any!)
+end
+function rotation_order_and_sense(op::SymOperation{D}) where D
+    r = rotation_order(op)
+    D == 1 && return (r, 0) # no "rotation sense" in 1D; `0` as sentinel
+
+    o = abs(r)
+    if o ≤ 2 # no rotation sense for identity, mirrors, 2-fold rotation, or inversion
+        return (r, 0) # use `0` as sentinel
+    end
+    
+    # henceforth, `o > 2`, and it is possible to define a ±1 (left/right) sense relative to
+    # an axis; the calculation below is borrowed from `seitz` (TODO: consolidate)
+    W = rotation(op)
+    detW = det(W)
+    if D == 2 # augment to be 3×3 for ease of implementation
+        W = @inbounds SMatrix{3,3,Float64,9}( # build by column (= [W zeros(2); 0 0 1])
+                W[1], W[2], 0.0, W[3], W[4], 0.0, 0.0, 0.0, 1.0)
+    end
+    
+    # --- rotation axis ---
+    u = if D == 2
+        SVector{3,Int}(0, 0, 1)
+    else # D == 3
+        rotation_axis_3d(rotation(op), detW, o)
+    end
+    
+    # --- rotation sense ---
+    # ±-rotation sense is determined from sign of det(𝐙) where  𝐙 ≡ [𝐮|𝐱|det(𝐖)𝐖𝐱]
+    # with 𝐱 an arbitrary vector that is not parallel to 𝐮. [ITA6 vol. A, p. 16, sec.
+    # 1.2.2.4(1)(c)]
+    x = rand(-1:1, SVector{3, Int})
+    while iszero(x×u) # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
+        x = rand(-1:1, SVector{3, Int})
+        iszero(u) && error("rotation axis has zero norm; input is likely invalid")
+    end
+    Z = hcat(u, x, detW*(W*x))
+    sense_float = sign(det(Z))
+    sense = round(Int, sense_float)
+    sense_float ≈ sense || error("rotation sense is not an integer; unexpected failure")
+    
+    return (r, sense)
+end
+
+#       find_similarity_transform(X, Y)  -->  Matrix{<:Real}
+# Given two similar (diagonalizable) matrices, `X` and `Y`, find an orthogonal
+# transformation matrix `P` s.t. `Y = P⁻¹XP`. Errors if `X` and `Y` are not similar.
+# The idea works like this: denote by `Λ` the (identical, by necessity of being similar)
+# eigenvalue matrix of `X` and `Y` and by `Vˣ` and `Vʸ` the associated (invertible)
+# eigenvector matrices. Then `X = VˣΛ(Vˣ)⁻¹` and `Y = VʸΛ(Vʸ)⁻¹` and equivalently
+# `(Vʸ)⁻¹YVʸ = Λ = (Vˣ)⁻¹XVˣ`; left- & right-multiplying this relation by `Vʸ` & `(Vʸ)⁻¹`, 
+# respectively, gives `Vʸ(Vʸ)⁻¹YVʸ(Vʸ)⁻¹ = Y = Vʸ(Vˣ)⁻¹XVˣ(Vʸ)⁻¹ = [Vʸ(Vˣ)⁻¹]X[Vˣ(Vʸ)⁻¹]`,
+# which, finally, by comparison with `Y = P⁻¹XP` lets us identify `P = Vʸ(Vˣ)⁻¹`.
+# If `X` and `Y` are real symmetric matrices, we have `(Vˣʸ)⁻¹ = (Vˣʸ)ᵀ` (i.e., orthogonal
+# eigenvector matrices), in which case the transformation is also orthogonal (`Pᵀ=P⁻¹`).
+function find_similarity_transform(X, Y)
+    eˣ  = eigen(X); eʸ = eigen(Y)
+    if !(eˣ.values ≈ eʸ.values)
+        error("matrices `X` and `Y` are not similar; a basis change between `X` and `Y` does not exist")
+    end
+    Vˣ = eˣ.vectors; Vʸ = eʸ.vectors   
+    P = Vˣ*inv(Vʸ)
+
+    if P isa Matrix{<:Real}
+        # oftentimes, the eigendecomposition will simply be real already
+        return P
+    else
+        # we don't want to be working with complex matrices, and physically, this should never
+        # occur, so we check here and error if we have non-negligible imaginary entries
+        if sum(abs∘imag, P) > DEFAULT_ATOL
+            error("non-neglible imaginary parts in transformation matrix")
+        end
+        return real(P)
+    end
 end

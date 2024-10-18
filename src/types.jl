@@ -87,7 +87,7 @@ translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly
 function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
-function Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
+function Base.Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
             kws...) where D
 
@@ -346,9 +346,10 @@ function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractVec{D} where D
+    v1, v2 = parent(v1), parent(v2) # for wrapped RVec or KVec types like WyckoffPosition
     v₀1, vabc1 = parts(v1); v₀2, vabc2 = parts(v2)  # ... unpacking
     
-    T′ = typeof(parent(v1)) # for wrapped RVec or KVec types like WyckoffPosition
+    T′ = typeof(v1)
     if modw # equivalence modulo a primitive lattice vector
         δ₀ = v₀1 - v₀2
         if cntr !== nothing
@@ -361,7 +362,12 @@ function Base.isapprox(v1::T, v2::T,
                  T′ <: RVec ? P  \ δ₀ :
                  error("`isapprox` is not implemented for type $T")
         end
-        all(x -> isapprox(x, round(x); kwargs...), δ₀) || return false
+        iδ₀ = round.(δ₀)
+        if !iszero(iδ₀)
+            isapprox(δ₀, iδ₀; kwargs...) || return false
+        else
+            isapprox(v₀1, v₀2; kwargs...) || return false
+        end
     else # ordinary equivalence
         isapprox(v₀1, v₀2; kwargs...) || return false
     end
@@ -375,7 +381,8 @@ function Base.isapprox(v1::T, v2::T,
                   cntr::Union{Nothing, Char, AbstractMatrix{<:Real}}=nothing,
                   modw::Bool=true;
                   kwargs...) where T<:AbstractPoint{D} where D
-    if modw # equivalence modulo a primitive lattice vector
+    if modw
+        # equivalence modulo a primitive lattice vector
         δ = v1 - v2
         if cntr !== nothing
             P = if cntr isa Char
@@ -383,14 +390,16 @@ function Base.isapprox(v1::T, v2::T,
             else # AbstractMatrix{<:Real}
                 convert(SMatrix{D, D, eltype(cntr), D*D}, cntr)
             end
-            δ = T <: ReciprocalPoint ? P' * δ :
-                T <: DirectPoint     ? P  \ δ :
-                error("`isapprox` is not implemented for type $T")
+            δ = transform(δ, P)
         end
-        return all(x -> isapprox(x, round(x); kwargs...), δ)
-    else # ordinary equivalence
-        return isapprox(v1, v2; kwargs...)
+        δ = parent(δ)
+        iδ = round.(δ)
+        if !iszero(iδ)
+            return isapprox(δ, iδ; kwargs...)
+        end
     end
+    # ordinary equivalence
+    return isapprox(parent(v1), parent(v2); kwargs...)
 end
 
 # Note that the _coefficients_ of a general 𝐤- or 𝐫-vector transforms differently than the
@@ -504,8 +513,27 @@ or, alternatively, fields with names `num` and `operations`, behaving accordingl
 """
 abstract type AbstractGroup{D,O} <: AbstractVector{O} end # where O <: AbstractOperation{D}
 # Interface: must have fields `operations`, `num` and dimensionality `D`.
+
+"""
+    num(g::AbstractGroup) -> Int
+
+Return the conventional number assigned to the group `g`.
+"""
 num(g::AbstractGroup) = g.num
+
+"""
+    operations(g::AbstractGroup) -> Vector{<:AbstractOperation}
+
+Return an `Vector` containing the operations of the group `g`.
+"""
 operations(g::AbstractGroup) = g.operations
+
+"""
+    dim(g::AbstractGroup) -> Int
+
+Return the dimensionality of the coordinate space of the group `g`.
+This is a statically known number, either equaling 1, 2, or 3.
+"""
 dim(::AbstractGroup{D}) where D = D
 
 # define the AbstractArray interface for AbstractGroup
@@ -566,7 +594,7 @@ struct PointGroup{D} <: AbstractGroup{D, SymOperation{D}}
 end
 label(pg::PointGroup) = pg.label
 iuc(pg::PointGroup) = label(pg)
-centering(pg::PointGroup) = nothing
+centering(::PointGroup) = nothing
 
 # --- Little group ---
 """
@@ -597,6 +625,7 @@ struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
     cosets::Vector{SymOperation{D}}
 end
 label(g::SiteGroup) = iuc(num(g), dim(g))
+centering(::SiteGroup) = nothing
 
 """
 $(TYPEDSIGNATURES)
@@ -657,7 +686,7 @@ real" irreps (co-reps) via [`realify`](@ref).
 end
 
 # ---------------------------------------------------------------------------------------- #
-# AbstractIrrep: PGIrrep, LGIrrep
+# AbstractIrrep: PGIrrep, LGIrrep, SiteIrrep
 # ---------------------------------------------------------------------------------------- #
 
 """ 
@@ -685,6 +714,7 @@ order(ir::AbstractIrrep)  = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(::AbstractIrrep{D}) where D = D
+Base.position(ir::AbstractIrrep) = position(group(ir))
 function klabel(cdml::String)
     idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
     previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
@@ -761,28 +791,60 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-Base.position(lgir::LGIrrep) = position(group(lgir))
 isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
+                             # Site symmetry irreps
+
+"""
+$(TYPEDEF)$(TYPEDFIELDS)
+"""
+struct SiteIrrep{D} <: AbstractIrrep{D}
+    cdml     :: String
+    g        :: SiteGroup{D}
+    matrices :: Vector{Matrix{ComplexF64}}
+    reality  :: Reality
+    iscorep  :: Bool
+    pglabel  :: String # label of point group that is isomorphic to the site group `g`
+end
+Base.position(siteir::SiteIrrep) = position(group(siteir))
+
 # ---------------------------------------------------------------------------------------- #
-# IrrepCollection
+# Collection{T}
 # ---------------------------------------------------------------------------------------- #
 
-struct IrrepCollection{T<:AbstractIrrep} <: AbstractVector{T}
-    irs :: Vector{T}
+""" 
+    Collection{T} <: AbstractVector{T}
+
+A wrapper around a `Vector{T}`, that allows custom printing and dispatch rules of custom
+`T` (e.g., `AbstractIrrep` & `NewBandRep`).
+
+In Crystalline, it is assumed that all elements of the wrapped vector are associated with
+the _same_ space or point group. Accordingly, if `T` implements [`dim`](@ref) or 
+[`num`](@ref), either must return the same value for each element of the `Collection`
+(and is equal to `dim(::Collection)` and `num(::Collection)`).
+"""
+struct Collection{T} <: AbstractVector{T}
+    vs :: Vector{T}
 end
-Base.size(c::IrrepCollection) = size(c.irs)
-Base.IndexStyle(::Type{<:IrrepCollection}) = IndexLinear()
-@propagate_inbounds Base.getindex(c::IrrepCollection, i::Int) = c.irs[i]
-@propagate_inbounds function Base.setindex!(
-    c::IrrepCollection{T}, ir::T, i::Int) where T<:AbstractIrrep
-    c.irs[i] = ir
-end
-IrrepCollection(c::IrrepCollection) = c
-Base.similar(c::IrrepCollection{T}) where T = IrrepCollection{T}(similar(c.irs))
+
+# ::: AbstractArray interface :::
+Base.size(c::Collection) = size(c.vs)
+Base.IndexStyle(::Type{<:Collection}) = IndexLinear()
+@propagate_inbounds Base.getindex(c::Collection{T}, i::Integer) where T = c.vs[i]::T
+@propagate_inbounds Base.setindex!(c::Collection{T}, v::T, i::Integer) where T = (c.vs[i]=v)
+Base.similar(c::Collection{T}) where T = Collection{T}(similar(c.vs))
+Base.iterate(c::Collection) = iterate(c.vs)
+Base.iterate(c::Collection, state) = iterate(c.vs, state)
+
+# ::: Interface :::
+dim(vs::Collection) = dim(first(vs))
+num(vs::Collection) = num(first(vs))
+
+# ::: Methods for `Collection{<:AbstractIrrep}` :::
+Base.position(c::Collection{<:AbstractIrrep}) = position(first(c))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable
@@ -893,11 +955,10 @@ end
 $(TYPEDEF)$(TYPEDFIELDS)
 """
 struct BandRep <: AbstractVector{Int}
-    wyckpos::String  # Wyckoff position that induces the BR (TODO: type as `::WyckoffPosition` instead of `::String`)
+    wyckpos::String  # Wyckoff position that induces the BR
     sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
     label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
     dim::Int         # Dimension (i.e. # of bands) in band rep
-    decomposable::Bool  # Whether a given bandrep can be decomposed further
     spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
     irvec::Vector{Int}  # Vector that references irlabs of a parent BandRepSet; nonzero
                            # entries correspond to an element in the band representation
@@ -912,11 +973,8 @@ irreplabels(BR::BandRep) = BR.irlabs
     dim(BR::BandRep) --> Int
 
 Return the number of bands included in the provided `BandRep`.
-
-If the bands are "nondetachable" (i.e. if `BR.decomposable = false`), this is equal to a
-band connectivity μ.
 """
-dim(BR::BandRep) = BR.dim
+dim(BR::BandRep) = BR.dim # TODO: Deprecate to `occupation` instead
 
 # define the AbstractArray interface for BandRep
 size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
@@ -943,44 +1001,16 @@ struct BandRepSet <: AbstractVector{BandRep}
     kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric
     klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
     irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
-    allpaths::Bool          # Whether all paths (true) or only maximal 𝐤-points (false) are included
     spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
     timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
 end
-num(BRS::BandRepSet)         = BRS.sgnum
-klabels(BRS::BandRepSet)     = BRS.klabs
-hasnonmax(BRS::BandRepSet)   = BRS.allpaths
-irreplabels(BRS::BandRepSet) = BRS.irlabs
-isspinful(BRS::BandRepSet)   = BRS.spinful
-reps(BRS::BandRepSet)        = BRS.bandreps
+num(brs::BandRepSet)         = brs.sgnum
+klabels(brs::BandRepSet)     = brs.klabs
+irreplabels(brs::BandRepSet) = brs.irlabs
+isspinful(brs::BandRepSet)   = brs.spinful
+reps(brs::BandRepSet)        = brs.bandreps
 
 # define the AbstractArray interface for BandRepSet
-size(BRS::BandRepSet) = (length(reps(BRS)),) # number of distinct band representations
-@propagate_inbounds getindex(BRS::BandRepSet, i::Int) = reps(BRS)[i]
+size(brs::BandRepSet) = (length(reps(brs)),) # number of distinct band representations
+@propagate_inbounds getindex(brs::BandRepSet, i::Int) = reps(brs)[i]
 IndexStyle(::Type{<:BandRepSet}) = IndexLinear()
-
-"""
-    matrix(BRS::BandRepSet; includedim::Bool=true)
-
-Return a matrix representation of `BRS::BandRepSet`, with band representations as columns 
-and irreps over rows.
-
-By default, the last row will give the "filling" of each `BandRep` (or, more precisely,
-number of included bands per `BandRep`, i.e. `dim.(BRS)`. To toggle this off, set the
-keyword argument `includedim` to `false` (default is `includedim = true`).
-"""
-function matrix(BRS::BandRepSet; includedim::Bool=true)
-    Nⁱʳʳ, Nᵉᵇʳ = length(first(BRS)), length(BRS)
-    M = Matrix{Int}(undef, Nⁱʳʳ - !includedim, Nᵉᵇʳ)
-    @inbounds for (j, BR) in enumerate(BRS)
-        for (i, v) in enumerate(BR.irvec)
-            M[i,j] = v
-        end
-        if includedim
-            M[Nⁱʳʳ,j] = dim(BR)
-        end
-    end
-
-    return M
-end 
-@deprecate matrix(BRS::BandRepSet, includedim::Bool) matrix(BRS::BandRepSet; includedim=includedim)

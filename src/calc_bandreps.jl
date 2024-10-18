@@ -1,59 +1,9 @@
-using LinearAlgebra
-using Crystalline
-using Crystalline: irdim, constant, free, AbstractIrrep, iscorep,
-                   _mulliken, DEFAULT_ATOL
-import Crystalline: mulliken, realify, group
-using StaticArrays
-using DocStringExtensions
+using LinearAlgebra: dot, \
 
 # The implementation here follows Cano et al., Phys. Rev. B 97, 035139 (2018)
 # (https://doi.org/10.1103/PhysRevB.97.035139), specifically, Sections II.C-D
 
 # ---------------------------------------------------------------------------------------- #
-# Site symmetry irreps
-
-"""
-$(TYPEDEF)$(TYPEDFIELDS)
-"""
-struct SiteIrrep{D} <: AbstractIrrep{D}
-    cdml     :: String
-    g        :: SiteGroup{D}
-    matrices :: Vector{Matrix{ComplexF64}}
-    reality  :: Reality
-    iscorep  :: Bool
-    pglab    :: String
-end
-Base.position(siteir::SiteIrrep) = position(group(siteir))
-
-"""
-    siteirreps(sitegroup::SiteGroup) --> Vector{PGIrrep}
-
-Return the site symmetry irreps associated with the provided `SiteGroup`, derived from a
-search over isomorphic point groups.
-"""
-function siteirreps(siteg::SiteGroup{D}) where D
-    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
-    pglab = label(parent_pg)
-    pgirs = pgirreps(pglab, Val(D))
-    
-    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
-    # .jld files apparently cache accessed content; so if we modify it, we mess with the
-    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
-    siteirs = map(pgirs) do pgir
-        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
-                     pglab)
-    end
-    return siteirs
-end
-pglabel(siteir::SiteIrrep)  = siteir.pglab # associated point group label
-mulliken(siteir::SiteIrrep) = _mulliken(pglabel(siteir), label(siteir), iscorep(siteir))
-
-# ---------------------------------------------------------------------------------------- #
-# Misc utility functions 
-
-function realify(lgirsd::Dict{<:Any, <:Vector{<:LGIrrep}})
-    return Dict(klab => realify(lgirs) for (klab, lgirs) in lgirsd)
-end
 
 """
     reduce_dict_of_vectors([f=identity,] d::Dict{_, <:Vector})  -->  Vector{T}
@@ -63,14 +13,14 @@ of `f`. Effectively flattens a `Dict` of `Vector`s to a single `Vector`.
 
 Note that application of `f` to vector-elements of `d` must return a stable type `T`.
 """
-function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:Vector}) where F
+function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:AbstractVector}) where F
     # get element type of application of `f` to elements of vectors in `d`; assumed fixed
     eltype = typeof(f(first(first(values(d)))))
     # get total number of elements across vectors in `d`
     N = sum(((_, v),) -> length(v), d)
     # preallocate output vector
-    w      = Vector{eltype}(undef, N)
-    start  = 1
+    w     = Vector{eltype}(undef, N)
+    start = 1
     for v in values(d)
         stop = start + length(v) - 1
         @inbounds for (i, j) in enumerate(start:stop)
@@ -92,8 +42,9 @@ in a primitive basis (as determined by the centering type `cntr`). Returns the u
 If `conv_or_prim = true` (default), the Wyckoff positions are returned in the original,
 conventional basis; if `conv_or_prim = false`, they are returned in a primitive basis.
 """
-function reduce_orbits!(orbits::Vector{WyckoffPosition{D}}, cntr::Char,
-            conv_or_prim::Bool=true) where D
+function reduce_orbits!(
+        orbits::AbstractVector{WyckoffPosition{D}}, cntr::Char, conv_or_prim::Bool=true
+    ) where D
 
     orbits′ = primitivize.(orbits, cntr)
     i = 2 # start from second element
@@ -141,13 +92,12 @@ end
 # Bandrep related functions: induction/subduction
 
 """
-    induced_band_representation(siteir, h, kv)
+    induce_bandrep(siteir::SiteIrrep, h::SymOperation, kv::KVec)
 
 Return the band representation induced by the provided `SiteIrrep` evaluated at `kv` and for
 a `SymOperation` `h`.
 """
 function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D
-
     siteg  = group(siteir)
     wp     = position(siteg)   
     kv′    = constant(h*kv) # <-- TODO: Why only constant part?
@@ -172,19 +122,27 @@ function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) w
         site_symmetry_index = findfirst(≈(gα′⁻¹ggα′), siteg)
         if site_symmetry_index !== nothing
             χᴳₖ += cis(2π*dot(kv′, tα′α′)) * χs[site_symmetry_index]
-            # TODO: The sign in this `cis(...)` above is different from in Elcoro's. Why?
+            # NB: The sign in this `cis(...)` above is different from in Elcoro's. 
+            #     I think this is consistent with our overall sign convention (see #12),
+            #     however, and flipping the sign causes problems for the calculation of some
+            #     subductions to `LGIrrep`s, which would be consistent with this. I.e.,
+            #     I'm fairly certain this is consistent and correct given our phase
+            #     conventions for `LGIrrep`s.
         end
     end
     return χᴳₖ
 end
 
-function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) where D
+function subduce_onto_lgirreps(
+        siteir::SiteIrrep{D}, lgirs::AbstractVector{LGIrrep{D}}
+    ) where D
     lg = group(first(lgirs))
     kv = position(lg)
 
     # characters of induced site representation and little group irreps
     site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
     lgirs_χm = matrix(characters(lgirs))
+
     # little group irrep multiplicities, after subduction
     m  = lgirs_χm\site_χs
     m′ = round.(Int, real.(m)) # truncate to integers
@@ -192,56 +150,88 @@ function subduce_onto_lgirreps(siteir::SiteIrrep{D}, lgirs::Vector{LGIrrep{D}}) 
     return m′
 end
 
-function calc_bandrep(siteir::SiteIrrep{D}, lgirsd::Dict{String, Vector{LGIrrep{D}}};
-            irlabs::Vector{String} = reduce_dict_of_vectors(label, lgirsd),
-            irdims::Vector{Int}    = reduce_dict_of_vectors(irdim, lgirsd)) where D
+# ---------------------------------------------------------------------------------------- #
 
-    irvec = Int[]
-    for (_, lgirs) in lgirsd
-        kv_array = subduce_onto_lgirreps(siteir, lgirs)
-        append!(irvec, Int.(kv_array))
-    end    
+function calc_bandrep(
+        siteir :: SiteIrrep{D}, 
+        lgirsv :: AbstractVector{<:AbstractVector{LGIrrep{D}}},
+        timereversal :: Bool
+    ) where D
+
+    multsv = [subduce_onto_lgirreps(siteir, lgirs) for lgirs in lgirsv]
     
-    irdims_Γmask = [irlab[1]=='Γ' for irlab in irlabs] .* irdims # masked w/ Γ-irreps only
-    brdim   = dot(irvec, irdims_Γmask)
-    wycklab = label(position(group(siteir)))
-    spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
-    decomposable = false # NB: placeholder, because we don't know the true answer presently
+    occupation = sum(zip(first(multsv), first(lgirsv)); init=0) do (m, lgir)
+        m * irdim(lgir)
+    end
+    n = SymmetryVector(lgirsv, multsv, occupation)
+    
+    spinful = false # NB: default; Crystalline currently doesn't have spinful irreps
 
-    return BandRep(wycklab, pglabel(siteir), mulliken(siteir)*"↑G", brdim, decomposable,
-                   spinful, irvec, irlabs)
+    return NewBandRep(siteir, n, timereversal, spinful)
+end
+function calc_bandrep(
+        siteir :: SiteIrrep{D}; 
+        timereversal :: Bool=true, 
+        allpaths :: Bool=false
+    ) where D
+    lgirsd = lgirreps(num(siteir), Val(D))
+    allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
+    timereversal && realify!(lgirsd)
+    lgirsv = [lgirs for lgirs in values(lgirsd)]
+    return calc_bandrep(siteir, lgirsv, timereversal)
 end
 
 # ---------------------------------------------------------------------------------------- #
-# TODO: Doc-string
-function calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(2);
-                       allpaths::Bool=false, timereversal::Bool=true) where D
+"""
+    calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
+                  timereversal::Bool=true,
+                  allpaths::Bool=false)
+
+Compute the band representations of space group `sgnum` in dimension `D`, returning a
+`BandRepSet`.
+
+## Keyword arguments
+- `timereversal` (default, `true`): whether the irreps used to induce the band
+  representations are assumed to be time-reversal invariant (i.e., are coreps, see 
+  [`realify`](@ref)).
+- `allpaths` (default, `false`): whether the band representations are projected to all
+  distinct **k**-points returned by `lgirreps` (`allpaths = false`), including high-symmetry
+  **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
+  just to high-symmetry points.
+
+## Notes
+All band representations associated with maximal Wyckoff positions are returned, 
+irregardless of whether they are elementary (i.e., no regard is made to whether the band
+representation is "composite"). As such, the returned band representations generally are
+a superset of the set of elementary band representations (and so contain all elementary
+band representations).
+
+## Implementation
+The implementation is based on Cano, Bradlyn, Wang, Elcoro, et al., [Phys. Rev. B **97**,
+035139 (2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
+"""
+function calc_bandreps(
+        sgnum::Integer,
+        Dᵛ::Val{D} = Val(3);
+        timereversal::Bool = true,
+        allpaths::Bool = false
+    ) where D
 
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
-    allpaths     || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
+    allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
-
-    irlabs = reduce_dict_of_vectors(label, lgirsd)
-    irdims = reduce_dict_of_vectors(irdim, lgirsd)
+    lgirsv = [lgirs for lgirs in values(lgirsd)]
 
     # get the bandreps induced by every maximal site symmetry irrep
-    wps    = wyckoffs(sgnum, Dᵛ)
     sg     = spacegroup(sgnum, Dᵛ)
-    sitegs = findmaximal(sitegroup.(Ref(sg), wps))
-    brs    = BandRep[]
+    sitegs = findmaximal(sitegroups(sg))
+    brs    = NewBandRep{D}[]
     for siteg in sitegs
-        siteirs = siteirreps(siteg)
+        siteirs = siteirreps(siteg; mulliken=true)
         timereversal && (siteirs = realify(siteirs))
-        append!(brs, calc_bandrep.(siteirs, Ref(lgirsd); irlabs=irlabs, irdims=irdims))
+        append!(brs, calc_bandrep.(siteirs, Ref(lgirsv), Ref(timereversal)))
     end
 
-    # TODO: There's potentially some kind of bad implicit dependence/overreliance on fixed
-    #       on iteration order of `Dict`s here and related methods; probably OK, but unwise
-    klabs  = collect(keys(lgirsd))
-    kvs    = position.(first.(values(lgirsd)))
-    spinful      = false # NB: default; Crystalline currently doesn't have spinful irreps
-    decomposable = false # NB: placeholder, because we don't know the true answer presently
-
-    return BandRepSet(sgnum, brs, kvs, klabs, irlabs, allpaths, spinful, timereversal)
+    return Collection(brs)
 end

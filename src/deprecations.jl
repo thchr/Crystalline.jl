@@ -35,3 +35,10 @@
     SiteGroup(sgnum::Integer, wp::WyckoffPosition{D}) where D,
     sitegroup(sgnum, wp)
 )
+
+Base.@deprecate_binding( # cannot use plain `@deprecate` for types
+    IrrepCollection,
+    Collection{T} where T<:AbstractIrrep
+)
+
+@deprecate matrix(brs::BandRepSet; kws...) stack(brs::BandRepSet)

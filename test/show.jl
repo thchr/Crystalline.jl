@@ -51,6 +51,14 @@ Rs′ = directbasis(183, Val(3))
 @test abs(dot(Rs[2], Rs′[3])) < 1e-14
 @test abs(dot(Rs[3], Rs′[3])) > 1e-1
 
+Gs = reciprocalbasis(Rs)
+str = """
+      ReciprocalBasis{3} (hexagonal):
+       [6.283185307179586, 3.6275987284684357, -0.0]
+       [0.0, 7.255197456936871, 0.0]
+       [0.0, -0.0, 4.1887902047863905]"""
+test_tp_show(Gs, str)
+
 # -------------------------------
 # SymOperation
 # -------------------------------
@@ -188,7 +196,7 @@ test_tp_show(sitegroup(sg, wps[end-1]), str)
 # LGIrrep
 # -------------------------------
 str = """
-4-element IrrepCollection{LGIrrep{3}} for ⋕16 (P222) at Γ = [0, 0, 0]:
+4-element Collection{LGIrrep{3}} for ⋕16 (P222) at Γ = [0, 0, 0]:
 Γ₁ ─┬─────────────────────────────────────────────
     ├─ 1: ──────────────────────────────── (x,y,z)
     │     1
@@ -244,7 +252,7 @@ str = """
 test_tp_show(lgirreps(16)["Γ"], str)
 
 str = """
-4-element IrrepCollection{LGIrrep{3}}:
+4-element Collection{LGIrrep{3}}:
  #undef
  #undef
  #undef
@@ -341,8 +349,8 @@ str = """
 pgirs = pgirreps("6")
 pgirs′ = realify(pgirs)
 test_tp_show(pgirs′[end], str)
-@test summary(pgirs) == "6-element IrrepCollection{PGIrrep{3}}"
-@test summary(pgirs′) == "4-element IrrepCollection{PGIrrep{3}}"
+@test summary(pgirs) == "6-element Collection{PGIrrep{3}}"
+@test summary(pgirs′) == "4-element Collection{PGIrrep{3}}"
 
 # -------------------------------
 # CharacterTable
@@ -425,7 +433,7 @@ BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
 ────┼────────────────────────
  μ  │ 1   1   1   1   2   2
 ────┴────────────────────────
-  KVecs (maximal only): Γ, T, Y, Z, L"""
+  KVecs: Γ, T, Y, Z, L"""
 test_tp_show(brs, str)
 
 test_tp_show(brs[1],   "1-band BandRep (A₁↑G at 4a):\n [Γ₁, T₁, Y₁, Z₁, L₁]")

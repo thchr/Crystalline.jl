@@ -30,6 +30,7 @@ centering
 crystal
 directbasis
 reciprocalbasis
+nigglibasis
 ```
 
 ### Transformations
@@ -48,7 +49,6 @@ latticize!
 ```@docs
 volume
 metricmatrix
-stack
 ```
 
 ## Crystalline.jl extensions of Bravais.jl functions

@@ -232,7 +232,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
         end
     end
     
-    return IrrepCollection(lgirs′)
+    return Collection(lgirs′)
 end
 
 """
@@ -299,9 +299,15 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
             push!(skiplist, idx_partner)
 
             ir_partner = irs[idx_partner]
-            blockmatrices = _blockdiag2x2.(ir.matrices, ir_partner.matrices)               
-            newlab = label(ir)*label(ir_partner)
-                    
+            blockmatrices = _blockdiag2x2.(ir.matrices, ir_partner.matrices)
+            if T <: PGIrrep || T <: SiteIrrep
+                # if `irs` were a SiteIrrep or PGIrrep w/ Mulliken labels, we may have to
+                # manually abbreviate the composite label
+                newlab = _abbreviated_mulliken_corep_label(label(ir), label(ir_partner))
+            else
+                newlab = label(ir)*label(ir_partner)
+            end
+
         elseif r == PSEUDOREAL
             # NB: this case doesn't actually ever arise for crystallographic point groups...
             blockmatrices = _blockdiag2x2.(ir.matrices)
@@ -314,7 +320,7 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
                       # `AbstractIrrep`, which is probably not a great idea, but meh)
                       ntuple(i->getfield(ir, 5+i), Val(T_extrafields))...))
     end
-    return IrrepCollection(irs′)
+    return Collection(irs′)
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -359,6 +365,35 @@ function _blockdiag2x2(A::AbstractMatrix{T}) where T
     return B
 end
 
+# ---------------------------------------------------------------------------------------- #
+function _abbreviated_mulliken_corep_label(lab1, lab2)
+    # the Mulliken label of a corep is not always the concatenation of the Mulliken labels
+    # of the associated irrep labels, because the corep label is sometimes abbreviated 
+    # relative to the concatenated form; this only occurs for COMPLEX labels where the
+    # abbreviation will remove repeated pre-superscript labels; we fix it below in a
+    # slightly dull way by just checking the abbreviation-exceptions manually listed in
+    # `MULLIKEN_LABEL_REALITY_EXCEPTIONS` and abbreviating accordingly; if not an exception
+    # it is still the concatenation of irrep-labels
+    MULLIKEN_LABEL_REALITY_EXCEPTIONS = (
+        ("²E", "¹E") => "E",
+        ("²Eg", "¹Eg") => "Eg",
+        ("²Eᵤ", "¹Eᵤ") => "Eᵤ",
+        ("²E₁", "¹E₁") => "E₁",
+        ("²E₂", "¹E₂") => "E₂",
+        ("²E′", "¹E′") => "E′",
+        ("²E′′", "¹E′′") => "E′′",
+        ("²E₁g", "¹E₁g") => "E₁g",
+        ("²E₁ᵤ", "¹E₁ᵤ") => "E₁ᵤ",
+        ("²E₂g", "¹E₂g") => "E₂g",
+        ("²E₂ᵤ", "¹E₂ᵤ") => "E₂ᵤ")
+    for (lab1′lab2′, abbreviated_lab1′lab2′) in MULLIKEN_LABEL_REALITY_EXCEPTIONS
+        if (lab1, lab2) == lab1′lab2′ || (lab2, lab1) == lab1′lab2′
+            return abbreviated_lab1′lab2′
+        end
+    end
+    return lab1*lab2
+end
+# ---------------------------------------------------------------------------------------- #
 @doc raw"""
     calc_reality(lgir::LGIrrep, 
                  sgops::AbstractVector{SymOperation{D}},

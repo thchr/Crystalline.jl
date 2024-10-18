@@ -14,7 +14,7 @@ sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called wi
 ```
 By default, the returned operations are given in the conventional setting of the International Tables of Crystallography, Volume A (ITA). Conversion to a primitive basis (in the CDML setting) can be accomplished via [`primitivize`](@ref).
 
-In addition to space groups, Crystalline.jl provides access to the operations of point groups (`pointgroup`](@ref)), little groups (`littlegroups`](@ref)), subperiodic groups (`subperiodicgroup`](@ref); including rod, layer, and frieze groups), and site symmetry groups (`sitegroup`).
+In addition to space groups, Crystalline.jl provides access to the operations of point groups ([`pointgroup`](@ref)), little groups ([`littlegroups`](@ref)), subperiodic groups ([`subperiodicgroup`](@ref); including rod, layer, and frieze groups), site symmetry groups ([`sitegroup`](@ref) and [`sitegroups`](@ref)), and magnetic space groups ([`mspacegroup`](@ref)).
 
 ### Multiplication tables
 We can compute the multiplication table of a space group (under the previously defined notion of operator composition) using [`MultTable`](@ref):

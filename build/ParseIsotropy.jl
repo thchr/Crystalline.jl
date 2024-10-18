@@ -264,7 +264,7 @@ end
 
 parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
-    lgirsd = Dict{String, IrrepCollection{LGIrrep{3}}}()
+    lgirsd = Dict{String, Collection{LGIrrep{3}}}()
     curklab = nothing; accidx = Int[]
     for (idx, ir) in enumerate(irvec) # loop over distinct irreps (e.g., Γ1, Γ2, Γ3, Z1, Z2, ..., GP1)
         if curklab == klabel(ir)
@@ -275,7 +275,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
                 for (pos, kidx) in enumerate(accidx) # write all irreps of a specific k-point to a vector (e.g., Z1, Z2, ...)
                     lgirs[pos] = littlegroupirrep(irvec[kidx])
                 end
-                push!(lgirsd, curklab=>IrrepCollection(lgirs))
+                push!(lgirsd, curklab=>Collection(lgirs))
             end
 
             curklab = klabel(ir)
@@ -292,7 +292,7 @@ function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     end
     lastklab = klabel(irvec[last(accidx)])
     @assert lastklab == "Ω"
-    push!(lgirsd, lastklab=>IrrepCollection(lgirs))
+    push!(lgirsd, lastklab=>Collection(lgirs))
 
     return lgirsd
 end

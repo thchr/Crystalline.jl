@@ -39,8 +39,7 @@ end
 @testset "Maximal Wyckoff positions" begin
     for sgnum in 1:MAX_SGNUM[3]
         sg  = spacegroup(sgnum, Val(3))
-        wps = wyckoffs(sgnum, Val(3))
-        sitegs = sitegroup.(Ref(sg), wps)
+        sitegs = sitegroups(sg)
 
         max_sitegs = findmaximal(sitegs)
         max_wps    = position.(max_sitegs)

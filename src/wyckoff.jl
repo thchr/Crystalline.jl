@@ -48,13 +48,29 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Return all site symmetry groups associated with a space group, specified either as 
+`sg :: SpaceGroup{D}` or by its conventional number `sgnum` and dimension `D`.
+
+See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
+Wyckoff position.
+"""
+function sitegroups(sg::SpaceGroup{D}) where D
+    wps = wyckoffs(num(sg), Val(D))
+    return sitegroup.(Ref(sg), wps)
+end
+sitegroups(sgnum::Integer, Dᵛ::Val{D}) where D = sitegroups(spacegroup(sgnum, Dᵛ))
+sitegroups(sgnum::Integer, D::Integer) = sitegroups(spacegroup(sgnum, D))
+
+"""
+$(TYPEDSIGNATURES)
+
 Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in space group
 `sg` (or with space group number `sgnum`; in this case, the dimensionality is inferred from
 `wp`).
 
 `g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
 that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
-invariant, such that `all(op -> wp == op*wp, g) == true`.
+invariant, such that `all(op -> wp == compose(op, wp), g) == true`.
 
 The returned `SiteGroup` also contains the coset representatives of the Wyckoff position
 (that are again isomorphic to those featured in `sg`), accessible via [`cosets`](@ref),
@@ -105,6 +121,9 @@ true
 
 Mathematically, the site symmetry group is a *stabilizer group* for a Wyckoff position,
 in the same sense that the little group of **k** is a stabilizer group for a **k**-point.
+
+See also [`sitegroups`](@ref) for calculation of all site symmetry groups of a given space
+group.
 """
 function sitegroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
     Nsg  = order(sg)
@@ -204,7 +223,7 @@ end
 """
     findmaximal(sitegs::AbstractVector{<:SiteGroup})
 
-Given a vector of `SiteGroup`s associated with the Wyckoff positions of a space group,
+Given an `AbstractVector{<:SiteGroup}` over the distinct Wyckoff positions of a space group,
 return those `SiteGroup`s that are associated with a maximal Wyckoff positions.
 
 Results are returned as a `view` into the input vector (i.e. as an 
@@ -223,12 +242,9 @@ julia> sgnum = 5;
 
 julia> D = 2;
 
-julia> wps = wyckoffs(sgnum, Val(D));
-
 julia> sg  = spacegroup(sgnum, Val(D));
 
-
-julia> sitegs = sitegroup.(Ref(sg), wps)
+julia> sitegs = sitegroups(sg)
 2-element Vector{SiteGroup{2}}:
  [1] (4b: [α, β])
  [1, m₁₀] (2a: [0, β])
@@ -276,3 +292,80 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     end
     return @view sitegs[maximal]
 end
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+    siteirreps(sitegroup::SiteGroup; mulliken::Bool=false]) --> Vector{PGIrrep}
+
+Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
+search over isomorphic point groups. The `SiteIrrep`s are in general a permutation of the
+irreps of the associated isomorphic point group.
+
+By default, the labels of the site symmetry irreps are given in the CDML notation; to
+use the Mulliken notation, set the keyword argument `mulliken` to `true` (default, `false`).
+
+## Example
+```jldoctest
+julia> sgnum = 16;
+
+julia> sg = spacegroup(sgnum, 2);
+
+julia> wp = wyckoffs(sgnum, 2)[3] # pick the third Wyckoff position
+2b: [1/3, 2/3]
+
+julia> siteg = sitegroup(sg, wp)
+SiteGroup{2} ⋕16 (p6) at 2b = [1/3, 2/3] with 3 operations:
+ 1
+ {3⁺|1,1}
+ {3⁻|0,1}
+
+julia> siteirs = siteirreps(siteg)
+3-element Collection{SiteIrrep{2}} for ⋕16 (p6) at 2b = [1/3, 2/3]:
+Γ₁ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     1
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     1
+    └─────────────────────────────────────────────
+Γ₂ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(-0.6667iπ)
+    └─────────────────────────────────────────────
+Γ₃ ─┬─────────────────────────────────────────────
+    ├─ 1: ────────────────────────────────── (x,y)
+    │     1
+    │
+    ├─ {3⁺|1,1}: ──────────────────── (-y+1,x-y+1)
+    │     exp(-0.6667iπ)
+    │
+    ├─ {3⁻|0,1}: ───────────────────── (-x+y,-x+1)
+    │     exp(0.6667iπ)
+    └─────────────────────────────────────────────
+```
+"""
+function siteirreps(siteg::SiteGroup{D}; mulliken::Bool=false) where D
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
+    pglabel = label(parent_pg)
+    pgirs = pgirreps(pglabel, Val(D); mulliken)
+    
+    # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
+    # .jld files apparently cache accessed content; so if we modify it, we mess with the
+    # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
+    siteirs = map(pgirs) do pgir
+        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
+                     pglabel)
+    end
+    return Collection(siteirs)
+end
+mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))

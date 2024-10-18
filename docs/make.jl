@@ -14,6 +14,7 @@ makedocs(
         prettyurls = get(ENV, "CI", nothing) == "true",
         canonical = "https://thchr.github.io/Crystalline.jl",
         assets = ["assets/custom.css"], # increase logo size
+        size_threshold = 300 * 2^10, # or include "api.md" page in `size_threshold_ignore`
     ),
     pages = [
         "Home"                  => "index.md",

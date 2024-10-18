@@ -2,7 +2,6 @@ module SmithNormalForm
 
 using LinearAlgebra
 using SparseArrays
-using Base.CoreLogging
 
 import Base: show, summary
 import LinearAlgebra: diagm, diag

@@ -66,4 +66,17 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test h * (g * rv)  == (h * g) * rv
         @test h * (g * rv′) == (h * g) * rv′
     end
+
+    @testset "Composition of SymmetryOperation and AbstractPoint" begin
+        @test SymOperation{2}("x,y") * ReciprocalPoint(.2, .3) == ReciprocalPoint(.2, .3)
+        @test SymOperation{2}("x,-y") * DirectPoint(.2, -.3) == DirectPoint(.2, .3)
+
+        op = SymOperation{3}("-z,x,-y")
+        k = ReciprocalPoint(.2, .15, .42)
+        r = DirectPoint(.8, .23, -.37)
+        @test k⋅r ≈ (op*k)⋅(op*r)
+
+        op = SymOperation{3}("-z,x,-y+1/3")
+        @test op*r ≈ DirectPoint(.37, .8, -.23+1/3)
+    end
 end

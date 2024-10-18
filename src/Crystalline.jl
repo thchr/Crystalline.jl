@@ -32,14 +32,16 @@ using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
 
 # include vendored SmithNormalForm.jl package from ../.vendor/
 include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")
-using .SmithNormalForm
-import .SmithNormalForm: smith, Smith # TODO: remove explicit import when we update SmithNormalForm
-export smith, Smith # export, so that loading Crystalline effectively also provides SmithNormalForm
+using .SmithNormalForm: smith, Smith
+export smith, Smith # export, so that loading Crystalline also namespaces these
 
 @reexport using Bravais
 import Bravais: primitivize, conventionalize, cartesianize, transform, centering
 using Bravais: stack, all_centeringtranslations, centeringtranslation,
                centering_volume_fraction
+
+include("surface_unitcell.jl")
+export surface_basis # TODO: move to Bravais (but tricky cf. SmithNormalForm dependency)
 
 # included files and exports
 include("constants.jl")
@@ -52,8 +54,8 @@ include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
-       IrrepCollection,
-       MultTable, LGIrrep, PGIrrep,
+       Collection,
+       MultTable, LGIrrep, PGIrrep, SiteIrrep,
        KVec, RVec,
        BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
@@ -72,6 +74,10 @@ export SymOperation,                        # types
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
+
+include("types_symmetryvectors.jl")
+export SymmetryVector, NewBandRep, CompositeBandRep
+export irreps, multiplicities, occupation
 
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
@@ -103,7 +109,7 @@ include("assembly/generators/spacegroup.jl")
 include("assembly/generators/subperiodicgroup.jl")
 export generate, generators
 
-include("show.jl") # custom printing for structs defined in src/types.jl
+include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl]
 
 include("orders.jl")
 
@@ -120,8 +126,10 @@ export classes, is_abelian
 include("wyckoff.jl") # wyckoff positions and site symmetry groups
 export wyckoffs, WyckoffPosition,
        multiplicity,
-       SiteGroup, sitegroup, cosets,
-       findmaximal
+       SiteGroup, sitegroup, sitegroups,
+       cosets,
+       findmaximal,
+       siteirreps
 
 include("symeigs2irrep.jl") # find irrep multiplicities from symmetry eigenvalue data
 export find_representation
@@ -155,7 +163,10 @@ include("compatibility.jl")
 export subduction_count
 
 include("bandrep.jl")
-export bandreps, matrix, classification, nontrivial_factors, basisdim
+export bandreps, classification, nontrivial_factors, basisdim
+
+include("calc_bandreps.jl")
+export calc_bandreps
 
 include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
@@ -172,6 +183,9 @@ export position, inv, isapprox
 if !isdefined(Base, :get_extension)
     using Requires # load extensions via Requires.jl on Julia versions <v1.9
 end
+# define functions we want to extend and have accessible via `Crystalline.(...)` if an
+# extension is loaded
+function _create_isosurf_plot_data end # implemented on CrystallinePyPlotExt load
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them

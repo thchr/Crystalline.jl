@@ -13,6 +13,8 @@ else
 end
 using Crystalline
 using Crystalline: AbstractFourierLattice, AbstractVec, calcfouriergridded
+ # extend rather than define so it can be called externally via `Crystalline.(...)`
+import Crystalline: _create_isosurf_plot_data
 
 using Meshing: MarchingCubes, isosurface
 using Statistics: quantile

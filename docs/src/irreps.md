@@ -61,7 +61,7 @@ where $d_{\mathbf{k}}^{\alpha}$ is the dimension of the little group irrep $D^{\
 [^Inui]: Inui, Tanabe, & Onodera, *Group Theory and its Applications in Physics*, Springer (1990). Section 11.9.
 
 ## Site symmetry irreps
-To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref), use the [`find_isomorphic_parent_pointgroup`](@ref) to obtain the "parent" point group and any relevant permutation differences between the two groups. Associated irreps can then be inferred by a suitable permuation of results obtained from [`pgirreps`](@ref).
+To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](@ref)), use [`siteirreps`](@ref) which obtains the irreps associated with the site symmetry group by identifying a "parent" point group which is isomorphic to the provided site symmetry group, and then returning a suitable permutation of the point group's irreps.
 
 ## Time-reversal symmetry & "physically real" irreps
 Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default. 

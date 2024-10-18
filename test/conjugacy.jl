@@ -62,6 +62,33 @@ end
     end
 end
 
+@testset "`SiteGroup` conjugacy classes" begin
+    # `SiteGroup` operations must multiply with `modτ = false`, which must be propagated to
+    # `classes`; check that we keep doing this correctly by comparing with a worked example
+    sgnum = 141
+    sg = spacegroup(sgnum, Val(3))
+    wp = wyckoffs(sgnum, Val(3))[end] # 4a position
+    siteg = sitegroup(sg, wp)
+    conj_classes = classes(siteg)
+    conj_classes_reference = [
+        SymOperation{3}.(["x,y,z"]),
+        SymOperation{3}.(["y-3/4,x+3/4,-z+1/4", "-y+3/4,-x+3/4,-z+1/4"]),
+        SymOperation{3}.(["-y+3/4,x+3/4,-z+1/4", "y-3/4,-x+3/4,-z+1/4"]),
+        SymOperation{3}.(["-x,y,z", "x,-y+3/2,z"]),
+        SymOperation{3}.(["-x,-y+3/2,z"])
+    ]
+    @test Set(conj_classes) == Set(conj_classes_reference)
+    @test length(conj_classes) == 5 == length(classes(pointgroup("-4m2")))
+end # @testset "`SiteGroup` conjugacy classes"
+
+@testset "`sitegroups` accessor" begin
+    sgnum = 141
+    sg = spacegroup(sgnum, Val(3))
+    wps = wyckoffs(sgnum, Val(3))
+    sitegs_1 = sitegroups(sg)
+    @test Set(position.(sitegs_1)) == Set(wps)
+    @test sitegroups(sg) == sitegroups(sgnum, 3) == sitegroups(sgnum, Val(3))
+end
 
 # TODO
 # @testset "Conjugacy classes and characters" begin

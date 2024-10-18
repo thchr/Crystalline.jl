@@ -1,8 +1,9 @@
 # --- DirectBasis and ReciprocalBasis for crystalline lattices ---
 """
-    AbstractBasis <: StaticVector{D, SVector{D,Float64}}
+    AbstractBasis <: StaticVector{D, SVector{D, T}}
 
-Abstract supertype of a `D`-dimensional basis in `D`-dimensional space.
+Abstract supertype of a `D`-dimensional basis in `D`-dimensional space with coordinate
+values of type `T`.
 """
 abstract type AbstractBasis{D, T} <: StaticVector{D, SVector{D, T}} end
 for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "reciprocal"))
@@ -53,7 +54,7 @@ function angles(Rs::AbstractBasis{3})
 end
 angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
 
-if VERSION < v"1.9.0-DEV.1163" 
+if VERSION > v"1.9.0-DEV.1163" 
     # since https://github.com/JuliaLang/julia/pull/43334, Julia defines its own `stack`;
     # however, it is still much slower than a naive implementation based on `reduce` cf.
     # https://github.com/JuliaLang/julia/issues/52590. As such, we extend `Base.stack` even
@@ -143,3 +144,11 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
         @eval $PT(v::Real...) = $PT{length(v)}(v)
     end
 end
+# arithmetic
+Base.:+(v::T, w::T) where T<:AbstractPoint = T(v.v + w.v)
+Base.:-(v::T, w::T) where T<:AbstractPoint = T(v.v - w.v)
+Base.:-(v::T) where T<:AbstractPoint = T(-v.v)
+Base.:*(v::T, c::Real) where T<:AbstractPoint = T(v.v * c)
+Base.:*(c::Real, v::AbstractPoint) = v*c
+Base.:/(v::T, c::Real) where T<:AbstractPoint = T(v.v / c)
+Base.zero(::Type{<:T}) where T<:AbstractPoint{D} where D = T(zero(SVector{D, Float64}))
