@@ -81,7 +81,7 @@ function nigglibasis(
     #     iterations below, especially for very skewed input. But LLLplus.jl is not very
     #     fast - usually slower than `nigglibasis` itself, so don't do it for now.
 	# Rs_lll = lll(stack(Rs))[1] # LLL-reduced basis
-	# Rs = DirectBasis(eachcol(Rs))
+	# Rs = DirectBasis(eachcol(Rs_lll))
     
     # initialization
     A, B, C, ξ, η, ζ = niggli_parameters(Rs)
