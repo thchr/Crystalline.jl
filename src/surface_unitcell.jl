@@ -12,8 +12,6 @@ function surface_basis_from_miller_indices_via_snf(
 			n :: AbstractVector{<:Integer}; 
 			# surface's Miller indices (normal vector ∝ n[1]*Gs[1] + n[2]*Gs[2] + n[3]*Gs[3])
 			)
-	length(Rs) == 3 || error("only 3D implemented; number of basis vectors is not 3")
-	all(R->length(R) == 3, Rs) || error("only 3D implemented; basis vectors are not 3D")
 	length(n) == 3 || error("only 3D implemented; normal vector is not 3D")
 
 	# build a matrix to represent the relation n ⋅ r = 0; since we specify n in the a basis
