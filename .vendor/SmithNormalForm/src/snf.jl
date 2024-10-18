@@ -79,7 +79,7 @@ function rowpivot(U::AbstractArray{R,2},
                   Uinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in size(D, 1):-1:1
+    for k in reverse(axes(D, 1))
         b = D[k,j]
         (iszero(b) || i == k) && continue
         a = D[i,j]
@@ -98,7 +98,7 @@ function colpivot(V::AbstractArray{R,2},
                   Vinv::AbstractArray{R,2},
                   D::AbstractArray{R,2},
                   i, j; inverse=true) where {R}
-    for k in size(D, 2):-1:1
+    for k in reverse(axes(D, 2))
         b = D[i,k]
         (iszero(b) || j == k) && continue
         a = D[i,j]
@@ -158,23 +158,23 @@ end
 formatmtx(M) =  size(M,1) == 0 ? "[]" : repr(collect(M); context=IOContext(stdout, :compact => true))
 
 function snf(M::AbstractMatrix{R}; inverse=true) where {R}
-    rows, cols = size(M)
     U, V, D, Uinv, Vinv = init(M, inverse=inverse)
 
-    t = 1
-    for j in 1:cols
+    T = eltype(eachindex(M))
+    t = one(T)
+    for j in axes(M, 2) # over column indices
         # @debug "Working on column $j out of $cols" D=formatmtx(D)
         rcountnz(D,j) == 0 && continue
 
-        prow = 1
+        prow = one(T)
         if D[t,t] != zero(R)
             prow = t
         else
             # the good pivot row for j-th column is the one that has fewest elements
-            rsize = typemax(R)
-            for i in 1:rows
+            rsize = typemax(T)
+            for i in axes(M, 1) # over row indices
                 if D[i,j] != zero(R)
-                    c = count(!iszero, view(D, i, :))
+                    c = count(!iszero, view(D, i, :); init=zero(T))
                     if c < rsize
                         rsize = c
                         prow = i
@@ -195,21 +195,23 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
         inverse && cswap!(Vinv, t, j)
         rswap!(V, t, j)
 
-        t += 1
+        t += one(T)
     end
 
     # Make sure that d_i is divisible be d_{i+1}.
     r = minimum(size(D))
+    one_r = one(typeof(r))
     pass = true
     while pass
         pass = false
-        for i in 1:r-1
-            divisable(D[i+1,i+1], D[i,i]) && continue
+        for i in one_r:r-one_r
+            ip1 = i + one_r
+            divisable(D[ip1,ip1], D[i,i]) && continue
             pass = true
-            D[i+1,i] = D[i+1,i+1]
+            D[ip1,i] = D[ip1,ip1]
 
-            colelimination(Vinv, one(R), one(R), zero(R), one(R), i, i+1)
-            rowelimination(V, one(R), zero(R), -one(R), one(R), i, i+1)
+            colelimination(Vinv, one(R), one(R), zero(R), one(R), i, ip1)
+            rowelimination(V, one(R), zero(R), -one(R), one(R), i, ip1)
 
             smithpivot(U, Uinv, V, Vinv, D, i, i, inverse=inverse)
         end
@@ -219,15 +221,14 @@ function snf(M::AbstractMatrix{R}; inverse=true) where {R}
     #    Λ′ = Λ*sign(Λ),   T′ = sign(Λ)*T,    and    T⁻¹′ = T⁻¹*sign(Λ),
     # with the convention that sign(0) = 1. Then we still have that X = SΛT = SΛ′T′
     # and also that Λ = S⁻¹XT⁻¹ ⇒ Λ′ = S⁻¹XT⁻¹′.
-    for j in 1:rows
-        j > cols && break
+    for j in axes(M, 2) # over column indices
         Λⱼ = D[j,j]
-        if Λⱼ < 0
-            @views V[j,:] .*= -1        # T′   = sign(Λ)*T    [rows]
+        if Λⱼ < zero(R)
+            @views V[j,:] .*= -one(R)        # T′   = sign(Λ)*T    [rows]
             if inverse
-                @views Vinv[:,j] .*= -1 # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
+                @views Vinv[:,j] .*= -one(R) # T⁻¹′ = T⁻¹*sign(Λ)  [columns]
             end
-            D[j,j] = abs(Λⱼ)            # Λ′ = Λ*sign(Λ)
+            D[j,j] = abs(Λⱼ)                 # Λ′ = Λ*sign(Λ)
         end
     end
 
