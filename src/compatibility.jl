@@ -181,7 +181,7 @@ function remap_lgirreps_to_point_in_kstar(
             ) where D
     
     kv = position(first(lgirs))
-    kv′ == kv && return IrrepCollection(lgirs)
+    kv′ == kv && return Collection(lgirs)
 
     # feasibility checks
     if freeparams(kv) != freeparams(kv′)
@@ -273,5 +273,5 @@ function remap_lgirreps_to_point_in_kstar(
         lg′.operations[i] = lg′_reduced[i]
     end
 
-    return IrrepCollection(lgirs′)
+    return Collection(lgirs′)
 end

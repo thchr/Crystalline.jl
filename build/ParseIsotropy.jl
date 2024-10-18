@@ -1,7 +1,7 @@
 module ParseIsotropy
 
 using Crystalline
-using Crystalline: AbstractIrrep, IrrepCollection
+using Crystalline: AbstractIrrep
 
 export parselittlegroupirreps
 

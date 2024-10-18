@@ -528,7 +528,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
     # print k-vec labels
     print(io, "  KVecs: ")
     join(io, klabels(brs), ", ")
-    end
+end
 
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
@@ -605,7 +605,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
-    end
+end
 
 # ---------------------------------------------------------------------------------------- #
 # CompositeBandRep
@@ -618,7 +618,7 @@ function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
         if first
             first = false
             c < 0 && print(io, "-")
-    else
+        else
             print(io, " ", Crystalline.signaschar(c), " ")
         end
         if !isone(absc)
@@ -631,11 +631,11 @@ function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
         print(io, cbr.brs[j])
     end
     first && print(io, "0")
-    end
+end
 
 function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
     println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
-                print(io, "  ")
+    print(io, "  ")
     show(io, cbr)
     μ = occupation(cbr)
     printstyled(io, " (", μ, " band", abs(μ) ≠ 1 ? "s" : "", ")", color=:light_black)

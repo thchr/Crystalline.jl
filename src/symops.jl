@@ -878,7 +878,7 @@ end
 
 """
     _findsubgroup(opsᴳ::T, opsᴴ::T′[, cntr]) where T⁽′⁾<:AbstractVector{SymOperation}
-                                                      --> Tuple{Bool, Vector{Int}}
+                                                    --> Tuple{Bool, Vector{Int}}
 
 Returns a 2-tuple with elements:
 

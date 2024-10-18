@@ -17,7 +17,7 @@ timereversal = false
 criterion = (lgir) -> irdim(lgir) == 2
 
 contenders = Vector{Pair{Int, SymVector{D}}}()
-lgirsdd = Dict{Int, Dict{String, Crystalline.IrrepCollection{LGIrrep{D}}}}()
+lgirsdd = Dict{Int, Dict{String, Collection{LGIrrep{D}}}}()
 subtsd = Dict{Int, Vector{SubductionTable{D}}}()
 for sgnum in 1:MAX_SGNUM[D]
     #sgnum ∈ (4) && continue # TODO: generalize to handle disconnected partitions, but #4 is not separable anyway

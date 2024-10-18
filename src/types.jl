@@ -87,7 +87,7 @@ translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly
 function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
     return op1.rotation == op2.rotation && translation(op1) == translation(op2)
 end
-function Base.Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
+function Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
             kws...) where D
 

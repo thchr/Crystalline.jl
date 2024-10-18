@@ -1,6 +1,3 @@
-using Crystalline: irdim
-using BandGraphs: SubGraphPermutations, BandGraphPermutations, assemble_simple_graph
-
 """
     complete_split(bandg::BandGraph, v::Tuple{String, Int})
 

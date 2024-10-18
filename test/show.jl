@@ -33,17 +33,17 @@ test_tp_show(v, observed::AbstractString) = test_show(repr(MIME"text/plain"(), v
 Rs = DirectBasis([1,0,0], [0,1,0], [0,0,1]) # cubic
 str = """
       DirectBasis{3} (cubic):
-         [1.0, 0.0, 0.0]
-         [0.0, 1.0, 0.0]
-         [0.0, 0.0, 1.0]"""
+       [1.0, 0.0, 0.0]
+       [0.0, 1.0, 0.0]
+       [0.0, 0.0, 1.0]"""
 test_tp_show(Rs, str)
 
 Rs = DirectBasis([1,0,0], [-0.5, √(3)/2, 0.0], [0, 0, 1.5]) # hexagonal
 str = """
       DirectBasis{3} (hexagonal):
-         [1.0, 0.0, 0.0]
-         [-0.5, 0.8660254037844386, 0.0]
-         [0.0, 0.0, 1.5]"""
+       [1.0, 0.0, 0.0]
+       [-0.5, 0.8660254037844386, 0.0]
+       [0.0, 0.0, 1.5]"""
 test_tp_show(Rs, str)
 Rs′ = directbasis(183, Val(3))
 @test Rs[1] ≈ Rs′[1] && Rs[2] ≈ Rs′[2]

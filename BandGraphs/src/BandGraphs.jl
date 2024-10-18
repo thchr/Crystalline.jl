@@ -1,6 +1,7 @@
 module BandGraphs
 
 using Crystalline
+using Crystalline: irdim
 import JLD2
 using PrettyTables
 using LinearAlgebra
@@ -31,7 +32,8 @@ export
     permute_subgraphs,
     subduction_tables,
     plot_flattened_bandgraph,
-    findall_separable_vertices
+    findall_separable_vertices,
+    complete_split
 
 # ---------------------------------------------------------------------------------------- #
 

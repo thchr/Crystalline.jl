@@ -12,7 +12,7 @@ for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "recipro
             $($T){D} <: AbstractBasis{D}
 
         A wrapper type over `D` distinct `D`-dimensional vectors (given as a
-        `SVector{D, SVector{D,Float64}}`), defining a lattice basis in $($space_type)
+        `SVector{D, SVector{D, Float64}}`), defining a lattice basis in $($space_type)
         space.
         """
         struct $T{D} <: AbstractBasis{D, Float64}
@@ -144,6 +144,7 @@ for (PT, BT, space_type) in zip((:DirectPoint, :ReciprocalPoint),
         @eval $PT(v::Real...) = $PT{length(v)}(v)
     end
 end
+
 # arithmetic
 Base.:+(v::T, w::T) where T<:AbstractPoint = T(v.v + w.v)
 Base.:-(v::T, w::T) where T<:AbstractPoint = T(v.v - w.v)

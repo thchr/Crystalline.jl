@@ -261,7 +261,7 @@ function seitz(op::SymOperation{D}) where D
         if order > 2
             x = rand(-1:1, SVector{3, Int})
             while iszero(x×u) # check that generated 𝐱 is not parallel to 𝐮 (if it is, 𝐱×𝐮 = 0)
-                x = rand(-1:1, SVector{3, Int}) 
+                x = rand(-1:1, SVector{3, Int})
                 iszero(u) && error("rotation axis has zero norm; input is likely invalid")
             end
             Z = hcat(u, x, detW*(W*x))

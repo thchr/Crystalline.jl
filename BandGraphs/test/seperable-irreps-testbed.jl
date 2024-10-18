@@ -23,7 +23,7 @@ separable_degree = 2
 
 sgnums = 1:MAX_SGNUM[D]
 contendersd = Dictionary{Int, Vector{SymVector{D}}}()
-lgirsdd = Dictionary{Int, Dict{String, Crystalline.IrrepCollection{LGIrrep{D}}}}()
+lgirsdd = Dictionary{Int, Dict{String, Collection{LGIrrep{D}}}}()
 subtsd = Dictionary{Int, Vector{SubductionTable{D}}}()
 for sgnum in sgnums
     lgirsd = lgirreps(sgnum, D)

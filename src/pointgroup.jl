@@ -291,8 +291,8 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
         Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, permᵖ²ᵍ), Iᵍ) # Iᵖ[permᵖ²ᵍ][invperm(Iᵍ)], but faster
         invpermute!(permute!(pg.operations, permᵖ²ᵍ), Iᵍ) # sort `pg` to match `g`
 
-            return pg, Iᵖ²ᵍ, true
-        end
+        return pg, Iᵖ²ᵍ, true
+    end
 
     # --------------------------------------------------------------------------------------
     # if there is a rotation order with only one element, which is not simply the identity,
@@ -513,6 +513,7 @@ function rigorous_isomorphism_search(I_orders::AbstractVector{<:AbstractVector{I
     end
     return nothing # failed to find an isomorphism (because there wasn't any!)
 end
+
 function rotation_order_and_sense(op::SymOperation{D}) where D
     r = rotation_order(op)
     D == 1 && return (r, 0) # no "rotation sense" in 1D; `0` as sentinel
