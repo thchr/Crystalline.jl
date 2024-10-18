@@ -7,12 +7,12 @@ using SmithNormalForm
     a = 12
     b = 42
 
-    s,t,g = SmithNormalForm.bezout(a,b)
+    g,s,t = SmithNormalForm.bezout(a,b)
     @test s*a + t*b == g
     g,s,t = gcdx(a,b)
     @test s*a + t*b == g
 
-    s,t,g = SmithNormalForm.bezout(b,a)
+    g,s,t = SmithNormalForm.bezout(b,a)
     @test s*b + t*a == g
     g,s,t = gcdx(b,a)
     @test s*b + t*a == g

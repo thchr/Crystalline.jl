@@ -84,7 +84,7 @@ function rowpivot(U::AbstractArray{R,2},
         (iszero(b) || i == k) && continue
         a = D[i,j]
 
-        s, t, g = bezout(a, b)
+        g, s, t = bezout(a, b)
         x = divide(a, g)
         y = divide(b, g)
 
@@ -103,7 +103,7 @@ function colpivot(V::AbstractArray{R,2},
         (iszero(b) || j == k) && continue
         a = D[i,j]
 
-        s, t, g = bezout(a, b)
+        g, s, t = bezout(a, b)
         x = divide(a, g)
         y = divide(b, g)
 
