@@ -138,11 +138,11 @@ DirectBasis{3} (hexagonal):
  [1.414213562373095, -1.1102230246251563e-16, 0.0]
  [-0.7071067811865476, 1.2247448713915885, 0.0]
  [0.0, -1.1102230246251563e-16, 1.7320508075688772]
+```
 
 !!! warning
    This function will likely be moved from Crystalline to Bravais.jl at some point in the
    future.
-```
 """
 function surface_basis(
 			Rs :: DirectBasis{3}, 
