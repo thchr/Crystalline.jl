@@ -635,7 +635,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
     println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
-    print(io, "  ")
+    print(io, " ")
     show(io, cbr)
     μ = occupation(cbr)
     printstyled(io, " (", μ, " band", abs(μ) ≠ 1 ? "s" : "", ")", color=:light_black)
