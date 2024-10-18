@@ -32,14 +32,16 @@ using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
 
 # include vendored SmithNormalForm.jl package from ../.vendor/
 include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")
-using .SmithNormalForm
-import .SmithNormalForm: smith, Smith # TODO: remove explicit import when we update SmithNormalForm
-export smith, Smith # export, so that loading Crystalline effectively also provides SmithNormalForm
+using .SmithNormalForm: smith, Smith
+export smith, Smith # export, so that loading Crystalline also namespaces these
 
 @reexport using Bravais
 import Bravais: primitivize, conventionalize, cartesianize, transform, centering
 using Bravais: stack, all_centeringtranslations, centeringtranslation,
                centering_volume_fraction
+
+include("surface_unitcell.jl")
+export surface_basis # TODO: move to Bravais (but tricky cf. SmithNormalForm dependency)
 
 # included files and exports
 include("constants.jl")
