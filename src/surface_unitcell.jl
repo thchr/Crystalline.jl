@@ -124,7 +124,7 @@ julia> rs³ᴰ # the surface basis in the original coordinate system
 DirectBasis{3} (hexagonal):
  [1.0, -1.5700924586837747e-16, -0.9999999999999998]
  [-0.9999999999999998, 0.9999999999999997, 0.0]
- [1.0, 1.0, 1.0
+ [1.0, 1.0, 1.0]
 
 julia> rs′²ᴰ # the in-plane surface vectors in a local "surface coordinate system"
 DirectBasis{2} (hexagonal):
