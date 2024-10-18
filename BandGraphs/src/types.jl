@@ -1,27 +1,20 @@
 # ---------------------------------------------------------------------------------------- #
 
-struct SymVector{D}
-    mults  :: Vector{Vector{Int}}
-    lgirsv :: Vector{Vector{LGIrrep{D}}}
-    klabs  :: Vector{String}
-    μ      :: Int # connectivity
-end
-Crystalline.irreplabels(n::SymVector) = [label.(lgirs) for lgirs in n.lgirsv]
-
 """
-    SymVector(nv, irlabs_nv, lgirsd)
+    SymmetryVector(nv, irlabs_nv, lgirsd)
 
 Build a structured representation of a symmetry vector `nv` whose entries correspond to the
 irrep labels in `irlabs_nv`, mapping these labels to the full irrep information provided in
 `lgirsd`.
+Note that the sorting of labels in `lgirsd` and (`nv`, `irlabs_nv`) is allowed to differ.
 """
-function SymVector(
+function Crystalline.SymmetryVector(
             nv::AbstractVector{<:Integer},
             irlabs_nv::AbstractVector{String},
             lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
     klabs = unique(klabel.(irlabs_nv))
     Nk = length(klabs)
-    mults = [Int[] for _ in 1:Nk]
+    multsv = [Int[] for _ in 1:Nk]
     lgirsv = [LGIrrep{D}[] for _ in 1:Nk]
     j = 1
     for (nᵢ, irlabᵢ) in zip(nv, irlabs_nv)
@@ -29,7 +22,7 @@ function SymVector(
         if klabᵢ != klabs[j]
             j += 1
         end
-        push!(mults[j], nᵢ)
+        push!(multsv[j], nᵢ)
 
         # find associated irrep in `lgirsd[klabᵢ]`
         lgirsⱼ = lgirsd[klabᵢ]
@@ -40,50 +33,18 @@ function SymVector(
             push!(lgirsv[j], lgirsⱼ[something(iridxᵢ)])
         end
     end
+    lgirsv = [Collection(lgirs) for lgirs in lgirsv]
     if length(nv) ≠ length(irlabs_nv)+1
         error("n must contain its band connectivity")
     end
     μ = nv[end]
-    return SymVector(mults, lgirsv, string.(klabs), μ)
+    return SymmetryVector{D}(lgirsv, multsv, μ)
 end
 function _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
     error("failed to find an irrep label \"$irlabᵢ\" in `lgirsd`; available irrep labels \
            at the considered k-point were $(label.(lgirsⱼ))")
 end
 
-function Base.show(io :: IO, ::MIME"text/plain", n :: SymVector)
-    summary(io, n)
-    print(io, " over ", length(n.mults), " k-points:\n ")
-    show(io, n)
-end
-
-function Base.show(io :: IO, n :: SymVector)
-    print(io, "[")
-    for (i, (mults_k, lgirs_k)) in enumerate(zip(n.mults, n.lgirsv))
-        printstyled(io, 
-                    Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false);
-                    color=iseven(i) ? :light_blue : :normal)
-        i ≠ length(n.mults) && print(io, ", ")
-    end
-    print(io, "]")
-    printstyled(io, " (", n.μ, " band", n.μ ≠ 1 ? "s" : "", ")"; color=:light_black)
-end
-
-Base.collect(n :: SymVector) = reduce(vcat, n.mults) # flatten `n` to a simple vector `nv`
-
-@noinline function _throw_dissimilar_irreps(n₁, n₂)
-    error("cannot add symmetry vectors with different irreps:\n  $(n₁.lgirsv) ≠ $(n₂.lgirsv)")
-end
-function Base.:+(n₁ :: SymVector{D}, n₂ :: SymVector{D}) where D
-    length(n₁.lgirsv) == length(n₂.lgirsv) || _throw_dissimilar_irreps(n₁, n₂)
-    for (lgirs₁, lgirs₂) in zip(n₁.lgirsv, n₂.lgirsv)
-        length(lgirs₁) == length(lgirs₂) || _throw_dissimilar_irreps(n₁, n₂)
-        for (lgir₁, lgir₂) in zip(lgirs₁, lgirs₂)
-            label(lgir₁) == label(lgir₂) || _throw_dissimilar_irreps(n₁, n₂)
-        end
-    end
-    return SymVector(n₁.mults + n₂.mults, n₁.lgirsv, n₁.klabs, n₁.μ + n₂.μ)
-end
 # ---------------------------------------------------------------------------------------- #
 
 struct Partition{D}
@@ -94,7 +55,7 @@ struct Partition{D}
     kidx      :: Int # index in the block form (i.e., index of k-manifold)
     iridxs    :: UnitRange{Int} # _global_ irrep indices
 end
-Base.length(p::Partition) = length(irreplabels(p))
+Base.length(p::Partition) = length(p.lgirs)
 Crystalline.irreplabels(p::Partition) = label.(p.lgirs)
 irdims(p::Partition) = Crystalline.irdim.(p.lgirs)
 
@@ -195,7 +156,7 @@ function BandGraph(
     BandGraph{D}(Vector(subgraphs), Vector(partitions))
 end
 
-function occupation(bandg::BandGraph)
+function Crystalline.occupation(bandg::BandGraph)
     partitions = bandg.partitions
     μ = sum(irdim, first(partitions).lgirs)
     for p in @view partitions[2:end]

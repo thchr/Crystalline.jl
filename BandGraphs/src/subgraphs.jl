@@ -1,5 +1,5 @@
 function build_subgraphs(
-            n::SymVector{D},
+            n::AbstractSymmetryVector{D},
             subductions,
             lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}
             ) where D
@@ -9,7 +9,7 @@ function build_subgraphs(
 
     # maximal k-point partitions
     partitions_max = Partition{D}[]
-    for (klab, nsₖ, lgirsₖ) in zip(n.klabs, n.mults, n.lgirsv)
+    for (klab, nsₖ, lgirsₖ) in zip(klabels(n), multiplicities(n), irreps(n))
         kidx += 1
         p_max = build_partition(klab, nsₖ, lgirsₖ, kidx, seen_irs)
         push!(partitions_max, p_max)
@@ -28,7 +28,7 @@ function build_subgraphs(
         any(p->p.klab==klab_max′, partitions_max) && continue
         
         # now we have to find the entries of k′ ("monodromy" point) in k ("original" point)
-        idx = findfirst(==(klab_max), n.klabs)
+        idx = findfirst(==(klab_max), klabels(n))
         if isnothing(idx)
             # user might have intentionally left out parts of a symmetry vector; then this
             # could fail to find the associated "original" irrep in which case it makes
@@ -39,13 +39,13 @@ function build_subgraphs(
         else
             kidx += 1
         end
-        @assert replace.(s.irlabsᴳ, Ref('′'=>"")) == label.(n.lgirsv[idx]) # verify assumption used below
+        @assert replace.(s.irlabsᴳ, Ref('′'=>"")) == label.(irreps(n)[idx]) # verify assumption used below
         
-        lgirs_max′ = map(enumerate(n.lgirsv[idx])) do (i,lgir)
+        lgirs_max′ = map(enumerate(irreps(n)[idx])) do (i,lgir)
             LGIrrep{D}(s.irlabsᴳ[i], lgir.g, lgir.matrices, lgir.translations, lgir.reality,
                        lgir.iscorep)
         end
-        p_max = build_partition(klab_max′, n.mults[idx], lgirs_max′, kidx, seen_irs)
+        p_max = build_partition(klab_max′, multiplicities(n)[idx], lgirs_max′, kidx, seen_irs)
         push!(partitions_max, p_max)
         seen_irs = last(p_max.iridxs)
 
@@ -156,6 +156,7 @@ function build_subgraphs(
     # with the generic point Ω and its trivial irrep Ω₁, in order to tie together every
     # pair of monodromy-related irreps via Ω₁: we do this to ensure that band graphs
     # which are connected in energy are also connected as graphs (via Ω₁, at least)
+    μ = occupation(n)
     if !isempty(monodromy_pairs)
         lgir_Ω = only(lgirsd["Ω"])
         lg_Ω = group(lgir_Ω)
@@ -169,16 +170,16 @@ function build_subgraphs(
             irlab_Ω′ = klab_Ω′ * "₁"
             
             kidx += 1
-            global_iridxs = seen_irs .+ (1:n.μ)
+            global_iridxs = seen_irs .+ (1:occupation(n))
             seen_irs = last(global_iridxs)
 
             lg_Ω′ = LittleGroup{D}(lg_Ω.num, lg_Ω.kv, klab_Ω′, lg_Ω.operations)
             lgir_Ω′ = LGIrrep{D}(irlab_Ω′, lg_Ω′, lgir_Ω.matrices, lgir_Ω.translations,
                                  lgir_Ω.reality, lgir_Ω.iscorep)
-            p_Ω′ = Partition(klab_Ω′, fill(lgir_Ω′, n.μ), [1:n.μ], false, kidx, global_iridxs)
+            p_Ω′ = Partition(klab_Ω′, fill(lgir_Ω′, μ), [1:μ], false, kidx, global_iridxs)
             push!(partitions_nonmax, p_Ω′)
         
-            A = zeros(Int, length(original_p_max.lgirs), n.μ)
+            A = zeros(Int, length(original_p_max.lgirs), μ)
             col_start = 1
             for (row, lgir) in enumerate(original_p_max.lgirs)
                 cols = col_start:(col_start+irdim(lgir)-1)

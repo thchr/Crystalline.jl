@@ -18,7 +18,7 @@ lgirsd = lgirreps(sgnum, D)
 timereversal && realify!(lgirsd)
 subts = subduction_tables(sgnum, D; timereversal)
 _n = sb[end]
-n = SymVector(_n, brs.irlabs, lgirsd)
+n = SymmetryVector(_n, brs.irlabs, lgirsd)
 
 bandg = build_subgraphs(n, subts, lgirsd)
 

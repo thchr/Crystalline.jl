@@ -13,6 +13,7 @@ using BandGraphs
 
 using LayeredLayouts: solve_positions, Zarate # must use https://github.com/thchr/LayeredLayouts.jl#equal_layers
 using Crystalline
+using Crystalline: AbstractSymmetryVector
 using Graphs
 using MetaGraphsNext
 
@@ -22,13 +23,13 @@ import BandGraphs: plot_flattened_bandgraph, make_vertices_dragable! # exported 
 
 ## Unfolding a band graph `g` via `kg_trail`
 function plot_flattened_bandgraph(
-            n::SymVector{D},
+            n::AbstractSymmetryVector{D},
             lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}};
             timereversal=true
             ) where D
     # TODO: take a `SubductionTable` as input?
     
-    sgnum = num(group(first(first(n.lgirsv))))
+    sgnum = num(n)
     @assert sgnum == num(group(first(first(values(lgirsd)))))
 
     # compute subgraphs and partitions

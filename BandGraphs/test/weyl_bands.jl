@@ -39,7 +39,7 @@ for sgnum in 1:230
     checked_vectors = 0
     n_permutations = BigInt(0)
     for _n in sb
-        n = SymVector(_n, sb.irlabs, lgirsd)
+        n = SymmetryVector(_n, sb.irlabs, lgirsd)
         any(irlab -> contains(string(n), irlab), irlabs) || continue
         checked_vectors += 1
 

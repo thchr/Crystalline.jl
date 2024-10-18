@@ -29,7 +29,7 @@ function findall_vertices(criterion, bandg :: BandGraph{D}) where D
 end
 
 function findall_separable_vertices(
-            criterion, n::SymVector{D}, subts, lgirsd; kws...) where D
+            criterion, n::AbstractSymmetryVector{D}, subts, lgirsd; kws...) where D
     bandg = build_subgraphs(n, subts, lgirsd)
     return findall_separable_vertices(criterion, bandg; kws...)
 end

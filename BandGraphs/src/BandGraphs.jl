@@ -1,7 +1,7 @@
 module BandGraphs
 
 using Crystalline
-using Crystalline: irdim
+using Crystalline: irdim, AbstractSymmetryVector
 import JLD2
 using PrettyTables
 using LinearAlgebra
@@ -16,7 +16,6 @@ using BlockArrays: BlockArray, Block # for `assemble_adjacency`
 export
     Connection,
     SubductionTable,
-    SymVector,
     Partition,
     SubGraph,
     BandGraph,

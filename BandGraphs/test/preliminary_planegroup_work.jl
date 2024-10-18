@@ -72,7 +72,7 @@ for (j, _n) in enumerate(sb)
     println(j)
     _n[end] == 1 && continue # nothing interesting to draw for one-band configurations
 
-    n = SymVector(_n, brs.irlabs, lgirsd)
+    n = SymmetryVector(_n, brs.irlabs, lgirsd)
     bandg = build_subgraphs(n, subts²ᴰ, lgirsd)
 
     subgraphs_ps = permute_subgraphs(bandg.subgraphs);

@@ -16,7 +16,7 @@ D = 2
 timereversal = false
 criterion = (lgir) -> irdim(lgir) == 2
 
-contenders = Vector{Pair{Int, SymVector{D}}}()
+contenders = Vector{Pair{Int, SymmetryVector{D}}}()
 lgirsdd = Dict{Int, Dict{String, Collection{LGIrrep{D}}}}()
 subtsd = Dict{Int, Vector{SubductionTable{D}}}()
 for sgnum in 1:MAX_SGNUM[D]
@@ -31,8 +31,8 @@ for sgnum in 1:MAX_SGNUM[D]
         μs[i] == 1 && continue # nothing interesting in 1-band cases
 
         _n = sb[i]
-        n = SymVector(_n, brs.irlabs, lgirsd)
-        for (lgirs, mults) in zip(n.lgirsv, n.mults)
+        n = SymmetryVector(_n, brs.irlabs, lgirsd)
+        for (lgirs, mults) in zip(irreps(n), multiplicities(n))
             for (lgir, m) in zip(lgirs, mults)
                 if m ≠ 0 && criterion(lgir)
                     push!(contenders, sgnum => n)
@@ -51,9 +51,9 @@ end
 
 
 ## --------------------------------------------------------------------------------------- #
-separable_summary = Dict{Int, Vector{Tuple{Vector{LGIrrep{D}}, SymVector{D}}}}()
-separable_details = Dict{Int, Vector{Tuple{SymVector{D}, Vector{Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}}}}}()
-inseparable = Dict{Int, Vector{SymVector{D}}}()
+separable_summary = Dict{Int, Vector{Tuple{Vector{LGIrrep{D}}, SymmetryVector{D}}}}()
+separable_details = Dict{Int, Vector{Tuple{SymmetryVector{D}, Vector{Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}}}}}()
+inseparable = Dict{Int, Vector{SymmetryVector{D}}}()
 
 for (i, (sgnum, n)) in enumerate(contenders)
     subts = subtsd[sgnum]
@@ -61,12 +61,12 @@ for (i, (sgnum, n)) in enumerate(contenders)
     has_split, bandg_splits = findall_separable_vertices(criterion, n, subts, lgirsd)
     if has_split
         lgir = getindex.(bandg_splits, 3)
-        push!(get!(separable_summary, sgnum, Vector{SymVector{D}}()), (lgir, n))
+        push!(get!(separable_summary, sgnum, Vector{SymmetryVector{D}}()), (lgir, n))
         push!(get!(separable_details, sgnum, 
-                Vector{Tuple{SymVector{D}, typeof(bandg_splits)}}()), 
+                Vector{Tuple{SymmetryVector{D}, typeof(bandg_splits)}}()), 
                 (n, bandg_splits))      
     else
-        push!(get!(inseparable, sgnum, Vector{SymVector{D}}()), n)
+        push!(get!(inseparable, sgnum, Vector{SymmetryVector{D}}()), n)
     end
 end
 separable_summary

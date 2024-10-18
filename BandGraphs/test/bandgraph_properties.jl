@@ -21,15 +21,15 @@ using Crystalline: irdim
             lgirsd = lgirreps(sgnum, Dᵛ)
             timereversal && realify!(lgirsd)
             for _n in sb
-                n = SymVector(_n, sb.irlabs, lgirsd)
+                n = SymmetryVector(_n, sb.irlabs, lgirsd)
                 bandg = build_subgraphs(n, subts, lgirsd)
                 partitions, subgraphs = bandg.partitions, bandg.subgraphs
                 
                 # band occupation & grand-sums of all subgraphs must be constant & equal
                 occupations = [sum(s.A) for s in subgraphs]
-                @test all(==(n.μ), occupations)
+                @test all(==(occupation(n)), occupations)
                 A = assemble_adjacency(bandg)
-                @test all(b -> iszero(b) || sum(b) == n.μ, A.blocks)
+                @test all(b -> iszero(b) || sum(b) == occupation(n), A.blocks)
 
                 # column-wise and row-wise sums of adjacency blocks must give corresponding
                 # irrep dimensions of columns and rows, respectively

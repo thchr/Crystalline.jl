@@ -22,7 +22,7 @@ criterion = lgir -> isspecial(lgir) && irdim(lgir) == 3 # KdotP.isweyl(lgir; tim
 separable_degree = 2
 
 sgnums = 1:MAX_SGNUM[D]
-contendersd = Dictionary{Int, Vector{SymVector{D}}}()
+contendersd = Dictionary{Int, Vector{SymmetryVector{D}}}()
 lgirsdd = Dictionary{Int, Dict{String, Collection{LGIrrep{D}}}}()
 subtsd = Dictionary{Int, Vector{SubductionTable{D}}}()
 for sgnum in sgnums
@@ -32,7 +32,7 @@ for sgnum in sgnums
         any(criterion, lgirs)
     end
     if has_relevant_lgirs
-        insert!(contendersd, sgnum, SymVector{D}[])
+        insert!(contendersd, sgnum, SymmetryVector{D}[])
         insert!(lgirsdd,     sgnum, lgirsd)
         insert!(subtsd,      sgnum, subduction_tables(sgnum, D; timereversal))
     else
@@ -45,8 +45,8 @@ for sgnum in sgnums
     for i in eachindex(sb)
         μs[i] == 1 && continue # nothing interesting in 1-band cases
 
-        n = SymVector(sb[i], brs.irlabs, lgirsd)
-        for (lgirs, mults) in zip(n.lgirsv, n.mults)
+        n = SymmetryVector(sb[i], brs.irlabs, lgirsd)
+        for (lgirs, mults) in zip(irreps(n), multiplicities(n))
             for (lgir, m) in zip(lgirs, mults)
                 if m ≠ 0 && criterion(lgir)
                     push!(contendersd[sgnum], n)
@@ -63,9 +63,9 @@ end
 
 
 ## --------------------------------------------------------------------------------------- #
-separable_summary = Dictionary{Int, Vector{Tuple{Vector{LGIrrep{D}}, SymVector{D}}}}()
-separable_details = Dictionary{Int, Vector{Tuple{SymVector{D}, Vector{Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}}}}}()
-inseparable = Dictionary{Int, Vector{SymVector{D}}}()
+separable_summary = Dictionary{Int, Vector{Tuple{Vector{LGIrrep{D}}, SymmetryVector{D}}}}()
+separable_details = Dictionary{Int, Vector{Tuple{SymmetryVector{D}, Vector{Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}}}}}()
+inseparable = Dictionary{Int, Vector{SymmetryVector{D}}}()
 
 done = Set{Int}()
 too_hard = Set{Int}()
@@ -99,13 +99,13 @@ for (sgnum, ns) in pairs(contendersd)
             has_split, bandg_splits = tmp
             if has_split
                 lgir = getindex.(bandg_splits, 3)
-                push!(get!(separable_summary, sgnum, Vector{SymVector{D}}()), (lgir, n))
+                push!(get!(separable_summary, sgnum, Vector{SymmetryVector{D}}()), (lgir,n))
                 push!(get!(separable_details, sgnum,
-                        Vector{Tuple{SymVector{D}, typeof(bandg_splits)}}()), 
+                        Vector{Tuple{SymmetryVector{D}, typeof(bandg_splits)}}()), 
                         (n, bandg_splits))
                 printstyled("   HAS SEPARABLE CONFIGURATIONS!!!\n", color=:green)    
             else
-                push!(get!(inseparable, sgnum, Vector{SymVector{D}}()), n)
+                push!(get!(inseparable, sgnum, Vector{SymmetryVector{D}}()), n)
             end
         catch e
             printstyled("  ", e, "\n",

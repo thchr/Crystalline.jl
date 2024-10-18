@@ -20,7 +20,7 @@ timereversal && realify!(lgirsd)
 subts = subduction_tables(sgnum, D; timereversal)
 _n = sb[end]
 #_n = brs[end-1]
-n = SymVector(_n, brs.irlabs, lgirsd)
+n = SymmetryVector(_n, brs.irlabs, lgirsd)
 
 bandg = build_subgraphs(n, subts, lgirsd)
 subgraphs, partitions = bandg.subgraphs, bandg.partitions
@@ -98,7 +98,7 @@ let sgnum = 96, D = 3 # 200
     subts = subduction_tables(sgnum, D; timereversal)
 
     for nv in sb
-        n = SymVector(nv, brs.irlabs, lgirsd);
+        n = SymmetryVector(nv, brs.irlabs, lgirsd);
         bandg = build_subgraphs(n, subts, lgirsd)
         subgraphs_ps = permute_subgraphs(bandg.subgraphs)
         bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
