@@ -12,9 +12,8 @@
 #     generalized.
 
 using Graphs
-using Graphs: AbstractGraph
+using Graphs: AbstractGraph, eulerian, Graph
 using GraphsMatching
-include("eulerian.jl")
 
 struct Trail{T}
     nv :: T
@@ -37,9 +36,9 @@ function chinese_postman(
 
     # Stage 2.1*. Short-circuit to plain Eulerian trail if we have zero or two odd vertices
     if isempty(odd_verts)
-        return tour_from_cycle(eulerian(g, 1, 1))
+        return tour_from_cycle(eulerian(g, 1))
     elseif length(odd_verts) == 2
-        return tour_from_cycle(eulerian(g, odd_verts[1], odd_verts[2]))
+        return tour_from_cycle(eulerian(g, odd_verts[1]))
     end
 
     # Step 2.2. Build all pairwise connections between odd-order vertices & compute shortest
@@ -76,7 +75,8 @@ function chinese_postman(
 
     # --- Step 3 ---
     # Step 3.1. Compute Eulerian cycle
-    cycle = eulerian(g′, start, stop)
+    cycle = eulerian(g′, start)
+    cycle[end] == stop || error("Eulerian trail did not have expected termination vertex")
 
     # Step 3.2. Reconstruct "real" path by substituting out added edges
     return reconstruct_real_tour(cycle, added_edge_d, pair_paths_d)
@@ -89,7 +89,7 @@ function _chinese_postman_split_disconnected_components(g::AbstractGraph{T}) whe
     trail = T[]
     for (n, verts) in enumerate(components)
         # copy into new graph
-        g′ = SimpleGraph{T}(length(verts))
+        g′ = Graph{T}(length(verts))
         idxmap_lin2orig = verts
         idxmap_orig2lin = Dict{T,T}(v => i for (i,v) in enumerate(verts))
         for e in edges(g)
@@ -118,7 +118,7 @@ function find_minimal_matching(paths)
     idx2vert = Dict(v => idx for (idx, v) in vert2idx)
     
     es = [Edge(vert2idx[first(path).src], vert2idx[last(path).dst]) for path in paths]
-    cg = SimpleGraph(es)
+    cg = Graph(es)
 
     w = Dict{Edge{eltype(first(es))}, Float64}() # edge weights (distances)
     for (e, path) in zip(es, paths)
@@ -158,7 +158,7 @@ function find_minimal_matching(paths)
 end
 
 function augment_graph(g::AbstractGraph{T}, paths, idxs) where T
-    g′ = SimpleGraph{T}(nv(g))
+    g′ = Graph{T}(nv(g))
     added_edge_d = Dict{Edge{T}, Bool}() # whether edges are original (0) or fictitious (1)
     for e in edges(g)
         add_edge!(g′, e) || error("edge inclusion was unsuccesful")
