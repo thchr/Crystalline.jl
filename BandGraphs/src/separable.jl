@@ -1,3 +1,27 @@
+@enum Separability begin
+    SEPARABLE
+    INSEPARABLE_NO_MET_IRREP_CRITERIA
+    INSEPARABLE_CANNOT_SPLIT
+    INSEPARABLE_CANNOT_GROUP
+    INFEASIBLE_TOO_MANY_BANDGRAPH_PERMUTATIONS
+    INFEASIBLE_TOO_MANY_SPLIT_PERMUTATOINS
+    INFEASIBLE_TOO_MANY_SUBBLOCK_PERMUTATIONS
+end
+
+is_separable(s::Separability) = s == SEPARABLE
+function is_feasible(s::Separability)
+    return (s != INFEASIBLE_TOO_MANY_BANDGRAPH_PERMUTATIONS &&
+            s != INFEASIBLE_TOO_MANY_SPLIT_PERMUTATOINS)
+end
+
+struct SeparabilityState
+    s :: Separability
+    permutations :: Union{Nothing, BigInt}
+end
+SeparabilityState(s::Separability)  = SeparabilityState(s, nothing)
+is_separable(sepstate::SeparabilityState) = is_separable(sepstate.s)
+is_feasible(sepstate::SeparabilityState)  = is_feasible(sepstate.s)
+
 """
 Find all the vertices in a band graph `bandg` whose associated irrep `lgir` for which
 `criterion(lgir)` is true. 
@@ -5,7 +29,7 @@ Find all the vertices in a band graph `bandg` whose associated irrep `lgir` for 
 Return a vector of 2-tuples, whose first element is a valid `lgir`, and whose second element
 is a linear index into the multiplicity of this irrep in `bandg`.
 """
-function findall_vertices(criterion, bandg :: BandGraph{D}) where D
+function findall_vertices(criterion::F, bandg :: BandGraph{D}) where {F,D}
     vs = Vector{Tuple{LGIrrep{D}, Int}}()
     for p in bandg.partitions
         # only include non-monodromy partitions, since monodromy irreps will be split
@@ -28,57 +52,104 @@ function findall_vertices(criterion, bandg :: BandGraph{D}) where D
     return vs
 end
 
+"""
+    has_vertex(criterion, n; ignore_unit_occupation=true) --> Bool
+
+Test if a symmetry vector `n` includes an irrep that fulfils the criterion `criterion`,
+returning `true` if it does, and `false` otherwise. `criterion` is a function or functor
+that takes an `LGIrrep` and returns a boolean.
+
+If `ignore_unit_occupation` is `true` (default), then the function will return `false` if
+the occupation of the symmetry vector is 1, regardless of `criterion`.
+"""
+function has_vertex(
+        criterion :: F,
+        n :: AbstractSymmetryVector{D};
+        ignore_unit_occupation :: Bool = true
+    ) where {F,D}
+    # usually nothing interesting in 1-band cases; skip unless `ignore_unit_occupation = 0`
+    ignore_unit_occupation && occupation(n) == 1 && return false
+
+    for (lgirs, mults) in zip(irreps(n), multiplicities(n))
+        for (lgir, m) in zip(lgirs, mults)
+            m ≠ 0 && criterion(lgir) && return true
+        end
+    end
+    return false
+end
+
 function findall_separable_vertices(
-            criterion, n::AbstractSymmetryVector{D}, subts, lgirsd; kws...) where D
+            criterion::F, n::AbstractSymmetryVector{D}, subts, lgirsd; kws...) where {F,D}
     bandg = build_subgraphs(n, subts, lgirsd)
     return findall_separable_vertices(criterion, bandg; kws...)
 end
 function findall_separable_vertices(
-            criterion,
+            criterion :: F,
             bandg :: BandGraph{D};
-            max_permutations::Union{Nothing, <:Real} = 1e6,
-            separable_degree :: Union{Nothing, <: Integer} = nothing) where D
+            max_permutations :: Union{Nothing, <:Real} = 1e5,
+            separable_degree :: Union{Nothing, <: Integer} = nothing,
+            max_subblock_permutations :: Union{Nothing, <:Real} = 1e6
+        ) where {F,D}
     
     separable = Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}[]
 
     # find which vertices fulfil criterion; i.e., which vertices to check seperability for
-    vs = findall_vertices(lgir -> isspecial(lgir) && criterion(lgir), bandg)
-    isempty(vs) && return false, separable
+    vs = findall_vertices(lgir -> isspecial(lgir) && (criterion(lgir) :: Bool), bandg)
+    isempty(vs) && return SeparabilityState(INSEPARABLE_NO_MET_IRREP_CRITERIA), nothing
 
     # fast-path "necessary conditions" check which does not require permutation construction
     unfeasible_vs_idxs = fast_path_separability_irdim_infeasibility(bandg, vs, separable_degree)
     deleteat!(vs, unfeasible_vs_idxs)
-    isempty(vs) && return false, separable
+    isempty(vs) && return SeparabilityState(INSEPARABLE_CANNOT_GROUP), nothing
     
     # move on to additional conditions which require us to look at individual permutations
-    subgraphs_ps = permute_subgraphs(bandg.subgraphs)
-    bandgp = BandGraphPermutations(bandg.partitions, subgraphs_ps)
+    subgraphs_ps = permute_subgraphs(bandg.subgraphs; max_subblock_permutations)
+    if isnothing(subgraphs_ps)
+        return SeparabilityState(INFEASIBLE_TOO_MANY_SUBBLOCK_PERMUTATIONS), nothing
+    end
+    bandgp = BandGraphPermutations(bandg.partitions, something(subgraphs_ps))
 
-    # if there are too many permutations to consider, we bail out (returning `missing`)
-    if !isnothing(max_permutations) && length(bandgp) > max_permutations
-        printstyled("band permutations (", length(bandgp), 
-                    ") exceed `max_permutations=", max_permutations, "`; aborting ...\n";
-                    color=:yellow)
-        return missing
+    # if there are too many permutations to consider, we bail out
+    Nbandgp = safe_length(bandgp)
+    if !isnothing(max_permutations) && Nbandgp > max_permutations
+        sepstate = SeparabilityState(INFEASIBLE_TOO_MANY_BANDGRAPH_PERMUTATIONS, Nbandgp)
+        return sepstate, nothing
     end
 
     # okay, now we actually have to do the "full" checks for any remaining vertices by
-    # explicitly considering each possible permutation explicitly
-    for v in vs
-        lgir, irmul = v
-        for bandg′ in bandgp # iterate over graph permutations
-            split_bandg = is_separable_at_vertex(bandg′, (lgir, irmul); 
-                                                 verbose=true, separable_degree)
+    # explicitly considering each possible permutation one by one
+    success_vs = zeros(Bool, length(vs))
+    work_g = Graph(nv(bandg))
+    work_split_g_for_vs = Graph.((nv(bandg) - 1) .+ irdim.(first.(vs))) # one for each `vs` (in case they have different `irdim`)
+    for bandg′ in bandgp # iterate over graph permutations
+        may_be_articulation_vs = may_be_articulation_vertices(bandg′, vs, work_g)
+        for (i, v) in enumerate(vs)
+            # constrain ourselves to return only a single representative seperable band
+            # permutation if any such permutation exists
+            success_vs[i] && continue
+            # v must be an articulation point to be a separable point (necessary condition)
+            may_be_articulation_vs[i] || continue
+
+            lgir, irmul = v
+            split_bandg = is_separable_at_vertex_check_all_splits(
+                            bandg′, (lgir, irmul), work_g, work_split_g_for_vs[i];
+                            verbose=true, separable_degree)
             if !isnothing(split_bandg)
-                # constrain ourselves to return only a single representative seperable band
-                # permutation if any such permutation exists
                 push!(separable, (bandg′, split_bandg, lgir))
-                break
+                success_vs[i] = true
             end
+        end
+        if all(success_vs)
+            # all vertices have been split; no need to look at more graph permutations
+            break
         end
     end
 
-    return !isempty(separable), separable
+    if isempty(separable)
+        return SeparabilityState(INSEPARABLE_CANNOT_SPLIT), nothing
+    else
+        return SeparabilityState(SEPARABLE), separable
+    end
 end
 
 function fast_path_separability_irdim_infeasibility(
@@ -107,7 +178,7 @@ function fast_path_separability_irdim_infeasibility(
         kidx, iridx, _ = something(find_vertex_in_partitions(bandg.partitions, irlab, irmul))
         v_irdim = partitions_irdims[kidx][iridx]
 
-        # check if there are any monodromy-related partner to `v`; if so, don't include the
+        # check if there are any monodromy-related partners to `v`; if so, don't include the
         # monodromy-related partition in the set of "exterior" partitions
         klab′ = klabel(irlab) * '′'
         kidx′ = findfirst(p->p.klab == klab′, bandg.partitions)
@@ -138,30 +209,78 @@ function fast_path_separability_irdim_infeasibility(
     infeasible_idxs
 end
 
-function is_separable_at_vertex(
-            bandg :: BandGraph{D}, 
-            v :: Tuple{LGIrrep{D}, Int};
-            verbose :: Bool = true,
-            separable_degree :: Union{Nothing, <:Integer} = nothing) where D
+function may_be_articulation_vertices(
+        bandg :: BandGraph{D}, 
+        vs :: Vector{Tuple{LGIrrep{D}, Int}},
+        g :: Graph = Graph(nv(bandg)) # work-graph (mutated)
+    ) where D
+    # --- fast path check ---
+    # "fast-path" articulation point check: a necessary (but insufficient) condition is that
+    # a vertex must be an articulation point in order to be a separable point; it is 
+    # advantageous to check this immediately, since we then don't need to explore any of the
+    # (possibly many) splits of `bandg`, only `bandg` itself. However, we can only use this
+    # if `v` doesn't have a monodromy partner (if it does, the monodromy partner would
+    # prevent it from being a genuine articulation point (it would require removal of both))
+    may_be_articulation_vs = zeros(Bool, length(vs))
+    for (i, v) in enumerate(vs)
+        lgir = first(v)
+        klab′ = klabel(lgir) * '′'
+        if any(p->p.klab == klab′, bandg.partitions)
+            # monodromy partner case: we can't tell, so it _may_ effectively, still be an
+            # articulation point (in the sense that removal of both vertices would cut)
+            may_be_articulation_vs[i] = true
+        end
+    end
+    # if all are monodromy-paired; no point in checking further
+    all(may_be_articulation_vs) && return may_be_articulation_vs
+
+    # okay; some non-monodromy-paired vertices; get actual articulation vertices of `bandg`
+    g = assemble_simple_graph!(g, bandg; reset_edges = true)
+    articulation_vertex_idxs = articulation(g)
+
+    # check which `vs` are among articulation vertices of `bandg`
+    for (i, v) in enumerate(vs)
+        may_be_articulation_vs[i] && continue # monodromy-paired; skip further checks
+
+        lgir, irmul = v
+        irlab = label(lgir)
+        
+        # not monodromy-paired; can do the check
+        kidx, iridx, _ = something(find_vertex_in_partitions(bandg.partitions, irlab, irmul))
+
+        p = bandg.partitions[kidx]
+        vertex_idx = p.iridxs[iridx] # "global" vertex index into `g` below
+        may_be_articulation_vs[i] = vertex_idx ∈ articulation_vertex_idxs
+    end
+
+    return may_be_articulation_vs
+end
+
+function is_separable_at_vertex_check_all_splits(
+        bandg :: BandGraph{D}, 
+        v :: Tuple{LGIrrep{D}, Int},
+        g :: Graph = Graph(nv(bandg)),                         # `bandg` work graph (mutated)
+        split_g :: Graph = Graph(nv(bandg) + irdim(v[1]) - 1); # `split_bandg` work graph (mutated)
+        verbose :: Bool = true,
+        separable_degree :: Union{Nothing, <:Integer} = nothing
+    ) where D
 
     # The function determines whether a graph G is separable at a vertex v, as described in 
     # our Overleaf document; before doing "heavy-lifting", we do a fast-path "necessary
     # conditions" check, to potentially avoid actually creating any explicit band splits
     # if the vertex is clearly not separable
 
-    
-    # fast path checks
-    # TODO: articulation point check (must be articulation point); but this only works
-    #       if `v` does not have a monodromy partner vertex
+    split_lgir = first(v)
 
-    # "slow-path" checks
-    splits_bandg = complete_split(bandg, v)
+    # --- "slow-path" checks ---
+    # TODO: Return and pass through `INFEASIBLE_TOO_MANY_SPLIT_PERMUTATIONS` if there are 
+    #       too many splits    
+    splits_bandg = complete_split(bandg, v; separable_degree)
     isnothing(splits_bandg) && return nothing # no valid splits at `v`
 
     # set how many components the band graph should be separated into after the split, in
     # order for us to classify it is a "succesful" split
-    split_lgir = first(v)
-    split_irdim = dim(split_lgir)
+    split_irdim = irdim(split_lgir)
     if isnothing(separable_degree)
         # "full" separability: into as many distinct band graphs as the split-irrep's dimen.
         separable_degree = split_irdim
@@ -174,19 +293,33 @@ function is_separable_at_vertex(
 
     # obtain the connected components of the split-up graph, across both partitions and
     # energy-separation: `bandg_cs[partitions-grouping][energy-grouping]`
-    bandg_cs = group_partition_connected_components(bandg) # components
+    g = assemble_simple_graph!(g, bandg; reset_edges = true)
+    bandg_cs = group_partition_connected_components(bandg, g) # components
 
-    if isnothing(bandg_cs) 
+    # initialize `is_valid_split` work buffers
+    work_valid_next = Vector{Int}(undef, nv(split_g))
+    work_valid_seen = zeros(Bool, nv(split_g))
+    if isnothing(bandg_cs)
         # CASE 1: original band graph is fully connected - easy to check separability
         #         (all distinct components after the split will cover the same set of 
         #          partitions)
-        for split_bandg in splits_bandg # iterate over split permutations
-            if !is_valid_split(split_bandg)
-                verbose && printstyled("   ... skipping an invalid split\n"; color=:yellow)
+        # initialize `count_connected_components` work buffers
+        work_countc_search_queue = Int[]
+        work_countc_label = zeros(Int, nv(split_g))
+        # iterate over split permutations
+        for split_bandg in splits_bandg 
+            split_g = assemble_simple_graph!(split_g, split_bandg; reset_edges = true)
+            if !is_valid_split(split_bandg, split_g, work_valid_next, work_valid_seen)
+                #verbose && printstyled("   ... skipping an invalid split\n"; color=:yellow)
+                verbose && error("encountered an invalid split - that's new!")
                 continue
             end
-            split_g = assemble_graph(split_bandg)
-            split_N = length(connected_components(split_g))
+            # get conventional graph for `split_bandg` & get its number of connected
+            # components; in fact, we do not need the edge weights, since connectivity is
+            # decided only by presence/absence of an edge, so we just build & use the simple
+            # graph (instead of the weighted and labelled `assemble_graph`) for efficiency
+            split_N = count_connected_components(
+                split_g, work_countc_label, work_countc_search_queue; reset_label=true)
             if split_N == separable_degree
                 return split_bandg
             end
@@ -196,11 +329,13 @@ function is_separable_at_vertex(
         #         (the distinct components may involve different partitions)
         split_surrogate_irlab = label(split_lgir) * "ˣ" # label for irrep after split
         for split_bandg in splits_bandg # iterate over split permutations
-            if !is_valid_split(split_bandg)
-                verbose && printstyled("   ... skipping an invalid split\n"; color=:yellow)
+            split_g = assemble_simple_graph!(split_g, split_bandg; reset_edges = true)
+            if !is_valid_split(split_bandg, split_g, work_valid_next, work_valid_seen)
+                #verbose && printstyled("   ... skipping an invalid split\n"; color=:yellow)
+                verbose && error("encountered an invalid split - that's new!")
                 continue
             end
-            split_bandg_cs = group_partition_connected_components(split_bandg)
+            split_bandg_cs = group_partition_connected_components(split_bandg, split_g)
             ijs = findall_vertices_in_components(split_bandg_cs, split_surrogate_irlab)
 
             # after split, there must be at least `separable_degree` components that
@@ -224,7 +359,6 @@ function is_separable_at_vertex(
                 return split_bandg
             end
         end
-        
     end   
 
     return nothing
@@ -289,7 +423,7 @@ function Graphs.induced_subgraph(bandg :: BandGraph{D}, vlist) where D
                 A′[local_idx_max′, local_idx_nonmax′] = A[local_idx_max, local_idx_nonmax]
             end
         end
-        subgraph′ = SubGraph{D}(p_max′, p_nonmax′, A′, subgraph.pinned)
+        subgraph′ = SubGraph(p_max′, p_nonmax′, A′)
         push!(subgraphs′, subgraph′)
     end
     
@@ -319,8 +453,10 @@ end
 # return the connected components of `bandg`; returned components are a 
 # `Vector{Vector{BandGraph}}` with indexing `bandg_cs[partitions-grouping][energy-grouping]`
 # if there is only one connected component (fully connected), returns `nothing` as sentinel
-function group_partition_connected_components(bandg :: BandGraph{D}) where D
-    g = assemble_simple_graph(bandg)
+function group_partition_connected_components(
+        bandg :: BandGraph{D},
+        g :: Graph = assemble_simple_graph(bandg)
+        ) where D
     cs = connected_components(g)
     if length(cs) == 1
         # `nothing` as sentinel for being fully connected (i.e., 1 connected component)

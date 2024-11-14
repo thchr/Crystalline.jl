@@ -218,15 +218,21 @@ function linearize_nonmaximal_y_coordinates(g_trail, ys::Vector)
         end
     end
     for is in values(track)
-        # a vertex assoc. w/ a nonmaximal irrep will only ever have two neighbors: it cannot
-        # have more than 2 irrep neighbors, as any connected maximal irrep must have equal
-        # or higher irrep dimensions; it cannot have less than 2 since it will always
+        # a vertex assoc. w/ a nonmaximal irrep will only ever have two neighbors (**): it
+        # cannot have more than 2 irrep neighbors, as any connected maximal irrep must have
+        # equal or higher irrep dimensions; it cannot have less than 2 since it will always
         # connect two different maximal irreps
+        # (**) This is true for a standard band graph, but not for a band graph that has
+        #      been "split" at a maximal vertex connected to a nonmaximal vertex of irrep
+        #      dimension higher than 1; ignoring this case, one could assert certain `only`
+        #      outcomes below, e.g., for `(in,out)neighbors(g_trail, i)`. To allow the
+        #      just-mentioned split-configuration, however, we just take averages in general
         avg_ys = Vector{Float64}(undef, length(is))
         for (idx_in_is, i) in enumerate(is)
-            in_i = only(inneighbors(g_trail, i))   # vertex index of ingoing maximal irrep
-            out_i = only(outneighbors(g_trail, i)) # vertex index of outgoing maximal irrep
-            avg_ys[idx_in_is] = (ys[in_i] + ys[out_i])/2
+            in_i = inneighbors(g_trail, i)   # vertex index of ingoing maximal irrep
+            out_i = outneighbors(g_trail, i) # vertex index of outgoing maximal irrep
+            avg_ys[idx_in_is] = (sum(@view ys[in_i])/length(in_i) + 
+                                 sum(@view ys[out_i])/length(out_i))/2
         end
         for (idx_in_is, i) in enumerate(is)
             y′ = avg_ys[idx_in_is]

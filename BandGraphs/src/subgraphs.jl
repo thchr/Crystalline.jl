@@ -61,7 +61,7 @@ function build_subgraphs(
         subductions_from_max = @view subductions[idxs]
         for sᴳᴴ in subductions_from_max # subductions from maximal to non-maximal manifolds
             klab_nonmax = string(sᴳᴴ.c.kᴴ.label)
-            if klab_nonmax ∈ getfield.(partitions_nonmax, Ref(:klab))
+            if any(p -> p.klab==klab_nonmax, partitions_nonmax)
                 continue # only need to add partition once
             else
                 kidx += 1
@@ -107,10 +107,6 @@ function build_subgraphs(
             push!(partitions_nonmax, p_nonmax)
         end
     end
-   
-    # TODO: sort `partitions_max` and `partitions_nonmax` so that we benefit maximally from 
-    #       from the pinning order when we consider permutations: basically, want to sort
-    #       in such a way that subgraphs with most permutations get pinned
     
     # build all the subgraphs that make up the full graph
     subgraphs = SubGraph{D}[]
@@ -186,8 +182,8 @@ function build_subgraphs(
                 A[row,cols] .= 1
                 col_start = last(cols)+1
             end
-            push!(subgraphs, SubGraph(original_p_max,  p_Ω′, A, #=pinned=# true))
-            push!(subgraphs, SubGraph(monodromy_p_max, p_Ω′, A, #=pinned=# true))
+            push!(subgraphs, SubGraph(original_p_max,  p_Ω′, A, #=monodromy_tie_via_Ω=# true))
+            push!(subgraphs, SubGraph(monodromy_p_max, p_Ω′, A, #=monodromy_tie_via_Ω=# true))
         end
     end
 

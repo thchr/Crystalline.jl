@@ -31,7 +31,12 @@ export
     permute_subgraphs,
     subduction_tables,
     plot_flattened_bandgraph,
+    Separability,
+    SeparabilityState,
+    is_separable,
+    is_feasible,
     findall_separable_vertices,
+    has_vertex,
     complete_split
 
 # ---------------------------------------------------------------------------------------- #
@@ -113,6 +118,8 @@ include("graphs.jl")
 include("subgraph-permutations.jl")
 include("graph_routing.jl")
 include("unfold.jl")
+include("multiset-permutation-indices.jl")
+include("count_connected_components.jl") # NB: remove when/if merged in Graphs.jl
 include("complete-split.jl")
 include("subsetsum.jl")
 include("separable.jl")

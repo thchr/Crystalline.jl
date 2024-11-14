@@ -71,44 +71,44 @@ end
 
 abstract type AbstractSubGraph{D} end
 
-mutable struct SubGraph{D} <: AbstractSubGraph{D} # a 2-partite subgraph
-    const p_max    :: Partition{D} # maximal k-manifold (high-symmetry point)
-    const p_nonmax :: Partition{D} # non-maximal k-manifold (high-symmetry line/plane)
-    const A        :: Matrix{Int}  # a canonically ordered subgraph adjacency matrix
-    pinned         :: Bool
+struct SubGraph{D} <: AbstractSubGraph{D} # a 2-partite subgraph
+    p_max    :: Partition{D} # maximal k-manifold (high-symmetry point)
+    p_nonmax :: Partition{D} # non-maximal k-manifold (high-symmetry line/plane)
+    A        :: Matrix{Int}  # a canonically ordered subgraph adjacency matrix
+    monodromy_tie_via_Ω :: Bool # whether the subgraph is artificially tied to Ω to enforce
+                                # energy-sameness between monodromy-related irreps; 
+                                # indicate to avoid any permutations
 end
 function SubGraph(p_max::Partition, p_nonmax::Partition, A::AbstractMatrix)
-    return SubGraph(p_max, p_nonmax, A, false)
+    return SubGraph(p_max, p_nonmax, A, #=monodromy_tie_via_Ω=# false)
 end
 
 function Base.show(io :: IO, s :: SubGraph)
     print(io, "[")
     for i in 1:size(s.A, 1)
-        print_identified_lgir_label(io, s.p_max.lgirs[i], s.p_max, s.pinned, i)
+        print_identified_lgir_label(io, s.p_max.lgirs[i], s.p_max, i)
         print(io, " ↓ ")
         js = findall(!iszero, @view s.A[i,:])
         for (nⱼ,j) in enumerate(js)
             lgirⱼ = s.p_nonmax.lgirs[j]
             multiplicity = s.A[i,j] // Crystalline.irdim(lgirⱼ)
             isone(multiplicity) || print(io, multiplicity)
-            print_identified_lgir_label(io, lgirⱼ, s.p_nonmax, s.pinned, j)
+            print_identified_lgir_label(io, lgirⱼ, s.p_nonmax, j)
             nⱼ == length(js) || print(io, " + ")
         end
         i == size(s.A, 1) || print(io, ", ")
     end
     print(io, "]")
-    s.pinned && printstyled(io, " (pinned)"; color=:light_black)
 end
 
 function print_identified_lgir_label(
-            io :: IO, lgir :: LGIrrep{D}, p :: Partition{D}, pinned :: Bool, idx :: Int
+            io :: IO, lgir :: LGIrrep{D}, p :: Partition{D}, idx :: Int
             ) where D
     # print a superscript index to identify subduction to nonmaximal irreps for which there
     # may be multiple copies; only print an identifier if there are multiple "copies", and
     # only if the subgraph is not `pinned`; the index is a local counter within the set of 
     # identical/"copied" nonmaximal irreps
     print(io, label(lgir))
-    pinned && return
     for m in p.multiples
         length(m) == 1 && continue # don't print a local index if no copies
         local_iridx = findfirst(==(idx), m)
@@ -123,12 +123,12 @@ function Base.show(io :: IO, ::MIME"text/plain", s :: SubGraph)
     # max- and nonmax- labels
     max_labels = map(1:length(s.p_max)) do i
         io′ = IOBuffer()
-        print_identified_lgir_label(io′, s.p_max.lgirs[i], s.p_max, s.pinned, i)
+        print_identified_lgir_label(io′, s.p_max.lgirs[i], s.p_max, i)
         String(take!(io′))
     end
     nonmax_labels = map(1:length(s.p_nonmax)) do i
         io′ = IOBuffer()
-        print_identified_lgir_label(io′, s.p_nonmax.lgirs[i], s.p_nonmax, s.pinned, i)
+        print_identified_lgir_label(io′, s.p_nonmax.lgirs[i], s.p_nonmax, i)
         String(take!(io′))
     end
     pretty_table(io, 
@@ -155,6 +155,7 @@ function BandGraph(
             ) where D
     BandGraph{D}(Vector(subgraphs), Vector(partitions))
 end
+Graphs.nv(bandg::BandGraph) = last(bandg.partitions[end].iridxs)
 
 function Crystalline.occupation(bandg::BandGraph)
     partitions = bandg.partitions
@@ -190,20 +191,146 @@ function Base.show(io :: IO, ::MIME"text/plain", bandg ::BandGraph)
     end
 end
 
+
 # ---------------------------------------------------------------------------------------- #
 
-mutable struct SubGraphPermutations{D} <: AbstractSubGraph{D}
-    const p_max    :: Partition{D} # maximal k-manifold (high-symmetry point)
-    const p_nonmax :: Partition{D} # non-maximal k-manifold (high-symmetry line/plane)
-    const As       :: Vector{Matrix{Int}} # valid/relevant permutations of the subgraph adj mat
-    pinned         :: Bool
-end
-Base.length(subgraph_ps::SubGraphPermutations) = length(subgraph_ps.As)
+"""
+    VectorProductIterator{T}(vs::Vector{Vector{T}})
 
-function Base.getindex(subgraph_ps::SubGraphPermutations, idx::Integer)
-    1 ≤ idx ≤ length(subgraph_ps) || throw(BoundsError(subgraph_ps, idx))
-    A = subgraph_ps.As[idx]
-    return SubGraph(subgraph_ps.p_max, subgraph_ps.p_nonmax, A, subgraph_ps.pinned)
+An iterator over the the cartesian product of the vectors in `vs`. 
+Pratically equivalent to `ProductIterator(vs...)` but avoids the splatting of the input and
+associated type-instabilities.
+
+Used internally to represent the combinatorial product of column-permutations of subgraphs
+in `SubGraphPermutations`.
+"""
+struct VectorProductIterator{T} <: AbstractVector{Vector{T}}
+    vs :: Vector{Vector{T}}
+end
+Base.size(p::VectorProductIterator) = (prod(length, p.vs; init=1),)
+
+function init_product_iterator_state(p::VectorProductIterator)
+    state = ones(Int, length(p.vs))
+    state[1] = 0
+    return state # `state[j]` indexes into p.vs[j]
+end
+
+function Base.iterate(p::VectorProductIterator{T}) where T
+    any(isempty, p.vs) && return nothing # check for empty vectors; no iterants
+    return iterate(p, init_product_iterator_state(p))
+end
+
+function Base.iterate(p::VectorProductIterator{T}, state::Vector{Int}) where T
+    finished = increment_state!(p, state, 1)
+    finished && return nothing
+    v = [vⱼ[i] for (vⱼ, i) in zip(p.vs, state)]
+    if T isa AbstractVector
+        # Hack: for use in `SubGraphPermutations`; see TODO there.
+        return reduce(vcat, v), state
+    else
+        return v, state
+    end
+end
+
+function increment_state!(p::VectorProductIterator, state::Vector{Int}, j::Int)
+    ip1 = state[j]+1
+    if ip1 ≤ length(p.vs[j])
+        state[j] = ip1
+        return false # not finished
+    else
+        j == length(p.vs) && return true # finished
+        state[j] = 1
+        return increment_state!(p, state, j+1)
+    end
+end
+
+function Base.getindex(p::VectorProductIterator{T}, idx::Integer) where T
+    @boundscheck 1 ≤ idx ≤ length(p) || throw(BoundsError(p, idx))
+    idx = idx - 1
+    v = Vector{T}(undef, length(p.vs))
+    @inbounds for (j, vⱼ) in enumerate(p.vs)
+        r1 = length(vⱼ) # `= counts[i]`
+        idx′ = div(idx, r1)
+        sub_idx_j = idx - r1*idx′ + 1 # `j`th subscript in the linear-to-subscript problem
+        idx = idx′
+        @inbounds v[j] = vⱼ[sub_idx_j]
+    end
+    return reduce(vcat, v) # TODO: change back to just `v`; temporary change
+end
+
+# ---------------------------------------------------------------------------------------- #
+@enum ColsOrRowsEnum::Int8 begin
+    UNPERMUTED = 0 # neither row nor columns permuted
+    ROWS = 1    
+    COLS = 2
+end
+
+mutable struct SubGraphPermutations{D} <: AbstractSubGraph{D}
+    const subgraph :: SubGraph{D}
+    permutations   :: Union{Nothing, VectorProductIterator{Vector{Int}}}
+    cols_or_rows   :: ColsOrRowsEnum # permutate over columns or rows of `subgraph.A`
+    pinned         :: Bool
+
+function Base.length(subgraph_ps :: SubGraphPermutations)
+    permutations = subgraph_ps.permutations
+    return isnothing(permutations) ? 1 : length(permutations)
+end
+
+function Base.iterate(subgraph_ps :: SubGraphPermutations)
+    subgraph = subgraph_ps.subgraph
+    A = subgraph.A
+    if isnothing(subgraph_ps.permutations)
+        return subgraph, Vector{Int}[]
+    else
+        permutation, state = iterate(something(subgraph_ps.permutations))
+        A′ = if subgraph_ps.cols_or_rows == COLS
+            A[:,permutation]
+        elseif subgraph_ps.cols_or_rows == ROWS
+            A[permutation,:]
+        else # UNPERMUTED
+            error("unexpected error: non-nothing permutation for unpermuted subgraph")
+        end
+        subgraph′ = SubGraph{D}(subgraph.p_max, subgraph.p_nonmax, A′, subgraph.monodromy_tie_via_Ω)
+        return subgraph′, state
+    end
+end
+
+function Base.iterate(subgraph_ps :: SubGraphPermutations, state::Vector{Int})
+    subgraph = subgraph_ps.subgraph
+    A = subgraph.A
+    if isnothing(subgraph_ps.permutations)
+        return nothing
+    else
+        permutation, state = iterate(something(subgraph_ps.permutations), state)
+        A′ = if subgraph_ps.cols_or_rows == COLS
+            A[:,permutation]
+        elseif subgraph_ps.cols_or_rows == ROWS
+            A[permutation,:]
+        else # UNPERMUTED
+            error("unexpected error: non-nothing permutation for unpermuted subgraph")
+        end
+        subgraph′ = SubGraph{D}(subgraph.p_max, subgraph.p_nonmax, A′, subgraph.monodromy_tie_via_Ω)
+        return subgraph′, state
+    end
+end
+
+function Base.getindex(subgraph_ps::SubGraphPermutations{D}, idx::Integer) where D
+    @boundscheck 1 ≤ idx ≤ length(subgraph_ps) || throw(BoundsError(subgraph_ps, idx))
+    subgraph = subgraph_ps.subgraph
+    permutations = subgraph_ps.permutations
+    A = if isnothing(permutations)
+        subgraph.A
+    else
+        permutation = something(permutations)[idx]
+        if subgraph_ps.cols_or_rows == COLS
+            subgraph.A[:,permutation]
+        elseif subgraph_ps.cols_or_rows == ROWS
+            subgraph.A[permutation,:]
+        else # UNPERMUTED
+            error("unexpected error: non-nothing permutation for unpermuted subgraph")
+        end
+    end    
+    return SubGraph{D}(subgraph.p_max, subgraph.p_nonmax, A, subgraph.monodromy_tie_via_Ω)
 end
 # ---------------------------------------------------------------------------------------- #
 
@@ -212,15 +339,29 @@ struct BandGraphPermutations{D} <: AbstractVector{BandGraph{D}}
     subgraphs_ps :: Vector{SubGraphPermutations{D}}
 end
 
+# NB: Since the number of permutations potentially can be very, very large - larger than
+# typemax(Int), `length` ought in principle to work with `BigInt`s. But this is very slow
+# and since `length` is used ubiquitously, this in turns slows down iteration of 
+# `BandGraphPermutations`. So, here, we use ordinary `Int` & throw if there is an overflow.
+# To compute a definite, non-throwing value, use `safe_length(bandgp)`, which uses `BigInt`.
 function Base.length(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
-    n = BigInt(1) # the number of permutations can be very large; need BigInt to be safe
+    n = 1
     for subgraph_ps in subgraphs_ps
-        n *= length(subgraph_ps)
+        n = Base.checked_mul(n, length(subgraph_ps)) # check for & throw on overflow
     end
     return n
 end
 Base.size(bandgp :: BandGraphPermutations) = (length(bandgp),)
+
+function safe_length(bandgp :: BandGraphPermutations)
+    subgraphs_ps = bandgp.subgraphs_ps
+    n = one(BigInt)
+    for subgraph_ps in subgraphs_ps
+        n = Base.checked_mul(n, length(subgraph_ps)) # check for & throw on overflow
+    end
+    return n
+end
 
 function permutation_counts(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
@@ -229,22 +370,21 @@ end
 
 function permutation_info(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
-    n = n_no_pins = BigInt(1)
-    foreach(subgraphs_ps) do subgraph_ps       
+    n = BigInt(1)
+    foreach(subgraphs_ps) do subgraph_ps
+        subgraph = subgraph_ps.subgraph
         Np = length(subgraph_ps) # aggregate number of distinct same-irrep permutations, across irreps
-        if !subgraph_ps.pinned
+        if subgraph_ps.cols_or_rows ≠ UNPERMUTED
             n *= Np
         end
-        n_no_pins *= Np
         printstyled(stdout,
-            subgraph_ps.p_max.klab, " → ", subgraph_ps.p_nonmax.klab, ": ",
+            subgraph.p_max.klab, " → ", subgraph.p_nonmax.klab, ": ",
             Np,
             subgraph_ps.pinned ? "\t(pinned)" : "";
             color=subgraph_ps.pinned ? :light_black : :normal)
         println(stdout)
     end
     println(stdout,     "Total permutations:          ", n)
-    printstyled(stdout, "Total permutations w/o pins: ", n_no_pins, color=:light_black)
     println(stdout)
 end
 
@@ -272,12 +412,9 @@ function Base.getindex(
         r1 = length(subgraph_ps) # `= counts[i]`
         idx′ = div(idx, r1)
         sub_idx_i = idx - r1*idx′ + 1 # `i`th subscript in the linear-to-subscript problem
-
-        subgraphs[i] = SubGraph{D}(subgraph_ps.p_max,
-                                   subgraph_ps.p_nonmax,
-                                   subgraph_ps.As[sub_idx_i],
-                                   subgraph_ps.pinned)
         idx = idx′
+
+        subgraphs[i] = subgraph_ps[sub_idx_i]
     end
     return BandGraph{D}(subgraphs, partitions)
 end

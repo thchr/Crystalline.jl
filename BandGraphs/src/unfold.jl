@@ -8,7 +8,7 @@ function partition_ids(p :: Partition)
 end
 
 unfold_bandgraph(bandg::BandGraph, kg) = unfold_bandgraph(bandg.subgraphs, bandg.partitions, kg)
-@eval BandGraphs function unfold_bandgraph(
+function unfold_bandgraph(
             subgraphs,
             partitions,
             kg #= info about connections between k-partitions, from `partition_graph` =#
@@ -73,11 +73,14 @@ unfold_bandgraph(bandg::BandGraph, kg) = unfold_bandgraph(bandg.subgraphs, bandg
 
         vertex_ids_max, vertex_ids_nonmax = ismax2nonmax ? (vertex_ids_prev, vertex_ids_curr) : (vertex_ids_curr, vertex_ids_prev)
         for (j,a) in enumerate(eachcol(subgraph.A)) # j: local column index (nonmax) in block/subgraph
-            i = something(findfirst(≠(0), a)) # local row index (max) in block/subgraph
-            weight = a[i]
-            vertex_id_max, vertex_id_nonmax = vertex_ids_max[i], vertex_ids_nonmax[j]
-            vertex_id_prev, vertex_id_curr = ismax2nonmax ? (vertex_id_max, vertex_id_nonmax) : (vertex_id_nonmax, vertex_id_max)
-            add_edge!(g_trail, vertex_id_prev, vertex_id_curr, (; weight=weight))
+            i = 0 # local row index (max) in block/subgraph
+            while (i = findnext(≠(0), a, i+1); !isnothing(i))
+                weight = a[something(i)]
+                vertex_id_max, vertex_id_nonmax = vertex_ids_max[i], vertex_ids_nonmax[j]
+                vertex_id_prev, vertex_id_curr = ismax2nonmax ? (vertex_id_max, vertex_id_nonmax) : (vertex_id_nonmax, vertex_id_max)
+                add_edge!(g_trail, vertex_id_prev, vertex_id_curr, (; weight=weight))
+            end
+            i == 0 && error("unexpectedly encountered zero-column: nonmax irrep unconnected to irrep in max partition")
         end
 
         p_prev = p_curr

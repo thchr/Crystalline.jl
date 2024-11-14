@@ -3,7 +3,8 @@
 # While the graph associated with `A` in principle could be constructed from the `Graph(A)`
 # this loses a lot of relevant information. Instead, we construct it directly from
 # the subgraph and partition structures, and return additional metadata on vertices & edges
-function assemble_graph(subgraphs, partitions)
+function assemble_graph(subgraphs, partitions;
+            may_have_multiple_nonmax_to_max_edges::Bool=true)
     g = MetaGraph(Graph();
             label_type       = Tuple{String, Int},
             vertex_data_type = @NamedTuple{lgir::LGIrrep, maximal::Bool},
@@ -34,18 +35,35 @@ function assemble_graph(subgraphs, partitions)
             i′ = max_iridxs[i] # global column index in overall graph
             weight = a[i]
             add_edge!(g, label_for(g, i′), label_for(g, j′), (; weight=weight))
+            if may_have_multiple_nonmax_to_max_edges
+                # for a "standard" band graph, there will only ever be one nonzero element
+                # per column, since each nonmaximal vertex connects to exactly one maximal
+                # vertex; however, when we artificially split a maximal vertex, and this
+                # vertex is connected to a non-unit irdim nonmaximal node, this may no
+                # longer apply; so we allow this if `may_have_multiple_nonmax_to_max_edges`
+                # is true
+                while (i = findnext(≠(0), a, i+1); !isnothing(i))
+                    i′ = max_iridxs[something(i)]
+                    weight = a[something(i)]
+                    add_edge!(g, label_for(g, i′), label_for(g, j′), (; weight=weight))
+                end
+            end
         end
     end
     return g
 end
-assemble_graph(bandg::BandGraph) = assemble_graph(bandg.subgraphs, bandg.partitions)
+assemble_graph(bandg::BandGraph; kws...) = assemble_graph(bandg.subgraphs, bandg.partitions; kws...)
 
 
-function assemble_simple_graph(subgraphs, partitions)
+function assemble_simple_graph!(
+        g :: Graph,
+        subgraphs :: AbstractVector{<:SubGraph};
+        reset_edges::Bool = true,
+        may_have_multiple_nonmax_to_max_edges :: Bool = true)
     # does not have the right "weights" (and hence, not the right adjacency matrix either),
     # since a simple graph must have unit weights, but can still be used for connectivity 
     # analysis for instance
-    g = Graph(last(partitions[end].iridxs))
+    reset_edges && reset_edges!(g) # allows reuse of graph without reallocation
 
     # add edges to graph
     for subgraph in subgraphs
@@ -55,11 +73,28 @@ function assemble_simple_graph(subgraphs, partitions)
             i = something(findfirst(≠(0), a)) # local row index in block/subgraph
             i′ = max_iridxs[i] # global column index in overall graph
             add_edge!(g, i′, j′)
+            if may_have_multiple_nonmax_to_max_edges
+                while (i = findnext(≠(0), a, i+1); !isnothing(i))
+                    i′ = max_iridxs[something(i)]
+                    add_edge!(g, i′, j′)
+                end
+            end
         end
     end
     return g
 end
-assemble_simple_graph(bandg::BandGraph) = assemble_simple_graph(bandg.subgraphs, bandg.partitions)
+function assemble_simple_graph!(g::Graph, bandg::BandGraph; kws...)
+    assemble_simple_graph!(g, bandg.subgraphs; kws...)
+end
+reset_edges!(g::Graph) = (foreach(l->resize!(l, 0), g.fadjlist); g.ne = 0; g)
+function assemble_simple_graph(subgraphs :: AbstractVector{<:SubGraph}, partitions; kws...)
+    g = Graph(last(partitions[end].iridxs))
+    assemble_simple_graph!(g, subgraphs; reset_edges=false, kws...)
+end
+function assemble_simple_graph(bandg::BandGraph; kws...)
+    g = Graph(nv(bandg))
+    assemble_simple_graph!(g, bandg.subgraphs; reset_edges=false, kws...)
+end
 
 # ---------------------------------------------------------------------------------------- #
 
