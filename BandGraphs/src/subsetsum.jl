@@ -1,13 +1,16 @@
 using JuMP, HiGHS
 
 """
-    solve_subset_sum_variant(Sʲs, T, R; verbose::Bool = false, optimizer)
+    solve_subset_sum_variant(Sʲs, T, R; 
+        verbose::Bool = false, 
+        model::Model = DEFAULT_HiGHS_MODEL, 
+        preemptive_model_reset::Bool = true)
 
 Solves the following variant of the subset sum problem, using binary integer programming.
 
 ## Problem formulation
 Given a target list `T` = (T₁, …, T_N), a set of multisets `Sʲs` = {S⁽ʲ⁾}_{j=1}^{J} with 
-S⁽ʲ⁾ = {s⁽ʲ⁾₁, …, s⁽ʲ⁾_{M⁽ʲ⁾}}, as well as a set `R` = {r₁, …, r_L}, determine if there
+S⁽ʲ⁾ = {s⁽ʲ⁾₁, …, s⁽ʲ⁾_{M⁽ʲ⁾}}, as well as a multiset `R` = {r₁, …, r_L}, determine if there
 exist disjoint subset selections {S⁽ʲ⁾ₙ} and {Rₙ} with S⁽ʲ⁾ₙ ⊂ S⁽ʲ⁾ and Rₙ ⊂ R such that:
 
     ∑_{s ∈ S⁽ʲ⁾ₙ} s = tₙ + ∑_{r ∈ Rₙ} r
@@ -60,7 +63,52 @@ function solve_subset_sum_variant(
     J = length(Sʲs)
     N, Mʲs, L = length(T), length.(Sʲs), length(R)
 
-    model = Model(optimizer)::Model
+    # --- fast-path checks: necessary conditions for feasibility ---
+    # **fast path check #1:** if there is an element `sₘ` of any `Sʲ` in `Sʲs` such that
+    # `sₘ` is larger than the largest possible value of `T` + sum(R), then the LHS of
+    # ∑_{s ∈ S⁽ʲ⁾ₙ} s = tₙ + ∑_{r ∈ Rₙ} r involving `sₘ` will always be larger than any
+    # choice of the RHS (since we assume R and T to be non-negative)
+    maxT, sumR = maximum(T), sum(R)
+    maxRHS = maxT+sumR
+    for Sʲ in Sʲs
+        if any(s -> s > maxRHS, Sʲ)
+            verbose && printstyled("Infeasible: Sʲ > max(T) + max(R)\n", color=:red)
+            return false, nothing
+        end
+    end
+
+    # **fast path check #2:** the possible right-hand sides ``tₙ + ∑_{r ∈ Rₙ} r`` do not
+    # depend on `j` and there are at most |T|^|R| possible variations over `n`. Let's call
+    # each set of right-sides values `RHSₙᵖ` with `p = 1, …, |T|^|R|`. Suppose all RHS are
+    # odd but only even elements exist in some `Sʲ`, then we can never find a solution.
+    # It feels like this could be generalized, but so far, I haven't grokked how.
+    if N^(L+1) < 1e4
+        #  if total number of rhs-terms is less than 1e4, this is probably faster to check
+        if any(Sʲ -> all(iseven, Sʲ), Sʲs) # some sets in Sʲs are entirely even
+            rhs = similar(T)
+            rhs_only_odd = true
+            # loop over permutations of subsets of R (length L) into T-bins (length of N)
+            for p in VectorProductIterator(fill(collect(1:N), L))
+                rhs .= T # build a new permutaton of the rhs
+                for (i, r) in enumerate(p)
+                    rhs[r] += R[i]
+                end
+                all(isodd, rhs) || (rhs_only_odd = false; break)
+            end
+            if rhs_only_odd
+                verbose && printstyled("Infeasible: some Sʲ has only even elements, but there are only odd RHS\n", color=:red)
+                return false, nothing
+            end
+        end
+    end
+
+    # --- general & slow (NP) approach: check feasibility by binary integer programming ---
+    # set up a model from `optimizer`: do it this way instead of `Model(optimizer)` to save
+    # substantial time on instantiation; cf. 
+    # https://discourse.julialang.org/t/reusing-a-jump-model-for-several-different-optimization-problems/122031/
+    inner = MOI.instantiate(optimizer)
+    model = direct_model(inner)
+    set_string_names_on_creation(model, false)
     verbose || MOI.set(model, MOI.Silent(), true)
 
     @variable(model, x[1:sum(Mʲs), 1:N], Bin) # binary "indexing" into `Sʲs`
@@ -166,7 +214,10 @@ function _print_subset_sum_result(model :: Model, Sʲs, T, R)
 end
 
 """
-    solve_subset_sum_variant_flexibleT(Sʲs, T, R, Nᵀ; verbose::Bool = false, optimizer)
+    solve_subset_sum_variant_flexibleT(Sʲs, T, R, Nᵀ;
+        verbose::Bool = false,
+        model::Model = DEFAULT_HiGHS_MODEL, 
+        preemptive_model_reset::Bool = true)
 
 Akin to [`solve_subset_sum_variant`](@ref), but now allowing a subset selection of `T` also,
 in `Nᵀ` sets, rather than N = |T| sets.
@@ -194,7 +245,12 @@ function solve_subset_sum_variant_flexibleT(
     J = length(Sʲs)
     N, Mʲs, L = length(T), length.(Sʲs), length(R)
 
-    model = Model(optimizer)::Model
+    # TODO: fast-path checks as in `solve_subset_sum_variant`
+
+    # set up model (faster than `Model(optimizer)`)
+    inner = MOI.instantiate(optimizer)
+    model = direct_model(inner)
+    set_string_names_on_creation(model, false)
     verbose || MOI.set(model, MOI.Silent(), true)
 
     @variable(model, x[1:sum(Mʲs), 1:Nᵀ], Bin) # binary "indexing" into `Sʲs`
@@ -247,7 +303,7 @@ function solve_subset_sum_variant_flexibleT(
     end
 
     # TODO: needs to be modified to allow `Nᵀ`
-    verbose && _print_subset_sum_result(model, Sʲs, T, R)
+    # verbose && _print_subset_sum_result(model, Sʲs, T, R)
 
     return feasible, model
 end
