@@ -2,7 +2,7 @@ module BandGraphs
 
 using Crystalline
 using Crystalline: irdim, AbstractSymmetryVector
-import JLD2
+using JLD2: jldopen
 using PrettyTables
 using LinearAlgebra
 using Graphs: Graph, Edge, add_vertex!, add_edge!
@@ -39,7 +39,7 @@ export
 # TODO: improve sharing of types between `BandGraphs` & `build/crawl_and_write_bandpaths.jl`
 include("subduction-types.jl")
 include("subduction-table.jl")
-
+include("subduction-table-corrections.jl") # NB: remove when incorporated into .jld2 files
 # ---------------------------------------------------------------------------------------- #
 # DATA
 
@@ -51,26 +51,27 @@ function __init__()
     # TODO: Fix the awfulness here: the loading below only works if the dataset is created
     #       with the types from BandGraphs first - not a good circular thing to have...
     datapath = joinpath(dirname(@__DIR__), "data/connections/3d/subductions-tr.jld2")
-    JLD2.jldopen(datapath, "r") do jldfile
-        for (k,v) in jldfile["subductionsd"]
+    jldopen(datapath, "r") do jldfile
+        for (k,v) in (jldfile["subductionsd"]::Dict{Int, Vector{SubductionTable{3}}})
             SUBDUCTIONSD_TR_3D[k] = v
         end
     end
     datapath = joinpath(dirname(@__DIR__), "data/connections/3d/subductions.jld2")
-    JLD2.jldopen(datapath, "r") do jldfile
-        for (k,v) in jldfile["subductionsd"]
+    jldopen(datapath, "r") do jldfile
+        for (k,v) in (jldfile["subductionsd"]::Dict{Int, Vector{SubductionTable{3}}})
             SUBDUCTIONSD_3D[k] = v
         end
     end
+    subduction_table_corrections!(SUBDUCTIONSD_TR_3D, SUBDUCTIONSD_3D) # add missing tables
     datapath = joinpath(dirname(@__DIR__), "data/connections/2d/subductions-tr.jld2")
-    JLD2.jldopen(datapath, "r") do jldfile
-        for (k,v) in jldfile["subductionsd"]
+    jldopen(datapath, "r") do jldfile
+        for (k,v) in (jldfile["subductionsd"]::Dict{Int, Vector{SubductionTable{2}}})
             SUBDUCTIONSD_TR_2D[k] = v
         end
     end
     datapath = joinpath(dirname(@__DIR__), "data/connections/2d/subductions.jld2")
-    JLD2.jldopen(datapath, "r") do jldfile
-        for (k,v) in jldfile["subductionsd"]
+    jldopen(datapath, "r") do jldfile
+        for (k,v) in (jldfile["subductionsd"]::Dict{Int, Vector{SubductionTable{2}}})
             SUBDUCTIONSD_2D[k] = v
         end
     end
