@@ -126,7 +126,10 @@ include("multiset-permutation-indices.jl")
 include("count_connected_components.jl") # NB: remove when/if merged in Graphs.jl
 include("complete-split.jl")
 include("subsetsum.jl")
+include("induced_subgraph.jl")
 include("separable.jl")
+include("recursive_permutation_walk.jl")
+export findall_separable_vertices_treecutting
 
 # ---------------------------------------------------------------------------------------- #
 # EXTENSIONS: loaded via Requires.jl on Julia versions <v1.9; otherwise via the Pkg
