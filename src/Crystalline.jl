@@ -71,6 +71,7 @@ export SymOperation,                        # types
        ⊕,
        israyrep,                            # ::LGIrrep
        isspecial,
+       irdim,
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful

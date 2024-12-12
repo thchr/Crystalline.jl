@@ -16,7 +16,7 @@ using Crystalline, Test
                     @test allunique(mlabs)
 
                     # check irrep dimension vs. label
-                    irDs = Crystalline.irdim.(pgirs)
+                    irDs = irdim.(pgirs)
                     mlabs_main = getfield.(match.(Ref(r"A|B|¹E|²E|E|T"), mlabs), Ref(:match))
                     for (irD, mlab_main) in zip(irDs, mlabs_main)
                         if irD == 1
@@ -35,7 +35,7 @@ using Crystalline, Test
                     if D == 3
                         if (idx⁻¹ = findfirst(op -> seitz(op) == "-1", g)) !== nothing
                             for (mlab, pgir) in zip(mlabs, pgirs)
-                                irD = Crystalline.irdim(pgir)
+                                irD = irdim(pgir)
                                 χ⁻¹ = characters(pgir)[idx⁻¹]
                                 if χ⁻¹ ≈ -irD # antisymmetric under inversion => ungerade
                                     @test occursin('ᵤ', mlab)

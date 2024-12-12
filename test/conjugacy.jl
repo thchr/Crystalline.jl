@@ -109,7 +109,7 @@ end # @testset "Conjugacy classes"
                 pg = pointgroup(pgiuc, Dᵛ)
                 if is_abelian(pg)
                     pgirs = pgirreps(pgiuc, Dᵛ)
-                    @test all(pgir -> Crystalline.irdim(pgir) == 1, pgirs)
+                    @test all(pgir -> irdim(pgir) == 1, pgirs)
                 end
             end
         end
@@ -125,7 +125,7 @@ end # @testset "Conjugacy classes"
                     if is_abelian(lg)
                         includes_ray_reps = any(lgir->Crystalline.israyrep(lgir)[1], lgirs)
                         if !includes_ray_reps
-                            @test all(lgir -> Crystalline.irdim(lgir) == 1, lgirs)
+                            @test all(lgir -> irdim(lgir) == 1, lgirs)
                         end
                     end
                 end

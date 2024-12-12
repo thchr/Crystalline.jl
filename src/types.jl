@@ -697,15 +697,23 @@ abstract type AbstractIrrep{D} end
 group(ir::AbstractIrrep) = ir.g
 label(ir::AbstractIrrep) = ir.cdml
 matrices(ir::AbstractIrrep) = ir.matrices
+
 """
     reality(ir::AbstractIrrep) --> Reality
 
 Return the reality of `ir` (see []`Reality`](@ref)).
 """
 reality(ir::AbstractIrrep) = ir.reality
+
+"""
+    irdim(ir::AbstractIrrep) --> Int
+
+Return the irrep dimension of the irrep `ir`. This is generally the size of the associated
+matrix, or, equivalently, the trace of the representation of the identity matrix in `ir`.
+"""
+irdim(ir::AbstractIrrep) = size(first(matrices(ir)), 1)
 translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
-irdim(ir::AbstractIrrep)  = size(first(matrices(ir)),1)
 klabel(ir::AbstractIrrep) = klabel(label(ir))
 order(ir::AbstractIrrep)  = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))

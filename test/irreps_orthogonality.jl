@@ -62,11 +62,15 @@ for (D, LGIRS) in enumerate(LGIRSDIM)
             Nₒₚ = order(first(lgirs))
             for (a, lgir⁽ᵃ⁾) in enumerate(lgirs) 
                 D⁽ᵃ⁾ = lgir⁽ᵃ⁾(αβγs[D])      # vector of irreps in (a)
-                dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾),1)
+                dim⁽ᵃ⁾ = size(first(D⁽ᵃ⁾), 1)
+
+                # test `irdim`
+                id_idx = something(findfirst(isone, group(lgir⁽ᵃ⁾)))
+                @test irdim(lgir⁽ᵃ⁾) == tr(lgir⁽ᵃ⁾.matrices[id_idx]) == dim⁽ᵃ⁾
 
                 for (β, lgir⁽ᵝ⁾) in enumerate(lgirs)
                     D⁽ᵝ⁾ = lgir⁽ᵝ⁾(αβγs[D])  # vector of irreps in (β)
-                    dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾),1)
+                    dim⁽ᵝ⁾ = size(first(D⁽ᵝ⁾), 1)
                     δₐᵦ = (a==β)
                     if a == β && debug
                         display(label(lgir⁽ᵃ⁾))
