@@ -71,12 +71,13 @@ export SymOperation,                        # types
        ⊕,
        israyrep,                            # ::LGIrrep
        isspecial,
+       irdim,
        dim, parts,                          # ::KVec & RVec
        irreplabels, klabels,                # ::BandRep & ::BandRepSet 
        isspinful
 
 include("types_symmetryvectors.jl")
-export SymmetryVector, NewBandRep, CompositeBandRep
+export SymmetryVector, SymmetryVectors, NewBandRep, CompositeBandRep
 export irreps, multiplicities, occupation
 
 include("notation.jl")

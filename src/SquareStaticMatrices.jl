@@ -47,7 +47,7 @@ IndexStyle(::Type{<:SqSMatrix}) = IndexCartesian()
 copy(A::SqSMatrix) = A # cf. https://github.com/JuliaLang/julia/issues/41918
 
 # ---------------------------------------------------------------------------------------- #
-# constructors and converters 
+# constructors and converters and method disambiguation
 @propagate_inbounds @inline function convert(::Type{SqSMatrix{D, T}}, A::AbstractMatrix) where {D,T}
     # TODO: this could be a little bit faster if we used a generated function as they do in
     #       for the StaticArrays ` unroll_tuple(a::AbstractArray, ::Length{L})` method...
@@ -63,6 +63,8 @@ function convert(::Type{SqSMatrix{D, T}}, cols::NTuple{D, NTuple{D, T}}) where {
     SqSMatrix{D,T}(cols)
 end
 
+# method disambigutation wrt. StaticArrays
+@propagate_inbounds SqSMatrix{D,T}(A::StaticMatrix{D,D,T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 @propagate_inbounds SqSMatrix{D,T}(A::AbstractMatrix) where {D,T}  = convert(SqSMatrix{D,T}, A)
 @propagate_inbounds SqSMatrix{D}(A::AbstractMatrix{T}) where {D,T} = convert(SqSMatrix{D,T}, A)
 @propagate_inbounds function SqSMatrix(A::AbstractMatrix{T}) where T

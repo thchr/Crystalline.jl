@@ -16,7 +16,7 @@ using Crystalline, Test
                     @test allunique(mlabs)
 
                     # check irrep dimension vs. label
-                    irDs = Crystalline.irdim.(pgirs)
+                    irDs = irdim.(pgirs)
                     mlabs_main = getfield.(match.(Ref(r"A|B|¹E|²E|E|T"), mlabs), Ref(:match))
                     for (irD, mlab_main) in zip(irDs, mlabs_main)
                         if irD == 1
@@ -35,7 +35,7 @@ using Crystalline, Test
                     if D == 3
                         if (idx⁻¹ = findfirst(op -> seitz(op) == "-1", g)) !== nothing
                             for (mlab, pgir) in zip(mlabs, pgirs)
-                                irD = Crystalline.irdim(pgir)
+                                irD = irdim(pgir)
                                 χ⁻¹ = characters(pgir)[idx⁻¹]
                                 if χ⁻¹ ≈ -irD # antisymmetric under inversion => ungerade
                                     @test occursin('ᵤ', mlab)
@@ -78,5 +78,18 @@ using Crystalline, Test
                 @test first(iuc(sgnum, D)) == centering(sgnum, D) == last(bravaistype(sgnum, D; normalize=false))
             end
         end
+    end
+
+    @testset "k-labels from irrep labels" begin
+        @test klabel("Γ") == "Γ" # idempotence
+        @test klabel("KA") == "KA"
+        @test klabel("KA′") == "KA′"
+        @test klabel("Γ₁⁺") == "Γ"
+        @test klabel("KA₁") == "KA"
+        @test klabel("Γ′₁⁻") == "Γ′" # monodromy-related k-points
+        @test klabel("KA′₁⁺") == "KA′"
+        @test klabel("2Γ′₁⁺-3Γ′₁⁻") == "Γ′" # for virtual/composite reps (e.g., 2T @ ω=0)
+        @test klabel("-2Ω₁+Ω₂") == "Ω"
+        @test klabel("₁") == "" # empty string if no k-label present
     end
 end
