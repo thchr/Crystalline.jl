@@ -41,7 +41,7 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
 
         @test KVec([0.0,1//1,2]) == KVec{3}("0,1,2") == KVec{3}([0.0,1//1,2])
         @inferred KVec{3}([0.0,1//1,2])
-        @test KVec{3}([0, 0.5, 0], [0 1 0; 0 1/2 1/2 -1/2 0 1/3]) == KVec{3}("β, 1/2+1/2β+1/2γ, -1/2α+1/3γ")
+        @test KVec{3}([0, 0.5, 0], [0 1 0; 0 1/2 1/2; -1/2 0 1/3]) == KVec{3}("β, 1/2+1/2β+1/2γ, -1/2α+1/3γ")
 
         @test zero(KVec{3}) == KVec{3}("0,0,0") == zero(KVec{3}("1,2,3"))
     end
