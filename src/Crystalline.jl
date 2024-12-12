@@ -77,7 +77,7 @@ export SymOperation,                        # types
        isspinful
 
 include("types_symmetryvectors.jl")
-export SymmetryVector, NewBandRep, CompositeBandRep
+export SymmetryVector, SymmetryVectors, NewBandRep, CompositeBandRep
 export irreps, multiplicities, occupation
 
 include("notation.jl")

@@ -114,6 +114,129 @@ function Base.parse(
     end
     return SymmetryVector(lgirsv, multsv, μ)
 end
+
+# ::: Construction from multiplicities, irreps, and Collection{<:LGIrrep} :::
+# ---------------------------------------------------------------------------------------- #
+
+"""
+    SymmetryVector(
+        nv :: AbstractVector{<:Integer},
+        irlabs_nv :: AbstractVector{<:AbstractString},
+        lgirsd :: AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) --> SymmetryVector{D}
+
+Build a structured `SymmetryVector` representation of a "raw" vector `nv` of irrep
+multiplicities, whose `i`th element gives the irrep multiplicity of the irrep whose label 
+is `irlabs_nv[i]`. The corresponding full irrep information is inferred by comparison of
+labels in `irlabs_nv` and a provided set of covering irreps in `lgirsd`.
+
+The raw vector `nv` must contain its band occupation number as its last element.
+The `irlabs_nv` vector must consequently have length `length(nv)-1`.
+
+The sorting of irrep labels in `lgirsd` and (`nv`, `irlabs_nv`) is allowed to differ: this
+is the main utility of the function: to map between differently sorted raw vectors and a
+structured irrep storage in `lgirsd`.
+"""
+function SymmetryVector(
+            nv::AbstractVector{<:Integer},
+            irlabs_nv::AbstractVector{String},
+            lgirsd::AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) where D
+
+    klabs = klabel.(unique(klabel, irlabs_nv))
+    Nk = length(klabs)
+    multsv = [Int[] for _ in 1:Nk]
+    lgirsv = [LGIrrep{D}[] for _ in 1:Nk]
+    j = 1
+    for (nᵢ, irlabᵢ) in zip(nv, irlabs_nv)
+        klabᵢ = klabel(irlabᵢ)
+        if klabᵢ != klabs[j]
+            j += 1
+        end
+        push!(multsv[j], nᵢ)
+
+        # find associated irrep in `lgirsd[klabᵢ]`
+        lgirsⱼ = lgirsd[klabᵢ]
+        iridxᵢ = findfirst(lgir -> label(lgir) == irlabᵢ, lgirsⱼ)
+        if isnothing(iridxᵢ)
+            _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
+        else
+            push!(lgirsv[j], lgirsⱼ[something(iridxᵢ)])
+        end
+    end
+    lgirsv = [Collection(lgirs) for lgirs in lgirsv]
+    if length(nv) ≠ length(irlabs_nv)+1
+        error("n must contain its band connectivity")
+    end
+    μ = nv[end]
+    return SymmetryVector{D}(lgirsv, multsv, μ)
+end
+
+"""
+    SymmetryVectors(
+        nvs :: AbstractVector{<:Integer},
+        irlabs_nv :: AbstractVector{<:AbstractString},
+        lgirsd :: AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) 
+                                                            --> Vector{SymmetryVector{D}}
+
+Similar to
+[`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)](@ref),
+but for a vector of distinct raw multiplicy vectors `nvs`, rather than a single vector,
+returning a `Vector{SymmetryVector{D}}`.
+
+The returned `SymmetryVector`s, `ns`, will share the same underlying irrep information such
+that `irreps(n) === irreps(n′)` for all `n` and `n′` in `ns`.
+"""
+function SymmetryVectors(
+            nvs::AbstractVector{<:AbstractVector{<:Integer}},
+            irlabs_nv::AbstractVector{String},
+            lgirsd::AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) where D
+
+    isempty(nvs) && return SymmetryVector{D}[]
+
+    klabs = klabel.(unique(klabel, irlabs_nv))
+    Nk, Nir = length(klabs), length(irlabs_nv)
+    j = 1
+    sortidxs = Vector{Tuple{Int, Int}}(undef, Nir)
+    lgirsv = [Collection(LGIrrep{D}[]) for _ in 1:Nk] # to be shared across all `ns`
+    max_qs = zeros(Int, Nk)
+    for (i, irlabᵢ) in enumerate(irlabs_nv)
+        klabᵢ = klabel(irlabᵢ)
+        j = @something(findfirst(==(klabᵢ), klabs),
+                       error(lazy"failed to associate irrep $irlabᵢ to k-labels $klabs"))
+        q = (max_qs[j] += 1)
+        sortidxs[i] = (j, q)
+
+        # find associated irrep in `lgirsd[klabᵢ]`
+        lgirsⱼ = lgirsd[klabᵢ]
+        iridxᵢ = findfirst(lgir -> label(lgir) == irlabᵢ, lgirsⱼ)
+        if isnothing(iridxᵢ)
+            _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
+        else
+            push!(parent(lgirsv[j]), lgirsⱼ[something(iridxᵢ)])
+        end
+    end
+
+    ns = Vector{SymmetryVector{D}}(undef, length(nvs))
+    for (r, nv) in enumerate(nvs)
+        if length(nv) ≠ length(irlabs_nv)+1
+            error("`nv` must contain its band connectivity")
+        end
+        μ = nv[end]
+        multsv = [Vector{Int}(undef, length(lgirs)) for lgirs in lgirsv]
+        for i in eachindex(irlabs_nv)
+            j, q = sortidxs[i]
+            multsv[j][q] = nv[i]
+        end
+        ns[r] = SymmetryVector(lgirsv, multsv, μ)
+    end
+
+    return ns
+end
+
+@noinline function _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
+    error("failed to find an irrep label \"$irlabᵢ\" in `lgirsd`; available irrep labels \
+           at the considered k-point were $(label.(lgirsⱼ))")
+end
+
 # ---------------------------------------------------------------------------------------- #
 # AbstractSymmetryVector interface & shared implementation
 
