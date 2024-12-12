@@ -21,9 +21,14 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 
 [weakdeps]
 GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
+PhotonicBandConnectivity = "d7bc101a-f969-4292-96d7-1ebdabfa903f"
 
 [extensions]
 BandGraphsGraphMakieExt = "GraphMakie"
+BandGraphsPhotonicBandConnectivityExt = "PhotonicBandConnectivity"
+
+[sources]
+PhotonicBandConnectivity = {url="https://github.com/thchr/PhotonicBandConnectivity.jl"}
 
 [compat]
 GraphMakie = "0.5"
@@ -32,4 +37,5 @@ julia = "1.6"
 
 [extras]
 GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
+PhotonicBandConnectivity = "d7bc101a-f969-4292-96d7-1ebdabfa903f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

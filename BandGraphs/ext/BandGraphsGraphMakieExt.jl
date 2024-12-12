@@ -198,6 +198,59 @@ function find_equal_maximal_layers(klabs_trail, partitions)
     return force_equal_layers
 end
 
+function find_virtual_rep_nodes_and_force_to_bottom(g_trail)
+    # force nodes associated with a transverse virtual rep at ω=0 (which we by convention
+    # have starting with `(`) are placed at the bottom of each layer
+    force_order = Pair{Int, Int}[]
+    for i in vertices(g_trail)
+        l = label_for(g_trail, i)
+        irlab = l[1]
+        first(irlab) == '(' || continue # interpret as transverse virtual rep, pinned to ω=0
+        trailidx = g_trail[l].trailidx
+        for i′ in vertices(g_trail)
+            i == i′ && continue
+            trailidx′ = g_trail[label_for(g_trail, i′)].trailidx
+            trailidx == trailidx′ && push!(force_order, i′ => i)
+        end
+    end
+    return force_order
+end
+
+function move_vrep_to_bottom!(ys, g_trail)
+    # make sure nodes associated with a transverse virtual rep at ω=0 (which we by
+    # convention have starting with `(`) are placed at the bottom of the plot, not just in
+    # node ordering within each layer, but also globally
+    miny, maxy = extrema(ys)
+    # find average spacing between nodes within each layer
+    seen_trailidx = Set{Int}()
+    Δys = Float64[]
+    for i in vertices(g_trail)
+        trailidx = g_trail[label_for(g_trail, i)].trailidx
+        trailidx ∈ seen_trailidx && continue
+        push!(seen_trailidx, trailidx)
+
+        ys_layer = [ys[i]]
+        for i′ in vertices(g_trail)
+            i == i′ && continue
+            trailidx′ = g_trail[label_for(g_trail, i′)].trailidx
+            trailidx == trailidx′ && push!(ys_layer, ys[i′])
+        end
+        length(ys_layer) <= 1 && continue
+        Δy = sum(diff(sort!(ys_layer)))/(length(ys_layer)-1)
+        push!(Δys, Δy)
+    end
+    global_Δy = maxy-miny
+    filter!(>(1e-2*global_Δy), Δys)
+    Δy = !isempty(Δys) ? minimum(Δys) : (global_Δy>1e-2 ? global_Δy*.25 : 1.0)
+    for i in vertices(g_trail)
+        l = label_for(g_trail, i)
+        irlab = l[1]
+        first(irlab) == '(' || continue
+        ys[i] = miny - Δy
+    end
+    return ys
+end
+
 # the y-coordinates returned by `solve_positions` often make the paths/edges through the
 # nonmaximal irrep "jagged" unnecessarily (essentially, an artifact of us treating the 
 # nonmaximal irreps as nodes in the `g_trail` graph, instead of having a proper multigraph);

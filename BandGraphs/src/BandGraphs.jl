@@ -140,11 +140,16 @@ end
 # then actually fill in extension module
 function plot_flattened_bandgraph end
 function make_vertices_dragable! end
+function add_transverse_vrep! end
+function exfiltrate_transverse_vrep end
 export plot_flattened_bandgraph, make_vertices_dragable!
 @static if !isdefined(Base, :get_extension)
     function __init__()
         @require GraphMakie="1ecd5474-83a3-4783-bb4f-06765db800d2" begin
             include("../ext/BandGraphsGraphMakieExt.jl")
+        end
+        @require PhotonicBandConnectivity="d7bc101a-f969-4292-96d7-1ebdabfa903f" begin
+            include("../ext/BandGraphsPhotonicBandConnectivityExt.jl")
         end
     end
 end
