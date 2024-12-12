@@ -79,4 +79,17 @@ using Crystalline, Test
             end
         end
     end
+
+    @testset "k-labels from irrep labels" begin
+        @test klabel("Γ") == "Γ" # idempotence
+        @test klabel("KA") == "KA"
+        @test klabel("KA′") == "KA′"
+        @test klabel("Γ₁⁺") == "Γ"
+        @test klabel("KA₁") == "KA"
+        @test klabel("Γ′₁⁻") == "Γ′" # monodromy-related k-points
+        @test klabel("KA′₁⁺") == "KA′"
+        @test klabel("2Γ′₁⁺-3Γ′₁⁻") == "Γ′" # for virtual/composite reps (e.g., 2T @ ω=0)
+        @test klabel("-2Ω₁+Ω₂") == "Ω"
+        @test klabel("₁") == "" # empty string if no k-label present
+    end
 end
