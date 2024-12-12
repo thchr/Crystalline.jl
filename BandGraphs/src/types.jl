@@ -1,52 +1,3 @@
-# ---------------------------------------------------------------------------------------- #
-
-"""
-    SymmetryVector(nv, irlabs_nv, lgirsd)
-
-Build a structured representation of a symmetry vector `nv` whose entries correspond to the
-irrep labels in `irlabs_nv`, mapping these labels to the full irrep information provided in
-`lgirsd`.
-Note that the sorting of labels in `lgirsd` and (`nv`, `irlabs_nv`) is allowed to differ.
-"""
-function Crystalline.SymmetryVector(
-            nv::AbstractVector{<:Integer},
-            irlabs_nv::AbstractVector{String},
-            lgirsd::Dict{String, <:AbstractVector{LGIrrep{D}}}) where D
-    klabs = unique(klabel.(irlabs_nv))
-    Nk = length(klabs)
-    multsv = [Int[] for _ in 1:Nk]
-    lgirsv = [LGIrrep{D}[] for _ in 1:Nk]
-    j = 1
-    for (nᵢ, irlabᵢ) in zip(nv, irlabs_nv)
-        klabᵢ = klabel(irlabᵢ)
-        if klabᵢ != klabs[j]
-            j += 1
-        end
-        push!(multsv[j], nᵢ)
-
-        # find associated irrep in `lgirsd[klabᵢ]`
-        lgirsⱼ = lgirsd[klabᵢ]
-        iridxᵢ = findfirst(lgir -> label(lgir) == irlabᵢ, lgirsⱼ)
-        if isnothing(iridxᵢ)
-            _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
-        else
-            push!(lgirsv[j], lgirsⱼ[something(iridxᵢ)])
-        end
-    end
-    lgirsv = [Collection(lgirs) for lgirs in lgirsv]
-    if length(nv) ≠ length(irlabs_nv)+1
-        error("n must contain its band connectivity")
-    end
-    μ = nv[end]
-    return SymmetryVector{D}(lgirsv, multsv, μ)
-end
-function _throw_failed_to_find_irrep(irlabᵢ, lgirsⱼ)
-    error("failed to find an irrep label \"$irlabᵢ\" in `lgirsd`; available irrep labels \
-           at the considered k-point were $(label.(lgirsⱼ))")
-end
-
-# ---------------------------------------------------------------------------------------- #
-
 struct Partition{D}
     klab      :: String
     lgirs     :: Vector{LGIrrep{D}}
@@ -57,7 +8,7 @@ struct Partition{D}
 end
 Base.length(p::Partition) = length(p.lgirs)
 Crystalline.irreplabels(p::Partition) = label.(p.lgirs)
-irdims(p::Partition) = Crystalline.irdim.(p.lgirs)
+irdims(p::Partition) = irdim.(p.lgirs)
 
 function Base.show(io :: IO, p :: Partition)
     Nir = length(p.lgirs)
@@ -91,7 +42,7 @@ function Base.show(io :: IO, s :: SubGraph)
         js = findall(!iszero, @view s.A[i,:])
         for (nⱼ,j) in enumerate(js)
             lgirⱼ = s.p_nonmax.lgirs[j]
-            multiplicity = s.A[i,j] // Crystalline.irdim(lgirⱼ)
+            multiplicity = s.A[i,j] // irdim(lgirⱼ)
             isone(multiplicity) || print(io, multiplicity)
             print_identified_lgir_label(io, lgirⱼ, s.p_nonmax, j)
             nⱼ == length(js) || print(io, " + ")
@@ -162,7 +113,7 @@ function Crystalline.occupation(bandg::BandGraph)
     μ = sum(irdim, first(partitions).lgirs)
     for p in @view partitions[2:end]
         if sum(irdim, p.lgirs) ≠ μ
-            error("uneqal number of bands in different partitions!")
+            error("unequal number of bands in different partitions!")
         end
     end
     return μ
@@ -270,10 +221,22 @@ mutable struct SubGraphPermutations{D} <: AbstractSubGraph{D}
     permutations   :: Union{Nothing, VectorProductIterator{Vector{Int}}}
     cols_or_rows   :: ColsOrRowsEnum # permutate over columns or rows of `subgraph.A`
     pinned         :: Bool
+    is_chained     :: Bool
+    chains_others  :: Union{Nothing, Vector{Int}}
+    # TODO: Change type to `VectorProductIterator{Int}` if possible
+end
+function SubGraphPermutations{D}(
+    subgraph::SubGraph{D}, permutations, cols_or_rows::ColsOrRowsEnum, pinned::Bool) where D
+    SubGraphPermutations{D}(subgraph, permutations, cols_or_rows, pinned, false, nothing)
+end
+function SubGraphPermutations(
+    subgraph::SubGraph{D}, permutations, cols_or_rows::ColsOrRowsEnum, pinned::Bool) where D
+    SubGraphPermutations{D}(subgraph, permutations, cols_or_rows, pinned, false, nothing)
+end
 
 function Base.length(subgraph_ps :: SubGraphPermutations)
     permutations = subgraph_ps.permutations
-    return isnothing(permutations) ? 1 : length(permutations)
+    return isnothing(permutations) ? 1 : subgraph_ps.pinned ? 1 : length(permutations)
 end
 
 function Base.iterate(subgraph_ps :: SubGraphPermutations)
@@ -332,11 +295,54 @@ function Base.getindex(subgraph_ps::SubGraphPermutations{D}, idx::Integer) where
     end    
     return SubGraph{D}(subgraph.p_max, subgraph.p_nonmax, A, subgraph.monodromy_tie_via_Ω)
 end
+
+function Base.show(io::IO, s_ps::SubGraphPermutations)
+    print(io, s_ps.subgraph)
+    print(io, ": ")
+    print_subgraph_permutation_info(io, s_ps)
+end
+
+function print_subgraph_permutation_info(io::IO, s_ps::SubGraphPermutations)
+    if s_ps.permutations === nothing
+        printstyled(io, "unpermuted"; color=:light_black)
+        if s_ps.pinned
+            printstyled(io, " & "; color=:light_black)
+            printstyled(io, "pinned"; color=:green, bold=true)
+        end
+    else
+        if s_ps.pinned
+            printstyled(io, "pinned"; color=:green, bold=true)
+        else
+            if s_ps.is_chained
+                printstyled(io, "chained"; color=:green, bold=true)
+            else
+                if s_ps.cols_or_rows == COLS
+                    printstyled(io, "col"; color=:red)
+                else
+                    printstyled(io, "row"; color=:red)
+                end
+                printstyled(io, "-permuted"; color=:red)
+                printstyled(io, " (", length(s_ps.permutations), ")"; color=:light_black)
+            end
+        end
+    end
+    if !isnothing(s_ps.chains_others)
+        printstyled(io, " & "; color=:light_black)
+        printstyled(io, "chains ", join(s_ps.chains_others, ", "); color=:yellow)
+    end
+end
+
 # ---------------------------------------------------------------------------------------- #
 
 struct BandGraphPermutations{D} <: AbstractVector{BandGraph{D}}
     partitions   :: Vector{Partition{D}}
     subgraphs_ps :: Vector{SubGraphPermutations{D}}
+end
+
+function BandGraphPermutations(bandg::BandGraph{D}; kws...) where D
+    subgraphs_ps = permute_subgraphs(bandg.subgraphs; kws...)
+    isnothing(subgraphs_ps) && return nothing
+    return BandGraphPermutations{D}(bandg.partitions, subgraphs_ps)
 end
 
 # NB: Since the number of permutations potentially can be very, very large - larger than
@@ -348,7 +354,9 @@ function Base.length(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
     n = 1
     for subgraph_ps in subgraphs_ps
-        n = Base.checked_mul(n, length(subgraph_ps)) # check for & throw on overflow
+        if !subgraph_ps.is_chained
+            n = Base.checked_mul(n, length(subgraph_ps)) # check for & throw on overflow
+        end
     end
     return n
 end
@@ -358,34 +366,11 @@ function safe_length(bandgp :: BandGraphPermutations)
     subgraphs_ps = bandgp.subgraphs_ps
     n = one(BigInt)
     for subgraph_ps in subgraphs_ps
-        n = Base.checked_mul(n, length(subgraph_ps)) # check for & throw on overflow
+        if !subgraph_ps.is_chained
+            n *= length(subgraph_ps)
+        end
     end
     return n
-end
-
-function permutation_counts(bandgp :: BandGraphPermutations)
-    subgraphs_ps = bandgp.subgraphs_ps
-    return [length(subgraph_ps) for subgraph_ps in subgraphs_ps]
-end
-
-function permutation_info(bandgp :: BandGraphPermutations)
-    subgraphs_ps = bandgp.subgraphs_ps
-    n = BigInt(1)
-    foreach(subgraphs_ps) do subgraph_ps
-        subgraph = subgraph_ps.subgraph
-        Np = length(subgraph_ps) # aggregate number of distinct same-irrep permutations, across irreps
-        if subgraph_ps.cols_or_rows ≠ UNPERMUTED
-            n *= Np
-        end
-        printstyled(stdout,
-            subgraph.p_max.klab, " → ", subgraph.p_nonmax.klab, ": ",
-            Np,
-            subgraph_ps.pinned ? "\t(pinned)" : "";
-            color=subgraph_ps.pinned ? :light_black : :normal)
-        println(stdout)
-    end
-    println(stdout,     "Total permutations:          ", n)
-    println(stdout)
 end
 
 function Base.getindex(
@@ -398,7 +383,7 @@ function Base.getindex(
 
     # Conceptually, we now want to find the `idx`th permutation from the following set of
     # ranges:
-    #       counts = permutation_counts(bandgp)
+    #       counts = length.(bandgp.subgraphs_ps)
     #       (1:counts[1], 1:counts[2], ..., 1:counts[end])
     # This is equivalent to the following linear-index-to-subscript-index problem:
     #       CartesianIndices(Tuple(counts))[idx]
@@ -409,12 +394,42 @@ function Base.getindex(
     @boundscheck 1 ≤ idx ≤ length(bandgp) || throw(BoundsError(bandgp, idx))
     idx = idx-1
     for (i, subgraph_ps) in enumerate(subgraphs_ps)
+        subgraph_ps.is_chained && continue # will be treated by the chaining subgraph
+        
         r1 = length(subgraph_ps) # `= counts[i]`
         idx′ = div(idx, r1)
         sub_idx_i = idx - r1*idx′ + 1 # `i`th subscript in the linear-to-subscript problem
         idx = idx′
 
         subgraphs[i] = subgraph_ps[sub_idx_i]
+
+        if !isnothing(subgraph_ps.chains_others)
+            # use the same permutation index (not necessarily same matrix, since rows may
+            # differ in sorting) for all chained subgraphs
+            chain_idxs = something(subgraph_ps.chains_others)
+            for j in chain_idxs
+                subgraphs[j] = subgraphs_ps[j][sub_idx_i]
+            end
+        end
     end
     return BandGraph{D}(subgraphs, partitions)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", bandgp::BandGraphPermutations)
+    println(io, length(bandgp), "-element BandGraphPermutations over subgraph permutations:")
+    for (i, subgraph_ps) in enumerate(bandgp.subgraphs_ps)
+        print(io, " ", subgraph_ps)
+        i == length(bandgp.subgraphs_ps) || println(io)
+    end
+end
+
+function Base.show(io::IO, bandgp::BandGraphPermutations)
+    print(io, "BandGraphPermutations[")
+    for (i, subgraph_ps) in enumerate(bandgp.subgraphs_ps)
+        print(io, subgraph_ps.subgraph.p_max.klab, " ↓ ", 
+                  subgraph_ps.subgraph.p_nonmax.klab, " (")
+        print_subgraph_permutation_info(io, subgraph_ps)
+        print(io, ")")
+        i == length(bandgp.subgraphs_ps) || print(io, ", ")
+    end
 end

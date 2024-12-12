@@ -5,20 +5,19 @@ using BandGraphs
 using SymmetryBases
 using GraphMakie
 using GLMakie
-using Crystalline: irdim
 using ProgressMeter
 
 # --------------------------------------------------------------------------------------- #
 
 D = 3
 timereversal = true
-criterion = (lgir) -> isspecial(lgir) && irdim(lgir) == 4
-separable_degree = 2
-check_sgnums = 1:230
+criterion = (lgir) -> isspecial(lgir) && irdim(lgir) == 2
+separable_degree = nothing
+check_sgnums = 1:MAX_SGNUM[D]
 
 contenders = Dict{Int, Vector{SymmetryVector{D}}}()
 for sgnum in check_sgnums
-    #sgnum in (47, 123) && continue # skip to be fast
+    sgnum in (47, 83, 123) && continue # skip to be fast
     lgirsd = lgirreps(sgnum, D)
     timereversal && realify!(lgirsd)
     
@@ -88,10 +87,6 @@ infeasible = Dict{Int, Vector{Tuple{SeparabilityState, SymmetryVector{D}}}}()
 
 sgnums = sort!(collect(keys(contenders)))
 for sgnum in sgnums
-    sgnum == 130 && continue
-    #sgnum ∈ (200, 205) && continue # stuck
-    #sgnum > 199 && continue # slow
-    #sgnum > 197 && continue
     ns = contenders[sgnum]
     subts = subduction_tables(sgnum, D; timereversal)
     lgirsd = timereversal ? realify!(lgirreps(sgnum, D)) : lgirreps(sgnum, D)
@@ -106,18 +101,16 @@ for sgnum in sgnums
     progress_count = Threads.Atomic{Int}(0)
 
     t₀ = time()
-    Threads.@threads for i in eachindex(ns)
+    for i in eachindex(ns)
         n = ns[i]
         sep, bandg_splits = findall_separable_vertices(
                                 criterion, n, subts, lgirsd; 
-                                max_permutations = 1e6,
+                                max_permutations = 1e4,
                                 separable_degree = separable_degree,
-                                max_subblock_permutations = 1e6)
+                                max_subblock_permutations = 1e4,
+                                with_weyl_filter = true)
         accumulate_results[i] = (sep, bandg_splits)
-
-        # print progress
-        print_status(t₀, N_ns, progress_count[], separable_count[], feasible_count[], infeasible_count[])
-        
+       
         # update progress counters
         if is_separable(sep)
             Threads.atomic_add!(separable_count, 1)  # atomic `separable_count += 1`
@@ -127,6 +120,9 @@ for sgnum in sgnums
             Threads.atomic_add!(infeasible_count, 1) # atomic `infeasible_count += 1`
         end
         Threads.atomic_add!(progress_count, 1) # atomic `progress_count += 1`
+        
+        # print progress
+        print_status(t₀, N_ns, progress_count[], separable_count[], feasible_count[], infeasible_count[])
     end
     print("\r\e[K") # clear last progress line
 
@@ -150,7 +146,7 @@ for sgnum in sgnums
         printstyled("   $(length(separable[sgnum])) separable configurations\n"; color=:green)
     end
     if haskey(infeasible, sgnum)
-        min_perms, max_perms = extrema(something.(getfield.(getindex.(infeasible[sgnum], 1), Ref(:permutations))))
+        min_perms, max_perms = extrema(filter(!isnothing, (getfield.(getindex.(infeasible[sgnum], 1), Ref(:permutations)))))
         printstyled("   $(length(infeasible[sgnum])) infeasible configurations ($min_perms to $max_perms permutations)\n"; color=:red)
     end
     if haskey(inseparable, sgnum)

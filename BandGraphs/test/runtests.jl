@@ -71,7 +71,6 @@ f
 # Create a permuted graph (a single subgraph permutation) and compare
 subgraphs_ps = permute_subgraphs(bandg.subgraphs);
 bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
-BandGraphs.permutation_info(bandgp)
 length(bandgp) > 10 && @info("Be warned: many permutations ($(length(bandgp)))")
 
 GLMakie.closeall()
@@ -103,7 +102,7 @@ let sgnum = 96, D = 3 # 200
         subgraphs_ps = permute_subgraphs(bandg.subgraphs)
         bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
         println(n)
-        BandGraphs.permutation_info(bandgp)
+        show(stdout, bandgp)
         println()
     end
 end

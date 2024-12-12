@@ -193,15 +193,16 @@ function _complete_split(
                 affected_subgraphs_row_permutations[i] = nothing
                 break
             end
-            new_rows_in_A .+= row_in_A - 1 # go from 1-based to `row_in_A`-based indexing
+            new_rows_in_A .+= size(A,1) - 1 # go from 1-based to referencing the last row 
+            # in `A`, which is where the new split vertices will be placed:
             # `new_rows_in_A` covers a contiguous set of the rows of the new split-subgraph
             # adjacency block, but not necessarily consecutively. I cannot wrap my head
             # around whether this could be expressed using a `VectorProductIterator` as we
             # do for `SubGraphPermutations` but it doesn't matter: there can be at most 
             # 720 permutations (`factorial(max(irdim))` = 6!) of this kind, so we can just
             # list them out explicitly
-            row_permutation = collect(1:(size(A, 1)+irdim-1))
-            row_permutation[row_in_A:row_in_A+irdim-1] .= new_rows_in_A
+            row_permutation = collect(1:(size(A,1)+irdim-1))
+            row_permutation[size(A,1):size(A,1)+irdim-1] .= new_rows_in_A
             push!(affected_subgraphs_row_permutations[i], row_permutation)
         end
     end
@@ -426,4 +427,20 @@ function has_path_with_workarrays!(
         end
     end
     return false
+end
+
+
+function nv_after_split(bandg, v)
+    lgir = v[1]
+    irdim_v = irdim(lgir)
+    # after split, there will be `irdim_v - 1` extra vertices in the graph - except if the
+    # vertex `v` has a monodromy partner, then there will be `2(irdim_v - 1)` extra vertices
+    # check if vertex has a monodromy-related partner; if so, it must be split with `v`
+    klab = klabel(lgir)
+    irlab′ = klab * "′"
+    has_monodromy_partner = any(bandg.partitions) do p
+        p.maximal && p.klab == irlab′
+    end
+    extra_nv = has_monodromy_partner ? 2(irdim_v - 1) : irdim_v - 1
+    return nv(bandg) + extra_nv
 end

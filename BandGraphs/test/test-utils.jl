@@ -1,3 +1,4 @@
+import BandGraphs: subduction_table
 
 function dummy_lgirrep(irlab, irdim, special::Bool=true, D=3)
     klab = filter(isletter, irlab)

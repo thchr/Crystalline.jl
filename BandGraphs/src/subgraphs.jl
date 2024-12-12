@@ -39,9 +39,11 @@ function build_subgraphs(
         else
             kidx += 1
         end
-        @assert replace.(s.irlabsᴳ, Ref('′'=>"")) == label.(irreps(n)[idx]) # verify assumption used below
-        
-        lgirs_max′ = map(enumerate(irreps(n)[idx])) do (i,lgir)
+
+        s_irlabs_canonicalized = replace.(s.irlabsᴳ, Ref('′'=>""))
+        lgirs_max′ = map(irreps(n)[idx]) do lgir
+            i = @something(findfirst(==(label(lgir)), s_irlabs_canonicalized),
+                           error(lazy"failed to find label $(label(lgir)) among $s_irlabs_canonicalized"))
             LGIrrep{D}(s.irlabsᴳ[i], lgir.g, lgir.matrices, lgir.translations, lgir.reality,
                        lgir.iscorep)
         end
@@ -69,6 +71,7 @@ function build_subgraphs(
 
             # first, find and aggregate all the non-maximal irrep-labels as nodes, without
             # taking any care about the order of them in `irlabs`
+            lgirs_nonmax = lgirsd[klab_nonmax]
             lgirs = LGIrrep{D}[]
             for lgir_max in p_max.lgirs
                 irlab_max = label(lgir_max)
@@ -77,7 +80,6 @@ function build_subgraphs(
                     if nᴴ == 0
                         continue
                     else
-                        lgirs_nonmax = lgirsd[klab_nonmax]
                         iridxᴴ = findfirst(lgir->label(lgir)==irlabᴴ, lgirs_nonmax)
                         if isnothing(iridxᴴ)
                             _throw_failed_to_find_irrep(irlabᴴ, lgirs_nonmax)
@@ -107,7 +109,7 @@ function build_subgraphs(
             push!(partitions_nonmax, p_nonmax)
         end
     end
-    
+
     # build all the subgraphs that make up the full graph
     subgraphs = SubGraph{D}[]
     for p_max in partitions_max # maximal k-manifolds
@@ -134,9 +136,9 @@ function build_subgraphs(
                         for _ in 1:v
                             while true
                                 r = something(findnext(lgir->label(lgir)==irlab_nonmax,
-                                              lgirs_nonmax, r+1))
+                                                       lgirs_nonmax, r+1))
                                 if iszero(Aᵢⱼ[:,r])
-                                    Aᵢⱼ[q,r] = Crystalline.irdim(lgirs_nonmax[r])
+                                    Aᵢⱼ[q,r] = irdim(lgirs_nonmax[r])
                                     break
                                 end
                             end

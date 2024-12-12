@@ -50,7 +50,7 @@ for sgnum in 1:230
         bandg = build_subgraphs(n, subts, lgirsd)
         subgraphs_ps = permute_subgraphs(bandg.subgraphs)
         bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps)
-        n_permutations += prod(BigInt.(BandGraphs.permutation_counts(bandgp)))
+        n_permutations += length(bandgp)
     end
     checked_vectors_d[sgnum] = checked_vectors
     n_permutations_d[sgnum] = n_permutations

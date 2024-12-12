@@ -1,11 +1,11 @@
 module BandGraphs
 
 using Crystalline
-using Crystalline: irdim, AbstractSymmetryVector
+using Crystalline: irdim, AbstractSymmetryVector, klabel, label
 using JLD2: jldopen
 using PrettyTables
 using LinearAlgebra
-using Graphs: Graph, Edge, add_vertex!, add_edge!
+using Graphs: Graph, Edge, add_vertex!, add_edge!, Graphs
 using MetaGraphsNext
 using Combinatorics: permutations # for `set_pinned_subgraphs!`
 using BlockArrays: BlockArray, Block # for `assemble_adjacency`
@@ -19,6 +19,7 @@ export
     Partition,
     SubGraph,
     BandGraph,
+    BandGraphPermutations,
     chinese_postman,
     build_subgraphs,
     assemble_adjacency,
@@ -89,21 +90,24 @@ Return a vector of `SubductionTable`s from stored tabulations, with (`timerevers
 or without (`timereversal = false`) time-reversal symmetry in space group `sgnum`.
 """
 function subduction_tables(sgnum::Integer, ::Val{D}=Val(3); timereversal::Bool=true) where D
+    local subts
     if D == 3
         if timereversal
-            return SUBDUCTIONSD_TR_3D[sgnum]::Vector{SubductionTable{3}}
+            subts = SUBDUCTIONSD_TR_3D[sgnum]::Vector{SubductionTable{3}}
         else
-            return SUBDUCTIONSD_3D[sgnum]::Vector{SubductionTable{3}}
+            subts = SUBDUCTIONSD_3D[sgnum]::Vector{SubductionTable{3}}
         end
     elseif D == 2
         if timereversal
-            return SUBDUCTIONSD_TR_2D[sgnum]::Vector{SubductionTable{2}}
+            subts = SUBDUCTIONSD_TR_2D[sgnum]::Vector{SubductionTable{2}}
         else
-            return SUBDUCTIONSD_2D[sgnum]::Vector{SubductionTable{2}}
+            subts = SUBDUCTIONSD_2D[sgnum]::Vector{SubductionTable{2}}
         end
     else
         throw(DomainError(D, "dimension must be 1, 2, or 3"))
     end
+    return [SubductionTable{D}(sgnum, subt.c, copy(subt.irlabsᴳ), copy(subt.irlabsᴴ),
+                               copy(subt.table), subt.monodromy) for subt in subts]
 end
 function subduction_tables(sgnum::Integer, D::Integer; timereversal::Bool=true)
     return subduction_tables(sgnum, Val(D); timereversal)

@@ -40,11 +40,12 @@ end
 
 function plot_flattened_bandgraph(
             bandg :: BandGraph;
-            xys = nothing
+            xys = nothing,
+            skip_monodromy_ties_via_Ω :: Bool = true
             )
 
     # compute a path `kg` that connects all required maximal and nonmaximal k manifolds
-    kg = partition_graph(bandg)
+    kg = partition_graph(bandg; skip_monodromy_ties_via_Ω)
 
     plot_flattened_bandgraph(bandg, kg; xys)
 end
@@ -68,8 +69,15 @@ function plot_flattened_bandgraph(
     if isnothing(xys)
         force_equal_layers = find_equal_maximal_layers(klabs_trail, bandg.partitions)
         force_layer = assign_layer_indices(g_trail)
-        xs, ys, _ = solve_positions(Zarate(), g_trail; force_layer, force_equal_layers)
+        force_order = find_virtual_rep_nodes_and_force_to_bottom(g_trail)
+        xs, ys, _ = solve_positions(Zarate(), g_trail; 
+                                    force_layer, force_order, force_equal_layers)
         ys = linearize_nonmaximal_y_coordinates(g_trail, ys)
+        if !isempty(force_order)
+            # means we have a virtual rep, representing a ω=0 transverse irrep; move assoc.
+            # `ys` values to be smaller than all others
+            move_vrep_to_bottom!(ys, g_trail)
+        end
     else
         xs, ys = xys
     end
@@ -156,9 +164,8 @@ end
 
 function find_equal_maximal_layers(klabs_trail, partitions)
     # NB: we normalize monodromy-related k-labels, with the intention of forcing equal
-    # frequency-position of same irreps at monodromy-related k-points. E.g., if we have
-    # Γ and Γ′, we force irreps Γᵢ and Γᵢ′ to have the same frequency (... would be nice
-    # to understand the physics/reasoning of this a bit better)
+    # frequency-position of same irreps at identical/monodromy-related k-points. E.g., if we
+    # have Γ and Γ′, we force irreps Γᵢ and Γᵢ′ to have the same frequency
     klabs_trail_normalized = rstrip.(klabs_trail, '′')
     seen = Set{Int}()
     force_equal_layers = Vector{Pair{Int,Int}}()

@@ -11,17 +11,35 @@ end
 is_separable(s::Separability) = s == SEPARABLE
 function is_feasible(s::Separability)
     return (s != INFEASIBLE_TOO_MANY_BANDGRAPH_PERMUTATIONS &&
-            s != INFEASIBLE_TOO_MANY_SPLIT_PERMUTATOINS)
+            s != INFEASIBLE_TOO_MANY_SPLIT_PERMUTATOINS && 
+            s != INFEASIBLE_TOO_MANY_SUBBLOCK_PERMUTATIONS)
 end
 
 struct SeparabilityState
     s :: Separability
-    permutations :: Union{Nothing, BigInt}
+    info :: Union{Nothing, BigInt}
 end
 SeparabilityState(s::Separability)  = SeparabilityState(s, nothing)
 is_separable(sepstate::SeparabilityState) = is_separable(sepstate.s)
 is_feasible(sepstate::SeparabilityState)  = is_feasible(sepstate.s)
 
+function Base.show(io::IO, sepstate::SeparabilityState)
+    s = sepstate.s
+    s_sym = Symbol(s)
+    if is_separable(s)
+        printstyled(io, s_sym, color=:green)
+    elseif !is_feasible(s)
+        printstyled(io, s_sym, color=:red)
+    else # inseparable, but feasible
+        printstyled(io, s_sym, color=:yellow)
+    end
+    if !isnothing(sepstate.info)
+        # TODO: print a bit more compactly via Printf's `@sprintf`?
+        printstyled(io, " (", sepstate.info, ")", color=:light_black)
+    end
+end
+
+# ---------------------------------------------------------------------------------------- #
 """
 Find all the vertices in a band graph `bandg` whose associated irrep `lgir` for which
 `criterion(lgir)` is true. 
@@ -88,7 +106,8 @@ function findall_separable_vertices(
             bandg :: BandGraph{D};
             max_permutations :: Union{Nothing, <:Real} = 1e5,
             separable_degree :: Union{Nothing, <: Integer} = nothing,
-            max_subblock_permutations :: Union{Nothing, <:Real} = 1e6
+            max_subblock_permutations :: Union{Nothing, <:Real} = 1e4,
+            with_weyl_filter :: Bool = true
         ) where {F,D}
     
     separable = Tuple{BandGraph{D}, BandGraph{D}, LGIrrep{D}}[]
@@ -103,7 +122,8 @@ function findall_separable_vertices(
     isempty(vs) && return SeparabilityState(INSEPARABLE_CANNOT_GROUP), nothing
     
     # move on to additional conditions which require us to look at individual permutations
-    subgraphs_ps = permute_subgraphs(bandg.subgraphs; max_subblock_permutations)
+    subgraphs_ps = permute_subgraphs(bandg.subgraphs;
+                                     max_subblock_permutations, with_weyl_filter)
     if isnothing(subgraphs_ps)
         return SeparabilityState(INFEASIBLE_TOO_MANY_SUBBLOCK_PERMUTATIONS), nothing
     end
@@ -146,9 +166,9 @@ function findall_separable_vertices(
     end
 
     if isempty(separable)
-        return SeparabilityState(INSEPARABLE_CANNOT_SPLIT), nothing
+        return SeparabilityState(INSEPARABLE_CANNOT_SPLIT, Nbandgp), nothing
     else
-        return SeparabilityState(SEPARABLE), separable
+        return SeparabilityState(SEPARABLE, Nbandgp), separable
     end
 end
 
@@ -259,8 +279,8 @@ end
 function is_separable_at_vertex_check_all_splits(
         bandg :: BandGraph{D}, 
         v :: Tuple{LGIrrep{D}, Int},
-        g :: Graph = Graph(nv(bandg)),                         # `bandg` work graph (mutated)
-        split_g :: Graph = Graph(nv(bandg) + irdim(v[1]) - 1); # `split_bandg` work graph (mutated)
+        g :: Graph = Graph(nv(bandg)),                      # `bandg` work graph (mutated)
+        split_g :: Graph = Graph(nv_after_split(bandg, v)); # `split_bandg` work graph (mutated)
         verbose :: Bool = true,
         separable_degree :: Union{Nothing, <:Integer} = nothing
     ) where D
@@ -274,7 +294,7 @@ function is_separable_at_vertex_check_all_splits(
 
     # --- "slow-path" checks ---
     # TODO: Return and pass through `INFEASIBLE_TOO_MANY_SPLIT_PERMUTATIONS` if there are 
-    #       too many splits    
+    #       too many splits
     splits_bandg = complete_split(bandg, v; separable_degree)
     isnothing(splits_bandg) && return nothing # no valid splits at `v`
 
@@ -320,13 +340,16 @@ function is_separable_at_vertex_check_all_splits(
             # graph (instead of the weighted and labelled `assemble_graph`) for efficiency
             split_N = count_connected_components(
                 split_g, work_countc_label, work_countc_search_queue; reset_label=true)
-            if split_N == separable_degree
+            if split_N >= separable_degree
                 return split_bandg
             end
         end
     else
         # CASE 2: original band graph is not fully connected - harder to check separability
         #         (the distinct components may involve different partitions)
+        if verbose
+            printstyled("... entered \"case 2\": original band graph is not fully connected\n"; color=:yellow)
+        end
         split_surrogate_irlab = label(split_lgir) * "ˣ" # label for irrep after split
         for split_bandg in splits_bandg # iterate over split permutations
             split_g = assemble_simple_graph!(split_g, split_bandg; reset_edges = true)
@@ -337,18 +360,20 @@ function is_separable_at_vertex_check_all_splits(
             end
             split_bandg_cs = group_partition_connected_components(split_bandg, split_g)
             ijs = findall_vertices_in_components(split_bandg_cs, split_surrogate_irlab)
+            # elements of `ijs`: * `ijs[1]`: partition-connected component index
+            #                    * `ijs[2]`: energy-connected component index
 
             # after split, there must be at least `separable_degree` components that
             # each contain a "split surrogate" vertex; if not, no need to look further
-            length(ijs) == separable_degree || continue
+            length(ijs) >= separable_degree || continue
 
             # now we must check if it is possible to group the "split-off" components into
             # isolated band graphs, each with a consistent occupation number
-            i = first(first(ijs)) # index into `partition-group` in `split_bandg_cs`
-            @assert all(ij -> ij[1] == i, ijs)
+            i = first(first(ijs)) # index into "partition-group" in `split_bandg_cs`
+            @assert all(ij -> ij[1] == i, ijs) # check that all components cover to same k-partition, just different energies
             T = [occupation(split_bandg_cs[i][j]) for (i,j) in ijs]
             i_components = split_bandg_cs[i]
-            js = getindex.(ijs, 2)
+            js = getindex.(ijs, 2) # "energy-grouping" indices
             R = [occupation(i_components[j′]) for j′ in 1:length(i_components) if j′ ∉ js]
             Sʲs = [[occupation(split_bandg_c) for split_bandg_c in split_bandg_cs[i′]] 
                                                 for i′ in 1:length(split_bandg_cs) if i′≠i]

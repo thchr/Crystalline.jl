@@ -75,9 +75,7 @@ for (j, _n) in enumerate(sb)
     n = SymmetryVector(_n, brs.irlabs, lgirsd)
     bandg = build_subgraphs(n, subts²ᴰ, lgirsd)
 
-    subgraphs_ps = permute_subgraphs(bandg.subgraphs);
-    bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
-    BandGraphs.permutation_info(bandgp)
+    bandgp = BandGraphs.BandGraphPermutations(bandg) :: BandGraphPermutations{2}
     length(bandgp) > 10 && @info("Be warned: many permutations ($(length(bandgp)))")
 
     xys = nothing

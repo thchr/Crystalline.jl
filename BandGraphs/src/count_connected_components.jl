@@ -1,6 +1,6 @@
 # Copy of https://github.com/JuliaGraphs/Graphs.jl/pull/407, until it is merged:
 # implements `count_connected_components(g, [label, search_queue])`.
-# TODO: remove when merged
+# TODO: remove when/if merged
 
 """
     _connected_components!(label, g, [search_queue])
@@ -81,12 +81,8 @@ end
 
 function count_unique(label::Vector{T}) where T
     seen = Set{T}()
-    c = 0
     for l in label
-        if l ∉ seen
-            push!(seen, l)
-            c += 1
-        end
+        l ∉ seen && push!(seen, l)
     end
-    return c
+    return length(seen)
 end

@@ -49,7 +49,7 @@ f
 # Create a permuted graph (a single subgraph permutation) and compare
 subgraphs_ps = permute_subgraphs(bandg.subgraphs);
 bandgp = BandGraphs.BandGraphPermutations(bandg.partitions, subgraphs_ps);
-BandGraphs.permutation_info(bandgp)
+display(bandgp)
 length(bandgp) > 10 && @info("Be warned: many permutations ($(length(bandgp)))")
 
 v = ("K₃", 1)

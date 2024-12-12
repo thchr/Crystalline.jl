@@ -98,7 +98,7 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
-function partition_graph(subgraphs, partitions)
+function partition_graph(subgraphs, partitions; skip_monodromy_ties_via_Ω :: Bool = false)
     g = MetaGraph(Graph();
             label_type       = String,
             vertex_data_type = @NamedTuple{maximal::Bool})
@@ -110,12 +110,27 @@ function partition_graph(subgraphs, partitions)
         src_code,  dst_code  = subgraph.p_max.kidx, subgraph.p_nonmax.kidx
         src_label, dst_label = subgraph.p_max.klab, subgraph.p_nonmax.klab
         @assert code_for(g, src_label) == src_code && code_for(g, dst_label) == dst_code
+        # don't add the (trivial) monodromy-frequency-tying edge if so (e.g., ΩA or ΩΓ)
+        skip_monodromy_ties_via_Ω && subgraph.monodromy_tie_via_Ω && continue
         add_edge!(g, src_label, dst_label, nothing)
+    end
+    if skip_monodromy_ties_via_Ω
+        # in this case, also remove redundant vertices from `partition_graph`
+        rem_nonmax_klabs = Set{String}()
+        for subgraph in subgraphs
+            subgraph.monodromy_tie_via_Ω || continue
+            nonmax_klab = subgraph.p_nonmax.klab
+            nonmax_klab ∈ rem_nonmax_klabs && continue
+            push!(rem_nonmax_klabs, nonmax_klab)
+            rem_vertex!(g, code_for(g, subgraph.p_nonmax.klab))
+        end
     end
 
     return g
 end
-partition_graph(bandg::BandGraph) = partition_graph(bandg.subgraphs, bandg.partitions)
+function partition_graph(bandg::BandGraph; kws...)
+    partition_graph(bandg.subgraphs, bandg.partitions; kws...)
+end
 # ---------------------------------------------------------------------------------------- #
 
 # compute a modified graph from `kg` such that any nonmaximal node is only ever entered and
