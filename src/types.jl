@@ -238,6 +238,19 @@ for T in (:KVec, :RVec)
     struct $T{D} <: AbstractVec{D}
         cnst :: SVector{D,Float64}
         free :: SqSMatrix{D,Float64}
+        # explicitate constructors to avoid method ambiguities w/ StaticArrays
+        function $T{D}(
+            cnst :: SVector{D,Float64},
+            free :: SqSMatrix{D,Float64}=zero(SqSMatrix{D,Float64})
+        ) where D
+            new{D}(cnst, free)
+        end
+        function $T(
+            cnst :: SVector{D,Float64},
+            free :: SqSMatrix{D,Float64}=zero(SqSMatrix{D,Float64})
+        ) where D
+            new{D}(cnst, free)
+        end
     end
     free(v::$T) = SMatrix(v.free)
 
@@ -245,6 +258,7 @@ for T in (:KVec, :RVec)
         $($T){D}(str::AbstractString) --> $($T){D}
         $($T)(str::AbstractString)    --> $($T)
         $($T)(::AbstractVector, ::AbstractMatrix) --> $($T)
+        $($T){D}(::AbstractVector, ::AbstractMatrix) --> $($T){D}
     
     Return a `$($T)` by parsing the string representations `str`, supplied in one of the
     following formats:
@@ -277,11 +291,21 @@ for T in (:KVec, :RVec)
         D   = length(xyz)
         return parse_abstractvec(xyz, $T{D})
     end
-    function $T(cnst::AbstractVector{<:Real}, 
-                free::AbstractMatrix{<:Real}=zero(SqSMatrix{length(cnst), Float64}))
+    function $T(
+        cnst::AbstractVector{<:Real}, 
+        free::AbstractMatrix{<:Real}=zero(SqSMatrix{length(cnst), Float64})
+    )
         D = length(cnst)
         @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched argument sizes"))
-        $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
+        return $T{D}(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
+    end
+    function $T{D}(
+        cnst::AbstractVector{<:Real}, 
+        free::AbstractMatrix{<:Real}=zero(SqSMatrix{D, Float64})
+    ) where D
+        @boundscheck length(cnst) == D || throw(DimensionMismatch("Mismatched dimension D and input size"))
+        @boundscheck D == LinearAlgebra.checksquare(free) || throw(DimensionMismatch("Mismatched dimension D and input size"))
+        return $T(SVector{D,Float64}(cnst), SqSMatrix{D,Float64}(free))
     end
     $T(xs::Vararg{Real, D}) where D = $T(SVector{D, Float64}(xs))
     $T(xs::NTuple{D, <:Real}) where D = $T(SVector{D, Float64}(xs))
@@ -715,15 +739,28 @@ irdim(ir::AbstractIrrep) = size(first(matrices(ir)), 1)
 translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 klabel(ir::AbstractIrrep) = klabel(label(ir))
-order(ir::AbstractIrrep)  = order(group(ir))
+order(ir::AbstractIrrep) = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(::AbstractIrrep{D}) where D = D
 Base.position(ir::AbstractIrrep) = position(group(ir))
-function klabel(cdml::String)
-    idx = findfirst(c->isdigit(c) || issubdigit(c) || c=='ˢ', cdml) # look for regular digit or subscript digit
-    previdx = idx !== nothing ? prevind(cdml, idx) : lastindex(cdml)
-    return cdml[firstindex(cdml):previdx]
+function klabel(irlab::String)
+    idx₁ = findfirst(isletter, irlab)
+    isnothing(idx₁) && return ""
+    idx′ = idx₁
+    if idx′ != lastindex(irlab) # single-letter label
+        idx₂ = idx₁
+        while true
+            idx′ = nextind(irlab, idx′)
+            idx′ > lastindex(irlab) && break
+            c=irlab[idx′]
+            (isletter(c) || c=='′') || break
+            idx₂ = idx′
+        end
+    else
+        idx₂ = idx₁
+    end
+    return irlab[idx₁:idx₂]
 end
 (ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
 
@@ -843,6 +880,9 @@ Base.IndexStyle(::Type{<:Collection}) = IndexLinear()
 Base.similar(c::Collection{T}) where T = Collection{T}(similar(c.vs))
 Base.iterate(c::Collection) = iterate(c.vs)
 Base.iterate(c::Collection, state) = iterate(c.vs, state)
+
+# ::: view-like interface; for modification :::
+parent(vs::Collection) = vs.vs
 
 # ::: Interface :::
 dim(vs::Collection) = dim(first(vs))
