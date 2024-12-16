@@ -80,3 +80,32 @@ end
     @test length(brs[1]) == length(brs[1].irvec)+1
     @test brs[1] == vcat(brs[1].irvec, dim(brs[1]))
 end
+
+
+# NOTE/TODO: This would be nice to have, but is presently broken because the irrep labels
+#   used by BANDREP are not quite the proper ones: e.g., BANDREP will call the 2D
+#   glued-together" irrep E the ¹E²E irrep; that's not wrong per se, but it's not quite
+#   right either.
+#   Similarly, when there's only one A irrep, BANDREP will still include a redundant 
+#   ₁-subscript; again, not wrong, but not quite right. The right fix seems to be to go
+#   through the stored data we retrieve from BANDREP and then fix it there - but that's 
+#   too annoying for now - so, we just don't test it at the moment.
+#=
+@testset "BandRepSet site-symmetry irreps" begin
+    siteir_name(br) = replace(br.label, "↑G"=>"")
+    for timereversal in (true)
+        for sgnum in 1:230
+            brs = bandreps(sgnum, 3; timereversal)
+            wps = wyckoffs(sgnum)
+            sitegd = Dict(label(wp)=>sitegroup(brs.sgnum, wp) for wp in wps)
+            siteirsd = Dict(wp_str=>Crystalline.siteirreps(siteg) for (wp_str, siteg) in sitegd)
+            timereversal && (siteirsd = Dict(wp_str => realify(siteirs) for (wp_str, siteirs) in siteirsd))
+            for br in brs
+                siteirs = siteirsd[br.wyckpos] 
+                siteirs_labs = mulliken.(siteirs)
+                @test siteir_name(br) ∈ siteirs_labs
+            end
+        end
+    end
+end
+=#

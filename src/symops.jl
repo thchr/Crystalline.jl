@@ -877,21 +877,26 @@ end
 
 
 """
-    _findsubgroup(opsᴳ::T, opsᴴ::T′)  where T⁽′⁾<:AbstractVector{SymOperation}
+    _findsubgroup(opsᴳ::T, opsᴴ::T′[, cntr]) where T⁽′⁾<:AbstractVector{SymOperation}
                                                     --> Tuple{Bool, Vector{Int}}
 
 Returns a 2-tuple with elements:
 
 1. A boolean, indicating whether the group ``H`` (with operators `opsᴴ`) is a subgroup of
    the group ``G`` (with operators `opsᴳ`), i.e. whether ``H < G``.
-2. An indexing vector `idxs` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of `G`),
-   such that `opsᴳ[idxs] == opsᴴ`.
+2. An indexing vector `idxsᴳ²ᴴ` of `opsᴳ` into `opsᴴ` (empty if `H` is not a subgroup of 
+   `G`), such that `all(isapprox(opsᴳ[idxsᴳ²ᴴ], opsᴴ, cntr)`.
+
+If `cntr` is provided, comparison of operations in ``G`` and ``H`` is done in the associated
+primitive basis (i.e., `cntr` is passed to `isapprox` which compares operations in ``G`` and
+``H``).
 """
 function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
-                       opsᴴ::AbstractVector{SymOperation{D}}) where D
+                       opsᴴ::AbstractVector{SymOperation{D}},
+                       cntr::Union{Char, Nothing}=nothing) where D
     idxsᴳ²ᴴ = Vector{Int}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
-        idxᴳ = findfirst(==(opᴴ), opsᴳ)
+        idxᴳ = findfirst(opᴳ -> isapprox(opᴳ, opᴴ, cntr), opsᴳ)
         if idxᴳ !== nothing
             idxsᴳ²ᴴ[idxᴴ] = idxᴳ
         else
