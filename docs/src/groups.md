@@ -4,14 +4,16 @@ Crystalline currently supports five group types: [`SpaceGroup`](@ref), [`PointGr
 
 ## Example: space groups
 
-The one, two, and three-dimensional space groups are accessible via [`spacegroup`](@ref), which takes the space group number `sgnum` and dimensino `D` as input (ideally, the dimension is provided as a `Val{D}` for the sake of type stability) and returns a `SpaceGroup{D}` structure:
+The one, two, and three-dimensional space groups are accessible via [`spacegroup`](@ref), which takes the space group number `sgnum` and dimension `D` or `Val(D)` as input and returns a `SpaceGroup{D}`:
 ```@example spacegroup
 using Crystalline
 
 D     = 3  # dimension
 sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
-sg    = spacegroup(sgnum, D) # where practical, `spacegroup` should be called with a `Val{D}` dimension to ensure type stability; here we have D::Int instead for simplicity
+sg    = spacegroup(sgnum, D) # or `spacegroup(sngum, Val(D))`
 ```
+Where practical, `spacegroup` should be called with a `Val(D)` dimension to ensure type stability; here and elsewhere in the documentation, we will often use `D::Int` instead for simplicity.
+
 By default, the returned operations are given in the conventional setting of the International Tables of Crystallography, Volume A (ITA). Conversion to a primitive basis (in the CDML setting) can be accomplished via [`primitivize`](@ref).
 
 In addition to space groups, Crystalline.jl provides access to the operations of point groups ([`pointgroup`](@ref)), little groups ([`littlegroups`](@ref)), subperiodic groups ([`subperiodicgroup`](@ref); including rod, layer, and frieze groups), site symmetry groups ([`sitegroup`](@ref) and [`sitegroups`](@ref)), and magnetic space groups ([`mspacegroup`](@ref)).
