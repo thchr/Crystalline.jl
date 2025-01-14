@@ -58,4 +58,7 @@ using Crystalline, Test
 
     # magnetic space groups
     include("mspacegroup.jl")
+
+    # group relations (sub- & supergroups)
+    include("grouprelations.jl")
 end

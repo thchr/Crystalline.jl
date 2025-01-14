@@ -374,8 +374,8 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
     #       [2 3 0]; only axes that have a `1` somewhere; in general, we need to find a way
     #       to e.g., "multiply-up" [1, 1.333333, 0] to [3, 4, 0]. Conceptually, it is
     #       related to identifying a floating-point analogue of gcd.
-    norm = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
-    u′ = u′/norm # normalize
+    n = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
+    u′ = u′/n # normalize
     u  = round.(Int, u′) # convert from float to integer and check validity of conversion
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
         throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))

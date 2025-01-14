@@ -260,7 +260,6 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     for (idx, g) in enumerate(sitegs)
         wp = position(g)
         v  = parent(wp)
-        N  = order(g)
 
         # if `wp` is "special" (i.e. has no "free" parameters), then it must
         # be a maximal wyckoff position, since if there are other lines
@@ -279,7 +278,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
             wp′_orbit = orbit(g′) # must check for all orbits of wp′ in general
             for wp′′ in wp′_orbit
                 v′ = parent(wp′′)
-                if _can_intersect(v, v′) # `wp′` can "intersect" `wp` and is higher order
+                if can_intersect(v, v′).bool # `wp′` can "intersect" `wp` & is higher order
                     has_higher_sym_nearby = true
                     break
                 end
@@ -294,48 +293,7 @@ function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
     return @view sitegs[maximal]
 end
 
-function _can_intersect(v::AbstractVec{D}, v′::AbstractVec{D};
-                        atol::Real=DEFAULT_ATOL) where D
-    # check if solution exists to [A] v′ = v(αβγ) or [B] v′(αβγ′) = v(αβγ) by solving
-    # a least squares problem and then checking if it is a strict solution. Details:
-    #   Let v(αβγ) = v₀ + V*αβγ and v′(αβγ′) = v₀′ + V′*αβγ′
-    #   [A] v₀′ = v₀ + V*αβγ             ⇔  V*αβγ = v₀′-v₀
-    #   [B] v₀′ + V′*αβγ′ = v₀ + V*αβγ   ⇔  V*αβγ - V′*αβγ′ = v₀′-v₀  
-    #                                    ⇔  hcat(V,-V′)*vcat(αβγ,αβγ′) = v₀′-v₀
-    # these equations can always be solved in the least squares sense using the
-    # pseudoinverse; we can then subsequently check if the residual of that solution is in
-    # fact zero, in which can the least squares solution is a "proper" solution, signaling
-    # that `v` and `v′` can intersect (at the found values of `αβγ` and `αβγ′`)
-    Δcnst = constant(v′) - constant(v)
-    if isspecial(v′) # `v′` is special; `v` is not
-        Δfree = free(v)                                     # D×D matrix
-        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
-    else                     # neither `v′` nor `v` are special
-        Δfree = hcat(free(v), -free(v′))                    # D×2D matrix
-        return _can_intersect_equivalence_check(Δcnst, Δfree, atol)
-    end
-    # NB: the above seemingly trivial splitting of return statements is intentional & to
-    #     avoid type-instability (because the type of `Δfree` differs in the two brances)
-end
-
-function _can_intersect_equivalence_check(Δcnst::StaticVector{D}, Δfree::StaticMatrix{D},
-                                          atol::Real) where D
-    # to be safe, we have to check for equivalence between `v` and `v′` while accounting
-    # for the fact that they could differ by a lattice vector; in practice, for the wyckoff
-    # listings that we have have in 3D, this seems to only make a difference in a single 
-    # case (SG 130, wyckoff position 8f) - but there the distinction is actually needed
-    Δfree⁻¹ = pinv(Δfree)
-    for V in Iterators.product(ntuple(_->(0.0, -1.0, 1.0), Val(D))...) # loop over adjacent lattice vectors
-        Δcnst_plus_V = Δcnst + SVector{D,Float64}(V)
-        αβγ = Δfree⁻¹*Δcnst_plus_V   # either D-dim `αβγ` or 2D-dim `hcat(αβγ, αβγ′)`
-        Δ = Δcnst_plus_V - Δfree*αβγ # residual of least squares solve
-        norm(Δ) < atol && return true
-    end
-    return false
-end
-
 # ---------------------------------------------------------------------------------------- #
-
 
 """
     siteirreps(sitegroup::SiteGroup; mulliken::Bool=false]) --> Vector{PGIrrep}

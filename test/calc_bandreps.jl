@@ -79,17 +79,10 @@ end
                 # so, for these cases, we cannot do a one-to-one comparison (but we can at
                 # least test whether the reference Bilbao vector occurs in the set of
                 # computed band representation vectors)
-                if brʳ.sitesym ∉ ("222", "mmm", "mm2", "-4m2")
+                if brʳ.sitesym ∉ ("222", "mmm", "mm2")
                     brᶜ = brsᶜ[idx]
                     @test Vector(brᶜ) == brʳ[irʳ²ᶜ_perm]
                     @test dim(brᶜ) == dim(brʳ)
-                elseif brʳ.sitesym == "-4m2"
-                    # this is a special case: in principle, it is possible to uniquely
-                    # assign the irrep labels, but we currently assign ones that are
-                    # different from those in Bilbao (see issue #59)
-                    # FIXME: remove this here and above once #59 is resolved
-                    @test brʳ[irʳ²ᶜ_perm] ∈ Vector.(brsᶜ)
-                    continue
                 else
                     # simply test that the reference Bilbao _vector_ is in the set of
                     # computed EBRs

@@ -118,7 +118,8 @@ include("symops.jl") # symmetry operations for space, plane, and line groups
 export @S_str, compose,
        issymmorph, littlegroup, orbit,
        reduce_ops,
-       issubgroup, isnormal
+       issubgroup, isnormal,
+       cosets
 
 include("conjugacy.jl") # construction of conjugacy classes
 export classes, is_abelian
@@ -160,7 +161,7 @@ export ModulatedFourierLattice,
        modulate, normscale, normscale!
 
 include("compatibility.jl")
-export subduction_count
+export subduction_count, remap_to_kstar
 
 include("bandrep.jl")
 export bandreps, classification, nontrivial_factors, basisdim
@@ -172,7 +173,7 @@ include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
 
 include("grouprelations/grouprelations.jl")
-export maximal_subgroups, minimal_supergroups
+export maximal_subgroups, minimal_supergroups, conjugacy_relations
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl

@@ -539,14 +539,14 @@ function Base.show(io :: IO, ::MIME"text/plain", n :: SymmetryVector)
 end
 function Base.show(io :: IO, n :: SymmetryVector)
     print(io, "[")
-    for (i, (mults_k, lgirs_k)) in enumerate(zip(n.multsv, n.lgirsv))
+    for (i, (mults_k, lgirs_k)) in enumerate(zip(multiplicities(n), irreps(n)))
         str = if !iszero(mults_k)
             Crystalline.symvec2string(mults_k, label.(lgirs_k); braces=false)
         else # if there are no occupied irreps at the considered k-point print "0kᵢ"
             "0" * klabel(first(lgirs_k)) * "ᵢ"
         end
         printstyled(io, str; color=iseven(i) ? :normal : :light_blue)
-        i ≠ length(n.multsv) && print(io, ", ")
+        i ≠ length(multiplicities(n)) && print(io, ", ")
     end
     print(io, "]")
     printstyled(io, " (", occupation(n), " band", abs(occupation(n)) ≠ 1 ? "s" : "", ")"; 
