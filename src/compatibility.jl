@@ -96,21 +96,21 @@ $(TYPEDSIGNATURES)
 Check whether two `AbstractVec`s `v` and `v′` can intersect, i.e., whether there exist free
 parameters such that they are equivalent modulo an integer lattice vector.
 
-Returns a `NamedTuple` `(; bool, αβγ, αβγ′, L)`. If `bool = true`, `kv` and `kv′` are
-compatible in the sense that `v(αβγ) == v′(αβγ′) + L` if `bool == true` where `L` is
-an integer-valued lattice vector.
-If `bool = false`, they are incompatible (and zero-valued vectors are returned for `αβγ`,
-`αβγ′`, and `L`).
+Returns a `NamedTuple` `(; bool, αβγ, αβγ′, L)`. If `bool == true`, `kv` and `kv′` are
+compatible in the sense that `v(αβγ) == v′(αβγ′) + L` where `L` is an integer-valued lattice
+vector.
+If `bool == false`, they are incompatible (and zero-valued sentinel vectors are returned for
+`αβγ`, `αβγ′`, and `L`).
 
-## Extended help
+## Extended help and notes
 
-- The keyword argument `atol` (default, $DEFAULT_ATOL) specifies the absolute tolerance for
-  the comparison.
+- The keyword argument `atol` (default, `$DEFAULT_ATOL`) specifies the absolute tolerance
+  for the comparison.
 - If both `v` and `v′` are not special, i.e., both have free parameters, the intersection
   point may not be unique (e.g., for co-linear `v` and `v′`).
 - The implementation currently only checks the immediately adjacent lattice vectors for
-  equivalence; if there is equivalence, but the the required elements of `L` would have
-  `|Lᵢ| > 1`, the currently implementation will not identify the equivalence.
+  equivalence: if there is equivalence, but the the required elements of `L` would require
+  `abs(L[i]) > 1`, the current implementation will not identify the equivalence.
 - This operation is usually only meaningful if the bases of `kv` and `kv′` agree and are
   primitive.
 """
@@ -183,8 +183,8 @@ a different **k**-vector `kv′` in the star of `kv`.
 The remapping is done by identifying an operation `g` s.t. `kv′ = g * kv` with `g` in the
 space group of `lgirs` (more precisely, from among the coset representatives of the little
 group in the space group). The original irreps ``D(h)`` with ``h`` in the little group of
-`kv` are then transformed according to ``D′(h′) = D(h) = D(g⁻¹h′g)`` with ``h′`` from the
-little group of `kv′`.
+`kv` are then transformed according to ``D'(h') = D(h) = D(g⁻¹h'g)`` with ``h'`` from the
+little group of `kv'`.
 
 The coset representatives can be specified as an optional argument, to avoid repeated
 recomputation and simplify the associated computation of `g`. The coset representatives
