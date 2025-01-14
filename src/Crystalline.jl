@@ -161,7 +161,7 @@ export ModulatedFourierLattice,
        modulate, normscale, normscale!
 
 include("compatibility.jl")
-export subduction_count
+export subduction_count, remap_to_kstar
 
 include("bandrep.jl")
 export bandreps, classification, nontrivial_factors, basisdim
