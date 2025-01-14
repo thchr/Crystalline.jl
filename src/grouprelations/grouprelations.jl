@@ -115,7 +115,9 @@ Note that the transforms need not preserve volume: accordingly, some operations 
 redundant after transformation (use [`reduce_ops`](@ref) or `unique!` to remove these).
 
 ## Example
-```jldoctest
+Consider the following example, which looks at the subgroup relationship between space
+groups ⋕168 and ⋕3:
+```jldoctest conjugacy_relation
 julia> gr = maximal_subgroups(168)
 GroupRelationGraph (subgroups) of SpaceGroup{3} ⋕168 with 4 vertices:
  ⋕168
@@ -135,9 +137,12 @@ julia> sg3 = spacegroup(3)
 SpaceGroup{3} ⋕3 (P2) with 2 operations:
  1
  2₀₁₀
-
-# note that 2₀₁₀ (from ⋕3) and 2₀₀₁ (from ⋕168) differ by a transformation; 
-# we can use `conjugacy_relations` to find this (global) transformation
+```
+Note that the symmetry operation 2₀₁₀ (from ⋕3) and 2₀₀₁ (from ⋕168) differ by a
+transformation; even though they are isomorphic, this is not clearly reflected because they
+are in different settings. We can use `conjugacy_relations` to find the transformations that
+brings ⋕168 into the setting of ⋕3:
+```jldoctest conjugacy_relation
 julia> ts = conjugacy_relations(gr, 168, 3) # possible transforms from ⋕168 to ⋕3
 1-element Vector{Crystalline.ConjugacyTransform{3}}:
  P = [0 0 1; 1 0 0; 0 1 0]
@@ -157,6 +162,7 @@ false
 julia> issubgroup(sg168′, sg3) # settings now agree, and subgroup relationship is evident
 true
 ```
+Here, there is only one possible transformation: in general, however, there may be many.
 """
 function conjugacy_relations(
             gr::GroupRelationGraph{D},
