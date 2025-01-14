@@ -28,9 +28,9 @@ and overall band occupation number.
 
 ## Construction
 - From strings: see `parse(::Type{SymmetryVector{D}}, ::AbstractString,
-  ::Vector{Collection{LGIrrep{D}}})`
-- From "raw" concatenated vectors: see [`SymmetryVector(::AbstractVector{<:Integer},
-  ::AbstractVector{<:AbstractString}, :: AbstractDict{String, <:AbstractVector{LGIrrep{D}}})`](@ref)
+  ::Vector{Collection{LGIrrep{D}}})`.
+- From "raw" concatenated vectors: see [`SymmetryVector`](@ref)`(::AbstractVector{<:Integer},
+  ...)`.
 """
 mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
     const lgirsv :: Vector{Collection{LGIrrep{D}}}
