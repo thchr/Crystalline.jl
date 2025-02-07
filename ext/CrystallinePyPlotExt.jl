@@ -153,70 +153,60 @@ function plotiso(xyz, vals, isoval::Real, Rs::DirectBasis{D},
     end
 
     if D == 2
-    # convert to a cartesian coordinate system rather than direct basis of Ri
-    N = length(xyz) 
-    X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-    Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
-    # note: the x-vs-y ordering has to be funky this way, because plotting routines expect 
-    #       x to vary across columns and y to vary across rows - sad :(. See also the
-    #       `calcfouriergridded` method.
+        # convert to a cartesian coordinate system rather than direct basis of Ri
+        N = length(xyz) 
+        X = broadcast((x,y) -> x*Rs[1][1] + y*Rs[2][1], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        Y = broadcast((x,y) -> x*Rs[1][2] + y*Rs[2][2], reshape(xyz,(1,N)), reshape(xyz, (N,1)))
+        # note: the x-vs-y ordering has to be funky this way, because plotting routines expect 
+        #       x to vary across columns and y to vary across rows - sad :(. See also the
+        #       `calcfouriergridded` method.
 
-    ax.contourf(X,Y,vals; levels=(-1e12, isoval, 1e12), cmap=plt.get_cmap("gray",2))
-    ax.contour(X,Y,vals,levels=(isoval,), colors="w", linestyles="solid")
-    origo = sum(Rs)./2
-    plot(Rs, -origo, ax) # plot unit cell
-    ax.scatter([0],[0], color="C4", s=30, marker="+")
+        ax.contourf(X,Y,vals; levels=(-1e12, isoval, 1e12), cmap=plt.get_cmap("gray",2))
+        ax.contour(X,Y,vals,levels=(isoval,), colors="w", linestyles="solid")
+        origo = sum(Rs)./2
+        plot(Rs, -origo, ax) # plot unit cell
+        ax.scatter([0],[0], color="C4", s=30, marker="+")
 
-    uc = (zeros(eltype(Rs)), Rs[1], Rs[1]+Rs[2], Rs[2]) .- Ref(origo)
+        uc = (zeros(eltype(Rs)), Rs[1], Rs[1]+Rs[2], Rs[2]) .- Ref(origo)
 
-    pad = (maximum(maximum.(uc)) .- minimum(minimum.(uc)))/25
-    xlims = extrema(getindex.(uc, 1)); ylims = extrema(getindex.(uc, 2))
-    if !isnothing(repeat) # allow repetitions of unit cell in 2D
-    minval, maxval = extrema(vals)
-    for r1 in -repeat:repeat
-    for r2 in -repeat:repeat
-        if r1 == r2 == 0; continue; end
-        offset = Rs[1].*r1 .+ Rs[2].*r2
-        X′ = X .+ offset[1]; Y′ = Y .+ offset[2]
-        ax.contourf(X′, Y′, vals; levels=(minval, isoval, maxval),
-            cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
-        ax.contour(X′, Y′, vals; levels=(isoval,), colors="w", linestyles="solid")
-    end
-    end
+        pad = (maximum(maximum.(uc)) .- minimum(minimum.(uc)))/25
+        xlims = extrema(getindex.(uc, 1)); ylims = extrema(getindex.(uc, 2))
+        if !isnothing(repeat) # allow repetitions of unit cell in 2D
+            minval, maxval = extrema(vals)
+            for r1 in -repeat:repeat
+                for r2 in -repeat:repeat
+                    r1 == r2 == 0 && continue
+                    offset = Rs[1].*r1 .+ Rs[2].*r2
+                    X′ = X .+ offset[1]; Y′ = Y .+ offset[2]
+                    ax.contourf(X′, Y′, vals; levels=(minval, isoval, maxval),
+                        cmap=plt.get_cmap("gray",256)) #get_cmap(coolwarm,3) is also good
+                    ax.contour(X′, Y′, vals; levels=(isoval,), colors="w", linestyles="solid")
+                end
+            end
 
-    xd = -(-)(xlims...)*repeat; yd = -(-)(ylims...)*repeat
-    plt.xlim(xlims .+ (-1,1).*xd .+ (-1,1).*pad) 
-    plt.ylim(ylims .+ (-1,1).*yd .+ (-1,1).*pad)
-    else
-    plt.xlim(xlims .+ (-1,1).*pad); plt.ylim(ylims .+ (-1,1).*pad);
-    end
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_axis_off()
+            xd = -(-)(xlims...)*repeat; yd = -(-)(ylims...)*repeat
+            plt.xlim(xlims .+ (-1,1).*xd .+ (-1,1).*pad) 
+            plt.ylim(ylims .+ (-1,1).*yd .+ (-1,1).*pad)
+        else
+            plt.xlim(xlims .+ (-1,1).*pad); plt.ylim(ylims .+ (-1,1).*pad)
+        end
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_axis_off()
 
     elseif D == 3
-    # TODO: Isocaps (when Meshing.jl supports it)
-    #caps_verts′, caps_faces′ = mesh_3d_levelsetisocaps(vals, isoval, Rs)
+        # TODO: Isocaps (when Meshing.jl supports it)
+        #caps_verts′, caps_faces′ = mesh_3d_levelsetisocaps(vals, isoval, Rs)
 
-    # Calculate a triangular meshing of the Fourier lattice using Meshing.jl
-    verts′, faces′ = mesh_3d_levelsetlattice(vals, isoval, Rs)
+        # Calculate a triangular meshing of the Fourier lattice using Meshing.jl
+        verts′, faces′ = mesh_3d_levelsetlattice(vals, isoval, Rs)
 
-    # TODO: All plot utilities should probably be implemented as PlotRecipies or similar
-    # In principle, it would be good to plot the isosurface using Makie here; but it 
-    # just doesn't make sense to take on Makie as a dependency, solely for this purpose.
-    # It seems more appropriate to let a user bother with that, and instead give some
-    # way to extract the isosurface's verts and faces. Makie can then plot it with
-    #     using Makie
-    #     verts′, faces′ = Crystalline.mesh_3d_levelsetlattice(flat, isoval, Rs)
-    #     isomesh = convert_arguments(Mesh, verts′, faces′)[1]
-    #     scene = Scene()
-    #     mesh!(isomesh, color=:grey)
-    #     display(scene)
-    # For now though, we just use matplotlib; the performance is awful though, since it
-    # vector-renders each face (of which there are _a lot_).
-    plot_trisurf(verts′[:,1], verts′[:,2], verts′[:,3], triangles = faces′ .- 1)
-    plot(Rs, -sum(Rs)./2, ax) # plot the boundaries of the lattice's unit cell
-
+        # TODO: Transfer plotting utilities to Makie for better performance and visuals.
+        # For now though, we just use PyPlot/matplotlib; the performance is awful though, since
+        # it vector-renders each face (of which there are _a lot_).
+        plot_trisurf(verts′[:,1], verts′[:,2], verts′[:,3], triangles = faces′ .- 1)
+        plot(Rs, -sum(Rs)./2, ax) # plot the boundaries of the lattice's unit cell
     end
+
     return nothing
 end
 
