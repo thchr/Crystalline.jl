@@ -64,7 +64,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     @inbounds for (idxᴴ, χᴴⱼ′) in enumerate(χᴴⱼ)
         s += χᴳᵢ[idxsᴳ²ᴴ[idxᴴ]]*conj(χᴴⱼ′)
     end
-    (abs(imag(s)) > DEFAULT_ATOL) && error("unexpected finite imaginary part")
+    (abs(imag(s)) > DEFAULT_ATOL) && error(lazy"unexpected finite imaginary part $(abs(imag(s)))")
     nᴳᴴᵢⱼ_float = real(s)/order(Dᴴⱼ)
     # account for the fact that the orthogonality relations are changed for coreps; seems
     # only the subgroup is important to include here - not exactly sure why

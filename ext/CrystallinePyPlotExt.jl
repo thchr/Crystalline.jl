@@ -14,13 +14,12 @@ end
 using Crystalline
 using Crystalline: AbstractFourierLattice, AbstractVec, calcfouriergridded
  # extend rather than define so it can be called externally via `Crystalline.(...)`
-import Crystalline: _create_isosurf_plot_data
+import Crystalline: _create_isosurf_plot_data, mesh_3d_levelsetlattice
 
 using Meshing: MarchingCubes, isosurface
 using Statistics: quantile
 using StaticArrays: SVector
 
-export mesh_3d_levelsetlattice
 
 # Defaults --------------------------------------------------------------------------------
 
@@ -214,29 +213,21 @@ end
 
 function mesh_3d_levelsetlattice(vals, isoval::Real, Rs::DirectBasis{3})
     # marching cubes algorithm to find isosurfaces (using Meshing.jl)
-    algo = MarchingCubes(iso=isoval, eps=1e-3)
-    verts, faces = isosurface(vals, algo; 
-                              origin = SVector(-0.5,-0.5,-0.5), 
-                              widths = SVector(1.0,1.0,1.0))    
+    method = MarchingCubes(iso=isoval)
+    XYZ = (-0.5, 0.5)
+    verts, faces = isosurface(vals, method, XYZ, XYZ, XYZ)    
     
     # transform to Cartesian basis & convert from N-vectors of 3-vectors to N×3 matrices
     verts′, faces′ = _mesh_to_cartesian(verts, faces, Rs)
 
     return verts′, faces′
 end
-function mesh_3d_levelsetlattice(flat::AbstractFourierLattice, isoval::Real, 
-                                 Rs::DirectBasis{3})
-
-    # marching cubes algorithm to find isosurfaces (using Meshing.jl)
-    algo = MarchingCubes(iso=isoval, eps=1e-3)
-    verts, faces = isosurface(flat, algo; 
-                              origin = SVector(-0.5,-0.5,-0.5), 
-                              widths = SVector(1.0,1.0,1.0))    
-    
-    # transform to Cartesian basis & convert from N-vectors of 3-vectors to N×3 matrices
-    verts′, faces′ = _mesh_to_cartesian(verts, faces, Rs)
-   
-    return verts′, faces′
+function mesh_3d_levelsetlattice(flat::AbstractFourierLattice{3}, isoval::Real, 
+                                 Rs::DirectBasis{3};
+                                 N = 20)
+    xyz = range(-.5, .5, length=N)
+    vals = calcfouriergridded(xyz, flat, N)
+    return mesh_3d_levelsetlattice(vals, isoval, Rs)
 end
 
 function _mesh_to_cartesian(verts::AbstractVector, faces::AbstractVector, Rs::AbstractBasis{3})

@@ -187,6 +187,7 @@ end
 # define functions we want to extend and have accessible via `Crystalline.(...)` if an
 # extension is loaded
 function _create_isosurf_plot_data end # implemented on CrystallinePyPlotExt load
+function mesh_3d_levelsetlattice end
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
@@ -221,7 +222,7 @@ function __init__()
 
     # load extensions via Requires.jl on Julia versions <v1.9
     @static if !isdefined(Base, :get_extension)
-        @require PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee" begin  
+        @require PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee" begin
             include("../ext/CrystallinePyPlotExt.jl") # loads PyPlot and Meshing
             export mesh_3d_levelsetlattice
         end
