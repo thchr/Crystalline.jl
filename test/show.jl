@@ -254,6 +254,8 @@ str = """
   └ 6₀₀₁⁻: exp(0.3333iπ)"""
 test_tp_show(lgirreps(168)["Γ"][end], str)
 
+@test repr(lgirreps(168)["Γ"]) == "[Γ₁, Γ₂, Γ₃, Γ₄, Γ₅, Γ₆] (Γ = [0, 0, 0])"
+
 # -------------------------------
 # PGIrrep
 # -------------------------------
@@ -275,6 +277,9 @@ pgirs′ = realify(pgirs)
 test_tp_show(pgirs′[end], str)
 @test summary(pgirs) == "6-element Collection{PGIrrep{3}}"
 @test summary(pgirs′) == "4-element Collection{PGIrrep{3}}"
+
+@test repr(realify(pgirreps("4/m"))) == "[Γ₁⁺, Γ₁⁻, Γ₂⁺, Γ₂⁻, Γ₃⁺Γ₄⁺, Γ₃⁻Γ₄⁻]"
+@test repr(realify(pgirreps("4/m"; mulliken=true))) == "[Ag, Aᵤ, Bg, Bᵤ, Eg, Eᵤ]"
 
 # -------------------------------
 # CharacterTable

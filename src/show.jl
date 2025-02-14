@@ -345,6 +345,7 @@ end
 function summary(io::IO, c::Collection{T}) where T <: AbstractIrrep
     print(io, length(c), "-element Collection{", T, "}")
 end
+
 function show(io::IO, ::MIME"text/plain", c::Collection{T}) where T <: AbstractIrrep
     summary(io, c)
     isassigned(c, firstindex(c)) && _print_group_descriptor(io, group(first(c)); prefix=" for ")
@@ -359,6 +360,7 @@ function show(io::IO, ::MIME"text/plain", c::Collection{T}) where T <: AbstractI
         end
     end
 end
+
 function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
     # same as `show(io, c.vs)`, but suppress explicit printing of typeinfo before "[...]"
     Base.show_delim_array(io, c.vs, '[', ',', ']', false)
