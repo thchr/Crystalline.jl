@@ -47,8 +47,7 @@ export surface_basis # TODO: move to Bravais (but tricky cf. SmithNormalForm dep
 include("constants.jl")
 export MAX_SGNUM, MAX_SUBGNUM, MAX_MSGNUM, MAX_MSUBGNUM, ENANTIOMORPHIC_PAIRS
 
-include("utils.jl") # useful utility methods (seldom needs exporting)
-export splice_kvpath, interpolate_kvpath
+include("utils.jl") # misc utility methods
 
 include("types.jl") # defines useful types for space group symmetry analysis
 export SymOperation,                        # types
