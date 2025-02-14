@@ -69,7 +69,7 @@ For a full description of the public API, see the [documentation][docs-dev-url].
 At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
 
 ## API stability
-Crystalline.jl is a research package in active development: breaking changes are likely (but will respect semantic versioning).
+Crystalline.jl is a research package: breaking changes may occur (but will respect semantic versioning).
 
 ## Citation
 
