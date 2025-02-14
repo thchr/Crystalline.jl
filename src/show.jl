@@ -178,9 +178,8 @@ end
 
 function show(io::IO, ::MIME"text/plain", ir::AbstractIrrep)
     irlab = label(ir)
-    lablen = length(irlab)
-    nindent = lablen+1
-    prettyprint_header(io, irlab)
+    nindent = textwidth(irlab)
+    prettyprint_header(io, irlab, order(ir))
     prettyprint_irrep_matrices(io, ir, nindent)
 end
 function show(io::IO, ir::AbstractIrrep)
@@ -197,8 +196,9 @@ function prettyprint_group_header(io::IO, g::AbstractGroup)
     println(io)
 end
 
-function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::AbstractString,
-                                      ϕabc_contrib::Bool=false, digits::Int=4)
+function prettyprint_scalar_or_matrix(
+        io::IO, printP::AbstractMatrix, ϕabc_contrib::Bool=false, digits::Int=4
+    )
     if size(printP) == (1,1) # scalar case
         v = @inbounds printP[1]
         prettyprint_irrep_scalars(io, v, ϕabc_contrib; digits)
@@ -206,7 +206,7 @@ function prettyprint_scalar_or_matrix(io::IO, printP::AbstractMatrix, prefix::Ab
     else # matrix case
         formatter(x) = _stringify_characters(x; digits)
         # FIXME: not very optimal; e.g. makes a whole copy and doesn't handle displaysize
-        compact_print_matrix(io, printP, prefix, formatter)
+        compact_print_matrix(io, printP, "", formatter)
     end
 end
 
@@ -246,8 +246,7 @@ function prettyprint_irrep_scalars(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, lgir::LGIrrep, i::Integer, prefix::AbstractString;
-        digits::Int=4
+        io::IO, lgir::LGIrrep, i::Integer; digits::Int=4
     )
     # unpack
     k₀, kabc = parts(position(group(lgir)))
@@ -261,7 +260,7 @@ function prettyprint_irrep_matrix(
 
     # print the constant part of the irrep that is independent of α,β,γ
     printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cis(2π*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
-    prettyprint_scalar_or_matrix(io, printP, prefix, ϕabc_contrib)
+    prettyprint_scalar_or_matrix(io, printP, ϕabc_contrib)
 
     # print the variable phase part that depends on the free parameters α,β,γ 
     if ϕabc_contrib
@@ -301,35 +300,43 @@ function prettyprint_irrep_matrix(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer, prefix::AbstractString
+        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer
     )
     P = ir.matrices[i]
-    prettyprint_scalar_or_matrix(io, P, prefix, false)
+    prettyprint_scalar_or_matrix(io, P, false)
 end
 
 function prettyprint_irrep_matrices(
-        io::IO, ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep}, nindent::Integer,
-        nboxdelims::Integer=45
+        io::IO,
+        ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep},
+        nindent::Integer
     )
-    indent = repeat(" ", nindent)
-    boxdelims = repeat("─", nboxdelims)
-    linelen = nboxdelims + 4 + nindent
+    indent = repeat(' ', nindent)
     Nₒₚ = order(ir)
-    for (i,op) in enumerate(operations(ir))
-        print(io, indent, " ├─ ")
-        opseitz, opxyzt  = seitz(op), xyzt(op)
-        printstyled(io, opseitz, ": ", 
-                        repeat("─", linelen-11-nindent-length(opseitz)-length(opxyzt)),
-                        " (", opxyzt, ")\n"; color=:light_black)
-        print(io, indent, " │     ")
-        prettyprint_irrep_matrix(io, ir, i, indent*" │     ")
-        if i < Nₒₚ; println(io, '\n', indent, " │"); end
+    ops_seitz = seitz.(operations(ir))
+    max_width_seitz = maximum(textwidth, ops_seitz)
+    for (i, op_seitz) in enumerate(ops_seitz)
+        width_seitz = textwidth(op_seitz)
+        matrix_str = sprint((io, i) -> prettyprint_irrep_matrix(io, ir, i), i)
+        matrix_nrow = count('\n', matrix_str)+1
+        i == 1 || print(io, indent, matrix_nrow == 1 && i == Nₒₚ ? "└ " : "├ ")
+        printstyled(io, repeat(' ', max_width_seitz-width_seitz), op_seitz; reverse=true)
+        print(io, ": ")
+
+        for (j, l) in enumerate(eachsplit(matrix_str, '\n'; keepempty=false))
+            last_line = j == matrix_nrow && i == Nₒₚ
+            if j == 1
+                print(io, l)
+            else
+                print(io, indent, last_line ? "└" : "│", repeat(' ', max_width_seitz+3), l)
+            end
+            last_line || println(io)
+        end
     end
-    print(io, "\n", indent, " └", boxdelims)
 end
 
-function prettyprint_header(io::IO, irlab::AbstractString, nboxdelims::Integer=45)
-    println(io, irlab, " ─┬", repeat("─", nboxdelims))
+function prettyprint_header(io::IO, irlab::AbstractString, Nₒₚ::Integer)
+    print(io, irlab, Nₒₚ == 1 ? "─ " : "┌ ")
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -345,14 +352,16 @@ function show(io::IO, ::MIME"text/plain", c::Collection{T}) where T <: AbstractI
     for i in eachindex(c)
         if isassigned(c, i)
             show(io, MIME"text/plain"(), c[i])
+            i ≠ length(c) && print(io, "\n\n")
         else
             print(io, " #undef")
+            i ≠ length(c) && print(io, "\n")
         end
-        i ≠ length(c) && println(io)
     end
 end
 function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
-    show(io, c.vs)
+    # same as `show(io, c.vs)`, but suppress explicit printing of typeinfo before "[...]"
+    Base.show_delim_array(io, c.vs, '[', ',', ']', false)
     g = group(first(c))
     if position(g) !== nothing
         printstyled(io, " (", fullpositionlabel(g), ")"; color=:light_black)
@@ -605,6 +614,10 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
+end
+
+function Base.show(io :: IO, brs :: Collection{<:NewBandRep})
+    Base.show_delim_array(io, brs.vs, '[', ',', ']', false)
 end
 
 # ---------------------------------------------------------------------------------------- #

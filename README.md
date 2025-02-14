@@ -37,23 +37,15 @@ SpaceGroup{3} ⋕16 (P222) with 4 operations:
 
 # load a dictionary of small irreps and their little groups for space group ⋕16,
 # indexed by their k-point labels; then inspect the small irreps at the A point
-julia> lgirs = lgirreps(16, Val(3))
+julia> lgirs = lgirreps(16, Val(3));
+
 julia> lgirs["A"]
 2-element Collection{LGIrrep{3}} for ⋕16 (P222) at A = [α, 0, 1/2]:
-A₁ ─┬─────────────────────────────────────────────
-    ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1
-    │
-    ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     1
-    └─────────────────────────────────────────────
-A₂ ─┬─────────────────────────────────────────────
-    ├─ 1: ──────────────────────────────── (x,y,z)
-    │     1
-    │
-    ├─ 2₁₀₀: ─────────────────────────── (x,-y,-z)
-    │     -1
-    └─────────────────────────────────────────────
+A₁┌    1: 1
+  └ 2₁₀₀: 1
+
+A₂┌    1: 1
+  └ 2₁₀₀: -1
 
 # construct the character table for the small irreps at the Γ point
 julia> characters(lgirs["Γ"])
