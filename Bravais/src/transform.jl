@@ -244,17 +244,16 @@ end
 """
     dualbasis(Vs)
     
-Return the dual basis of a basis `Vs` in `D` dimensions.
+Return the dual (sometimes called the reciprocal) basis of a basis `Vs` in `D` dimensions.
 
 The input basis `Vs` can be provided as:
 - a `D`-dimensional `StaticVector` of `AbstractVector`s,
 - a `D`-dimensional `NTuple` of `AbstractVector`s,
 - or, type-unstably, as any iterable of `AbstractVector`s.
 
-If `Vs` is a subtype of `AbstractBasis`, the returned type is the `dual_type` of
-`typeof(Vs)`: e.g., for `Vs :: DirectBasis{D}`, the return-type is `ReciprocalBasis{D}` 
-(and vice versa). Otherwise, the return type an `NTuple{D, SVector{D, T}}` with `T`
-denoting the arithmetic closure of the vectors' element type.
+If `Vs` a [`DirectBasis`](@ref), the type of the returned dual lattice is
+a [`ReciprocalBasis`](@ref) and vice versa.
+For other input types, no explicit conversion of return type is made.
 """
 function dualbasis(Vs::Union{NTuple{D, <:AbstractVector{<:Number}},
                              StaticVector{D, <:AbstractVector{<:Number}}}) where D

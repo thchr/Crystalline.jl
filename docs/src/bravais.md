@@ -29,7 +29,7 @@ centering
 ```@docs
 crystal
 directbasis
-reciprocalbasis
+dualbasis
 nigglibasis
 ```
 

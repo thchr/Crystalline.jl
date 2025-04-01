@@ -59,7 +59,7 @@ Rs′ = directbasis(183, Val(3))
 @test abs(dot(Rs[2], Rs′[3])) < 1e-14
 @test abs(dot(Rs[3], Rs′[3])) > 1e-1
 
-Gs = reciprocalbasis(Rs)
+Gs = dualbasis(Rs)
 str = """
       ReciprocalBasis{3} (hexagonal):
        [6.283185307179586, 3.6275987284684357, -0.0]

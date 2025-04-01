@@ -5,9 +5,10 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         for D in 1:3
             for sgnum in 1:MAX_SGNUM[D]
                 Rs = directbasis(sgnum, D)
-                Gs = reciprocalbasis(Rs)
+                Gs = dualbasis(Rs)
                 
                 @test all(dot(Gs[i], Rs[i])≈2π for i in 1:D)
+                @test dualbasis(dualbasis(Rs)) ≈ Rs # involution property
             end
         end
     end
@@ -19,9 +20,9 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
                 cntr = centering(sgnum, D)
                 Rs   = directbasis(sgnum, D)
                 Rs′  = primitivize(Rs, cntr)
-                Gs   = reciprocalbasis(Rs)
+                Gs   = dualbasis(Rs)
                 Gs′ᵃ = primitivize(Gs, cntr)
-                Gs′ᵇ = reciprocalbasis(Rs′)
+                Gs′ᵇ = dualbasis(Rs′)
 
                 @test Gs′ᵃ ≈ Gs′ᵇ
                 @test all(dot(Gs′ᵇ[i], Rs′[i]) ≈ 2π for i in 1:D)
@@ -73,7 +74,7 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
 
         # transformation
         Rs = directbasis(2)
-        Gs = reciprocalbasis(Rs)
+        Gs = dualbasis(Rs)
         @test cartesianize(k, Gs) isa ReciprocalPoint{3}
         @test latticize(cartesianize(k, Gs), Gs) isa ReciprocalPoint{3}
         @test cartesianize(r, Rs) isa DirectPoint{3}

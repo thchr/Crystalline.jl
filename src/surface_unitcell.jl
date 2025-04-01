@@ -101,7 +101,7 @@ The returned basis is right-handed.
   coordinates (`true`) or in the basis of the reciprocal lattice vectors (`false`), i.e.,
   corresponding to the Cartesian vector `n[1]*Gs[1] + n[2]*Gs[2] + n[3]*Gs` with
   `Gs` denoting the Cartesian representation of the reciprocal lattice vectors, i.e.,
-  `Gs = reciprocalbasis(Rs)`.
+  `Gs = dualbasis(Rs)`.
   The latter case (`false`) is a specification of the surface in terms of its Miller
   indices: the coordinates of `n` can then equivalently be interpreted as the inverse of the
   surface's intercept with each of the axes spanned by `Rs`.
@@ -157,13 +157,13 @@ function surface_basis(
 
 	# if `cartesian=true` (default), we assume `n` has been given in Cartesian coordinates;
 	# otherwise, if `cartesian=false`, `n` is assumed to be given in the basis of 
-	# `reciprocalbasis(Rs)`, i.e., to be a set of Miller indices for the surface
+	# `dualbasis(Rs)`, i.e., to be a set of Miller indices for the surface
 	local n_cartesian
 	if cartesian
 		n_cartesian = n
-		n = latticize(n, reciprocalbasis(Rs))
+		n = latticize(n, dualbasis(Rs))
 	else
-		n_cartesian = cartesianize(float.(n), reciprocalbasis(Rs))
+		n_cartesian = cartesianize(float.(n), dualbasis(Rs))
 	end
 
 	# cast `n` as the smallest integer vector proportional to `n`, so we can do integer math
@@ -240,7 +240,7 @@ function surface_basis(
 	# that n specified in the basis of the reciprocal lattice vectors, and r₃ is specified
 	# in the direct basis); we denote this matrix C, s.t. C*r₃ = n×r₃ = 0; we seek a basis
 	# for the null-space of C and we will use the smith normal form to get it again
-	_Gs = reciprocalbasis(Rs) ./ (2π) # factors of 2π are irrelevant & troublesome; remove
+	_Gs = dualbasis(Rs) ./ (2π) # factors of 2π are irrelevant & troublesome; remove
 	C = reduce(hcat, (sum(cross(n_int[k]*_Gs[k], Rs[j]) for k in 1:3) for j in 1:3)) # (n×r₃)ᵢ = Cᵢⱼ(r₃)ⱼ
 	d = float_gcd(C...; atol=1e-9) # convert to nearest integer matrix
 	norm(d) ≈ 1 || (C = C ./ d)
@@ -282,10 +282,10 @@ float_gcd(x, y, z...; kws...) = float_gcd(x, float_gcd(y, z...);  kws...)
 #       Brillouin.jl
 #=
 function plot_bz_projection(sgnum, Rs, rs³ᴰ, rs′²ᴰ; axis=NamedTuple())
-	Gs = reciprocalbasis(Rs)
+	Gs = dualbasis(Rs)
 	kp = irrfbz_path(sgnum, conventionalize(Rs, centering(sgnum)))
 	
-	gs³ᴰ = reciprocalbasis(rs³ᴰ)
+	gs³ᴰ = dualbasis(rs³ᴰ)
 	# pick least-symmetric space group number in 2D
 	csys = crystalsystem(rs′²ᴰ)
 	sgnum²ᴰ = csys == "hexagonal"   ? 13 #= p3 =#   :
