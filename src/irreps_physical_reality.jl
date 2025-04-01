@@ -91,12 +91,13 @@ $\tilde{D}^*(g) = (W D_g W^{-1})^* = W^* D_g^* (W^{-1})^* = W D_g W^{-1} = \tild
 
 Return a manifestly real form of an input irrep `ir` (also called a physically real irrep).
 
-The input irrep must be either a `PGIrrep` or a `SiteIrrep` and must be equivalent to a real
-irrep: i.e., the irrep has [`Reality`](@ref) type `REAL` or is a `PSEUDOREAL` or `COMPLEX`
-that has already been passed through `realify` and glued together with its partner (i.e.,
-`iscorep(ir) = true`).
+The input irrep must be either a [`PGIrrep`](@ref) or a [`SiteIrrep`](@ref) and must be
+equivalent to a real irrep: i.e., the irrep has [`Reality`](@ref) type `REAL` or is a
+`PSEUDOREAL` or `COMPLEX` that has already been passed through `realify` and glued together
+with its partner (i.e., `iscorep(ir) = true`).
 
-See also [`physical_realify(::Collection)`](@ref) for application to a collection of irreps.
+See also [`physical_realify(::Collection{T}) where T<:Union{<:PGIrrep, <:SiteIrrep}`](@ref)
+for application to a collection of irreps.
 
 ## Implementation
 A symmetric, unitary transformation is found that maps the irrep matrices to a manifestly
@@ -187,14 +188,16 @@ end
     physical_realify(irs::Collection{T}) where T <: Union{<:PGIrrep, <:SiteIrrep}
 
 Return a manifestly real form of `irs` (also known as physically real irreps),
-where `irs` is a `Collection` of either `PGIrrep`s or `SiteIrrep`s.
+where `irs` is a [`Collection`](@ref) of either [`PGIrrep`](@ref)s or [`SiteIrrep`](@ref)s.
 
-The input irreps may or may not have already been passed through `realify` (and thus already
-glued together with any pseudoreal or complex partners); if they have not, the input is
-first passed through `realify`.
+The input irreps may or may not have already been passed through [`realify`](@ref) (and thus
+already glued together with any pseudoreal or complex partners); if they have not, the input
+is first passed through `realify`.
 
-See also [`physical_realify(::Union{<:PGIrrep, <:SiteIrrep})`](@ref).
+See also [`physical_realify(::Union{<:PGIrrep, <:SiteIrrep})`](@ref) for application to
+individual irreps.
 
+## Examples
 ```jldoctest
 julia> pgirs = pgirreps(9,2);
 
@@ -239,6 +242,7 @@ julia> physical_realify(pgirs)
     │     ⎣ 0.866     0.5 ⎦
     ├ 6⁺: ⎡    0.5  0.866 ⎤
     └     ⎣ -0.866    0.5 ⎦
+```
 """
 function physical_realify(irs::Collection{T}) where T<:Union{<:PGIrrep, <:SiteIrrep}
     if any(ir -> ir.iscorep, irs)
