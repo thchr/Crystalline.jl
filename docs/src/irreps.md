@@ -65,7 +65,7 @@ To obtain irreps associated with a given site symmetry group (see [`SiteGroup`](
 
 ## Time-reversal symmetry & "physically real" irreps
 Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default. 
-To incorporate time-reversal symmetry (or, equivalently, to obtain associated "physically real" irreps - or, more technically, co-representations), which may cause irreps to "stick together", see [`realify`](@ref) (which takes a vector of `PGIrrep`s or `LGIrrep`s).
+To incorporate time-reversal symmetry (or, more technically, to obtain co-representations), which may cause irreps to "stick together", see [`realify`](@ref) (which takes a collection of `PGIrrep`s, `SiteIrrep`s, or `LGIrrep`s).
 
 As an example, the Γ₃, Γ₄, Γ₅, and Γ₆ irreps of point group 6 (C₆) are intrinsically complex in the absence of time-reversal symmetry:
 ```@example realirs
@@ -86,6 +86,14 @@ Possible types are `REAL`, `COMPLEX`, and `PSEUDOREAL` (the latter does not aris
 label.(pgirs) .=> reality.(pgirs)
 ```
 The reality type can be computed ab initio via [`calc_reality`](@ref), using the Frobenius criterion for `PGIrrep`s and `SiteIrrep`s and the Herring criterion for `LGIrrep`s.
+
+### Explicitly real form of irrep matrices
+Even when thusly "realified", the irrep matrices need not be in an explicitly real form (also called "physically real" form) - i.e., they may be merely _equivalent_ to a strictly real matrix. E.g., in the example above, although the characters of the "realified" `pgirs′` are real, the matrices themselves are not.
+The function [`physical_realify`](@ref) determines and applies the transformation to such a strictly real matrix form. This function can take either a `PGIrrep` or a `SiteIrrep` (but not currently an `LGIrrep`, since the physically real form is more complicated there) or a collection of either.
+
+```@example realirs
+physical_realify(pgirs) # equivalent also to `physical_realify(pgirs′)
+```
 
 ## Data sources
 Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).

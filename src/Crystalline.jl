@@ -140,6 +140,9 @@ export pgirreps, PG_IUCs, find_isomorphic_parent_pointgroup
 include("irreps_reality.jl")
 export realify, realify!, calc_reality
 
+include("irreps_physical_reality.jl")
+export physical_realify
+
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the
 # file hasn't been achieved and the other methods are non-essential. So, we skip it.
