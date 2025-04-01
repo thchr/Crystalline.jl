@@ -9,7 +9,7 @@ makedocs(
     modules = [Crystalline, Bravais],
     sitename = "Crystalline.jl",
     authors = "Thomas Christensen <tchr@mit.edu> and contributors",
-    repo = "https://github.com/thchr/Crystalline.jl/blob/{commit}{path}#L{line}",
+    repo = Remotes.GitHub("thchr", "Crystalline.jl"),
     format=Documenter.HTML(;
         prettyurls = get(ENV, "CI", nothing) == "true",
         canonical = "https://thchr.github.io/Crystalline.jl",
