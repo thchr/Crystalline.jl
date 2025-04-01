@@ -106,9 +106,9 @@ using Unitful: ustrip, @u_str
 
     # issue #56
     @test all(zip(dualbasis(Rs), dualbasis(Us))) do (R, U)
-        R == ustrip(U)
+        R == ustrip.(U)
     end
     @test all(zip(dualbasis(Rs.vs), dualbasis(Us.vs))) do (R, U)
-        R == ustrip(U)
+        R == ustrip.(U)
     end
 end
