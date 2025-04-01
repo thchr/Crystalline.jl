@@ -87,7 +87,7 @@ $\tilde{D}^*(g) = (W D_g W^{-1})^* = W^* D_g^* (W^{-1})^* = W D_g W^{-1} = \tild
 # IMPLEMENTATION
 
 """
-    phsyical_realify(ir::Union{<:PGIrrep, <:SiteIrrep})
+    physical_realify(ir::Union{<:PGIrrep, <:SiteIrrep})
 
 Return a manifestly real form of an input irrep `ir` (also called a physically real irrep).
 
@@ -96,7 +96,7 @@ equivalent to a real irrep: i.e., the irrep has [`Reality`](@ref) type `REAL` or
 `PSEUDOREAL` or `COMPLEX` that has already been passed through `realify` and glued together
 with its partner (i.e., `iscorep(ir) = true`).
 
-See also [`physical_realify(::Collection{T}) where T<:Union{<:PGIrrep, <:SiteIrrep}`](@ref)
+See also [`physical_realify(::Collection{<:Union{<:PGIrrep, <:SiteIrrep}})`](@ref)
 for application to a collection of irreps.
 
 ## Implementation
