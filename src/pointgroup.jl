@@ -457,7 +457,7 @@ function _has_equal_pg_operations(
 end
 
 """
-    $TYPEDSIGNATURES --> Matrix{Int}
+    $TYPEDSIGNATURES
 
 Returns a multiplication table derived from `mt` but under a reordering permutation `P` of
 the operator indices in `mt`. In practice, this corresponds to a permutation of the rows
@@ -465,11 +465,11 @@ and columns of `mt` as well as a subsequent relabelling of elements via `P`.
 
 ## Example
 ```jl
-pg  = pointgroup("-4m2", Val(3))
-mt  = MultTable(pg)
-P   = [2,3,1,4,5,8,6,7] # permutation of operator indices
-mt′ = permute_multtable(mt.table, P)
-mt′ == MultTable(pg[P]).table
+julia> pg  = pointgroup("-4m2", Val(3))
+julia> mt  = MultTable(pg)
+julia> P   = [2,3,1,4,5,8,6,7] # permutation of operator indices
+julia> mt′ = permute_multtable(mt.table, P)
+julia> mt′ == MultTable(pg[P]).table
 ```
 """
 function permute_multtable(mt::Matrix{Int}, P::AbstractVector{Int})

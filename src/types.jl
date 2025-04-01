@@ -768,7 +768,7 @@ end
 (ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
 
 """
-    $TYPEDSIGNATURES --> Bool
+    $TYPEDSIGNATURES
 
 Return whether the provided irrep has been made "physically real" (i.e. is a corep) so that
 it differs from the underlying irrep (i.e. whether the irrep and "derived" corep differ).

@@ -498,7 +498,7 @@ end
 @noinline _throw_reality_not_real(x)    = error("Criterion must yield a real value; obtained complex value = $(x)")
 
 """
-    $TYPEDSIGNATURES --> Int
+    $TYPEDSIGNATURES
 
 Return a multiplicative factor for use in checking the orthogonality relations of
 "physically real" irreps (coreps).

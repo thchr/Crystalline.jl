@@ -521,8 +521,8 @@ end
 """
     CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
 
-Return a [`CompositeBandRep`](@ref) whose symmetry content is equal to the sum the band
-representations of `brs` over `idxs`.
+Return a [`CompositeBandRep`](@ref) whose symmetry content is equal to the sum of the band
+representations in `brs` over `idxs`.
 In terms of irrep multiplicity, this is equivalent to `sum(brs[idxs])` in the sense that
 `CompositeBandRep(idxs, brs)` is equal to `sum(brs[idxs])` for each irrep multiplicity. 
 
