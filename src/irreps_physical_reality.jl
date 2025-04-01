@@ -92,9 +92,11 @@ $\tilde{D}^*(g) = (W D_g W^{-1})^* = W^* D_g^* (W^{-1})^* = W D_g W^{-1} = \tild
 Return a manifestly real form of an input irrep `ir` (also called a physically real irrep).
 
 The input irrep must be either a `PGIrrep` or a `SiteIrrep` and must be equivalent to a real
-irrep: i.e., the irrep has `Reality` type [`REAL`](@ref) or is a [`PSEUDOREAL`] or
-[`COMPLEX`] that has already been passed through `realify` and glued together with its
-partner (i.e., `iscorep(ir) = true`).
+irrep: i.e., the irrep has [`Reality`](@ref) type `REAL` or is a `PSEUDOREAL` or `COMPLEX`
+that has already been passed through `realify` and glued together with its partner (i.e.,
+`iscorep(ir) = true`).
+
+See also [`physical_realify(::Collection)`](@ref) for application to a collection of irreps.
 
 ## Implementation
 A symmetric, unitary transformation is found that maps the irrep matrices to a manifestly
@@ -189,8 +191,9 @@ where `irs` is a `Collection` of either `PGIrrep`s or `SiteIrrep`s.
 
 The input irreps may or may not have already been passed through `realify` (and thus already
 glued together with any pseudoreal or complex partners); if they have not, the input is
-first passed through `realify` and then through
-[`physical_realify(::T)` where T<:Union{<:PGIrrep, <:SiteIrrep}](@ref).
+first passed through `realify`.
+
+See also [`physical_realify(::Union{<:PGIrrep, <:SiteIrrep})`](@ref).
 
 ```jldoctest
 julia> pgirs = pgirreps(9,2);
