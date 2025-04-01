@@ -67,6 +67,24 @@ str = """
        [0.0, -0.0, 4.1887902047863905]"""
 test_tp_show(Gs, str)
 
+# test printing for unitful bases; don't clobber with big type before "[...]"
+using Unitful
+Rs = DirectBasis([1.0, 0, 0]*1u"Å" , [-0.5, sqrt(3)/2, 0]*1u"Å" ,   [0, 0, 1.25]*1u"Å")
+str = """
+      DirectBasis{3, Quantity{Float64, 𝐋, Unitful.FreeUnits{(Å,), 𝐋, nothing}}} (hexagonal):
+       [1.0 Å, 0.0 Å, 0.0 Å]
+       [-0.5 Å, 0.8660254037844386 Å, 0.0 Å]
+       [0.0 Å, 0.0 Å, 1.25 Å]"""
+test_tp_show(Rs, str)
+
+Gs = dualbasis(Rs)
+str = """
+      ReciprocalBasis{3, Quantity{Float64, 𝐋^-1, Unitful.FreeUnits{(Å^-1,), 𝐋^-1, nothing}}} (hexagonal):
+       [6.283185307179586 Å^-1, 3.6275987284684357 Å^-1, -0.0 Å^-1]
+       [0.0 Å^-1, 7.255197456936871 Å^-1, 0.0 Å^-1]
+       [0.0 Å^-1, -0.0 Å^-1, 5.026548245743669 Å^-1]"""
+test_tp_show(Gs, str)
+
 # -------------------------------
 # SymOperation
 # -------------------------------
