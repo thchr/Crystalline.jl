@@ -77,13 +77,17 @@ str = """
        [0.0 Å, 0.0 Å, 1.25 Å]"""
 test_tp_show(Rs, str)
 
-Gs = dualbasis(Rs)
-str = """
-      ReciprocalBasis{3, Quantity{Float64, 𝐋^-1, Unitful.FreeUnits{(Å^-1,), 𝐋^-1, nothing}}} (hexagonal):
-       [6.283185307179586 Å^-1, 3.6275987284684357 Å^-1, -0.0 Å^-1]
-       [0.0 Å^-1, 7.255197456936871 Å^-1, 0.0 Å^-1]
-       [0.0 Å^-1, -0.0 Å^-1, 5.026548245743669 Å^-1]"""
-test_tp_show(Gs, str)
+if !Sys.isapple()
+    # don't test on Apple, since Unitful prints "^-1" as "⁻¹" there
+    # (see https://github.com/PainterQubits/Unitful.jl/pull/446#issuecomment-2770636653)
+    Gs = dualbasis(Rs)
+    str = """
+          ReciprocalBasis{3, Quantity{Float64, 𝐋^-1, Unitful.FreeUnits{(Å^-1,), 𝐋^-1, nothing}}} (hexagonal):
+          [6.283185307179586 Å^-1, 3.6275987284684357 Å^-1, -0.0 Å^-1]
+          [0.0 Å^-1, 7.255197456936871 Å^-1, 0.0 Å^-1]
+          [0.0 Å^-1, -0.0 Å^-1, 5.026548245743669 Å^-1]"""
+    test_tp_show(Gs, str)
+end
 
 # -------------------------------
 # SymOperation
