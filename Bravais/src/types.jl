@@ -1,41 +1,52 @@
 # --- DirectBasis and ReciprocalBasis for crystalline lattices ---
 """
-    AbstractBasis <: StaticVector{D, SVector{D, T}}
+    AbstractBasis <: StaticVector{D, SVector{D, E}}
 
 Abstract supertype of a `D`-dimensional basis in `D`-dimensional space with coordinate
-values of type `T`.
+values of type `E`.
 """
-abstract type AbstractBasis{D, T} <: StaticVector{D, SVector{D, T}} end
+abstract type AbstractBasis{D, E} <: StaticVector{D, SVector{D, E}} end
+
 for (T, space_type) in zip((:DirectBasis, :ReciprocalBasis), ("direct", "reciprocal"))
-    @eval begin
+    @eval Bravais begin
         @doc """
-            $($T){D} <: AbstractBasis{D}
+            $($T){D, E} <: AbstractBasis{D, E}
 
         A wrapper type over `D` distinct `D`-dimensional vectors (given as a
-        `SVector{D, SVector{D, Float64}}`), defining a lattice basis in $($space_type)
-        space.
+        `SVector{D, SVector{D, E}}`), defining a lattice basis in $($space_type)
+        space. By default (i.e., if omitted), `E` is `Float64`.
         """
-        struct $T{D} <: AbstractBasis{D, Float64}
-            vs::SVector{D, SVector{D, Float64}}
+        struct $T{D, E} <: AbstractBasis{D, E}
+            vs::SVector{D, SVector{D, E}}
             # ambiguity-resolving methods relative to StaticArrays's methods
-            $T{D}(vs::StaticVector{D}) where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
-            $T{D}(vs::NTuple{D})       where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
-            $T{D}(vs::AbstractVector)  where D = new{D}(convert(SVector{D, SVector{D, Float64}}, vs))
+            $T{D}(vs::StaticVector{D}) where D = (E=eltype(first(vs)); new{D,E}(convert(SVector{D, SVector{D, E}}, vs)))
+            $T{D}(vs::NTuple{D})       where D = (E=eltype(first(vs)); new{D,E}(convert(SVector{D, SVector{D, E}}, vs)))
+            $T{D}(vs::AbstractVector)  where D = (E=eltype(first(vs)); new{D,E}(convert(SVector{D, SVector{D, E}}, vs)))
+            $T{D,E}(vs::StaticVector{D}) where {D,E} = new{D,E}(convert(SVector{D, SVector{D, E}}, vs))
+            $T{D,E}(vs::NTuple{D})       where {D,E} = new{D,E}(convert(SVector{D, SVector{D, E}}, vs))
+            $T{D,E}(vs::AbstractVector)  where {D,E} = new{D,E}(convert(SVector{D, SVector{D, E}}, vs))
             # special-casing for D=1 (e.g., to make `$T([1.0])` work)
-            $T{1}(vs::StaticVector{1,<:Real}) = new{1}(SVector((convert(SVector{1, Float64}, vs),)))
-            $T{1}(vs::NTuple{1,Real})         = new{1}(SVector((convert(SVector{1, Float64}, vs),)))
-            $T{1}(vs::AbstractVector{<:Real}) = new{D}(SVector((convert(SVector{1, Float64}, vs),)))
+            $T{1}(vs::StaticVector{1,E}) where E<:Number = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
+            $T{1}(vs::NTuple{1,E})       where E<:Number = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
+            $T{1}(vs::AbstractVector{E}) where E<:Number = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
+            $T{1,E}(vs::StaticVector{1,<:Number}) where E = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
+            $T{1,E}(vs::NTuple{1,<:Number})       where E = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
+            $T{1,E}(vs::AbstractVector{<:Number}) where E = new{1,E}(SVector((convert(SVector{1, E}, vs),)))
         end
     end
-    @eval function convert(::Type{$T{D}}, vs::StaticVector{D, <:StaticVector{D, <:Real}}) where D
-        $T{D}(convert(SVector{D, SVector{D, Float64}}, vs))
+    @eval function convert(::Type{$T{D}}, vs::StaticVector{D, <:StaticVector{D}}) where D
+        E = eltype(first(vs))
+        $T{D,E}(convert(SVector{D, SVector{D, E}}, vs))
     end
-    @eval $T(vs::StaticVector{D})    where D = $T{D}(vs) # resolve more ambiguities, both
-    @eval $T(vs::StaticVector{D}...) where D = $T{D}(vs) # internally and with StaticArrays,
-    @eval $T(vs::NTuple{D})          where D = $T{D}(vs) # and make most reasonable accessor
-    @eval $T(vs::NTuple{D}...)       where D = $T{D}(vs) # patterns functional
-    @eval $T(vs::AbstractVector)             = $T{length(vs)}(vs) # [type-unstable]
-    @eval $T(vs::AbstractVector...)          = $T{length(vs)}(promote(vs...))
+    @eval function convert(::Type{$T{D,E}}, vs::StaticVector{D, <:StaticVector{D, E}}) where {D,E}
+        $T{D,E}(convert(SVector{D, SVector{D, E}}, vs))
+    end
+    @eval $T(vs::StaticVector{D})      where D     = $T{D}(vs)   # resolve more ambiguities, both
+    @eval $T(vs::StaticVector{D,E}...) where {D,E} = $T{D,E}(vs) # internally and with StaticArrays,
+    @eval $T(vs::NTuple{D})            where D     = $T{D}(vs)   # and make most reasonable accessor
+    @eval $T(vs::NTuple{D,E}...)       where {D,E} = $T{D,E}(vs) # patterns functional
+    @eval $T(vs::AbstractVector)    = $T{length(vs)}(vs) # [type-unstable]
+    @eval $T(vs::AbstractVector...) = $T{length(vs), eltype(eltype(promote(vs...)))}(promote(vs...)) # [type-unstable]
 end
 
 parent(Vs::AbstractBasis) = Vs.vs
@@ -99,6 +110,21 @@ function metricmatrix(Vs::AbstractBasis{D}) where D
     Vm = stack(Vs)
     return Vm' * Vm # equivalent to [dot(v, w) for v in Vs, w in Vs]
 end
+
+"""
+    dualtype(Vs::AbstractBasis)
+    dualtype(::Type{<:AbstractBasis})
+
+Return the dual type of a basis `Vs`, i.e., the type of the dual basis of `Vs`.
+
+The default basis types `DirectBasis` and `ReciprocalBasis` are dual to each other. If no
+dual type is defined, `nothing` is returned.
+"""
+dualtype(::T) where T = dualtype(T)
+dualtype(::Type{<:DirectBasis{D,E}}) where {D,E} = ReciprocalBasis{D,_invtype(E)}
+dualtype(::Type{<:ReciprocalBasis{D,E}}) where {D,E} = DirectBasis{D,_invtype(E)}
+dualtype(::Type) = nothing
+_invtype(::Type{T}) where T<:Number = typeof(inv(oneunit(T)))
 
 # ---------------------------------------------------------------------------------------- #
 

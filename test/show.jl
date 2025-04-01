@@ -30,12 +30,20 @@ test_tp_show(v, observed::AbstractString) = test_show(repr(MIME"text/plain"(), v
 # -------------------------------
 # DirectBasis
 # -------------------------------
-Rs = DirectBasis([1,0,0], [0,1,0], [0,0,1]) # cubic
+Rs = DirectBasis([1.0,0.0,0.0], [0.0,1.0,0.0], [0.0,0.0,1.0]) # cubic
 str = """
       DirectBasis{3} (cubic):
        [1.0, 0.0, 0.0]
        [0.0, 1.0, 0.0]
        [0.0, 0.0, 1.0]"""
+test_tp_show(Rs, str)
+
+Rs = DirectBasis([1,0,0], [0,1,0], [0,0,1]) # cubic with Int coordinate value type
+str = """
+      DirectBasis{3, Int64} (cubic):
+       [1, 0, 0]
+       [0, 1, 0]
+       [0, 0, 1]"""
 test_tp_show(Rs, str)
 
 Rs = DirectBasis([1,0,0], [-0.5, √(3)/2, 0.0], [0, 0, 1.5]) # hexagonal

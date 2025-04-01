@@ -69,12 +69,12 @@ end
 # Niggli reduction of reciprocal lattice
 for sgnum in 1:MAX_SGNUM[3]
     Rs = directbasis(sgnum)
-    Gs = reciprocalbasis(Rs)
+    Gs = dualbasis(Rs)
 
     niggli_Rs, P_from_Rs = nigglibasis(Rs)
     niggli_Gs, P_from_Gs = nigglibasis(Gs)
-    @test reciprocalbasis(niggli_Rs) ≈ niggli_Gs
-    @test reciprocalbasis(niggli_Gs).vs ≈ niggli_Rs.vs # duality of Niggli reduction
+    @test dualbasis(niggli_Rs) ≈ niggli_Gs
+    @test dualbasis(niggli_Gs) ≈ niggli_Rs # duality of Niggli reduction
     @test niggli_Gs ≈ transform(Gs, P_from_Gs)
     @test P_from_Rs ≈ P_from_Gs
 end

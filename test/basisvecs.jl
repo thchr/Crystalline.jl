@@ -11,7 +11,7 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
             end
         end
     end
-    @test reciprocalbasis(([1,0.1], [0.1, 1])) == reciprocalbasis([[1, 0.1], [0.1, 1]])
+    @test dualbasis(([1,0.1], [0.1, 1])) == dualbasis([[1, 0.1], [0.1, 1]])
 
     @testset "Primitive bases" begin
         for D in 1:3
@@ -95,5 +95,19 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         b = 2.3r - r + 3r
         @test isapprox(a, b)
         @test isapprox(RVec(a), RVec(b))
+    end
+end
+
+using Unitful: ustrip, @u_str
+@testset "Unitful `AbstractBasis`" begin
+    Rs = DirectBasis([1.0, 0.0, 0.0], [-0.5, sqrt(3)/2, 0.0],   [0, 0, 1.25])
+    Us = DirectBasis{3}(map(Rs) do v v * 1u"Å" end)
+
+    # issue #56
+    @test all(zip(dualbasis(Rs), dualbasis(Us))) do (R, U)
+        R == ustrip(U)
+    end
+    @test all(zip(dualbasis(Rs.vs), dualbasis(Us.vs))) do (R, U)
+        R == ustrip(U)
     end
 end

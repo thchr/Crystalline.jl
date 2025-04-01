@@ -25,7 +25,7 @@ export crystal,
     primitivebasismatrix,
     centering_volume_fraction,
     directbasis,
-    reciprocalbasis,
+    dualbasis,
     AbstractBasis,
     volume,
     metricmatrix,
@@ -49,5 +49,6 @@ include("show.jl")
 include("systems.jl")
 include("transform.jl")
 include("niggli.jl")
+include("deprecations.jl")
 
 end # module

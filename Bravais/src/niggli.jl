@@ -292,7 +292,7 @@ signed_angle²ᴰ(a::StaticVector{2}, b::StaticVector{2}) = atan(a[1]*b[2]-a[2]*
 # ---------------------------------------------------------------------------------------- #
 # Reciprocal lattice vector by Niggli reduction of the direct lattice first
 function nigglibasis(Gs :: ReciprocalBasis{D}; kws...) where D
-    Rs = DirectBasis(reciprocalbasis(Gs).vs) # TODO: replace by `dualbasis` when implemented
+    Rs = dualbasis(Gs)
     Rs′, P = nigglibasis(Rs; kws...)
-    return reciprocalbasis(Rs′), P
+    return dualbasis(Rs′), P
 end

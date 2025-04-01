@@ -164,11 +164,7 @@ function crystalsystem(Rs::DirectBasis{D}) where D
     end
     return system
 end
-function crystalsystem(Gs::ReciprocalBasis{D}) where D
-    Rs = DirectBasis{D}(reciprocalbasis(Gs).vs)
-    return crystalsystem(Rs)
-end
-
+crystalsystem(Gs::ReciprocalBasis) = crystalsystem(dualbasis(Gs))
 
 function crystalsystem(sgnum::Integer, D::Integer=3)
     if D == 1

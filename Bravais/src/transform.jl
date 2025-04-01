@@ -242,40 +242,53 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-    reciprocalbasis(Rs)  -->  ::ReciprocalBasis{D}
+    dualbasis(Vs)
     
-Return the reciprocal basis of a direct basis `Rs` in `D` dimensions, provided as a
-`StaticVector` of `AbstractVector`s (e.g., a `DirectBasis{D}`) or a `D`-dimensional `NTuple`
-of `AbstractVector`s, or a (or, type-unstably, as any iterable of `AbstractVector`s).
+Return the dual basis of a basis `Vs` in `D` dimensions.
+
+The input basis `Vs` can be provided as:
+- a `D`-dimensional `StaticVector` of `AbstractVector`s,
+- a `D`-dimensional `NTuple` of `AbstractVector`s,
+- or, type-unstably, as any iterable of `AbstractVector`s.
+
+If `Vs` is a subtype of `AbstractBasis`, the returned type is the `dual_type` of
+`typeof(Vs)`: e.g., for `Vs :: DirectBasis{D}`, the return-type is `ReciprocalBasis{D}` 
+(and vice versa). Otherwise, the return type an `NTuple{D, SVector{D, T}}` with `T`
+denoting the arithmetic closure of the vectors' element type.
 """
-function reciprocalbasis(Rs::Union{NTuple{D, <:AbstractVector{<:Real}},
-                                   StaticVector{D, <:AbstractVector{<:Real}}}) where D
+function dualbasis(Vs::Union{NTuple{D, <:AbstractVector{<:Number}},
+                             StaticVector{D, <:AbstractVector{<:Number}}}) where D
     if D == 3
-        G₁′ = Rs[2]×Rs[3]
-        pref = 2π/dot(Rs[1], G₁′)
-        vecs = pref .* (G₁′, Rs[3]×Rs[1], Rs[1]×Rs[2])
+        G₁′ = Vs[2]×Vs[3]
+        pref = 2π/dot(Vs[1], G₁′)
+        vecs = pref .* (G₁′, Vs[3]×Vs[1], Vs[1]×Vs[2])
     elseif D == 2
-        G₁′ = (@SVector [-Rs[2][2], Rs[2][1]])
-        pref = 2π/dot(Rs[1], G₁′)
-        vecs = pref .* (G₁′, (@SVector [Rs[1][2], -Rs[1][1]]))
+        G₁′ = (@SVector [-Vs[2][2], Vs[2][1]])
+        pref = 2π/dot(Vs[1], G₁′)
+        vecs = pref .* (G₁′, (@SVector [Vs[1][2], -Vs[1][1]]))
     elseif D == 1
-        vecs = (SVector{1,Float64}(2π/first(Rs[1])),)
+        vecs = (@SVector [2π/first(Vs[1])])
     else
         # The general definition of the reciprocal basis is [G₁ ... Gₙ]ᵀ = 2π[R₁ ... Rₙ]⁻¹; 
         # that form should generally be a bit slower than the above specific variants, cf. 
         # the inversion operation, so we only use it as a high-dimensional fallback. Since 
         # we use SVectors, however, either approach will probably have the same performance.
-        Rm = stack(Rs)
-        Gm = 2π.*inv(transpose(Rm))
-        vecs = ntuple(i->Gm[:,i], Val(D))
+        Vm = stack(Vs)
+        Vm_dual = 2π.*inv(transpose(Vm))
+        vecs = ntuple(i->Vm_dual[:,i], Val(D))
     end
 
-    return ReciprocalBasis{D}(vecs)
+    T = dualtype(Vs)
+    #println(vecs)
+    if T isa DataType
+        return T(vecs)
+    elseif T isa Nothing
+        return vecs
+    else
+        error(lazy"nominally unreachable: impossible `dualtype(Vs) = $T`")
+    end
 end
-reciprocalbasis(Rs) = reciprocalbasis(Tuple(Rs)) # type-unstable convenience accesor
-
-# TODO: Provide a utility to go from ReciprocalBasis -> DirectBasis. Maybe deprecate
-#       `reciprocalbasis` and have a more general function `dualbasis` instead?
+dualbasis(Rs) = dualbasis(Tuple(Rs)) # type-unstable convenience accesor
 
 # ---------------------------------------------------------------------------------------- #
 
