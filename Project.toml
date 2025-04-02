@@ -1,7 +1,7 @@
 name = "Crystalline"
 uuid = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 authors = ["Thomas Christensen <thomas@dtu.dk>"]
-version = "0.6.12"
+version = "0.6.13"
 
 [deps]
 Bravais = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
@@ -29,7 +29,7 @@ CrystallineGraphMakieExt = "GraphMakie"
 CrystallinePyPlotExt = "PyPlot"
 
 [compat]
-Bravais = "0.2.3"
+Bravais = "0.2.4"
 Combinatorics = "1.0"
 DelimitedFiles = "1"
 DocStringExtensions = "0.8, 0.9"

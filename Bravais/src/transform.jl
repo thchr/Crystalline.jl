@@ -253,7 +253,7 @@ The input basis `Vs` can be provided as:
 
 If `Vs` a [`DirectBasis`](@ref), the type of the returned dual lattice is
 a [`ReciprocalBasis`](@ref) and vice versa.
-For other input types, no explicit conversion of return type is made.
+For other input types, the return type is an `SVector{D, <:SVector{D}}`.
 """
 function dualbasis(Vs::Union{NTuple{D, <:AbstractVector{<:Number}},
                              StaticVector{D, <:AbstractVector{<:Number}}}) where D
@@ -278,11 +278,10 @@ function dualbasis(Vs::Union{NTuple{D, <:AbstractVector{<:Number}},
     end
 
     T = dualtype(Vs)
-    #println(vecs)
     if T isa DataType
         return T(vecs)
     elseif T isa Nothing
-        return vecs
+        return SVector{D}(vecs)
     else
         error(lazy"nominally unreachable: impossible `dualtype(Vs) = $T`")
     end
