@@ -97,19 +97,35 @@ end
 Return the band representation induced by the provided `SiteIrrep` evaluated at `kv` and for
 a `SymOperation` `h`.
 """
-function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D
-    siteg  = group(siteir)
-    wp     = position(siteg)   
-    kv′    = constant(h*kv) # <-- TODO: Why only constant part?
-    χs     = characters(siteir)
-
+function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D   
     # only loop over the cosets/orbits that are not mere centering "copies"
+    siteg = group(siteir)
+    orbits, gαs = _reduced_orbits_and_cosets(siteg)
+
+    # do the actual calculation
+    return _induce_bandrep(characters(siteir), siteg, h, kv, orbits, gαs)
+end
+
+function _reduced_orbits_and_cosets(siteg::SiteGroup{D}) where D
+    wp     = position(siteg)  
     orbits = orbit(siteg)
     gαs    = cosets(siteg)
     cntr   = centering(num(siteg), D)
     reduce_orbits!(orbits, cntr, true) # remove centering "copies" from orbits
     reduce_cosets!(gαs, wp, orbits)    # remove the associated cosets
 
+    return orbits, gαs
+end
+
+function _induce_bandrep(
+        χs::Vector{ComplexF64},              # characters of site irrep
+        siteg::SiteGroup,                    # site group
+        h::SymOperation{D},
+        kv::KVec{D},
+        orbits::Vector{WyckoffPosition{D}}, # (centering-reduced) orbits of site group
+        gαs::Vector{SymOperation{D}}         # (centering-reduced) cosets of site group
+    ) where D
+    kv′ = constant(h*kv) # <-- TODO: Why only constant part?
     # sum over all the (non-centering-equivalent) wyckoff positions/cosets in the orbit 
     χᴳₖ = zero(ComplexF64)
     for (wpα′, gα′) in zip(orbits, gαs)
@@ -139,8 +155,13 @@ function subduce_onto_lgirreps(
     lg = group(first(lgirs))
     kv = position(lg)
 
-    # characters of induced site representation and little group irreps
-    site_χs  = induce_bandrep.(Ref(siteir), lg, Ref(kv))
+    # characters of induced site representation and little group irreps (we use
+    # `_induce_bandrep` below instead of `induce_bandrep` to avoid repeated calculation of
+    # characters, orbits, and cosets of the site irrep & site group)
+    siteg = group(siteir)
+    orbits, gαs = _reduced_orbits_and_cosets(siteg)
+    site_χs  = _induce_bandrep.(Ref(characters(siteir)), Ref(siteg), lg, Ref(kv),
+                                Ref(orbits), Ref(gαs))
     lgirs_χm = matrix(characters(lgirs))
 
     # little group irrep multiplicities, after subduction
