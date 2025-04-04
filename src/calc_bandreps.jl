@@ -185,7 +185,8 @@ end
 """
     calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                   timereversal::Bool=true,
-                  allpaths::Bool=false)
+                  allpaths::Bool=false,
+                  physically_real::Bool=timereversal)
 
 Compute the band representations of space group `sgnum` in dimension `D`, returning a
 `BandRepSet`.
@@ -198,6 +199,10 @@ Compute the band representations of space group `sgnum` in dimension `D`, return
   distinct **k**-points returned by `lgirreps` (`allpaths = false`), including high-symmetry
   **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
   just to high-symmetry points.
+- `physically_real` (default, `timereversal`): whether, if `timereversal = true`, to
+  ensure that the site symmetry irreps accompanying the band representations are chosen
+  to be explicitly real (or "physically" real; see [`physically_realify`](@ref)). This
+  is helpful for subsequent analysis of the action of time-reversal symmetry.
 
 ## Notes
 All band representations associated with maximal Wyckoff positions are returned, 
@@ -214,8 +219,13 @@ function calc_bandreps(
         sgnum::Integer,
         Dᵛ::Val{D} = Val(3);
         timereversal::Bool = true,
-        allpaths::Bool = false
+        allpaths::Bool = false,
+        physically_real::Bool = timereversal
     ) where D
+
+    if physically_real && !timereversal
+        error("`physically_real = true` is only meaningful for `timereversal = true`")
+    end
 
     # get all the little group irreps that we want to subduce onto
     lgirsd = lgirreps(sgnum, Val(D))
@@ -229,7 +239,10 @@ function calc_bandreps(
     brs    = NewBandRep{D}[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
-        timereversal && (siteirs = realify(siteirs))
+        if timereversal
+            siteirs = realify(siteirs)
+            physically_real && (siteirs = physical_realify(siteirs))
+        end
         append!(brs, calc_bandrep.(siteirs, Ref(lgirsv), Ref(timereversal)))
     end
 

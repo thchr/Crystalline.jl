@@ -134,4 +134,22 @@ end
         end
     end
 end
+
+
+@testset "`physically_real = true` vs. `physically_real = false`" begin
+    for sgnum in 1:MAX_SGNUM[3]
+        brs  = calc_bandreps(sgnum, Val(3); timereversal = true, physically_real = false)
+        pbrs = calc_bandreps(sgnum, Val(3); timereversal = true, physically_real = true)
+        @test all(zip(brs, pbrs)) do (br, pbr)
+            br.n == pbr.n # symmetry vectors should be the same regardless
+        end
+        for pbr in pbrs
+            b = all(x -> x ≈ real(x), pbr.siteir.matrices) # D ≈ Re(D)
+            if !b
+                println(sgnum, ": ", pbr)
+            end
+        end
+    end
+end
+
 end # @testset "calc_bandreps" begin
