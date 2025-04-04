@@ -9,7 +9,7 @@ using PrecompileTools: @setup_workload, @compile_workload
         function _precompile(sgnum, Dᵛ::Val{D}) where D
             sg = spacegroup(sgnum, Dᵛ)
             show(IOBuffer(), MIME"text/plain"(), sg)
-            brs = calc_bandreps(sgnum, Dᵛ; timereversal=true, physically_real=true)
+            brs = calc_bandreps(sgnum, Dᵛ; timereversal=true, explicitly_real=true)
             show(IOBuffer(), MIME"text/plain"(), brs)
             lgirs = lgirreps(sgnum, Dᵛ)
             show(IOBuffer(), MIME"text/plain"(), lgirs)
