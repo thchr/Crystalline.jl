@@ -35,7 +35,7 @@
 #   end
 #   println(io, ")")
 
-SG_GENS_CODES_Vs = (
+const SG_GENS_CODES_Vs = (
 # SpaceGroup{1}
 Vector{Tuple{Int8,Int8}}[
 #=1=# [(1,1)],

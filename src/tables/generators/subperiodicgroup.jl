@@ -35,7 +35,7 @@
 #   end
 #   println(io, ")")
 
-SUBG_GENS_CODES_Vs = Base.ImmutableDict(
+const SUBG_GENS_CODES_Vs = Base.ImmutableDict(
 # SubperiodicGroup{3, 2}
 (3, 2) => Vector{Tuple{Int8,Int8}}[
 #=1=# [(1,1)],
