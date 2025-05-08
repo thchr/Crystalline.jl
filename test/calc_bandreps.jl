@@ -135,6 +135,25 @@ end
     end
 end
 
+@testset "Orbits of bandrep site groups are all in parallelepid primitive unit cell" begin
+    # check that the constant part of every orbit position of a bandrep site group lies
+    # in the primitive unit cell parallelepiped, in i.e., [0, 1)ᴰ
+    for D in 1:3
+        for sgnum in 1:MAX_SGNUM[D]
+            brs = calc_bandreps(sgnum, Val(D); timereversal = true, allpaths = false)
+            for br in brs
+                siteg = group(br)
+                rs = orbit(siteg)                           # conventional setting
+                rs′ = primitivize.(rs, centering(sgnum, D)) # primitive setting
+                @test all(rs′) do r′
+                    # check that every coordinate of `r` lies in [0,1)
+                    all(x -> 0 ≤ x < 1, constant(r′))
+                end
+            end
+        end
+    end
+end
+
 
 @testset "`explicitly_real = true` vs. `explicitly_real = false`" begin
     for sgnum in 1:MAX_SGNUM[3]

@@ -33,59 +33,99 @@ end
 reduce_dict_of_vectors(d::Dict{<:Any, <:Vector}) = reduce_dict_of_vectors(identity, d)
 
 """
-    reduce_orbits!(orbits::Vector{WyckoffPosition}, cntr::Char, conv_or_prim::Bool=true])
+    reduce_orbits_and_cosets(siteg::SiteGroup{D}))
 
-Update `orbits` in-place to contain only those Wyckoff positions that are not equivalent
-in a primitive basis (as determined by the centering type `cntr`). Returns the updated
-`orbits`. 
+For an input site group, provided in conventional coordinates, reduce its cosets such
+that the resulting orbit only contains Wyckoff positions that are not equivalent when
+viewed in the primitive basis (as determined by the centering type `cntr`). Additionally,
+the associated orbit will only contain positions whose _primitive_ coefficients lie in
+[0,1). I.e., the associated orbit lies in the canonical [0,1)ᴰ primitive unit cell. The
+coset operations are adjusted accordingly.
 
-If `conv_or_prim = true` (default), the Wyckoff positions are returned in the original,
-conventional basis; if `conv_or_prim = false`, they are returned in a primitive basis.
+The reduced site group is returned in a conventional basis, along with the reduced orbits,
+also in a conventional basis.
 """
-function reduce_orbits!(
-        orbits::AbstractVector{WyckoffPosition{D}}, cntr::Char, conv_or_prim::Bool=true
+function reduce_orbits_and_cosets(
+        siteg::SiteGroup{D}
     ) where D
 
-    orbits′ = primitivize.(orbits, cntr)
-    i = 2 # start from second element
+    orbits = parent.(orbit(siteg))
+    gαs    = copy(cosets(siteg))
+    cntr   = centering(num(siteg), D)
+
+    orbits′ = primitivize.(orbits, cntr) # primitive basis
+    i = 1
     while i ≤ length(orbits)
         wp′ = parent(orbits′[i])
-        was_removed = false
-        for j in 1:i-1
-            δᵢⱼ = wp′ - parent(orbits′[j])
-            if (iszero(free(δᵢⱼ)) && 
-                all(x->abs(rem(x, 1.0, RoundNearest)) < DEFAULT_ATOL, constant(δᵢⱼ)))
-                # -> means it's equivalent to a previously "greenlit" orbit
-                deleteat!(orbits, i)
-                deleteat!(orbits′, i)
-                was_removed = true
-                break
-            end
+        wp′_r = RVec{D}(reduce_translation_to_unitrange(constant(wp′)), # coords. in [0,1)ᴰ
+                        free(wp′))
+        if isapproxin(wp′_r, (@view orbits′[1:i-1]), nothing, #=modw=# true)
+            # `wp′` is equivalent to another position already in the orbit; delete it!
+            deleteat!(orbits′, i)
+            deleteat!(orbits, i)
+            deleteat!(gαs, i)
+            continue
         end
-        was_removed || (i += 1)
+        # the position `wp′` is not equivalent to any position in `orbit[1:i-1]`: keep it!
+        # we add `wp′_reduced` rather than `wp′`, because we want the coordinates to be
+        # in [0,1)ᴰ for the primitive unit cell
+        if !isapprox(wp′_r, wp′, nothing, #=modw=# false)
+            orbits′[i] = wp′_r
+            orbits[i] = conventionalize(wp′_r, cntr)
+
+            # we also need to update the coset operation, cf. the additional translation
+            # of `wp′_r` relative to `wp′`
+            Δ′ = constant(wp′_r) - constant(wp′)
+            g′ = primitivize(gαs[i], cntr, #=modw=# false) # original coset operation (primitive basis)
+            g′_r = SymOperation(g′.rotation, g′.translation + Δ′) # "reduced" coset operation (primitive basis)
+            g_r = conventionalize(g′_r, cntr, #=modw=# false) # "reduced" coset operation (conventional basis)
+            gαs[i] = g_r
+        end
+        i += 1 # process next element
     end
 
-    return conv_or_prim ? orbits : orbits′
+    wp = parent(position(siteg))
+    wp_r = first(orbits)
+    if wp != wp_r
+        # we always assume that the first position in the orbits is a reference point for
+        # the cosets, i.e., is the canonical Wyckoff position `wp`, such that we can
+        # obtain the orbits by acting with the cosets on `wp` - but if the new orbits'
+        # first element, i.e., `wp_r`, is a different Wyckoff position than `wp`, we can't
+        # go ahead directly - the cosets are still relative to `wp`, but we'd like them to
+        # be relative to `wp_r`; so, we need to adjust the cosets accordingly. To adjust,
+        # we exploit that `wp` and `wp_r` differ by exactly `gαs[1]` (the first coset
+        # operation) in the sense that `wp_r = compose(gαs[1], wp, false)`; to adjust, we
+        # just apply the inverse of `gαs[1]` to all coset operations from the right:
+        g = gαs[1]
+        g⁻¹ = inv(g)
+        for i in eachindex(gαs)
+            gαs[i] = compose(gαs[i], g⁻¹, #=modw=# false) # adjust to new origin
+        end
+        # NB: this looks assymmetrical relative to the transformation below, but that's only
+        #     because we've already applied the left-hand side transformation
+
+        # the change of reference point will also affect the site group (i.e., the site 
+        # group is now relative to `wp_r` rather than `wp`); we must adjust the operations
+        # Deriviation of transformation below: 
+        # (1) we have: wp_r = g*wp ⇔ wp = g⁻¹*wp_r
+        # (2) existing site group: s*wp = wp        for s in sitegroup(wp)
+        # (3) wanted site group:   s_r*wp_r = wp_r  for s_r in sitegroup(wp_r)
+        # (4) combine: s*g⁻¹*wp_r = g⁻¹*wp_r ⇔ (g*s*g⁻¹)*wp_r = wp_r ⇒ s_r = g*s*g⁻¹
+        ops_r = compose.(compose.(Ref(g), operations(siteg), false), Ref(g⁻¹), false)
+        wp_r = WyckoffPosition{D}(siteg.wp.mult, siteg.wp.letter, wp_r)
+        siteg_r = SiteGroup{D}(num(siteg), wp_r, ops_r, gαs)
+    else
+        siteg_r = SiteGroup{D}(num(siteg), position(siteg), operations(siteg), gαs)
+    end
+
+    return siteg_r, orbits
 end
 
-# TODO: This is probably pretty fragile and depends on an implicit shared iteration order of
-#       cosets and orbits; it also assumes that wp is the first position in the `orbits`
-#       vector. Seems to be sufficient for now though...
-function reduce_cosets!(ops::Vector{SymOperation{D}}, wp::WyckoffPosition{D}, 
-            orbits::Vector{WyckoffPosition{D}}) where D
-    wp ≈ first(orbits) || error("implementation depends on a shared iteration order; sorry...")
-    i = 1
-    while i ≤ length(ops) && i ≤ length(orbits)
-        wpᵢ = orbits[i]
-        opᵢ = ops[i]
-        if opᵢ*parent(wp) ≈ parent(wpᵢ)
-            i += 1 # then opᵢ is indeed a "generator" of wpᵢ
-        else
-            deleteat!(ops, i)
-        end
-    end
-    i ≤ length(ops) && deleteat!(ops, i:length(ops))
-    return ops
+function reduce_orbits_and_cosets(siteir::SiteIrrep{D}) where D
+    siteg_r, _ = reduce_orbits_and_cosets(group(siteir))
+    siteir_r = SiteIrrep{D}(siteir.cdml, siteg_r, siteir.matrices, siteir.reality,
+                           siteir.iscorep, siteir.pglabel)
+    return siteir_r
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -96,40 +136,35 @@ end
 
 Return the band representation induced by the provided `SiteIrrep` evaluated at `kv` and for
 a `SymOperation` `h`.
+
+It is assumed that `group(siteir)` is not centering-reduced: i.e., a centering-reduction
+attempt is always made; if the group cosets are already reduced in the sense of
+[`reduce_orbits_and_cosets`](@ref), this makes no difference.
 """
-function induce_bandrep(siteir::SiteIrrep{D}, h::SymOperation{D}, kv::KVec{D}) where D   
-    # only loop over the cosets/orbits that are not mere centering "copies"
-    siteg = group(siteir)
-    orbits, gαs = _reduced_orbits_and_cosets(siteg)
-
-    # do the actual calculation
-    return _induce_bandrep(characters(siteir), siteg, h, kv, orbits, gαs)
-end
-
-function _reduced_orbits_and_cosets(siteg::SiteGroup{D}) where D
-    wp     = position(siteg)  
-    orbits = orbit(siteg)
-    gαs    = cosets(siteg)
-    cntr   = centering(num(siteg), D)
-    reduce_orbits!(orbits, cntr, true) # remove centering "copies" from orbits
-    reduce_cosets!(gαs, wp, orbits)    # remove the associated cosets
-
-    return orbits, gαs
+function induce_bandrep(
+    siteir::SiteIrrep{D},
+    h::SymOperation{D},
+    kv::KVec{D},
+    ) where D   
+    
+    siteg, orbits = reduce_orbits_and_cosets(group(siteir))
+    return _induce_bandrep(characters(siteir), h, kv, siteg, orbits) # FIXME: `orbits` isa not right type
 end
 
 function _induce_bandrep(
-        χs::Vector{ComplexF64},              # characters of site irrep
-        siteg::SiteGroup,                    # site group
+        χs::Vector{ComplexF64},  # characters of site irrep
         h::SymOperation{D},
         kv::KVec{D},
-        orbits::Vector{WyckoffPosition{D}}, # (centering-reduced) orbits of site group
-        gαs::Vector{SymOperation{D}}         # (centering-reduced) cosets of site group
+        siteg::SiteGroup{D},     # (centering-reduced) site group
+        orbits::Vector{RVec{D}}, # (centering-reduced) orbit of `siteg``
     ) where D
     kv′ = constant(h*kv) # <-- TODO: Why only constant part?
+    gαs = cosets(siteg) # (centering-reduced) cosets of the site group
     # sum over all the (non-centering-equivalent) wyckoff positions/cosets in the orbit 
     χᴳₖ = zero(ComplexF64)
     for (wpα′, gα′) in zip(orbits, gαs)
-        tα′α′ = constant(parent(h*wpα′) - parent(wpα′)) # TODO: <-- explain why we only need constant part here?
+        wpα′ = parent(wpα′)
+        tα′α′ = constant(h*wpα′ - wpα′) # TODO: <-- explain why we only need constant part here?
         opᵗ   = SymOperation(-tα′α′)
 
         gα′⁻¹     = inv(gα′)
@@ -150,18 +185,18 @@ function _induce_bandrep(
 end
 
 function subduce_onto_lgirreps(
-        siteir::SiteIrrep{D}, lgirs::AbstractVector{LGIrrep{D}}
+        siteir_χs::AbstractVector{<:Number},
+        siteg::SiteGroup{D},
+        lgirs::AbstractVector{LGIrrep{D}}
     ) where D
     lg = group(first(lgirs))
     kv = position(lg)
 
     # characters of induced site representation and little group irreps (we use
     # `_induce_bandrep` below instead of `induce_bandrep` to avoid repeated calculation of
-    # characters, orbits, and cosets of the site irrep & site group)
-    siteg = group(siteir)
-    orbits, gαs = _reduced_orbits_and_cosets(siteg)
-    site_χs  = _induce_bandrep.(Ref(characters(siteir)), Ref(siteg), lg, Ref(kv),
-                                Ref(orbits), Ref(gαs))
+    # the centering-reduction of orbits and cosets of the site irrep/site group)
+    orbits = parent.(orbit(siteg))
+    site_χs  = _induce_bandrep.(Ref(siteir_χs), lg, Ref(kv), Ref(siteg), Ref(orbits))
     lgirs_χm = matrix(characters(lgirs))
 
     # little group irrep multiplicities, after subduction
@@ -169,6 +204,11 @@ function subduce_onto_lgirreps(
     m′ = round.(Int, real.(m)) # truncate to integers
     isapprox(m, m′, atol=DEFAULT_ATOL) || error(DomainError(m, "failed to convert to integers"))
     return m′
+end
+function subduce_onto_lgirreps(
+    siteir::SiteIrrep{D}, lgirs::AbstractVector{LGIrrep{D}}
+) where D
+    return subduce_onto_lgirreps(characters(siteir), group(siteir), lgirs)
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -179,7 +219,12 @@ function calc_bandrep(
         timereversal :: Bool
     ) where D
 
-    multsv = [subduce_onto_lgirreps(siteir, lgirs) for lgirs in lgirsv]
+    # take the input site symmetry irrep, and reduce its little group cosets such that the
+    # associated orbit lies in [0,1)ᴰ of the primitive unit cell
+    siteir = reduce_orbits_and_cosets(siteir)
+    siteg = group(siteir)
+    siteir_χs = characters(siteir)
+    multsv = [subduce_onto_lgirreps(siteir_χs, siteg, lgirs) for lgirs in lgirsv]
     
     occupation = sum(zip(first(multsv), first(lgirsv)); init=0) do (m, lgir)
         m * irdim(lgir)
