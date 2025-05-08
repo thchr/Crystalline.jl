@@ -145,7 +145,7 @@ function physical_realify(ir::Union{<:PGIrrep, <:SiteIrrep})
     end
     Xs = ir.matrices
 
-    if all(X -> all(Xᵢⱼ -> imag(Xᵢⱼ) == 0, X), Xs)
+    if all(X -> real(X) ≈ X, Xs)
         # already in real form: return a copy, to be safe against any subsequent mutation
         return _pgirrep_or_siteirrep_from_matrices(ir, [copy(X) for X in Xs])
     end
