@@ -567,9 +567,12 @@ directly via its rotation part. However, because of the different bases, it now 
 ```
 Note the transposition _and_ inverse of ``\mathbf{W}``, arising as a result of the implicit
 real-space basis of ``\{\mathbf{W}|\mathbf{w}\}`` versus the reciprocal-space basis of
-``\mathbf{k}``.
+``\mathbf{k}`` and the requirement that 
+``\mathbf{k} \cdot \mathbf{r} = \mathbf{k}' \cdot \mathbf{r}'$ for rotated (no translation,
+$\mathbf{w} = \mathbf{0}$) vectors ``\mathbf{k}'`` and ``\mathbf{r}'``.
+
 Note also that the composition of ``\{\mathbf{W}|\mathbf{w}\}`` with ``\mathbf{k}`` is
-invariant under ``\mathbf{w}``, i.e., translations do not act in reciprocal space.
+independent of ``\mathbf{w}``, i.e., translations do not act in reciprocal space.
 
 ## Extended help
 
