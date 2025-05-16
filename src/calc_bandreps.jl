@@ -317,6 +317,45 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
+function primitivize(brs::Collection{NewBandRep{D}}) where D
+    # --- early termination; don't need to do anything if already primitive ---
+    sgnum = num(brs)
+    cntr = centering(sgnum, D)
+    ((D == 3 && cntr == 'P') || (D ≠ 3 && cntr == 'p')) && return brs
+
+    # --- primitivize little group irreps ---
+    # NB: all elements of `brs` point to the same set of irreps, by assumption
+    lgirsv′ = [copy(lgirs) for lgirs in irreps(first(brs))]
+    for lgirs′ in lgirsv′
+        lg = group(lgirs′)
+        lg′ = primitivize(lg, #=modw=# false) # do not reduce translations
+        for (i, lgir) in enumerate(lgirs′)
+            lgir′ = LGIrrep{D}(lgir.cdml, lg′, lgir.matrices, lgir.translations,
+                                lgir.reality, lgir.iscorep)
+            lgirs′[i] = lgir′
+        end
+    end
+
+    # --- primitivize siteirreps & update each band rep ---
+    vs′ = Vector{NewBandRep{D}}(undef, length(brs))
+    for (i, br) in enumerate(brs)
+        siteg = group(br)
+        siteg′ = primitivize(siteg)
+        siteir = br.siteir
+        siteir′ = SiteIrrep{D}(siteir.cdml, siteg′, siteir.matrices, siteir.reality,
+                               siteir.iscorep, siteir.pglabel)
+        n = br.n
+        n′ = SymmetryVector{D}(lgirsv′, n.multsv, n.occupation)
+        br′ = NewBandRep{D}(siteir′, n′, br.timereversal, br.spinful)
+        vs′[i] = br′
+    end
+    brs′ = Collection(vs′)
+
+    return brs′
+end
+
+# ---------------------------------------------------------------------------------------- #
+
 # performance optimization
 function Base.stack(brs::Collection{NewBandRep{D}}) where D
     B = Matrix{Int}(undef, length(first(brs)), length(brs))
