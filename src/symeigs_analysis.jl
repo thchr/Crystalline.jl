@@ -20,7 +20,7 @@ lowest-lying bands are returned first.
    operations must correspond to those in `group(irreps(brs)[kidx])`.
 - `brs :: Collection{NewBandRep{D}}`: a collection of band representations, iterating a set
    of `NewBandRep{D}` objects, obtained from [`calc_bandreps`](@ref), and is expected to be
-   provided in `primitivized` form (see [`primitivize(::Collection{NewBandRep{D}})`](@ref)).
+   provided in `primitivized` form (see [`primitivize(::Collection{<:NewBandRep})`](@ref)).
    The little group irreps are implicitly specified via `brs` as well (via `irreps(brs)`),
    as are the corresponding little groups and their associated operator sorting (via
    `group.(irreps(brs))`). It assumed that the sorting of symmetry eigenvalues in `symeigsv`
@@ -28,7 +28,7 @@ lowest-lying bands are returned first.
    `symeigsv[kidx][:][opidx]`.
 - `F::Smith{<:Integer}`: optional argument, corresponding to the Smith normal form of the
    band representation matrix `stack(brs)`. Can be supplied explicitly to avoid repeated
-   recalculations for repeated calls to this function (see [`smith`](@ref)).
+   recalculations for repeated calls to this function (see `smith`).
 
 ## Keyword arguments
 

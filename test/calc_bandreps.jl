@@ -154,12 +154,12 @@ end
                 # test that we get the same by just primitivizing the site group directly
                 siteg′ = primitivize(siteg)
                 rs′′ = orbit(siteg′) # primitive setting
-                @test rs′′ = rs′
+                @test all(((r′′, r′),) -> r′′ ≈ r′, zip(rs′′, rs′))
 
                 # also test that operations of primitivized site group "conventionalize" to
                 # exactly those of the unprimitivized site group
-                siteg′_ops_c = conventionalize(operations(siteg′), cntr, #= modw =# false)
-                @test operations(siteg) == siteg′_ops_c
+                siteg′_ops_c = conventionalize.(operations(siteg′), cntr, #= modw =# false)
+                @test operations(siteg) ≈ siteg′_ops_c
             end
         end
     end
@@ -187,4 +187,4 @@ end
     @test stack(brs) == invoke(stack, Tuple{AbstractVector{<:AbstractVector}}, brs)
 end
 
-end # @testset "calc_bandreps" begin
+end # @testset "calc_bandreps"
