@@ -157,10 +157,11 @@ export ΦnotΩ_kvecs
 include("littlegroup_irreps.jl")
 export lgirreps, littlegroups
 
-include("lattices.jl")
+include("fourierlattices.jl")
 export ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
-       modulate, normscale, normscale!
+       modulate, normscale, normscale!,
+       isoval2filling, filling2isoval
 
 include("compatibility.jl")
 export subduction_count, remap_to_kstar

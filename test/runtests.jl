@@ -45,7 +45,7 @@ using Crystalline, Test
     include("conjugacy.jl")
 
     # lattices
-    include("lattices.jl")
+    include("fourierlattices.jl")
 
     # additional k-vectors in Φ-Ω ("special" representation domain vectors)
     include("holosymmetric.jl")
