@@ -65,6 +65,11 @@ end
     end
 end
 
+# copy: want to copy just the multiplicities, but not the underlying irrep data
+function Base.copy(n::SymmetryVector{D}) where D
+    SymmetryVector{D}(n.lgirsv, [copy(mults) for mults in multiplicities(n)], n.occupation)
+end
+
 # ::: Optimizations and utilities :::
 function Base.Vector(n::SymmetryVector)
     nv = Vector{Int}(undef, length(n))
@@ -418,6 +423,7 @@ end
 irreps(brs::Collection{<:NewBandRep}) = irreps(SymmetryVector(first(brs)))
 irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(SymmetryVector(first(brs)))
 klabels(brs::Collection{<:NewBandRep}) = klabels(SymmetryVector(first(brs)))
+littlegroups(::Collection{<:NewBandRep}) = group.(irreps(brs))
 
 # ::: Conversion to BandRepSet :::
 function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})

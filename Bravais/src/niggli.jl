@@ -46,12 +46,12 @@ Implementation follows the algorithm originally described by Krivy & Gruber [^1]
 stability modificiations proposed by Grosse-Kunstleve et al. [^2] (without which the 
 algorithm proposed in [^1] simply does not work on floating point hardware).
 
-[^1] I. Krivy & B. Gruber. A unified algorithm for determinign the reduced (Niggli) cell,
+[^1]: I. Krivy & B. Gruber. A unified algorithm for determinign the reduced (Niggli) cell,
     [Acta Crystallogr. A **32**, 297 (1976)](https://doi.org/10.1107/S0567739476000636).
-[^2] R.W. Grosse-Kunstleve, N.K. Sauter, & P.D. Adams, Numerically stable algorithms for the
-    computation of reduced unit cells,
+[^2]: R.W. Grosse-Kunstleve, N.K. Sauter, & P.D. Adams, Numerically stable algorithms for
+    the computation of reduced unit cells,
     [Acta Crystallogr. A **60**, 1 (2004)](https://doi.org/10.1107/S010876730302186X)
-[^3] Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
+[^3]: Sections 9.2 & 9.3, International Tables of Crystallography, Volume A, 5th ed. (2005).
 """
 function nigglibasis(
             Rs :: DirectBasis{3};
