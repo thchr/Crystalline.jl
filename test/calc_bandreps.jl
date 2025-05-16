@@ -141,14 +141,25 @@ end
     for D in 1:3
         for sgnum in 1:MAX_SGNUM[D]
             brs = calc_bandreps(sgnum, Val(D); timereversal = true, allpaths = false)
+            cntr = centering(sgnum, D)
             for br in brs
                 siteg = group(br)
-                rs = orbit(siteg)                           # conventional setting
-                rs′ = primitivize.(rs, centering(sgnum, D)) # primitive setting
+                rs = orbit(siteg)            # conventional setting
+                rs′ = primitivize.(rs, cntr) # primitive setting
                 @test all(rs′) do r′
                     # check that every coordinate of `r` lies in [0,1)
                     all(x -> 0 ≤ x < 1, constant(r′))
                 end
+
+                # test that we get the same by just primitivizing the site group directly
+                siteg′ = primitivize(siteg)
+                rs′′ = orbit(siteg′) # primitive setting
+                @test rs′′ = rs′
+
+                # also test that operations of primitivized site group "conventionalize" to
+                # exactly those of the unprimitivized site group
+                siteg′_ops_c = conventionalize(operations(siteg′), cntr, #= modw =# false)
+                @test operations(siteg) == siteg′_ops_c
             end
         end
     end

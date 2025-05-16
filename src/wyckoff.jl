@@ -49,7 +49,8 @@ end
 $(TYPEDSIGNATURES)
 
 Return all site symmetry groups associated with a space group, specified either as 
-`sg :: SpaceGroup{D}` or by its conventional number `sgnum` and dimension `D`.
+`sg :: SpaceGroup{D}` or by its conventional number `sgnum` and dimension `D` (if omitted,
+`D` defaults to 3).
 
 See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
 Wyckoff position.
@@ -58,7 +59,7 @@ function sitegroups(sg::SpaceGroup{D}) where D
     wps = wyckoffs(num(sg), Val(D))
     return sitegroup.(Ref(sg), wps)
 end
-sitegroups(sgnum::Integer, Dᵛ::Val{D}) where D = sitegroups(spacegroup(sgnum, Dᵛ))
+sitegroups(sgnum::Integer, Dᵛ::Val{D}=Val(3)) where D = sitegroups(spacegroup(sgnum, Dᵛ))
 sitegroups(sgnum::Integer, D::Integer) = sitegroups(spacegroup(sgnum, D))
 
 """
@@ -350,3 +351,74 @@ function siteirreps(siteg::SiteGroup{D}; mulliken::Bool=false) where D
     return Collection(siteirs)
 end
 mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+    primitivize(siteg::SiteGroup{D}) where D
+
+Transform the operations, cosets, and Wyckoff position associated with `siteg` to a
+primitive setting. 
+
+If the input site group is associated with an trivially centered space group (i.e.,
+centering `'P'` or `'p'`), a direct reference to the input is returned; if not, a new site
+group is built and returned, sharing no memory with the input.
+
+The transformation of operations and cosets is performed _without_ reduction of translations
+(i.e., passing `modw = false` to [`primitivize(::SymOperation)`](@ref)), consistent with
+Crystalline's convention of not reducing translations Wyckoff positions.
+The number of coset operations returned will be pruned, however, if this count is not equal
+to the number of positions in the primitive-cell orbit.
+Note that this is different from the behavior of e.g., `primitivize(::LittleGroup)`.
+"""
+function primitivize(siteg::SiteGroup{D}) where D
+    # NB: modw only applies to operations, not the associated Wyckoff position
+    sgnum = num(siteg)
+    cntr = centering(sgnum, D)
+    ((D == 3 && cntr == 'P') || (D ≠ 3 && cntr == 'p')) && return siteg
+
+    # It's enough to primitivize the site operations, rather than reduce them since any
+    # potentially "redundant" operation would already leave the Wyckoff position invariant
+    ops = operations(siteg)
+    ops′ = primitivize.(ops, cntr, #= modw =# false)
+
+    wp = position(siteg)
+    wp′ = primitivize(wp, cntr)
+    rv′ = parent(wp′)
+
+    # we need to reduce the cosets in a way so that the generated orbit is reduced to the
+    # elements in the primitive unit cell; we check this by keeping track of the orbit
+    N_cosets′ = multiplicity(wp) ÷ Bravais.centering_volume_fraction(cntr, Val(D))
+    if N_cosets′ == length(cosets(siteg))
+        # the cosets may have already been reduced only span the primitive unit cell, e.g.,
+        # for site groups that associate to a `NewBandRep`; for those cases, it's enough to
+        # just primitivize these coset operations directly
+        cosets′ = primitivize.(cosets(siteg), cntr, #= modw =# false)
+    else
+        # the cosets are not reduced - we go ahead and do it
+        rvs′ = Vector{RVec{D}}(undef, N_cosets′)
+        cosets′ = Vector{SymOperation{D}}(undef, N_cosets′)
+        i = 0
+        for op in cosets(siteg)
+            op′ = primitivize(op, cntr, #= modw =# false)
+            rv′′ = compose(op′, rv′)
+            isapproxin(rv′′, @view rvs′[1:i]) && continue # already included this coset op
+            
+            i += 1
+            rvs′[i] = rv′′
+            cosets′[i] = op′
+
+            i > N_cosets′ && break # we only need `Ncosets` representatives in total
+        end
+        i == N_cosets′ || error("failed to accumulate a full set of coset representatives")
+        # TODO: Maybe it would be nice to ensure that the cosets generate an orbit whose
+        #       elements have coordinates in [0,1), in the same way that we ensure for the
+        #       coordinates of the orbit for the conventional setting (but then in the
+        #       conventional unit cell); we already go through the necessary hoops to ensure
+        #       this for the site groups of used in `calc_bandreps`; in particular, see
+        #       `reduce_orbits_and_cosets` (but it returns coordinates in the conventional
+        #        unit cell and is not very optimized)
+    end
+            
+    return SiteGroup{D}(sgnum, wp′, ops′, cosets′)
+end

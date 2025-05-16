@@ -31,6 +31,10 @@ using Crystalline: constant, free
                 # test that `g` and `cosets(g)` furnishes a left-coset decomposition of `sg`
                 ops = [opʰ*opᵍ for opʰ in cosets(g) for opᵍ in g];
                 @test sort!(ops, by=xyzt) ≈ sort(sg, by=xyzt)
+
+                # test that primitivize works & has correct orbit/coset length
+                N_cntr = Bravais.centering_volume_fraction(centering(sgnum, D), Val(D))
+                @test length(orbit(primitivize(g))) == multiplicity(wp) ÷ N_cntr
             end
         end
     end
