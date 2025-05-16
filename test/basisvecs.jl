@@ -32,6 +32,14 @@ using Crystalline, Test, LinearAlgebra, StaticArrays
         end
     end
 
+    @testset "stack(::AbstractBasis)" begin
+        for D in 1:3
+            Rs = directbasis(1, D)
+            @test stack(Rs) isa AbstractMatrix{Float64}
+            @test size(stack(Rs)) == (D, D)
+        end
+    end
+
     @testset "crystal(...)" begin
         # zero-elements should be _exactly_ =0 for π/2 angles; not merely approximately 0
         Rs = crystal(1.0, 1.0, 1.0, π/2, π/2, π/2)

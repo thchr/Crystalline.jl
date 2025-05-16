@@ -80,6 +80,7 @@ Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e., the 
 columns are the basis vectors of `Vs`.
 """
 stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
+stack(Vs::AbstractBasis{1, E}) where E = SMatrix{1, 1, E, 1}(@inbounds Vs[1][1])
 
 """
     volume(Vs::AbstractBasis)

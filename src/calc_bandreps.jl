@@ -314,3 +314,21 @@ function calc_bandreps(
 
     return Collection(brs)
 end
+
+# ---------------------------------------------------------------------------------------- #
+
+# performance optimization
+function Base.stack(brs::Collection{NewBandRep{D}}) where D
+    B = Matrix{Int}(undef, length(first(brs)), length(brs))
+    @inbounds for (j, br) in enumerate(brs)
+        i = 1
+        for mults in multiplicities(br)
+            n = length(mults)
+            i′ = i + n - 1
+            B[i:i′, j] = mults
+            i = i′ + 1
+        end
+        B[i, j] = occupation(br)
+    end
+    return B
+end

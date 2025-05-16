@@ -171,4 +171,9 @@ end
     end
 end
 
+@testset "stack(::Collection{<:NewBandRep})" begin
+    brs = calc_bandreps(2, Val(3); timereversal=false)
+    @test stack(brs) == invoke(stack, Tuple{AbstractVector{<:AbstractVector}}, brs)
+end
+
 end # @testset "calc_bandreps" begin
