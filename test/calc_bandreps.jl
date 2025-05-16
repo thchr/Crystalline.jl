@@ -130,7 +130,7 @@ end
             @test sort!(dim.(brs²ᴰ)) == sort!(dim.(brs³ᴰ))
 
             # topological classification
-            @test classification(brs²ᴰ) == classification(brs³ᴰ)
+            @test indicator_group_as_string(brs²ᴰ) == indicator_group_as_string(brs³ᴰ)
         end
     end
 end

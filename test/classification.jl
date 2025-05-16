@@ -26,7 +26,7 @@ spinful  = false
 
     for sgnum = 1:230
         brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-        @test classification(brs) == table4[sgnum]
+        @test indicator_group_as_string(brs) == table4[sgnum]
     end
 end
 

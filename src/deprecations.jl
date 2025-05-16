@@ -42,3 +42,6 @@ Base.@deprecate_binding( # cannot use plain `@deprecate` for types
 )
 
 @deprecate matrix(brs::BandRepSet; kws...) stack(brs::BandRepSet)
+
+@deprecate classification indicator_group_as_string
+@deprecate nontrivial_factors indicator_group

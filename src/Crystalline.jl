@@ -168,16 +168,23 @@ include("compatibility.jl")
 export subduction_count, remap_to_kstar
 
 include("bandrep.jl")
-export bandreps, classification, nontrivial_factors, basisdim
+export bandreps, basisdim
 
 include("calc_bandreps.jl")
 export calc_bandreps
 
-include("deprecations.jl")
-export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar
+include("tqc_analysis.jl")
+export iscompatible, calc_topology, symmetry_indicators
+export indicator_group, indicator_group_as_string
+export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
+
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups, conjugacy_relations
+
+include("deprecations.jl")
+export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar,
+       classification, nontrivial_factors
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl

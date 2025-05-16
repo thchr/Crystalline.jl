@@ -126,46 +126,6 @@ function bandreps(sgnum::Integer, D::Integer=3;
 end
 
 """
-$(TYPEDSIGNATURES)
-
-Return the nontrivial (i.e., ≠ {0,1}) elementary factors of an EBR basis, provided as a
-`BandRepSet` or `Smith` decomposition.
-"""
-function nontrivial_factors(F::Smith)
-    Λ = F.SNF
-    nontriv_idx = findall(is_not_one_or_zero, Λ)
-    return Λ[nontriv_idx]
-end
-function nontrivial_factors(brs::BandRepSet)
-    F = smith(stack(brs), inverse=false)
-    return nontrivial_factors(F)
-end
-is_not_one_or_zero(x) = !(isone(x) || iszero(x))
-
-"""
-    classification(brs_or_F::Union{BandRepSet, Smith}) --> String
-
-Return the symmetry indicator group ``X^{\\text{BS}}`` of an EBR basis `F_or_brs`, provided
-as a `BandRepSet` or `Smith` decomposition.
-
-Technically, the calculation answers the question "what direct product of 
-``\\mathbb{Z}_n`` groups is the the quotient group
-``X^{\\text{BS}} = \\{\\text{BS}\\}/\\{\\text{AI}\\}`` isomorphic to?" (see
-[Po, Watanabe, & Vishwanath, Nature Commun. **8**, 50 (2017)](https://doi.org/10.1038/s41467-017-00133-2)
-for more information).
-"""
-function classification(nontriv_Λ::AbstractVector{<:Integer})
-    if isempty(nontriv_Λ)
-        return "Z₁"
-    else
-        return "Z"*subscriptify(join(nontriv_Λ, "×Z"))
-    end
-end
-function classification(brs_or_F::Union{BandRepSet, Smith})
-    return classification(nontrivial_factors(brs_or_F))
-end
-
-"""
     basisdim(brs::BandRepSet) --> Int
 
 Return the dimension of the (linearly independent parts) of a band representation set.
