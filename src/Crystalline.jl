@@ -10,6 +10,7 @@ using Combinatorics           # → `find_isomorphic_parent_pointgroup` in point
 using Requires
 using Reexport
 using DocStringExtensions
+using Statistics: quantile    # →  `filling2isoval` in fourierlattices.jl
 import Graphs
 
 using Base: OneTo, @propagate_inbounds
