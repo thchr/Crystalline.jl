@@ -178,6 +178,8 @@ export iscompatible, calc_topology, symmetry_indicators
 export indicator_group, indicator_group_as_string
 export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
 
+include("symeigs_analysis.jl")
+export symeigs_analysis
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups, conjugacy_relations

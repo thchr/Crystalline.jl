@@ -57,6 +57,9 @@ using Crystalline, Test
     include("isomorphic_parent_pointgroup.jl") # => do we find the same "parent" point
                                                #    groups as Bilbao?
 
+    # analysis of symmetry eigenvalue data (to symmetry vectors)
+    include("symeigs_analysis.jl")
+    
     # magnetic space groups
     include("mspacegroup.jl")
 

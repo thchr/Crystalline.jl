@@ -1,13 +1,13 @@
 """
-    find_representation(symvals::AbstractVector{Number}, 
-                        lgirs::AbstractVector{<:AbstractIrrep},
-                        αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                        assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int),
-                        atol::Real=DEFAULT_ATOL,
-                        maxresnorm::Real=1e-3,
-                        verbose::Bool=false)
-
-                        --> Vector{assert_return_T}
+    find_representation(
+        symvals::AbstractVector{<:Number}, 
+        lgirs::AbstractVector{<:AbstractIrrep},
+        assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int);
+        αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
+        atol::Real=DEFAULT_ATOL,
+        maxresnorm::Real=1e-3,
+        verbose::Bool=false
+    )                                          --> Union{Nothing, Vector{assert_return_T}}
 
 From a vector (or vector of vectors) of symmetry eigenvalues `symvals` sampled along all the
 operations of a group gᵢ, whose irreps are contained in `irs` (evaluated with optional free 
@@ -31,13 +31,15 @@ Effectively, this applies the projection operator P⁽ʲ⁾ of each irrep's char
 
 returning the irrep multiplicities mⱼ ≡ nⱼ/dⱼ.
 """
-function find_representation(symvals::AbstractVector{<:Number}, 
-                             lgirs::AbstractVector{<:AbstractIrrep},
-                             αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
-                             atol::Real=DEFAULT_ATOL,
-                             maxresnorm::Real=1e-3,
-                             verbose::Bool=false)
+function find_representation(
+    symvals::AbstractVector{<:Number}, 
+    lgirs::AbstractVector{<:AbstractIrrep},
+    assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
+    αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
+    atol::Real=DEFAULT_ATOL,
+    maxresnorm::Real=1e-3,
+    verbose::Bool=false
+)
     ct = characters(lgirs, αβγ)
     χs = matrix(ct) # character table as matrix (irreps-as-columns & operations-as-rows)
 
@@ -120,13 +122,38 @@ function find_representation(symvals::AbstractVector{<:Number},
         return convert.(assert_return_T, msℝ)
     end
 end
-function find_representation(multiplet_symvals::AbstractVector{<:AbstractVector{<:Number}}, 
-                             lgirs::AbstractVector{<:LGIrrep}, 
-                             αβγ::Union{AbstractVector{<:Real},Nothing}=nothing,
-                             assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
-                             atol::Real=DEFAULT_ATOL)
-    # If multiple symmetry values are given, as a vector of vectors, we take their sum over
-    # the band-multiplet to determine irrep of the overall multiplet (see discussion in main
-    # method)
-    find_representation(sum.(multiplet_symvals), lgirs, αβγ, assert_return_T, atol=atol) 
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+$(TYPEDSIGNATURES)
+
+Given a set of _band_-resolved symmetry eigenvalues `symeigs`, a set of irreps `irs`, and a
+selection of band indices `bands` into `symeigs`, return the associated multiplicities of
+corresponding to `irs`.
+
+The `symeigs` argument is a vector of symmetry eigenvalues, or symmetry characters, for
+individual bands. The `symeigs[n][i]`th entry gives the symmetry eigenvalue ``x_n(g_i)`` of
+the `n`th band and the ``g_i =`` `group(irs)[i]` symmetry operation, with:
+
+    ```math
+    x_n(g_i) = \\langle \\psi_n | g_i | \\psi_n \\rangle
+    ```
+If unset, `bands` contains all bands in `symeigs`, i.e., is equal to `eachindex(symeigs)`.
+
+## Keyword arguments
+- `kws`: Additional keyword arguments passed to
+  [`find_representation(::AbstractVector{<:Number})`](@ref) (e.g., `αβγ`, `atol`,
+  `maxresnorm`).
+"""
+function find_representation(
+    symeigs::AbstractVector{<:AbstractVector{<:Number}},
+    irs::AbstractVector{<:AbstractIrrep},
+    bands::AbstractVector{Int} = eachindex(symeigs),
+    assert_return_T::Type{<:Union{Integer, AbstractFloat}}=Int;
+    kws...
+)                                                                           
+    # return multiplicities over provided irreps (and across `bands`)
+    symeigs_bands = sum(@view symeigs[bands])
+    return find_representation(symeigs_bands, irs, assert_return_T; kws...)
 end
