@@ -667,9 +667,9 @@ true
 Coefficients can be positive or negative integers, multiplied onto band representations from
 the left or right; if from the left, `*` can be omitted:
 ```jldoctest composite
-julia> @composite -brs[1] + brs[2]*3 - brs[7]*(-2)
+julia> @composite -brs[1] + brs[2]*3 - brs[7]*(-2) + (-3)*brs[end-2]
 16-irrep CompositeBandRep{3}:
- -(1h|Ag) + 3(1h|Aᵤ) + 2(1e|Ag) (4 bands)
+ -(1h|Ag) + 3(1h|Aᵤ) + 2(1e|Ag) - 3(1b|Aᵤ) (1 band)
 ```
 
 ## Limitations
@@ -685,17 +685,22 @@ macro composite(ex)
     # TODO: Error in more cases (e.g., for "limitations" UB instances above)
     brs_variable = _composite_find_brs_variable(ex)
     index_coef_vs = _composite_parse_brs_coefs(ex, brs_variable) # (idx, coef) elements
-    return quote
-        local coefs = zeros(Rational{Int}, length($(esc(brs_variable))))
-        for (i, c) in $index_coef_vs
-            i < 1 || i > length($(esc(brs_variable))) && error("out of bounds index in @composite")
-            coefs[i] += c
-        end
-        CompositeBandRep(coefs, $(esc(brs_variable)))
+    add_exprs = map(index_coef_vs) do (i, c)
+        :(coefs[$i] += $c)
     end
+
+    ex_eval = quote
+        local coefs = zeros(Rational{Int}, length($(esc(brs_variable))))
+    end
+    append!(ex_eval.args, add_exprs)
+    push!(ex_eval.args, :(CompositeBandRep(coefs, $(esc(brs_variable)))))
+    return ex_eval
 end
 
-# recursive exploration of expression tree
+# recursive exploration of expression tree; `_composite_find_brs_variable` finds the first
+# indexed variable (like `brs`) and `_composite_parse_brs_coefs` finds all the indexings
+# and their coefficients, and checks that all indexings are into the same variable as
+# discovered in the first call to `_composite_find_brs_variable``
 function _composite_find_brs_variable(ex::Union{Expr, Symbol})
     if ex isa Symbol
         return ex
@@ -715,10 +720,10 @@ function _composite_find_brs_variable(ex::Union{Expr, Symbol})
                 end
                 _composite_find_brs_variable(ex.args[idx]::Expr)
             elseif length(ex.args) == 2
-                ex.args[1] ∈ (:+, :-) || error("unexpected unary operator other than +, -")
+                ex.args[1] ∈ (:+, :-) || error("unexpected unary operator other than +, - ($(ex.args[1]))")
                 _composite_find_brs_variable(ex.args[2]::Union{Expr, Symbol})
             else
-                 error("unexpected input to @composite")
+                 error("unexpected sub-expression $ex in @composite")
             end
         else
             error("unexpected head of expr in @composite $(ex.head)")
@@ -731,13 +736,14 @@ end
 function _composite_parse_brs_coefs(
     ex::Expr,
     brs_variable::Symbol,
-    coefs = Vector{Pair{Int, Int}}(),
+    coefs = Vector{Pair{Union{Int, Expr, Symbol}, Int}}(),
     flip_sign::Bool = false
 )
     if ex.head == :ref
         ex.args[1] isa Symbol || error("non-Symbol first arg in :ref head of @composite")
         _composite_check_brs_variable(ex, brs_variable)
-        push!(coefs, Int(ex.args[2]) => flip_sign ? -1 : 1)
+        push!(coefs, ex.args[2] => flip_sign ? -1 : 1)
+
     elseif ex.head == :call
         first(ex.args) ∈ (:+, :-, :*) || error("@composite only supports +, -, * (got $(first(ex.args)))")
         if length(ex.args) == 3
@@ -749,18 +755,14 @@ function _composite_parse_brs_coefs(
             ex′′ = ex.args[idx′′]
             flip_sign′ = flip_sign
             flip_sign′′ = ex.args[1] == :- ? !flip_sign : flip_sign
-            if ex′′ isa Integer
-                if ex′.head == :ref
-                    _composite_check_brs_variable(ex′, brs_variable)
-                    push!(coefs, Int(ex′.args[2]) => flip_sign ? -Int(ex′′) : Int(ex′′))
-                elseif ex′.head == :call
-                    _composite_parse_brs_coefs(ex′, brs_variable, coefs, flip_sign′)
-                end
+            if ex′.head == :ref
+                _composite_check_brs_variable(ex′, brs_variable)
+                push!(coefs, ex′.args[2] => flip_sign ? -Int(ex′′) : Int(ex′′))
             elseif ex′′ isa Expr
                 _composite_parse_brs_coefs(ex′::Expr, brs_variable, coefs, flip_sign′)
                 _composite_parse_brs_coefs(ex′′::Expr, brs_variable, coefs, flip_sign′′)
             else
-                error("unexpected expression type in @composite ($(ex′′))")
+                error("unexpected type of sub-expression $(ex′′) in @composite")
             end
         elseif length(ex.args) == 2
             ex.args[1] ∈ (:+, :-) || error("encountered unary operators other than + or -")
