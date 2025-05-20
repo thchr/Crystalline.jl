@@ -79,6 +79,7 @@ export SymOperation,                        # types
 include("types_symmetryvectors.jl")
 export SymmetryVector, SymmetryVectors, NewBandRep, CompositeBandRep
 export irreps, multiplicities, occupation
+export @composite
 
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
