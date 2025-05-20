@@ -23,3 +23,22 @@ using Crystalline
     @test n*0 == zero(n)
     @test string(zero(n)) == "[0Mᵢ, 0Xᵢ, 0Γᵢ, 0Rᵢ] (0 bands)"
 end # @testset "(Abstract)SymmetryVectors"
+
+@testset "CompositeBandRep & @composite" begin
+    brs = calc_bandreps(2, Val(3))
+
+    cbr = @composite brs[1] - brs[2] + 2brs[5] - brs[3]*7 + brs[4]*(-8)
+    n = brs[1] - brs[2] + 2brs[5] - brs[3]*7 + brs[4]*(-8)
+    
+    @test cbr == n
+    @test SymmetryVector(cbr) == n
+
+    @test size(cbr)        == size(n)
+    @test occupation(cbr)  == occupation(n)
+    @test irreps(cbr)      == irreps(n)      == irreps(brs)
+    @test num(cbr)         == num(n)         == num(brs)
+    @test klabels(cbr)     == klabels(n)     == klabels(brs)
+    @test irreplabels(cbr) == irreplabels(n) == irreplabels(brs)
+
+    @test cbr - brs[1] == n - brs[1]
+end

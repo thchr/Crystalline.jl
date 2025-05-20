@@ -624,3 +624,152 @@ function Base.:*(cbr::CompositeBandRep{D}, n::Integer) where D
     return CompositeBandRep{D}(cbr.coefs .* n, cbr.brs)
 end
 Base.zero(cbr::CompositeBandRep{D}) where D = CompositeBandRep{D}(zero(cbr.coefs), cbr.brs)
+
+# ::: Macro for building `CompositeBandRep` from Collection{<:NewBandRep}` :::
+
+# Aim: Starting with `brs = calc_bandreps(sgnums, Val(D))` we often want to create a
+# `CompositeBandRep` from a linear combination of `brs[i]`. However, we can't merely
+# overload `+(::NewBandRep, ::NewBandRep)`, since `CompositeBandRep` must contain a
+# reference to an overall "store" of a full set of `NewBandRep`, i.e., `brs[i]` doesn't
+# contain a reference to `brs`. Instead, we use a macro to first identify `brs` and then
+# populate the coefficient vector of `CompositeBandRep.coefs`
+
+"""
+    @composite cᵢ*brs[i] + cⱼ*brs[j] + … + cₖ*brs[k]
+
+A convenience macro for creating an integer-coefficient `CompositeBandRep` from an
+expression involving a single band representation variable, say `brs`, references of its
+elements `brs[i]`, and associated literal integer-coefficients `cᵢ`.
+
+## Examples
+```jldoctest composite
+julia> brs = calc_bandreps(2, Val(3));
+
+julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3]
+16-irrep CompositeBandRep{3}:
+ 3(1h|Ag) + 2(1h|Aᵤ) - (1g|Ag) (4 bands)
+
+julia> n = 3brs[1] + 2brs[2] - brs[3]
+16-irrep SymmetryVector{3}:
+ [2Z₁⁺, 2Y₁⁺, U₁⁺+U₁⁻, X₁⁺+X₁⁻, 2T₁⁻, 2Γ₁⁻, V₁⁺+V₁⁻, R₁⁺+R₁⁻] (2 bands)
+
+julia> SymmetryVector(cbr) == n
+true
+```
+
+Coefficients can be positive or negative integers, multiplied onto band representations from
+the left or right; if from the left, `*` can be omitted:
+```jldoctest composite
+julia> @composite -brs[1] + brs[2]*3 - brs[7]*(-2)
+16-irrep CompositeBandRep{3}:
+ -(1h|Ag) + 3(1h|Aᵤ) + 2(1e|Ag) (4 bands)
+```
+
+## Limitations
+- Coefficients must literals: i.e., terms like `c*brs[1]` involving some variable `c` are
+  not supported.
+- Coefficients must be integers: i.e., rational coefficients are not supported.
+- Coefficients cannot be expressions: i.e., terms like `(2+2)brs[1]`, `22*2brs[1]`, or
+  `2*brs[3]*4` are not supported and will result in undefined behavior, including silently
+  wrong results.
+"""
+macro composite(ex)
+    # TODO: Make it possible to handle rational coefficients.
+    # TODO: Error in more cases (e.g., for "limitations" UB instances above)
+    brs_variable = _composite_find_brs_variable(ex)
+    index_coef_vs = _composite_parse_brs_coefs(ex, brs_variable) # (idx, coef) elements
+    return quote
+        local coefs = zeros(Rational{Int}, length($(esc(brs_variable))))
+        for (i, c) in $index_coef_vs
+            i < 1 || i > length($(esc(brs_variable))) && error("out of bounds index in @composite")
+            coefs[i] += c
+        end
+        CompositeBandRep(coefs, $(esc(brs_variable)))
+    end
+end
+
+# recursive exploration of expression tree
+function _composite_find_brs_variable(ex::Union{Expr, Symbol})
+    if ex isa Symbol
+        return ex
+    elseif ex isa Expr
+        if ex.head == :ref
+            ex.args[1] isa Symbol || error("non-Symbol first arg in :ref head of @composite")
+            return ex.args[1]
+        elseif ex.head == :call
+            first(ex.args) ∈ (:+, :-, :*) || error("@composite only supports +, -, * (got $(first(ex.args)))")
+            if length(ex.args) == 3
+                idx = findfirst(v -> v isa Expr, @view ex.args[2:end])
+                isnothing(idx) && error("unexpected input to @composite")
+                idx = something(idx)+1
+                idx′ = idx == 2 ? 3 : 2
+                if !(ex.args[idx′] isa Integer || ex.args[idx′] isa Expr)
+                    error("@composite only supports integers")
+                end
+                _composite_find_brs_variable(ex.args[idx]::Expr)
+            elseif length(ex.args) == 2
+                ex.args[1] ∈ (:+, :-) || error("unexpected unary operator other than +, -")
+                _composite_find_brs_variable(ex.args[2]::Union{Expr, Symbol})
+            else
+                 error("unexpected input to @composite")
+            end
+        else
+            error("unexpected head of expr in @composite $(ex.head)")
+        end
+    else
+        error("unexpected non-Expr/Symbol input to @composite $ex")
+    end
+end
+
+function _composite_parse_brs_coefs(
+    ex::Expr,
+    brs_variable::Symbol,
+    coefs = Vector{Pair{Int, Int}}(),
+    flip_sign::Bool = false
+)
+    if ex.head == :ref
+        ex.args[1] isa Symbol || error("non-Symbol first arg in :ref head of @composite")
+        _composite_check_brs_variable(ex, brs_variable)
+        push!(coefs, Int(ex.args[2]) => flip_sign ? -1 : 1)
+    elseif ex.head == :call
+        first(ex.args) ∈ (:+, :-, :*) || error("@composite only supports +, -, * (got $(first(ex.args)))")
+        if length(ex.args) == 3
+            idx = findfirst(v -> v isa Expr, @view ex.args[2:end])
+            isnothing(idx) && error("unexpected input to @composite")
+            idx′ = something(idx)+1
+            idx′′ = idx′ == 2 ? 3 : 2
+            ex′ = ex.args[idx′]::Expr
+            ex′′ = ex.args[idx′′]
+            flip_sign′ = flip_sign
+            flip_sign′′ = ex.args[1] == :- ? !flip_sign : flip_sign
+            if ex′′ isa Integer
+                if ex′.head == :ref
+                    _composite_check_brs_variable(ex′, brs_variable)
+                    push!(coefs, Int(ex′.args[2]) => flip_sign ? -Int(ex′′) : Int(ex′′))
+                elseif ex′.head == :call
+                    _composite_parse_brs_coefs(ex′, brs_variable, coefs, flip_sign′)
+                end
+            elseif ex′′ isa Expr
+                _composite_parse_brs_coefs(ex′::Expr, brs_variable, coefs, flip_sign′)
+                _composite_parse_brs_coefs(ex′′::Expr, brs_variable, coefs, flip_sign′′)
+            else
+                error("unexpected expression type in @composite ($(ex′′))")
+            end
+        elseif length(ex.args) == 2
+            ex.args[1] ∈ (:+, :-) || error("encountered unary operators other than + or -")
+            flip_sign = ex.args[1] == :- ? !flip_sign : flip_sign
+            _composite_parse_brs_coefs(ex.args[2]::Expr, brs_variable, coefs, flip_sign)
+        end
+
+    else
+        error("unexpected head of expr in @composite $(ex.head)")
+    end
+    return coefs
+end
+
+function _composite_check_brs_variable(ex::Expr, brs_variable::Symbol)
+    if ex.args[1]::Symbol ≠ brs_variable
+        error("different band representation variables referenced in a single @composite \
+               call (`$(ex.args[1])` vs. `$brs_variable`): this is not allowed")
+    end
+end
