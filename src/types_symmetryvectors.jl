@@ -755,7 +755,7 @@ function _composite_parse_brs_coefs(
             ex′′ = ex.args[idx′′]
             flip_sign′ = flip_sign
             flip_sign′′ = ex.args[1] == :- ? !flip_sign : flip_sign
-            if ex′.head == :ref
+            if ex′.head == :ref && ex.args[1] == :*
                 _composite_check_brs_variable(ex′, brs_variable)
                 push!(coefs, ex′.args[2] => flip_sign ? -Int(ex′′) : Int(ex′′))
             elseif ex′′ isa Expr

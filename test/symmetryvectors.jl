@@ -28,8 +28,8 @@ end # @testset "(Abstract)SymmetryVectors"
     # basic example with `@composite`: agree with `SymmetryVector`
     brs = calc_bandreps(2, Val(3))
 
-    cbr = @composite brs[1] - brs[2] + 2brs[5] - brs[3]*7 + brs[4]*(-8)
-    n = brs[1] - brs[2] + 2brs[5] - brs[3]*7 + brs[4]*(-8)
+    cbr = @composite brs[1] - brs[2] + 2brs[5] - brs[3]*7 - brs[4]*(-8)
+    n = brs[1] - brs[2] + 2brs[5] - brs[3]*7 - brs[4]*(-8)
 
     @test cbr isa CompositeBandRep{3}
     @test cbr == n
