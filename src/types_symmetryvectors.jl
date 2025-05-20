@@ -646,17 +646,19 @@ More explicitly, `@composite cᵢ*brs[i] + cⱼ*brs[j] + … + cₖ*brs[k]` crea
 `CompositeBandRep(coefs, brs)` with `coefs[n]` equal to the sum of those `cᵢ` for which
 `i == n`.
 
+See also [`CompositeBandRep`](@ref) and [`Crystalline.CompositeBandRep_from_indices`](@ref).
+
 ## Examples
 ```jldoctest composite
 julia> brs = calc_bandreps(2, Val(3));
 
-julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3]
+julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3] - brs[4]
 16-irrep CompositeBandRep{3}:
- 3(1h|Ag) + 2(1h|Aᵤ) - (1g|Ag) (4 bands)
+ 3(1h|Ag) + 2(1h|Aᵤ) - (1g|Ag) - (1g|Aᵤ) (3 bands)
 
-julia> n = 3brs[1] + 2brs[2] - brs[3]
+julia> n = 3brs[1] + 2brs[2] - brs[3] - brs[4]
 16-irrep SymmetryVector{3}:
- [2Z₁⁺, 2Y₁⁺, U₁⁺+U₁⁻, X₁⁺+X₁⁻, 2T₁⁻, 2Γ₁⁻, V₁⁺+V₁⁻, R₁⁺+R₁⁻] (2 bands)
+ [Z₁⁺+2Z₁⁻, Y₁⁺+2Y₁⁻, 2U₁⁺+U₁⁻, X₁⁺+2X₁⁻, 2T₁⁺+T₁⁻, 2Γ₁⁺+Γ₁⁻, 2V₁⁺+V₁⁻, R₁⁺+2R₁⁻] (3 bands)
 
 julia> SymmetryVector(cbr) == n
 true
