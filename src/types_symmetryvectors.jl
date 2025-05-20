@@ -638,8 +638,13 @@ Base.zero(cbr::CompositeBandRep{D}) where D = CompositeBandRep{D}(zero(cbr.coefs
     @composite cᵢ*brs[i] + cⱼ*brs[j] + … + cₖ*brs[k]
 
 A convenience macro for creating an integer-coefficient `CompositeBandRep` from an
-expression involving a single band representation variable, say `brs`, references of its
-elements `brs[i]`, and associated literal integer-coefficients `cᵢ`.
+expression involving a single band representation variable, say `brs` of type
+`Collection{<:NewBandRep}` via references to its elements `brs[i]` and associated literal
+integer-coefficients `cᵢ`.
+
+More explicitly, `@composite cᵢ*brs[i] + cⱼ*brs[j] + … + cₖ*brs[k]` creates a
+`CompositeBandRep(coefs, brs)` with `coefs[n]` equal to the sum of those `cᵢ` for which
+`i == n`.
 
 ## Examples
 ```jldoctest composite
@@ -674,7 +679,7 @@ julia> @composite -brs[1] + brs[2]*3 - brs[7]*(-2)
   wrong results.
 """
 macro composite(ex)
-    # TODO: Make it possible to handle rational coefficients.
+    # TODO: Handle rational non-integer coefficients
     # TODO: Error in more cases (e.g., for "limitations" UB instances above)
     brs_variable = _composite_find_brs_variable(ex)
     index_coef_vs = _composite_parse_brs_coefs(ex, brs_variable) # (idx, coef) elements
