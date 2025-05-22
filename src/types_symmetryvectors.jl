@@ -710,7 +710,7 @@ function _composite_find_brs_variable(ex::Union{Expr, Symbol})
             return ex.args[1]
         elseif ex.head == :call
             first(ex.args) ∈ (:+, :-, :*) || error("@composite only supports +, -, * (got $(first(ex.args)))")
-            if length(ex.args) == 3
+            if length(ex.args) ≥ 3
                 idx = findfirst(v -> v isa Expr, @view ex.args[2:end])
                 isnothing(idx) && error("unexpected input to @composite")
                 idx = something(idx)+1
@@ -768,6 +768,15 @@ function _composite_parse_brs_coefs(
             ex.args[1] ∈ (:+, :-) || error("encountered unary operators other than + or -")
             flip_sign = ex.args[1] == :- ? !flip_sign : flip_sign
             _composite_parse_brs_coefs(ex.args[2]::Expr, brs_variable, coefs, flip_sign)
+        elseif length(ex.args) > 3
+            # if we reach this, we assume this is multi-arg call to `:+` of the form
+            # +(x,y,z) etc., and then descend into each argument (in `ex.args[2:end]`)
+            first(ex.args) == :+ || error("unexpected sub-expression $(ex.args) in @composite")
+            for ex′ in @view ex.args[2:end]
+                _composite_parse_brs_coefs(ex′::Expr, brs_variable, coefs, flip_sign)
+            end
+        else
+            error("unreachable reached in @composite")
         end
 
     else

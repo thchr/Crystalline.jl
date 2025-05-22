@@ -51,4 +51,7 @@ end # @testset "(Abstract)SymmetryVectors"
     @test (@composite brs[1]) == brs[1] == (@composite brs[begin])
     @test ((@composite -brs[1] + brs[2]*3 - brs[7]*(-2) + brs[end] - (-3)*brs[end-2]) == 
            (-brs[1] + brs[2]*3 - brs[7]*(-2) + brs[end] - (-3)*brs[end-2]))
+    @test (@composite brs[1] + brs[2] + brs[3] + brs[4]) == # test special parsing rule:
+          (brs[1] + brs[2] + brs[3] + brs[4])               # x+y+z ~ +(x,y,z)
+    @test (@composite brs[1]+(-2)brs[2]+3brs[3]) == brs[1]+(-2)brs[2]+3brs[3]
 end
