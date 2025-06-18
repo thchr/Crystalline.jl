@@ -265,6 +265,18 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
     g′ = pointgroup(g) # get rid of any repeated point group operations, if they exist
     ordersᵍ = rotation_order_and_sense.(g′)
 
+    # TODO: For the isomorphism search below, it is _NOT_ correct to assume we can always
+    #       group up the operations of `g′` by their _sense_ as well. In fact, the best we
+    #       can do is to group them by their conjugacy classes (see `classes(g′)`).
+    #       For the "standard-input" point groups (as tabulated by `pointgroup`), it happens
+    #       to work out alright to add the wrong "sense-grouping" assumption - but it
+    #       quickly goes awry. E.g., if we "primitivize" a set of such point groups, through
+    #       e.g., the I centering (which has a negative determinant, crucially), the
+    #       assumption can lead us sufficiently wrong that we can't find the correct
+    #       isomorphic group.
+    #       On the other hand, the rotation+sense grouping is usually more effective, since
+    #       it produces more distinct groups that just using the conjugacy classes would.
+
     # first sorting step: by rotation order
     Iᵍ = sortperm(ordersᵍ)
     permute!(ordersᵍ, Iᵍ) 
@@ -285,8 +297,8 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
 
         # check if there is a permutation of operators that makes `g` and `pg` equal
         bool, permᵖ²ᵍ = _has_equal_pg_operations(g′, pg, I_groups, nothing)
-        bool || continue 
-        
+        bool || continue
+
         # we have a match: compute "unwinding" compound permutation, s.t. `g ~ pg[Iᵖ²ᵍ]`
         Iᵖ²ᵍ = invpermute!(permute!(Iᵖ, permᵖ²ᵍ), Iᵍ) # Iᵖ[permᵖ²ᵍ][invperm(Iᵍ)], but faster
         invpermute!(permute!(pg.operations, permᵖ²ᵍ), Iᵍ) # sort `pg` to match `g`
@@ -363,6 +375,7 @@ function find_isomorphic_parent_pointgroup(g::AbstractVector{SymOperation{D}}) w
             return pg, Iᵖ²ᵍ, false
         end
     end
+
     error("could not find an isomorphic parent point group")
 end
 
@@ -417,7 +430,7 @@ function _fast_path_necessary_checks!(
     # go ahead and load the point group operations for closer inspection
     pg = pointgroup(iuclab, Dᵛ)
 
-    # copare in rotation-order-&-sense-sorting + check if they agree between "g" and "p"
+    # compare in rotation-order-&-sense-sorting + check if they agree between "g" and "p"
     ordersᵖ .= rotation_order_and_sense.(pg)
     sortperm!(Iᵖ, ordersᵖ)
     permute!(ordersᵖ, Iᵖ)
@@ -472,8 +485,33 @@ julia> mt′ = permute_multtable(mt.table, P)
 julia> mt′ == MultTable(pg[P]).table
 ```
 """
-function permute_multtable(mt::Matrix{Int}, P::AbstractVector{Int})
-    replace!(mt[P, P], (P .=> Base.OneTo(length(P)))...)
+function permute_multtable(
+    mt::Matrix{Int},
+    P::AbstractVector{Int},
+    # work-arrays, for reducing allocations
+    mt′::Matrix{Int} = similar(mt, Int, (length(P), length(P))), # output matrix
+    invP::AbstractVector{Int} = Vector{Int}(undef, length(P))
+)
+    # The implementation below is equivalent to (but much faster than)
+    #       `replace!(mt[P, P], (P .=> Base.OneTo(length(P)))...)`
+    N = length(P)
+    @assert extrema(P) == (1, N)
+    size(mt, 1) ≥ N && size(mt, 2) ≥ N || throw(DimensionMismatch("`mt` must be a square matrix whose size exceeds the length of P"))
+    size(mt′) == (N, N) || throw(DimensionMismatch("`mt′` must be a square matrix whose size equals the length of P"))
+    length(invP) == N || throw(DimensionMismatch("`invP` must have the same length as P"))
+    for i in 1:N # compute the inverse permutation vector for value reassignment
+        @inbounds invP[P[i]] = i
+    end
+    # permute row/cols of multiplication table & assign permuted values also
+    for i in 1:N, j in 1:N
+        v = @inbounds mt[P[i], P[j]] # get the old value at the permuted indices
+        if v > N # if `v` exceeds `N`, we keep whatever value it has
+            @inbounds mt′[i, j] = v
+        else
+            @inbounds mt′[i, j] = invP[v]
+        end
+    end
+    return mt′
 end
 
 # this is a rigorous search; it checks every possible permutation of each "order group".
@@ -485,33 +523,84 @@ function rigorous_isomorphism_search(I_orders::AbstractVector{<:AbstractVector{I
     # we're using `j` as the rotation-order-group index below
     J == length(I_orders) || throw(DimensionMismatch("static parameter and length must match"))
     Ns = ntuple(j->factorial(length(I_orders[j])), Jᵛ)
-    P  = Vector{Int}(undef, sum(length, I_orders))
-    # loop over all possible products of permutations of the elements of I_orders (each a 
-    # vector); effectively, this is a kroenecker product of permutations. In total, there
-    # are `prod(Iⱼ -> factorial(length(Iⱼ), I_orders)` such permutations; this is much less
-    # than a brute-force search over permutations that doesn't exploit groupings (with
-    # `factorial(sum(length, I_orders))`) - but it can still be overwhelming occassionally
-    ns_prev = zeros(Int, J)
-    for ns in CartesianIndices(Ns)
-        # TODO: This should be done in "blocks" of equal order: i.e., there is no point in
-        #       exploring permutations of I_orders[j+1] etc. if the current permutation of
-        #       I_orders[j] isn't matching up with mtᵍ - this could give very substantial
-        #       scaling improvements since it approximately turns a `prod(...` above into a
-        #       `sum(...`
-        for j in Base.OneTo(J)
-            nⱼ = ns[j]
-            if nⱼ != ns_prev[j]
-                Iⱼ = I_orders[j]
-                P[Iⱼ] .= nthperm(Iⱼ, nⱼ)
-                ns_prev[j] = nⱼ
-            end
-        end
-        mtᵖ′ = permute_multtable(mtᵖ, P)
-        if mtᵍ == mtᵖ′
-            return P # found a valid isomorphism (the permutation) between mtᵍ and mtᵖ
+
+    # conceptually, we now want to loop over all possible products of permutations of the
+    # elements of `I_orders` (each a vector); effectively, this is a kroenecker product of 
+    # permutations. In total, there are `prod(Iⱼ -> factorial(length(Iⱼ), I_orders)` such
+    # permutations; this is much less than a brute-force search over permutations that
+    # doesn't exploit groupings (with `factorial(sum(length, I_orders))`), but it can still
+    # be prohibively slow, even overwhelmingly so. To improve matters more, we arrange the
+    # search in such a way that we check the permutations in "blocks" of equal order. This
+    # is because there is no point in exploring permutations of `I_orders[j′]` for `j′ > j`
+    # if `j`th permutation of `I_orders[j]` wasn't matching up with `mtᵍ`; exploiting this
+    # can give enormous scaling improvements since it approximately turns the `prod(...`
+    # above into a (complicated) `sum(...`. The implementation is most naturally done by
+    # recursively going into the blocks, and then backtracking if the latest block
+    # permutation was bad: this is done in `_search_permuted_blocks_recursively!` below
+    Nops = sum(length, I_orders)
+    P = collect(1:Nops) # permutation vector to be mutated
+    P, success = _search_permuted_blocks_recursively!(P, 1, Ns, I_orders, mtᵍ, mtᵖ)
+    if success
+        return P # found a valid isomorphism (the permutation) between mtᵍ and mtᵖ
+    end
+    # TODO: We could probably still improve matters a bit by sorting `I_orders` (and the
+    #       associated operations in `mtᵍ` and `mtᵖ`) in such a way that blocks with fewest
+    #       permutations are checked first; for now, it's still just by rotation order
+
+    return nothing # failed to find an isomorphism (because there wasn't any!)
+end
+# TODO: We could probably do much better than this by adapting the below to compute a
+#       transformation matrix for each "locked-in" block (probably only need one nontrivial
+#       block?) and then use that matrix to transform all the _operations_ in e.g., `g` to
+#       `p`: if the operations in the are identical (up to sorting) after the transformation
+#       then we have demonstrated that they are isomorphic (and we can also immediately) do
+#       find the sorting permutation between them.
+
+function _search_permuted_blocks_recursively!(
+    P::AbstractVector{Int}, # mutated permutation vector
+    j::Int, # current block index
+    Ns::NTuple{N, Int}, # permutation lengths for each block
+    I_orders::AbstractVector{<:AbstractVector{Int}}, # order groups
+    mtᵍ::Matrix{Int}, # multiplication table of group g
+    mtᵖ::Matrix{Int}, # multiplication table of group p
+) where N
+    Iⱼ = I_orders[j]
+    idxs = Base.OneTo(maximum(Iⱼ))
+    mtᵍⱼ = @view mtᵍ[idxs, idxs]
+    Nⱼ = Ns[j]
+    mtᵖⱼ′ = Matrix{Int}(undef, length(idxs), length(idxs)) # preallocate
+    invPⱼ = Vector{Int}(undef, length(idxs))
+    for nⱼ in 1:Nⱼ
+        # permute `P[Iⱼ]` in-place, to the `nⱼ`th permutation of the current block: the line
+        # below is equivalent to `pⱼ = nthperm(Iⱼ, nⱼ); P[Iⱼ] .= pⱼ`, but it doesn't
+        # allocate anything
+        nthperm!(copyto!((@view P[Iⱼ]), Iⱼ), nⱼ) # update with the current block permutation
+        mtᵖⱼ′ = permute_multtable(mtᵖ, (@view P[idxs]), mtᵖⱼ′, invPⱼ) # permute the multiplication table
+        _is_good_perm(mtᵍⱼ, mtᵖⱼ′) || continue # if the current block doesn't match, skip
+        if j == length(I_orders) # if we are at the last block, we have a match
+            return P, true # return the permutation vector that matches mtᵍ and mtᵖ
+        else # if not, recurse into the next block
+            P, success = _search_permuted_blocks_recursively!(P, j+1, Ns, I_orders, mtᵍ, mtᵖ)
+            success && return P, true # the recursion returned a valid permutation, return
         end
     end
-    return nothing # failed to find an isomorphism (because there wasn't any!)
+    return P, false # if no good permutation was found, return `false` for `success`
+end
+
+function _is_good_perm(mtᵍⱼ::AbstractMatrix{Int}, mtᵖⱼ′::AbstractMatrix{Int})
+    # check if the multiplication tables match under the current permutation (but we cannot
+    # at this point generally require `mtᵍ == mtᵖ` because they may still differ any 
+    # "yet-to-be-permuted" situations; i.e., any index above `size(mtᵍ, 1)` is allowed to
+    # differ)
+    N = size(mtᵍⱼ, 1)
+    for (vᵍ, vᵖ′) in zip(mtᵍⱼ, mtᵖⱼ′)
+        (vᵍ > N && vᵖ′ > N) && continue # "not-yet-permuted" indices are allowed to differ
+        vᵍ ≠ vᵖ′ && return  false
+    end
+    return true # multiplication tables match up to current permutation indices
+    # Equiv. to:      x = copy(mtᵍⱼ); x[x .> N] .= 0
+    # (but faster)    y = copy(mtᵖⱼ′); y[y .> N] .= 0
+    #                 return x == y
 end
 
 function rotation_order_and_sense(op::SymOperation{D}) where D
