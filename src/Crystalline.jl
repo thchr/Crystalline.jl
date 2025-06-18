@@ -180,7 +180,7 @@ export indicator_group, indicator_group_as_string
 export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
 
 include("symeigs_analysis.jl")
-export symeigs_analysis
+export collect_compatible_symmetry_vectors
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups, conjugacy_relations

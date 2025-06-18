@@ -39,7 +39,7 @@ For low-resolution calculations (i.e., if `symeigsv` has appreciable numerical e
 it can be worthwhile to increase the absolute tolerance `atol` (default, $MULTIPLICITY_ATOL)
 used by [`find_multiplicities`](@ref).
 """
-function symeigs_analysis(
+function collect_compatible_symmetry_vectors(
     symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
     brs::Collection{NewBandRep{D}},
     F::Smith{<:Integer} = smith(stack(brs));
@@ -195,7 +195,7 @@ of the vector contains as few bands as needed to obtain integer multiplicities (
 from lowest to highest bands in `symeigs`).
 
 Indexing into `symeigs` is assumed to be such that `symeigs[bandidx][opidx]` returns the
-the symmetry eigenvalue of `bandidx`th energy band and the `opidx`th little group operation,
+symmetry eigenvalue of `bandidx`th energy band and the `opidx`th little group operation,
 corresponding to `group(lgirs)[opidx]`.
 
 ## Keyword arguments
