@@ -39,7 +39,7 @@ For low-resolution calculations (i.e., if `symeigsv` has appreciable numerical e
 it can be worthwhile to increase the absolute tolerance `atol` (default, $MULTIPLICITY_ATOL)
 used by [`find_multiplicities`](@ref).
 """
-function collect_compatible_symmetry_vectors(
+function collect_compatible(
     symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
     brs::Collection{NewBandRep{D}},
     F::Smith{<:Integer} = smith(stack(brs));

@@ -1,7 +1,7 @@
 using Crystalline
 using Test
 
-@testset "Symmetry eigenvalue analysis (`collect_compatible_symmetry_vectors`)" begin
+@testset "Symmetry eigenvalue analysis (`collect_compatible`)" begin
     # slightly rounded symmetry eigenvalue data, corresponding to README ex. from MPBUtils
     symeigsv = [ # (plane group 10, photonic crystal data)
     [[1.0 + 0.0im, 0.99998 - 0.0im], [1.0 + 0.0im, -0.99998 + 0.0im], [1.0 + 0.0im, -0.99993 + 0.0im], [1.0 + 0.0im, -0.99995 + 0.0im], [1.0 + 0.0im, 0.99997 - 0.0im], [1.0 + 0.0im, 0.99978 - 0.0im], [1.0 + 0.0im, 0.99947 - 0.0im], [1.0 + 0.0im, 0.99962 - 0.0im], [1.0 + 0.0im, -0.99987 + 0.0im], [1.0 + 0.0im, 0.99995 - 0.0im]],
@@ -21,5 +21,5 @@ using Test
                            "[X₁+X₂, M₁+M₂, Γ₃Γ₄]"],
                           Ref(lgirsv))
 
-    @test collect_compatible_symmetry_vectors(symeigsv, brs) == ns_reference
+    @test collect_compatible(symeigsv, brs) == ns_reference
 end # @testset
