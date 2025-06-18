@@ -159,7 +159,7 @@ formatmtx(M) =  size(M,1) == 0 ? "[]" : repr(collect(M); context=IOContext(stdou
 function snf(M::AbstractMatrix{R}; inverse=true) where {R}
     U, V, D, Uinv, Vinv = init(M, inverse=inverse)
 
-    T = eltype(eachindex(M))
+    T = eltype(LinearIndices(M)) # make sure we get a linear index
     t = one(T)
     for j in axes(M, 2) # over column indices
         # @debug "Working on column $j out of $cols" D=formatmtx(D)

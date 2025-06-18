@@ -46,7 +46,7 @@ the inverse matrices are computed and returned as part of the `Smith` factorizat
 function smith(X::AbstractMatrix{P}; inverse::Bool=true) where {P}
     S, T, D, Sinv, Tinv = snf(X, inverse=inverse)
     SNF = diag(D)
-    return Smith{P, typeof(X), typeof(SNF)}(S, Sinv, T, Tinv, SNF)
+    return Smith{P, typeof(S), typeof(SNF)}(S, Sinv, T, Tinv, SNF)
 end
 
 # ---------------------------------------------------------------------------------------- #

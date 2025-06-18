@@ -101,3 +101,10 @@ end
     @test F.S * diagm(F) * F.T == X
     @test F.Sinv * X * F.Tinv == diagm(F)
 end
+
+@testset "@view input" begin
+    M = [2 4 4; -6 6 12; 10 -4 -16]
+    M′ = M[1:3, 1:2]            # submatrix
+    M′_view = @view M[1:3, 1:2] # view of a submatrix
+    @test smith(M′_view) == smith(M′)
+end
