@@ -380,24 +380,31 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
     if !isapprox(u′, u, atol=DEFAULT_ATOL)
         throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))
     end
-    # the sign of u is arbitrary: we adopt the convention of '-' elements coming "before"
-    # '+' elements; e.g. [-1 -1 1] is picked over [1 1 -1] and [-1 1 -1] is picked over
-    # [1 -1 1]; note that this impacts the sense of rotation which depends on the sign of
-    # the rotation axis; finally, if all elements have the same sign (or zero), we pick a
-    # positive overall sign ('+')
+    # the sign of u is arbitrary: we adopt the convention there are always more '+' elements
+    # than '-' elements (e.g. we pick [-1, 1, 1] over [1, -1, -1]); and if there is an
+    # equal number of '+' and '-' elements, we place the '+' elements first (e.g. [1 0 -1]
+    # is picked over [-1 0 1] and [0 1 -1] is picked over [0 -1 1]); note that this impacts
+    # the sense of rotation which depends on the sign of  the rotation axis
     if all(≤(0), u)
         u = -u
     else
-        negidx = findfirst(signbit, u)
-        firstnonzero = findfirst(≠(0), u) # don't need to bother taking abs, as -0 = 0 for integers (and floats)
-        if negidx ≠ nothing && (negidx ≠ firstnonzero || negidx === firstnonzero === 3)
-            u = -u 
+        n⁻ = count(x -> x<0, u)
+        n⁺ = count(x -> x>0, u)
+        if n⁻ > n⁺ # enforce more '+' elements than '-'
+            u = -u # more negative elements than positive, so flip sign
+        elseif n⁻ == n⁺ && n⁻ ≠ 0 # make sure '+' elements come first
+            negidx = something(findfirst(signbit, u))
+            firstnonzeroidx = something(findfirst(≠(0), u))
+            if negidx == firstnonzeroidx
+                u = -u 
+            end
         end
     end
 
     return u
 
 end
+
 rotation_axis_3d(W::AbstractMatrix)   = rotation_axis_3d(W, det(W), rotation_order(W))
 rotation_axis_3d(op::SymOperation{3}) = (W=rotation(op); rotation_axis_3d(W, det(W), abs(rotation_order(W))))
 
