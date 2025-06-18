@@ -251,3 +251,79 @@ function find_multiplicities(
 
     return bandirs
 end
+
+# ---------------------------------------------------------------------------------------- #
+
+"""
+$(TYPEDSIGNATURES)
+
+Given a list of symmetry eigenvalues, `symeigs` and an associated collection of little
+group irreps `lgirs`, return a vector of formatted irrep annotations, each element giving
+band-indices and associated irrep labels a single band or degenerate set of bands.
+
+Indexing into `symeigs` is assumed to be such that `symeigs[bandidx][opidx]` returns the
+symmetry eigenvalue of `bandidx`th energy band and the `opidx`th little group operation,
+corresponding to `group(lgirs)[opidx]`.
+
+See also [`collect_irrep_annotations(symeigsv, lgirsv)`](@ref) for a multiple **k**-point
+variant, returning a dictionary of irrep annotations.
+
+## Keyword arguments
+Keyword arguments are passed to [`Crystalline.find_multiplicities`](@ref).
+
+## Example
+```julia-repl
+julia> lgirs = lgirreps(17, Val(2))["Γ"];
+julia> symeigs = [[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                  [1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, -1.0],
+                  [2.0, -1.0, -1.0, -2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+julia> collect_irrep_annotations(symeigs, lgirs)
+3-element Vector{Pair{UnitRange{Int64}, String}}:
+ 1:1 => "Γ₁"
+ 2:2 => "Γ₄"
+ 3:3 => "Γ₆"
+```
+"""
+function collect_irrep_annotations(
+    symeigs::AbstractVector{<:AbstractVector{<:Number}},
+    lgirs::Collection{LGIrrep{D}};
+    multiplicity_kws...
+) where D
+    # `bandirs` contains a vector of pairs, over band indices (a UnitRange) & irrep
+    # multiplicities into `lgirs` (a Vector{Int})
+    bandirs = find_multiplicities(symeigs, lgirs; multiplicity_kws...)
+    # convert the multiplicity information in `info` to a string representation
+    annotations = map(bandirs) do (bands, nₖ)
+        io = IOBuffer()
+        Crystalline.prettyprint_symmetryvector(io, nₖ, label.(lgirs); braces=false)
+        bands => String(take!(io))
+    end
+    return annotations
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Given a list of symmetry eigenvalue listings `symeigsv` and little group irrep collections
+`lgirsv`, indexed over different **k**-points, return a dictionary of formatted irrep
+annotations, giving the band-indices and associated irrep labels at each **k**-point.
+
+Indexing into `symeigsv` is assumed to be such that `symeigsv[kidx][bandidx][opidx]` returns
+the symmetry eigenvalue of `bandidx`th energy band at the `kidx`th **k**-point for the
+`opidx`th little group operation, corresponding to `group(lgirsv[kidx])[opidx]`.
+
+See also [`collect_irrep_annotations(symeigs, lgirs)`](@ref) for a single **k**-point
+variant.
+
+Keyword arguments are passed to [`Crystalline.find_multiplicities`](@ref).
+"""
+function collect_irrep_annotations(
+    symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
+    lgirsv::AbstractVector{Collection{LGIrrep{D}}};
+    multiplicity_kws...
+) where D
+    annotations_map = Iterators.map(zip(symeigsv, lgirsv)) do (symeigs, lgirs)
+        klabel(lgirs) => collect_irrep_annotations(symeigs, lgirs; multiplicity_kws...)
+    end
+    return Dict(annotations_map)
+end
