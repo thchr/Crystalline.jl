@@ -16,7 +16,7 @@ op = SymOperation{3}("x,z+1/2,y")
 ```
 There is also a string macro accessor `@S_str` that allows triplet input via `S"x,z+1/2,y"`.
 
-In the above output, three equivalent notations for the symmetry operation are given: first, the Seitz notation {m₀₋₁₁|0,½,0}, then the triplet notation (x,z+1/2,y), and finally the explicit matrix notation.
+In the above output, three equivalent notations for the symmetry operation are given: first, the Seitz notation {m₀₁₋₁|0,½,0}, then the triplet notation (x,z+1/2,y), and finally the explicit matrix notation.
 
 ## Components
 The rotation and translation parts $\mathbf{W}$ and $\mathbf{w}$ of a `SymOperation{D}` $\{\mathbf{W}|\mathbf{w}\}$ can be accessed via [`rotation`](@ref) and [`translation`](@ref),  returning an `SMatrix{D, D, Float64}` and an `SVector{D, Float64}`, respectively.
@@ -30,13 +30,13 @@ g_1 \circ g_2 = \{\mathbf{W}_1|\mathbf{w}_1\} \circ \{\mathbf{W}_2|\mathbf{w}_2\
 We can compose two `SymOperation`s in Crystalline via:
 ```@example operations
 op1 = S"z,x,y" # 3₁₁₁⁺
-op2 = S"z,y,x" # m₋₁₀₁
+op2 = S"z,y,x" # m₁₀₋₁
 op1 * op2
 ```
 which is accessed by an overloaded call to `Base.*`, i.e. the multiplication operator (this enables us to also call derived methods of `*`, such as integer powers (e.g., `S"-y,x-y,z"^3 == S"x,y,z"`).
 Note that composition is taken modulo integer lattice translations by default, such that
 ```@example operations
-op2′ = S"z,y,x+1" # {m₋₁₀₁|001}
+op2′ = S"z,y,x+1" # {m₁₀₋₁|001}
 op1 * op2′ # equivalent to compose(op1, op2′, true)
 ```
 rather than `S"x+1,z,y"`, which is the result of direct application of the above composition rule.

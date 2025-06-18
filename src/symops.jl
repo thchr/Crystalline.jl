@@ -517,7 +517,7 @@ julia> Q = cosets(G, H)
  1
  2₀₀₁
  m₁₁₀
- m₋₁₁₀
+ m₁₋₁₀
 ```
 To generate the associated cosets, simply compose the representatives with `H`:
 ```jldoctest cosets
@@ -526,7 +526,7 @@ julia> [compose.(Ref(q), H) for q in Q]
  [1, 3₀₀₁⁺, 3₀₀₁⁻]
  [2₀₀₁, 6₀₀₁⁻, 6₀₀₁⁺]
  [m₁₁₀, m₁₀₀, m₀₁₀]
- [m₋₁₁₀, m₁₂₀, m₂₁₀]
+ [m₁₋₁₀, m₁₂₀, m₂₁₀]
 ```
 """
 function cosets(
