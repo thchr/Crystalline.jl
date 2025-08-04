@@ -330,6 +330,8 @@ for op in (:(-), :(+))
         return T($op(cnst1, cnst2), $op(free2))
     end
 end
+(*)(s::Real, v::T) where T<:AbstractVec = T(s * constant(v), s * free(v))
+(*)(v::T, s::Real) where T<:AbstractVec = (*)(s, v)
 function zero(::Type{T}) where T<:AbstractVec{D} where D
     T(zero(SVector{D,Float64}), zero(SqSMatrix{D,Float64}))
 end

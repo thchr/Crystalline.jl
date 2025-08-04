@@ -18,11 +18,13 @@ either smaller or larger than unity. E.g. for `x = relrand((0.2,5.0))`,
 function relrand(lims::NTuple{2,<:Real})
     low, high = lims; invlow = inv(low)
     lowthres = (invlow - 1.0)/(invlow + high - 2.0)
-    if rand() < lowthres && low < 1.0   # smaller than 1.0
-        r = uniform_rand(low, 1.0)
-    elseif high > 1.0                   # bigger than 1.0
-        r = uniform_rand(1.0, high)
-    else                                # default
+    if high > 1.0
+        if low < 1.0 && rand() < lowthres # smaller than 1.0
+            r = uniform_rand(low, 1.0)
+        else                              # bigger than 1.0
+            r = uniform_rand(1.0, high)
+        end
+    else                                  # default
         return uniform_rand(low, high)
     end
 end

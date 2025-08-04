@@ -46,6 +46,17 @@ using Test, Crystalline, StaticArrays, LinearAlgebra
         @test zero(KVec{3}) == KVec{3}("0,0,0") == zero(KVec{3}("1,2,3"))
     end
 
+    @testset "Algebra" begin # mainly multiplication
+        k = KVec{3}("1/8, β, 1/4-γ")
+        @test 2*k == k + k
+        @test 2*k == k + k + k - k
+        @test 0*k == k - k
+        @test 4k == 4.0 * k
+        @test -k == -1 * k
+        @test 2 * Crystalline.free(k) == Crystalline.free(2k)
+        @test 2 * Crystalline.constant(k) == Crystalline.constant(2k)
+    end
+
     αβγ = Crystalline.TEST_αβγ
     @testset "Composition" begin
         @test SymOperation{2}("x,y") * KVec{2}("1,α") == KVec{2}("1,α")

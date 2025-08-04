@@ -49,7 +49,7 @@ function layout_by_order_spring(gr::GroupRelationGraph{D,SpaceGroup{D}};
     
     # to use `pin` in this manner we require NetworkLayout ≥v0.4.5
     pin = Dict(i=>(false, true) for i in eachindex(xy))
-    algo = NetworkLayout.Spring(; initialpos=xy, pin, initialtemp=1.0)
+    algo = NetworkLayout.Spring(; initialpos=xy, pin, initialtemp=2.0, iterations=500)
     xy′ = algo(gr)
 
     return xy′, orders
