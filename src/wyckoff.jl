@@ -171,6 +171,10 @@ function sitegroup(sg::SpaceGroup{D}, wp::WyckoffPosition{D}) where D
             icoset == Ncoset && continue # we only need `Ncoset` representatives in total
 
             # reduce generated Wyckoff representative to coordinate range q′ᵢ∈[0,1)
+            # NB: this only accounts for the _constant_ part of `rv′`: in general, it is
+            #     not possible to do this systematically and correctly if we have free parts
+            #     since the choice of coset operations then depend on the actual values of
+            #     αβγ; so - we only ensure that the constant parts are in q′ᵢ∈[0,1);
             rv′′ = RVec(reduce_translation_to_unitrange(constant(rv′)), free(rv′))
             if any(rv->isapprox(rv, rv′′, nothing, false), (@view orbitrvs[OneTo(icoset)]))
                 # ⇒ already included a coset op that maps to this rv′′; don't include twice

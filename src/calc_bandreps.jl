@@ -37,10 +37,14 @@ reduce_dict_of_vectors(d::Dict{<:Any, <:Vector}) = reduce_dict_of_vectors(identi
 
 For an input site group, provided in conventional coordinates, reduce its cosets such
 that the resulting orbit only contains Wyckoff positions that are not equivalent when
-viewed in the primitive basis (as determined by the centering type `cntr`). Additionally,
-the associated orbit will only contain positions whose _primitive_ coefficients lie in
-[0,1). I.e., the associated orbit lies in the canonical [0,1)ᴰ primitive unit cell. The
-coset operations are adjusted accordingly.
+viewed in the primitive basis (as determined by the centering type `cntr`).
+Additionally, the associated orbit will only contain positions whose _primitive_ 
+coefficients lie in [0,1). I.e., the associated orbit lies in the canonical [0,1)ᴰ primitive
+unit cell. The coset operations are adjusted accordingly.[^1]
+
+[^1]: Note that this is only guaranteed for orbits without free parameters, since the
+      presence of free parameters renders the choice ill-defined (we then only guarantee
+      that the constant part of the orbit is in [0,1)ᴰ]).
 
 The reduced site group is returned in a conventional basis, along with the reduced orbits,
 also in a conventional basis.

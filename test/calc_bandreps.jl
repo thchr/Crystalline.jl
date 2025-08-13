@@ -1,6 +1,7 @@
 using Test
 using Crystalline
 using Crystalline: dlm2struct
+using Crystalline: constant
 
 @testset "calc_bandreps" begin
 
@@ -146,8 +147,9 @@ end
                 siteg = group(br)
                 rs = orbit(siteg)            # conventional setting
                 rs′ = primitivize.(rs, cntr) # primitive setting
+
+                # check that the constant part of `r`'s coordinates lie in [0,1)
                 @test all(rs′) do r′
-                    # check that every coordinate of `r` lies in [0,1)
                     all(x -> 0 ≤ x < 1, constant(r′))
                 end
 
