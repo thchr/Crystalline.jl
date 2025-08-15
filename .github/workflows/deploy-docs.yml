@@ -16,7 +16,9 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: '1' # latest release
-      - name: Install dependencies
+      - name: Install X Server dependencies # needed for GLMakie on headless CI server
+        run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
+      - name: Install Julia dependencies
         run: |
           julia --project=docs/ -e '
             using Pkg
