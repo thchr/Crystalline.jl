@@ -40,8 +40,8 @@ const MAX_MSUBGNUM = ImmutableDict((3,2)=>528, (3,1)=>394, (2,1)=>31) # Litvin, 
 
 # --- VECTORS ---
 # arbitrary test vector for e.g. evaluating KVecs lines/planes/volumes; 3D by default
-const TEST_αβγ =  [0.123123123, 0.456456456, 0.789789789]
-const TEST_αβγs = (TEST_αβγ[1:1], TEST_αβγ[1:2], TEST_αβγ)
+const TEST_αβγ =  @SVector [0.123123123, 0.456456456, 0.789789789]
+const TEST_αβγs = (TEST_αβγ[SOneTo(1)], TEST_αβγ[SOneTo(2)], TEST_αβγ)
 
 # --- LISTS ---
 # The following space group numbers are symmorphic; in 3D they each embody one of 
