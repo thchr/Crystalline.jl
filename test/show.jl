@@ -401,4 +401,19 @@ test_tp_show(brs[end], "2-band BandRep (B↑G at 8b):\n [Γ₃+Γ₄, T₁+T₂,
 str = "[(8b|A), (8b|B), (4a|A₁), (4a|A₂), (4a|B₂), (4a|B₁)]"
 @test repr(calc_bandreps(42, Val(3))) == str
 
+# -------------------------------
+# AbstractFourierLattice
+# -------------------------------
+str = """
+3-orbit Crystalline.UnityFourierLattice{3} [orbit-element (coefficient) ...]:
+ [[0,0,0] (1)]
+ [[-2,-1,-1] (1), [-2,-1,1] (-1), [-2,1,-1] (1), [-2,1,1] (-1), [-1,-2,-1] (1), [-1,-2,1] (1), [-1,-1,-2] (1), [-1,-1,2] (-1), [-1,1,-2] (-1), [-1,1,2] (1), [-1,2,-1] (-1), [-1,2,1] (-1), [1,-2,-1] (-1), [1,-2,1] (-1), [1,-1,-2] (1), [1,-1,2] (-1), [1,1,-2] (-1), [1,1,2] (1), [1,2,-1] (1), [1,2,1] (1), [2,-1,-1] (-1), [2,-1,1] (1), [2,1,-1] (-1), [2,1,1] (1)]
+ [[-2,-2,0] (1), [-2,0,-2] (1), [-2,0,2] (1), [-2,2,0] (1), [0,-2,2] (1), [0,2,-2] (1), [0,-2,-2] (1), [0,2,2] (1), [2,-2,0] (1), [2,0,-2] (1), [2,0,2] (1), [2,2,0] (1)]"""
+flat = levelsetlattice(230, Val(3), (2,2,2))
+test_tp_show(flat, str)
+
+@test string(flat) == "3-orbit Crystalline.UnityFourierLattice{3}"
+mflat = modulate(flat)
+@test string(mflat) == "3-orbit ModulatedFourierLattice{3}"
+
 end # @testset

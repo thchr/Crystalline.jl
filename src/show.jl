@@ -212,12 +212,13 @@ end
 
 function prettyprint_irrep_scalars(
         io::IO, v::Number, ϕabc_contrib::Bool=false;
-        atol::Real=DEFAULT_ATOL, digits::Int=4
+        atol::Real=DEFAULT_ATOL, digits::Int=4,
+        complex_as_polar::Bool=true
     )
 
     if norm(v) < atol
         print(io, 0)
-    elseif isapprox(v, real(v), atol=atol)     # real scalar
+    elseif isapprox(v, real(v), atol=atol)      # real scalar
         if ϕabc_contrib && isapprox(abs(real(v)), 1.0, atol=atol)
             signbit(real(v)) && print(io, '-')
         else
@@ -229,19 +230,27 @@ function prettyprint_irrep_scalars(
         else
             print(io, _stringify_characters(imag(v); digits))
         end
-        print(io, "i")
-    else                                        # complex scalar (print as polar)
-        vρ, vθ = abs(v), angle(v)
-        vθ /= π
-        isapprox(vρ, 1.0, atol=atol) || print(io, _stringify_characters(vρ; digits))
-        print(io, "exp(") 
-        if isapprox(abs(vθ), 1.0, atol=atol)
-            signbit(vθ) && print(io, '-')
-        else
-            print(io, _stringify_characters(vθ; digits))
+        print(io, 'i')
+    else                                        # complex scalar 
+        if complex_as_polar                     # print in polar form
+            vρ, vθ = abs(v), angle(v)
+            vθ /= π
+            isapprox(vρ, 1.0, atol=atol) || print(io, _stringify_characters(vρ; digits))
+            print(io, "exp(") 
+            if isapprox(abs(vθ), 1.0, atol=atol)
+                signbit(vθ) && print(io, '-')
+            else
+                print(io, _stringify_characters(vθ; digits))
+            end
+            print(io, "iπ)")
+        else                                    # print in cartesian form
+            ϕabc_contrib && print(io, '(')
+            prettyprint_irrep_scalars(io, real(v), false; atol=atol, digits=digits)
+            signbit(imag(v)) || print(io, '+')
+            prettyprint_irrep_scalars(io, imag(v)*im, false; atol=atol, digits=digits)
+            ϕabc_contrib && print(io, ')')
+            nothing
         end
-        print(io, "iπ)")
-        #print(io, ϕabc_contrib ? "(" : "", v, ϕabc_contrib ? ")" : "")
     end
 end
 
@@ -654,4 +663,43 @@ function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
     show(io, cbr)
     μ = occupation(cbr)
     printstyled(io, " (", μ, " band", abs(μ) ≠ 1 ? "s" : "", ")", color=:light_black)
+end
+
+# ---------------------------------------------------------------------------------------- #
+# AbstractFourierLattice
+
+function Base.show(io::IO, flat::AbstractFourierLattice)
+    N = length(getorbits(flat))
+    print(io, N, "-orbit ", typeof(flat))
+end
+
+function Base.show(io::IO, ::MIME"text/plain", flat::AbstractFourierLattice)
+    orbits = getorbits(flat)
+    coefs  = getcoefs(flat)
+    N = length(orbits)
+    print(io, N, "-orbit ", typeof(flat), " ")
+
+    printstyled(io, "["; color=:light_blue, bold=true)
+    print(io, "orbit-element")
+    printstyled(io, " (coefficient)"; color=:light_black)
+    print(io, " ...")
+    printstyled(io, "]"; color=:light_blue, bold=true)
+    println(io, ":")
+
+    # print orbits and coefficients
+    iob = IOBuffer()
+    for (i, (os, cs)) in enumerate(zip(orbits, coefs))
+        printstyled(io, " ["; color=:light_blue, bold=true)
+        for (j, (o, c)) in enumerate(zip(os, cs))
+            print(iob, o)
+            s = String(take!(iob))
+            print(io, replace(s, " "=>""))
+            prettyprint_irrep_scalars(iob, c; digits=2, complex_as_polar=false)
+            s = String(take!(iob))
+            printstyled(io, " (", s, ")"; color=:light_black)
+            j ≠ length(os) && print(io, ", ")
+        end
+        printstyled(io, "]"; color=:light_blue, bold=true)
+        i == N || println(io)
+    end
 end

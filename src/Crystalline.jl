@@ -110,8 +110,6 @@ include("assembly/generators/spacegroup.jl")
 include("assembly/generators/subperiodicgroup.jl")
 export generate, generators
 
-include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl]
-
 include("orders.jl")
 
 include("symops.jl") # symmetry operations for space, plane, and line groups
@@ -183,6 +181,8 @@ export collect_compatible, collect_irrep_annotations
 
 include("grouprelations/grouprelations.jl")
 export maximal_subgroups, minimal_supergroups, conjugacy_relations
+
+include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl, …]
 
 include("deprecations.jl")
 export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar,
