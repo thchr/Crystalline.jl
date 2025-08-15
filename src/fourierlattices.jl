@@ -68,13 +68,13 @@ inter-orbit coefficients being set to unity).
 ## Examples
 
 Compute a `UnityFourierLattice`, modulate it with random inter-orbit coefficients 
-via `modulate`, and finally plot it (via PyPlot.jl):
+via `modulate`, and finally plot it (via Makie.jl):
 
 ```julia-repl
 julia> uflat = levelsetlattice(16, Val(2))
 julia> flat  = modulate(uflat)
 julia> Rs    = directbasis(16, Val(2)) 
-julia> using PyPlot
+julia> using GLMakie
 julia> plot(flat, Rs)
 ```
 """
@@ -271,7 +271,7 @@ To compute the associated primitive basis vectors, see
 ## Examples
 
 A centered ('c') lattice from plane group 5 in 2D, plotted in its 
-conventional and primitive basis (requires `using PyPlot`):
+conventional and primitive basis (requires a backend of Makie.jl, e.g., GLMakie.jl):
 
 ```julia-repl
 julia> sgnum = 5; D = 2; cntr = centering(sgnum, D)  # 'c' (body-centered)
@@ -284,7 +284,7 @@ julia> plot(flat, Rs)
 julia> Rs′   = primitivize(Rs, cntr)    # primitive basis (oblique)
 julia> flat′ = primitivize(flat, cntr)  # Fourier lattice in basis of Rs′
 
-julia> using PyPlot
+julia> using GLMakie
 julia> plot(flat′, Rs′)
 ```
 """
@@ -319,7 +319,7 @@ end
 
 @doc """
     modulate(flat::UnityFourierLattice{D},
-    modulation::AbstractVector{ComplexF64}=rand(ComplexF64, length(getcoefs(flat))),
+    modulation::AbstractVector{<:Number}=rand(ComplexF64, length(getcoefs(flat))),
     expon::Union{Nothing, Real}=nothing, Gs::Union{ReciprocalBasis{D}, Nothing}=nothing)
                             --> ModulatedFourierLattice{D}
 
@@ -344,7 +344,7 @@ explicitly, `Gs` must be provided as a [`ReciprocalBasis`](@ref), see also
 [`normscale`](@ref).
 """
 function modulate(flat::AbstractFourierLattice{D},
-                  modulation::Union{Nothing, AbstractVector{ComplexF64}}=nothing,
+                  modulation::Union{Nothing, AbstractVector{<:Number}}=nothing,
                   expon::Union{Nothing, Real}=nothing,
                   Gs::Union{ReciprocalBasis{D}, Nothing}=nothing) where D
     if isnothing(modulation)
@@ -409,9 +409,9 @@ function normscale!(flat::ModulatedFourierLattice{D}, expon::Real,
 end
 
 # -----------------------------------------------------------------------------------------
-# The utilities and methods below are mostly used for plotting (see src/pyplotting.jl).
-# We keep them here since they do not depend on PyPlot and have more general utility in 
-# principle (e.g., exporting associated Meshes).
+# The utilities and methods below are mostly used for plotting (/ext/CrystallineMakieExt.jl)
+# We keep them here since they do not depend on Makie and have more general utility in 
+# principle (e.g., exporting associated Meshes)
 
 
 @doc raw"""

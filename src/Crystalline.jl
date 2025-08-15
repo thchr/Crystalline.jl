@@ -197,8 +197,9 @@ export position, inv, isapprox
 
 # define functions we want to extend and have accessible via `Crystalline.(...)` if an
 # extension is loaded
-function _create_isosurf_plot_data end # implemented on CrystallinePyPlotExt load
+function _create_isosurf_plot_data end # implemented on CrystallineMakieExt load
 function mesh_3d_levelsetlattice end
+function isocaps_3d_levelsetlattice end
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them

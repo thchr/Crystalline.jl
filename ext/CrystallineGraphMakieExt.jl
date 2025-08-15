@@ -1,12 +1,8 @@
 module CrystallineGraphMakieExt
 
-if isdefined(Base, :get_extension)
-    import GraphMakie
-    using GraphMakie: Makie, NetworkLayout
-else
-    import ..GraphMakie
-    using ..GraphMakie: Makie, NetworkLayout
-end
+import GraphMakie
+using GraphMakie: Makie, NetworkLayout
+
 using Crystalline
 using Crystalline: GroupRelationGraph, SG_PRIMITIVE_ORDERs, SUPERGROUP
 
