@@ -65,22 +65,18 @@ function angles(Rs::AbstractBasis{3})
 end
 angles(::AbstractBasis{D}) where D = _throw_invalid_dim(D)
 
-if VERSION > v"1.9.0-DEV.1163" 
-    # since https://github.com/JuliaLang/julia/pull/43334, Julia defines its own `stack`;
-    # however, it is still much slower than a naive implementation based on `reduce` cf.
-    # https://github.com/JuliaLang/julia/issues/52590. As such, we extend `Base.stack` even
-    # on more recent versions; when the issue is fixed, it would be enough to only define
-    # `stack` on earlier versions of Julia, falling back to `Base.stack` on later versions.
-    import Base: stack
-end
+# since https://github.com/JuliaLang/julia/pull/43334, Julia defines its own `stack`;
+# however, it is still much slower than a naive implementation based on `reduce` cf.
+# https://github.com/JuliaLang/julia/issues/52590. So, we just do a small `Base.stack`
+# extension for `::AbstractBasis` that speeds things up
 """
     stack(Vs::AbstractBasis)
 
 Return a matrix `[Vs[1] Vs[2] .. Vs[D]]` from `Vs::AbstractBasis{D}`, i.e., the matrix whose
 columns are the basis vectors of `Vs`.
 """
-stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
-stack(Vs::AbstractBasis{1, E}) where E = SMatrix{1, 1, E, 1}(@inbounds Vs[1][1])
+Base.stack(Vs::AbstractBasis) = reduce(hcat, parent(Vs))
+Base.stack(Vs::AbstractBasis{1, E}) where E = SMatrix{1, 1, E, 1}(@inbounds Vs[1][1])
 
 """
     volume(Vs::AbstractBasis)

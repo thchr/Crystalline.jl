@@ -7,7 +7,6 @@ using DelimitedFiles
 using JLD2
 using PrettyTables
 using Combinatorics           # → `find_isomorphic_parent_pointgroup` in pointgroup.jl
-using Requires
 using Reexport
 using DocStringExtensions
 using Statistics: quantile    # →  `filling2isoval` in fourierlattices.jl
@@ -195,9 +194,7 @@ export position, inv, isapprox
 
 # ---------------------------------------------------------------------------------------- #
 # EXTENSIONS AND JLD-FILE INITIALIZATION
-if !isdefined(Base, :get_extension)
-    using Requires # load extensions via Requires.jl on Julia versions <v1.9
-end
+
 # define functions we want to extend and have accessible via `Crystalline.(...)` if an
 # extension is loaded
 function _create_isosurf_plot_data end # implemented on CrystallinePyPlotExt load
@@ -205,7 +202,6 @@ function mesh_3d_levelsetlattice end
 
 ## __init__
 # - open .jld2 data files, so we don't need to keep opening/closing them
-# - optional code-loading, using Requires.
 
 # store the opened jldfiles in `Ref{..}`s for type-stability's sake (need `Ref` since we
 # need to mutate them in `__init__` but cannot use `global const` in a function, cf.
@@ -233,17 +229,6 @@ function __init__()
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGIRREPS_JLDFILES))
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
-
-    # load extensions via Requires.jl on Julia versions <v1.9
-    @static if !isdefined(Base, :get_extension)
-        @require PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee" begin
-            include("../ext/CrystallinePyPlotExt.jl") # loads PyPlot and Meshing
-            export mesh_3d_levelsetlattice
-        end
-        @require GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2" begin
-            include("../ext/CrystallineGraphMakieExt.jl")
-        end
-    end
 end
 
 # precompile statements

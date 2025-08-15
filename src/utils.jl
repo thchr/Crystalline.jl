@@ -277,21 +277,3 @@ function uniquetol(A::AbstractArray{T}; kwargs...) where T
     end
     return S
 end
-
-
-if VERSION < v"1.5"
-    """
-        ImmutableDict(ps::Pair...)
-
-    Construct an `ImmutableDict` from any number of `Pair`s; a convenience function that extends
-    `Base.ImmutableDict` which otherwise only allows construction by iteration.
-    """
-    function Base.ImmutableDict(ps::Pair{K,V}...) where {K,V}
-        d = Base.ImmutableDict{K,V}()
-        for p in ps # construct iteratively (linked list)
-            d = Base.ImmutableDict(d, p)
-        end
-        return d
-    end
-    Base.ImmutableDict(ps::Pair...) = Base.ImmutableDict(ps)
-end
