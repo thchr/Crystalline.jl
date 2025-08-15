@@ -1,4 +1,13 @@
 [deps]
+Bravais = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
+Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+
+[compat]
+julia = "1.11"
+
+[sources]
+Bravais = {path = "../Bravais"}
+Crystalline = {path = ".."}
