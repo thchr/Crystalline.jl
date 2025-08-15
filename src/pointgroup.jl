@@ -470,7 +470,7 @@ function _has_equal_pg_operations(
 end
 
 """
-    $TYPEDSIGNATURES
+    permute_multtable(mt::Matrix{Int}, P::AbstractVector{Int}) -> Matrix{Int}
 
 Returns a multiplication table derived from `mt` but under a reordering permutation `P` of
 the operator indices in `mt`. In practice, this corresponds to a permutation of the rows

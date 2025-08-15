@@ -31,7 +31,7 @@ plot(mflat, Rs; filling = 0.3)
 
 In the above, `filling` sets the filling fraction of the displayed lattice (see also [`filling2isoval`](@ref) and [`isoval2filling`](@ref) to map between filling fractions and isovalues).
 
-By default, `levelsetlattice` (and `directbasis`) operates in the conventional basis; but we can also convert to a primitive basis (here, body-centered with centering type `I`):
+By default, `levelsetlattice` (and `directbasis`) operates in the conventional basis. Conversion to a to a primitive basis (here, body-centered with centering type `I`) can be achieved via `primitivize`:
 
 ```@example levelsetlattice
 plot(primitivize(mflat, 'I'), primitivize(Rs, 'I'); filling = 0.3)

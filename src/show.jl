@@ -682,7 +682,7 @@ function Base.show(io::IO, ::MIME"text/plain", flat::AbstractFourierLattice)
     printstyled(io, "["; color=:light_blue, bold=true)
     print(io, "orbit-element")
     printstyled(io, " (coefficient)"; color=:light_black)
-    print(io, " ...")
+    print(io, " …")
     printstyled(io, "]"; color=:light_blue, bold=true)
     println(io, ":")
 
