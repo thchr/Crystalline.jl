@@ -29,6 +29,11 @@ import LinearAlgebra: inv
 # include submodules
 include("SquareStaticMatrices.jl")
 using .SquareStaticMatrices # exports `SSqMatrix{D,T}`
+                            # used in `SymOperation` struct
+
+include("jaggedvector.jl")
+using .Jagged: JaggedVector # exports `JaggedVector` (memory-efficient vector of vectors) 
+                            # used in `SymmetryVector` struct
 
 # include vendored SmithNormalForm.jl package from ../.vendor/
 include("../.vendor/SmithNormalForm/src/SmithNormalForm.jl")

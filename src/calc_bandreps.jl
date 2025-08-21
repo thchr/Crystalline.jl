@@ -349,7 +349,7 @@ function primitivize(brs::Collection{NewBandRep{D}}) where D
         siteir′ = SiteIrrep{D}(siteir.cdml, siteg′, siteir.matrices, siteir.reality,
                                siteir.iscorep, siteir.pglabel)
         n = br.n
-        n′ = SymmetryVector{D}(lgirsv′, n.multsv, n.occupation)
+        n′ = SymmetryVector{D}(lgirsv′, multiplicities(n), occupation(n))
         br′ = NewBandRep{D}(siteir′, n′, br.timereversal, br.spinful)
         vs′[i] = br′
     end
