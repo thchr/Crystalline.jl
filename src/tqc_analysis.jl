@@ -304,7 +304,7 @@ true
 
 # test an invalid symmetry vector
 julia> n′ = copy(n);
-julia>  n′.multsv[1] .= [1,0,0,0]  # change Z₃ to Z₁; incompatible modification
+julia> multiplicities(n′)[1] .= [1,0,0,0]  # change Z₃ to Z₁; incompatible modification
 julia> iscompatible(n′, brs)
 false
 

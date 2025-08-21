@@ -14,7 +14,8 @@ and overall band occupation number.
 ## Fields
 - `lgirsv :: Vector{Collection{LGIrrep{D}}}` (`const`): a vector of `LGIrrep{D}` collections
   associated with each high-symmetry **k**-point of a space group.
-- `multsv :: Vector{Vector{Int}}` (`const`): a vector of associated irrep multiplicities.
+- `multsv :: JaggedVector{Int}}` (`const`): a vector of vectors of associated irrep
+  multiplicities, with a `JaggedVector` representation.
   The irrep `lgirsv[i][j]` occurs with multiplicity `multsv[i][j]` in the symmetry vector.
 - `occupation :: Int`: the occupation (number of bands) associated with the symmetry vector.
 
@@ -34,8 +35,15 @@ and overall band occupation number.
 """
 mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
     const lgirsv :: Vector{Collection{LGIrrep{D}}}
-    const multsv :: Vector{Vector{Int}}
+    const multsv :: JaggedVector{Int} # Vector{Vector{Int}}
     occupation   :: Int
+end
+function SymmetryVector(
+    lgirsv::Vector{Collection{LGIrrep{D}}},
+    multsv::Vector{Vector{Int}},
+    occupation::Int
+) where D
+    return SymmetryVector{D}(lgirsv, JaggedVector{Int}(multsv), occupation)
 end
 
 # ::: AbstractSymmetryVector interface :::
@@ -50,36 +58,33 @@ SymmetryVector{D′}(::SymmetryVector{D}) where {D′, D} = error("incompatible 
 function Base.similar(n::SymmetryVector{D}) where D
     SymmetryVector{D}(irreps(n), similar(multiplicities(n)), 0)
 end
+@propagate_inbounds function Base.getindex(n::SymmetryVector, i::Int)
+    Nⁱʳ = length(n)
+    @boundscheck (i < 0 || i > Nⁱʳ) && throw(BoundsError(n, i))
+    i == Nⁱʳ && return occupation(n)
+    return parent(multiplicities(n))[i] # use structure of `JaggedVector`
+    error("unreachable reached")
+end
 @propagate_inbounds function Base.setindex!(n::SymmetryVector, v::Int, i::Int)
     Nⁱʳ = length(n)
-    @boundscheck i > Nⁱʳ && throw(BoundsError(n, i))
-    i == Nⁱʳ && (n.occupation = v; return v)
-    i₀ = i₁ = 0
-    for mults in multiplicities(n)
-        i₁ += length(mults)
-        if i ≤ i₁
-            mults[i-i₀] = v
-            return v
-        end
-        i₀ = i₁
-    end
+    @boundscheck (i < 0 || i > Nⁱʳ) && throw(BoundsError(n, i))
+    i == Nⁱʳ && (n.occupation = v; return n)
+    parent(multiplicities(n))[i] = v # use structure of `JaggedVector`
+    return n
 end
 
 # copy: want to copy just the multiplicities, but not the underlying irrep data
 function Base.copy(n::SymmetryVector{D}) where D
-    SymmetryVector{D}(n.lgirsv, [copy(mults) for mults in multiplicities(n)], n.occupation)
+    # NB: `copy(multiplicities(n))` is _not_ a shallow copy, since it is a JaggedVector
+    SymmetryVector{D}(n.lgirsv, copy(multiplicities(n)), n.occupation)
 end
 
 # ::: Optimizations and utilities :::
 function Base.Vector(n::SymmetryVector)
     nv = Vector{Int}(undef, length(n))
-    i = 1
-    @inbounds for mults in multiplicities(n)
-        N = length(mults)
-        nv[i:i+N-1] .= mults
-        i += N
-    end
-    nv[end] = occupation(n)
+    data = parent(multiplicities(n)) # JaggedVector .data field
+    unsafe_copyto!(nv, 1, data, 1, length(data))
+    @inbounds nv[end] = occupation(n)
     return nv
 end
 irreplabels(n::SymmetryVector) = [label(ir) for ir in Iterators.flatten(irreps(n))]
@@ -184,6 +189,9 @@ function SymmetryVector(
             j += 1
         end
         push!(multsv[j], nᵢ)
+        # NB: we could speed this up a bit if we changed from assembling `multsv` as a
+        #     a `Vector{Vector{Int}}` to a `JaggedVector` directly - but then the logic
+        #     is a bit less transparent
 
         # find associated irrep in `lgirsd[klabᵢ]`
         lgirsⱼ = lgirsd[klabᵢ]
@@ -321,7 +329,7 @@ num(n::AbstractSymmetryVector) = num(SymmetryVector(n))
 Base.size(n::AbstractSymmetryVector) = (mapreduce(length, +, multiplicities(n)) + 1,)
 @propagate_inbounds function Base.getindex(n::AbstractSymmetryVector, i::Int)
     Nⁱʳ = length(n)
-    @boundscheck i > Nⁱʳ && throw(BoundsError(n, i))
+    @boundscheck (i < 0 || i > Nⁱʳ) && throw(BoundsError(n, i))
     i == Nⁱʳ && return occupation(n)
     i₀ = i₁ = 0
     for mults in multiplicities(n)
@@ -352,23 +360,21 @@ end
 
 # ::: Algebraic operations :::
 function Base.:+(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D
-    _n = SymmetryVector(n)
-    _m = SymmetryVector(m)
-    irreps(_n) === irreps(_m)
-    return SymmetryVector(irreps(_n), 
-                          multiplicities(_n) .+ multiplicities(_m),
-                          occupation(_n) + occupation(_m))
+    irreps(n) === irreps(m) || error("cannot add symmetry vectors with different irreps")
+    return SymmetryVector(irreps(n), 
+                          multiplicities(n) + multiplicities(m),
+                          occupation(n) + occupation(m))
 end
 function Base.:-(n::AbstractSymmetryVector{D}) where D
     SymmetryVector{D}(irreps(n), -multiplicities(n), -occupation(n))
 end
 Base.:-(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D = n + (-m)
 function Base.:*(n::AbstractSymmetryVector{D}, k::Integer) where D
-    SymmetryVector{D}(irreps(n), [ms .* k for ms in multiplicities(n)], occupation(n) * k)
+    SymmetryVector{D}(irreps(n), multiplicities(n) * k, occupation(n) * k)
 end
 Base.:*(k::Integer, n::AbstractSymmetryVector) = n * k
 function Base.zero(n::AbstractSymmetryVector{D}) where D
-    SymmetryVector{D}(irreps(n), zero.(multiplicities(n)), 0)
+    SymmetryVector{D}(irreps(n), zero(multiplicities(n)), 0)
 end
 # make sure `sum(::AbstractSymmetryVector)` is type-stable (necessary since the + operation
 # now may change the type of an `AbstractSymmetryVector` - so `n[1]` and `n[1]+n[2]` may

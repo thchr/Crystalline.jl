@@ -163,21 +163,22 @@ function build_candidate_symmetryvectors(
     
     # create projected symmetry vectors for each, using knowledge of number of irreps in
     # each little group
-    multsv = Vector{Vector{Vector{Int}}}()
+    multsvs = Vector{JaggedVector{Int}}()
+    lengths = length.(lgirsv)
     for include in includesv
-        mults = [zeros(Int, length(lgirs)) for lgirs in lgirsv]
+        multsv = zeros(JaggedVector{Int}, lengths)
         for (kidx, idxs) in enumerate(include)
             bandirs = bandirsv[kidx]
             for i in idxs
-                mults[kidx] += last(bandirs[i])
+                multsv[kidx] += last(bandirs[i])
             end
         end
-        push!(multsv, mults)
+        push!(multsvs, multsv)
     end
 
     # construct symmetry vectors from multiplicity-data
-    ns = map(zip(occupations, multsv)) do (μ, mults)
-        SymmetryVector(lgirsv, mults, μ)
+    ns = map(zip(occupations, multsvs)) do (μ, multsv)
+        SymmetryVector(lgirsv, multsv, μ)
     end
 
     return ns
