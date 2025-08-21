@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Irreps · Crystalline.jl</title><meta name="title" content="Irreps · Crystalline.jl"/><meta property="og:title" content="Irreps · Crystalline.jl"/><meta property="twitter:title" content="Irreps · Crystalline.jl"/><meta name="description" content="Documentation for Crystalline.jl."/><meta property="og:description" content="Documentation for Crystalline.jl."/><meta property="twitter:description" content="Documentation for Crystalline.jl."/><meta property="og:url" content="https://thchr.github.io/Crystalline.jl/irreps/"/><meta property="twitter:url" content="https://thchr.github.io/Crystalline.jl/irreps/"/><link rel="canonical" href="https://thchr.github.io/Crystalline.jl/irreps/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script><link href="../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img class="docs-light-only" src="../assets/logo.svg" alt="Crystalline.jl logo"/><img class="docs-dark-only" src="../assets/logo-dark.svg" alt="Crystalline.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Crystalline.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../operations/">Symmetry operations</a></li><li><a class="tocitem" href="../groups/">Groups</a></li><li class="is-active"><a class="tocitem" href>Irreps</a><ul class="internal"><li><a class="tocitem" href="#Point-group-irreps"><span>Point group irreps</span></a></li><li><a class="tocitem" href="#Little-group-irreps"><span>Little group irreps</span></a></li><li><a class="tocitem" href="#Space-group-irreps"><span>Space group irreps</span></a></li><li><a class="tocitem" href="#Site-symmetry-irreps"><span>Site symmetry irreps</span></a></li><li><a class="tocitem" href="#Time-reversal-symmetry-and-co-representations"><span>Time-reversal symmetry &amp; co-representations</span></a></li><li><a class="tocitem" href="#Data-sources"><span>Data sources</span></a></li></ul></li><li><a class="tocitem" href="../bravais/">Bravais types &amp; bases</a></li><li><a class="tocitem" href="../bandreps/">Band representations</a></li><li><a class="tocitem" href="../lattices/">Lattices</a></li><li><a class="tocitem" href="../api/">API</a></li><li><a class="tocitem" href="../internal-api/">Internal API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Irreps</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Irreps</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/thchr/Crystalline.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/thchr/Crystalline.jl/blob/master/docs/src/irreps.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Irreducible-representations"><a class="docs-heading-anchor" href="#Irreducible-representations">Irreducible representations</a><a id="Irreducible-representations-1"></a><a class="docs-heading-anchor-permalink" href="#Irreducible-representations" title="Permalink"></a></h1><p>Crystalline.jl provides easy access to crystallographic point group irreps, site symmetry group irreps, and the little group irreps of space groups. Currently, we only provide access to spinless (or &quot;single-valued&quot;) irreps.</p><h2 id="Point-group-irreps"><a class="docs-heading-anchor" href="#Point-group-irreps">Point group irreps</a><a id="Point-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Point-group-irreps" title="Permalink"></a></h2><p>Irreps for the crystallographic point groups are accessible via <a href="../api/#Crystalline.pgirreps"><code>pgirreps</code></a>, with the point group specified either by IUC label and dimensionality. As an example, we may load the irreps of the 6mm (C₆ᵥ in Schoenflies notation; see also <a href="../api/#Crystalline.schoenflies-Tuple{Integer}"><code>schoenflies(::PointGroup)</code></a>) point group in 3D.</p><pre><code class="language-julia hljs">using Crystalline
+
+pgirs = pgirreps(&quot;6mm&quot;, Val(3))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-element Collection{PGIrrep{3}} for ⋕25 (6mm):
+Γ₁┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁺</span>: 1
+  ├ <span class="sgr7"> m₁₁₀</span>: 1
+  ├ <span class="sgr7"> m₁₀₀</span>: 1
+  ├ <span class="sgr7"> m₀₁₀</span>: 1
+  ├ <span class="sgr7">m₁₋₁₀</span>: 1
+  ├ <span class="sgr7"> m₁₂₀</span>: 1
+  └ <span class="sgr7"> m₂₁₀</span>: 1
+
+Γ₂┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁺</span>: 1
+  ├ <span class="sgr7"> m₁₁₀</span>: -1
+  ├ <span class="sgr7"> m₁₀₀</span>: -1
+  ├ <span class="sgr7"> m₀₁₀</span>: -1
+  ├ <span class="sgr7">m₁₋₁₀</span>: -1
+  ├ <span class="sgr7"> m₁₂₀</span>: -1
+  └ <span class="sgr7"> m₂₁₀</span>: -1
+
+Γ₃┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁺</span>: -1
+  ├ <span class="sgr7"> m₁₁₀</span>: -1
+  ├ <span class="sgr7"> m₁₀₀</span>: -1
+  ├ <span class="sgr7"> m₀₁₀</span>: -1
+  ├ <span class="sgr7">m₁₋₁₀</span>: 1
+  ├ <span class="sgr7"> m₁₂₀</span>: 1
+  └ <span class="sgr7"> m₂₁₀</span>: 1
+
+Γ₄┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁺</span>: -1
+  ├ <span class="sgr7"> m₁₁₀</span>: 1
+  ├ <span class="sgr7"> m₁₀₀</span>: 1
+  ├ <span class="sgr7"> m₀₁₀</span>: 1
+  ├ <span class="sgr7">m₁₋₁₀</span>: -1
+  ├ <span class="sgr7"> m₁₂₀</span>: -1
+  └ <span class="sgr7"> m₂₁₀</span>: -1
+
+Γ₅┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+  │        ⎣ 0  1 ⎦
+  ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡ -0.5+0.866im             0 ⎤
+  │        ⎣            0  -0.5-0.866im ⎦
+  ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡ -0.5-0.866im             0 ⎤
+  │        ⎣            0  -0.5+0.866im ⎦
+  ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ 1  0 ⎤
+  │        ⎣ 0  1 ⎦
+  ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡ -0.5+0.866im             0 ⎤
+  │        ⎣            0  -0.5-0.866im ⎦
+  ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡ -0.5-0.866im             0 ⎤
+  │        ⎣            0  -0.5+0.866im ⎦
+  ├ <span class="sgr7"> m₁₁₀</span>: ⎡ 0  1 ⎤
+  │        ⎣ 1  0 ⎦
+  ├ <span class="sgr7"> m₁₀₀</span>: ⎡            0  -0.5-0.866im ⎤
+  │        ⎣ -0.5+0.866im             0 ⎦
+  ├ <span class="sgr7"> m₀₁₀</span>: ⎡            0  -0.5+0.866im ⎤
+  │        ⎣ -0.5-0.866im             0 ⎦
+  ├ <span class="sgr7">m₁₋₁₀</span>: ⎡ 0  1 ⎤
+  │        ⎣ 1  0 ⎦
+  ├ <span class="sgr7"> m₁₂₀</span>: ⎡            0  -0.5-0.866im ⎤
+  │        ⎣ -0.5+0.866im             0 ⎦
+  ├ <span class="sgr7"> m₂₁₀</span>: ⎡            0  -0.5+0.866im ⎤
+  └        ⎣ -0.5-0.866im             0 ⎦
+
+Γ₆┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+  │        ⎣ 0  1 ⎦
+  ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡ -0.5+0.866im             0 ⎤
+  │        ⎣            0  -0.5-0.866im ⎦
+  ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡ -0.5-0.866im             0 ⎤
+  │        ⎣            0  -0.5+0.866im ⎦
+  ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ -1   0 ⎤
+  │        ⎣  0  -1 ⎦
+  ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡ 0.5-0.866im            0 ⎤
+  │        ⎣           0  0.5+0.866im ⎦
+  ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡ 0.5+0.866im            0 ⎤
+  │        ⎣           0  0.5-0.866im ⎦
+  ├ <span class="sgr7"> m₁₁₀</span>: ⎡ 0  1 ⎤
+  │        ⎣ 1  0 ⎦
+  ├ <span class="sgr7"> m₁₀₀</span>: ⎡            0  -0.5-0.866im ⎤
+  │        ⎣ -0.5+0.866im             0 ⎦
+  ├ <span class="sgr7"> m₀₁₀</span>: ⎡            0  -0.5+0.866im ⎤
+  │        ⎣ -0.5-0.866im             0 ⎦
+  ├ <span class="sgr7">m₁₋₁₀</span>: ⎡  0  -1 ⎤
+  │        ⎣ -1   0 ⎦
+  ├ <span class="sgr7"> m₁₂₀</span>: ⎡           0  0.5+0.866im ⎤
+  │        ⎣ 0.5-0.866im            0 ⎦
+  ├ <span class="sgr7"> m₂₁₀</span>: ⎡           0  0.5-0.866im ⎤
+  └        ⎣ 0.5+0.866im            0 ⎦</code></pre><p>Frequently, the character table of the associated irreps is more informative than the irrep matrices themselves. We can construct this table using <a href="../api/#Crystalline.characters-Union{Tuple{AbstractVector{&lt;:Crystalline.AbstractIrrep{D}}}, Tuple{D}, Tuple{AbstractVector{&lt;:Crystalline.AbstractIrrep{D}}, Union{Nothing, AbstractVector{&lt;:Real}}}} where D"><code>characters</code></a>, which returns a <code>CharacterTable</code>:</p><pre><code class="language-julia hljs">characters(pgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">CharacterTable{3} for ⋕25 (6mm):
+───────┬────────────────────────
+<span class="sgr1">       </span>│<span class="sgr1"> Γ₁  Γ₂  Γ₃  Γ₄  Γ₅  Γ₆ </span>
+───────┼────────────────────────
+<span class="sgr1">     1 </span>│  1   1   1   1   2   2
+<span class="sgr1"> 3₀₀₁⁺ </span>│  1   1   1   1  -1  -1
+<span class="sgr1"> 3₀₀₁⁻ </span>│  1   1   1   1  -1  -1
+<span class="sgr1">  2₀₀₁ </span>│  1   1  -1  -1   2  -2
+<span class="sgr1"> 6₀₀₁⁻ </span>│  1   1  -1  -1  -1   1
+<span class="sgr1"> 6₀₀₁⁺ </span>│  1   1  -1  -1  -1   1
+<span class="sgr1">  m₁₁₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1">  m₁₀₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1">  m₀₁₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1"> m₁₋₁₀ </span>│  1  -1   1  -1   0   0
+<span class="sgr1">  m₁₂₀ </span>│  1  -1   1  -1   0   0
+<span class="sgr1">  m₂₁₀ </span>│  1  -1   1  -1   0   0
+───────┴────────────────────────
+</code></pre><p>The characters are functions of the conjugacy class (i.e., the characters of operations in the same conjugacy class are equal). Thus, a more compact representation of the character table can be achieved by a class-resolved table, achievable via <a href="../api/#Crystalline.classcharacters-Union{Tuple{AbstractVector{&lt;:Crystalline.AbstractIrrep{D}}}, Tuple{D}, Tuple{AbstractVector{&lt;:Crystalline.AbstractIrrep{D}}, Union{Nothing, AbstractVector{&lt;:Real}}}} where D"><code>classcharacters</code></a>:</p><pre><code class="language-julia hljs">classcharacters(pgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Crystalline.ClassCharacterTable{3} for ⋕25 (6mm):
+───────┬────────────────────────
+<span class="sgr1">       </span>│<span class="sgr1"> Γ₁  Γ₂  Γ₃  Γ₄  Γ₅  Γ₆ </span>
+───────┼────────────────────────
+<span class="sgr1">     1 </span>│  1   1   1   1   2   2
+<span class="sgr1"> 3₀₀₁⁺ </span>│  1   1   1   1  -1  -1
+<span class="sgr1">  2₀₀₁ </span>│  1   1  -1  -1   2  -2
+<span class="sgr1"> 6₀₀₁⁻ </span>│  1   1  -1  -1  -1   1
+<span class="sgr1">  m₁₁₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1"> m₁₋₁₀ </span>│  1  -1   1  -1   0   0
+───────┴────────────────────────
+Class representatives:
+ <span class="sgr1">1</span>
+ <span class="sgr1">3₀₀₁⁺</span> : <span class="sgr90">3₀₀₁⁻</span>
+ <span class="sgr1">2₀₀₁</span>
+ <span class="sgr1">6₀₀₁⁻</span> : <span class="sgr90">6₀₀₁⁺</span>
+ <span class="sgr1">m₁₁₀</span>  : <span class="sgr90">m₁₀₀, m₀₁₀</span>
+ <span class="sgr1">m₁₋₁₀</span> : <span class="sgr90">m₁₂₀, m₂₁₀</span></code></pre><h3 id="Notation"><a class="docs-heading-anchor" href="#Notation">Notation</a><a id="Notation-1"></a><a class="docs-heading-anchor-permalink" href="#Notation" title="Permalink"></a></h3><p>The default point group irrep labeling follows the Bilbao Crystallographic Server&#39;s labeling, which in turn follows the 1963 labelling of Koster, Dimmock, Wheeler, &amp; Statz <sup class="footnote-reference"><a id="citeref-2" href="#footnote-2">[2]</a></sup> (which is also followed e.g. by CDML <sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> labeling as well as Bradley and Cracknell&#39;s book). Associated Muliken (or &quot;spectroscopist&#39;s&quot;) notation can be obtained via <code>mulliken</code>.</p><h2 id="Little-group-irreps"><a class="docs-heading-anchor" href="#Little-group-irreps">Little group irreps</a><a id="Little-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Little-group-irreps" title="Permalink"></a></h2><p>Little group irreps, sometimes called &#39;&#39;small&#39;&#39; irreps, are accessible via <a href="../api/#Crystalline.lgirreps-Union{Tuple{Integer}, Tuple{D}, Tuple{Integer, Val{D}}, Tuple{Integer, Val{D}, JLD2.JLDFile}, Tuple{Integer, Val{D}, JLD2.JLDFile, JLD2.JLDFile}} where D"><code>lgirreps</code></a> and provided with CDML <sup class="footnote-reference"><a id="citeref-1" href="#footnote-1">[1]</a></sup> labels (courtesy of ISOTROPY). As an example, we can obtain the irreps of space group 183 (P6mm; the trivial 3D extension of plane group 17, which in turn is the space group extension of point group 6mm from above) by:</p><pre><code class="language-julia hljs">using Crystalline
+
+lgirsd = lgirreps(183, Val(3))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Dict{String, Collection{LGIrrep{3}}} with 18 entries:
+  &quot;Q&quot; =&gt; [Q₁, Q₂]<span class="sgr90"> (Q = [α, α, 1/2])</span>
+  &quot;Λ&quot; =&gt; [Λ₁, Λ₂]<span class="sgr90"> (Λ = [α, α, 0])</span>
+  &quot;P&quot; =&gt; [P₁, P₂, P₃]<span class="sgr90"> (P = [1/3, 1/3, γ])</span>
+  &quot;C&quot; =&gt; [C₁, C₂]<span class="sgr90"> (C = [α, α, γ])</span>
+  &quot;L&quot; =&gt; [L₁, L₂, L₃, L₄]<span class="sgr90"> (L = [1/2, 0, 1/2])</span>
+  &quot;Δ&quot; =&gt; [Δ₁, Δ₂, Δ₃, Δ₄, Δ₅, Δ₆]<span class="sgr90"> (Δ = [0, 0, γ])</span>
+  &quot;B&quot; =&gt; [B₁]<span class="sgr90"> (B = [α, β, 0])</span>
+  &quot;M&quot; =&gt; [M₁, M₂, M₃, M₄]<span class="sgr90"> (M = [1/2, 0, 0])</span>
+  &quot;H&quot; =&gt; [H₁, H₂, H₃]<span class="sgr90"> (H = [1/3, 1/3, 1/2])</span>
+  &quot;A&quot; =&gt; [A₁, A₂, A₃, A₄, A₅, A₆]<span class="sgr90"> (A = [0, 0, 1/2])</span>
+  &quot;D&quot; =&gt; [D₁, D₂]<span class="sgr90"> (D = [α, 0, γ])</span>
+  &quot;E&quot; =&gt; [E₁]<span class="sgr90"> (E = [α, β, 1/2])</span>
+  &quot;U&quot; =&gt; [U₁, U₂, U₃, U₄]<span class="sgr90"> (U = [1/2, 0, γ])</span>
+  &quot;Σ&quot; =&gt; [Σ₁, Σ₂]<span class="sgr90"> (Σ = [α, 0, 0])</span>
+  &quot;Γ&quot; =&gt; [Γ₁, Γ₂, Γ₃, Γ₄, Γ₅, Γ₆]<span class="sgr90"> (Γ = [0, 0, 0])</span>
+  &quot;K&quot; =&gt; [K₁, K₂, K₃]<span class="sgr90"> (K = [1/3, 1/3, 0])</span>
+  &quot;R&quot; =&gt; [R₁, R₂]<span class="sgr90"> (R = [α, 0, 1/2])</span>
+  &quot;Ω&quot; =&gt; [Ω₁]<span class="sgr90"> (Ω = [α, β, γ])</span></code></pre><p>which returns a dictionary of <code>LGIrrep</code>s, indexed by k-labels given as <code>String</code>s, corresponding to different little groups. In general, we include all the little groups included in ISOTROPY; unfortunately, there is no strict guarantee that this includes a full listing of all inequivalent irreps (although it is typically true). The listing typically contains both special points, lines, and planes (and also always the general point).</p><p>We can inspect the little group irreps of any particular <strong>k</strong>-point, accessing it via its canonical label. As before, we can inspect the associated character tables to get an overview of the irreps:</p><pre><code class="language-julia hljs">lgirs = lgirsd[&quot;Γ&quot;] # little group irreps at the Γ point
+characters(lgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">CharacterTable{3} for ⋕183 (P6mm) at Γ = [0, 0, 0]:
+───────┬────────────────────────
+<span class="sgr1">       </span>│<span class="sgr1"> Γ₁  Γ₂  Γ₃  Γ₄  Γ₅  Γ₆ </span>
+───────┼────────────────────────
+<span class="sgr1">     1 </span>│  1   1   1   1   2   2
+<span class="sgr1">  2₀₀₁ </span>│  1   1  -1  -1   2  -2
+<span class="sgr1"> 3₀₀₁⁺ </span>│  1   1   1   1  -1  -1
+<span class="sgr1"> 3₀₀₁⁻ </span>│  1   1   1   1  -1  -1
+<span class="sgr1"> 6₀₀₁⁺ </span>│  1   1  -1  -1  -1   1
+<span class="sgr1"> 6₀₀₁⁻ </span>│  1   1  -1  -1  -1   1
+<span class="sgr1">  m₁₀₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1">  m₁₁₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1">  m₀₁₀ </span>│  1  -1  -1   1   0   0
+<span class="sgr1">  m₂₁₀ </span>│  1  -1   1  -1   0   0
+<span class="sgr1">  m₁₂₀ </span>│  1  -1   1  -1   0   0
+<span class="sgr1"> m₁₋₁₀ </span>│  1  -1   1  -1   0   0
+───────┴────────────────────────
+</code></pre><h2 id="Space-group-irreps"><a class="docs-heading-anchor" href="#Space-group-irreps">Space group irreps</a><a id="Space-group-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Space-group-irreps" title="Permalink"></a></h2><p>We currently do not provide access to &quot;full&quot; space group irreps. They can, however, be readily built by induction from little group irreps. Specifically, every little group irrep <span>$D_{\mathbf{k}}^\alpha$</span> associated with the little group <span>$G_{\mathbf{k}}$</span>, induces a space group irrep, sometimes denoted <span>${}^*D_{\mathbf{k}}^{\alpha}$</span> or <span>$D^{\alpha}_{\mathbf{k}}\uparrow G$</span>, in the full space group <span>$G$</span>:<sup class="footnote-reference"><a id="citeref-Inui" href="#footnote-Inui">[Inui]</a></sup></p><p class="math-container">\[    [{}^*D_{\mathbf{k}}^{\alpha}(g)]_{ij}
+    =
+    \begin{cases}
+    D_{\mathbf{k}}^{\alpha}(h_i^{-1}gh_j) &amp; \text{if }h_i^{-1}gh_j \in G_{\mathbf{k}}\\
+    \boldsymbol{0}_{d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}} &amp; \text{otherwise}
+    \end{cases},\]</p><p>where <span>$d_{\mathbf{k}}^{\alpha}$</span> is the dimension of the little group irrep <span>$D^{\alpha}_{\mathbf{k}}$</span>, <span>$\boldsymbol{0}_{d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}}$</span> is a <span>$d_{\mathbf{k}}^{\alpha}\times d_{\mathbf{k}}^{\alpha}$</span> zero matrix, and <span>$h_i$</span> and <span>$h_j$</span> iterate over the (left) coset representatives of <span>$G_{\mathbf{k}}$</span> in <span>$G$</span> (of which there are <span>$|\mathrm{star}\{\mathbf{k}\}|$</span>, i.e., the order of the star of <span>$\mathbf{k}$</span>). The induced irrep <span>${}^*D_{\mathbf{k}}^{\alpha}$</span> is consequently a <span>$d_{\mathbf{k}}^{\alpha}|\mathrm{star}\{\mathbf{k}\}|\times d_{\mathbf{k}}^{\alpha}|\mathrm{star}\{\mathbf{k}\}|$</span> matrix.</p><h2 id="Site-symmetry-irreps"><a class="docs-heading-anchor" href="#Site-symmetry-irreps">Site symmetry irreps</a><a id="Site-symmetry-irreps-1"></a><a class="docs-heading-anchor-permalink" href="#Site-symmetry-irreps" title="Permalink"></a></h2><p>To obtain irreps associated with a given site symmetry group (see <a href="../api/#Crystalline.SiteGroup"><code>SiteGroup</code></a>), use <a href="../api/#Crystalline.siteirreps-Union{Tuple{SiteGroup{D}}, Tuple{D}} where D"><code>siteirreps</code></a> which obtains the irreps associated with the site symmetry group by identifying a &quot;parent&quot; point group which is isomorphic to the provided site symmetry group, and then returning a suitable permutation of the point group&#39;s irreps.</p><h2 id="Time-reversal-symmetry-and-co-representations"><a class="docs-heading-anchor" href="#Time-reversal-symmetry-and-co-representations">Time-reversal symmetry &amp; co-representations</a><a id="Time-reversal-symmetry-and-co-representations-1"></a><a class="docs-heading-anchor-permalink" href="#Time-reversal-symmetry-and-co-representations" title="Permalink"></a></h2><p>Irreps returned in Crystalline.jl do not assume time-reversal symmetry by default.  To incorporate time-reversal symmetry (or, more technically, to obtain co-representations or &quot;coreps&quot;), which may cause irreps to &quot;stick together&quot;, see <a href="../api/#Crystalline.realify-Tuple{AbstractDict{&lt;:AbstractString, &lt;:AbstractVector{&lt;:Crystalline.AbstractIrrep}}}"><code>realify</code></a> (which takes a collection of <code>PGIrrep</code>s, <code>SiteIrrep</code>s, or <code>LGIrrep</code>s).</p><p>As an example, the Γ₃, Γ₄, Γ₅, and Γ₆ irreps of point group 6 (C₆) are intrinsically complex in the absence of time-reversal symmetry:</p><pre><code class="language-julia hljs">using Crystalline
+
+pgirs = pgirreps(&quot;6&quot;, Val(3))
+characters(pgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">CharacterTable{3} for ⋕21 (6):
+───────┬────────────────────────────────────────────────────────────────
+<span class="sgr1">       </span>│<span class="sgr1"> Γ₁  Γ₂            Γ₃            Γ₄            Γ₅            Γ₆ </span>
+───────┼────────────────────────────────────────────────────────────────
+<span class="sgr1">     1 </span>│  1   1             1             1             1             1
+<span class="sgr1"> 3₀₀₁⁺ </span>│  1   1  -0.5+0.866im  -0.5+0.866im  -0.5-0.866im  -0.5-0.866im
+<span class="sgr1"> 3₀₀₁⁻ </span>│  1   1  -0.5-0.866im  -0.5-0.866im  -0.5+0.866im  -0.5+0.866im
+<span class="sgr1">  2₀₀₁ </span>│  1  -1             1            -1             1            -1
+<span class="sgr1"> 6₀₀₁⁻ </span>│  1  -1  -0.5+0.866im   0.5-0.866im  -0.5-0.866im   0.5+0.866im
+<span class="sgr1"> 6₀₀₁⁺ </span>│  1  -1  -0.5-0.866im   0.5+0.866im  -0.5+0.866im   0.5-0.866im
+───────┴────────────────────────────────────────────────────────────────
+</code></pre><p>When time-reversal symmetry is incorporated, the irreps stick together pairwise and have real characters:</p><pre><code class="language-julia hljs">pgirs′ = realify(pgirs)
+characters(pgirs′)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">CharacterTable{3} for ⋕21 (6):
+───────┬────────────────────
+<span class="sgr1">       </span>│<span class="sgr1"> Γ₁  Γ₂  Γ₃Γ₅  Γ₄Γ₆ </span>
+───────┼────────────────────
+<span class="sgr1">     1 </span>│  1   1     2     2
+<span class="sgr1"> 3₀₀₁⁺ </span>│  1   1    -1    -1
+<span class="sgr1"> 3₀₀₁⁻ </span>│  1   1    -1    -1
+<span class="sgr1">  2₀₀₁ </span>│  1  -1     2    -2
+<span class="sgr1"> 6₀₀₁⁻ </span>│  1  -1    -1     1
+<span class="sgr1"> 6₀₀₁⁺ </span>│  1  -1    -1     1
+───────┴────────────────────
+</code></pre><p>To inspect the reality type of a given irrep, see <a href="../api/#Crystalline.reality-Tuple{Crystalline.AbstractIrrep}"><code>reality</code></a>. Possible types are <code>REAL</code>, <code>COMPLEX</code>, and <code>PSEUDOREAL</code> (the latter does not arise for point groups):</p><pre><code class="language-julia hljs">label.(pgirs) .=&gt; reality.(pgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6-element Vector{Pair{String, Reality}}:
+ &quot;Γ₁&quot; =&gt; REAL
+ &quot;Γ₂&quot; =&gt; REAL
+ &quot;Γ₃&quot; =&gt; COMPLEX
+ &quot;Γ₄&quot; =&gt; COMPLEX
+ &quot;Γ₅&quot; =&gt; COMPLEX
+ &quot;Γ₆&quot; =&gt; COMPLEX</code></pre><p>The reality type can be computed ab initio via <a href="../api/#Crystalline.calc_reality-Union{Tuple{D}, Tuple{LGIrrep{D}, AbstractArray{SymOperation{D}, 1}}, Tuple{LGIrrep{D}, AbstractArray{SymOperation{D}, 1}, Union{Nothing, Vector{&lt;:Real}}}} where D"><code>calc_reality</code></a>, using the Frobenius criterion for <code>PGIrrep</code>s and <code>SiteIrrep</code>s and the Herring criterion for <code>LGIrrep</code>s.</p><h3 id="Explicitly-real-(or-physically-real)-form-of-irrep-matrices"><a class="docs-heading-anchor" href="#Explicitly-real-(or-physically-real)-form-of-irrep-matrices">Explicitly real (or physically real) form of irrep matrices</a><a id="Explicitly-real-(or-physically-real)-form-of-irrep-matrices-1"></a><a class="docs-heading-anchor-permalink" href="#Explicitly-real-(or-physically-real)-form-of-irrep-matrices" title="Permalink"></a></h3><p>Even when thusly &quot;realified&quot;, the irrep matrices need not be in an explicitly real form (also called &quot;physically real&quot; form) - i.e., they may be merely <em>equivalent</em> to a strictly real matrix. E.g., in the example above, although the characters of the &quot;realified&quot; <code>pgirs′</code> are real, the matrices themselves are not:</p><pre><code class="language-julia hljs">pgirs′ # equivalent also to `physical_realify(pgirs′)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element Collection{PGIrrep{3}} for ⋕21 (6):
+Γ₁┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: 1
+  └ <span class="sgr7">6₀₀₁⁺</span>: 1
+
+Γ₂┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: -1
+  └ <span class="sgr7">6₀₀₁⁺</span>: -1
+
+Γ₃Γ₅┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡ -0.5+0.866im             0 ⎤
+    │        ⎣            0  -0.5-0.866im ⎦
+    ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡ -0.5-0.866im             0 ⎤
+    │        ⎣            0  -0.5+0.866im ⎦
+    ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡ -0.5+0.866im             0 ⎤
+    │        ⎣            0  -0.5-0.866im ⎦
+    ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡ -0.5-0.866im             0 ⎤
+    └        ⎣            0  -0.5+0.866im ⎦
+
+Γ₄Γ₆┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡ -0.5+0.866im             0 ⎤
+    │        ⎣            0  -0.5-0.866im ⎦
+    ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡ -0.5-0.866im             0 ⎤
+    │        ⎣            0  -0.5+0.866im ⎦
+    ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ -1   0 ⎤
+    │        ⎣  0  -1 ⎦
+    ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡ 0.5-0.866im            0 ⎤
+    │        ⎣           0  0.5+0.866im ⎦
+    ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡ 0.5+0.866im            0 ⎤
+    └        ⎣           0  0.5-0.866im ⎦</code></pre><p>The function <a href="../api/#Crystalline.physical_realify-Tuple{Union{PGIrrep, SiteIrrep}}"><code>physical_realify</code></a> determines and applies the transformation to obtain such a strictly real matrix form. This function can take either a <code>PGIrrep</code> or a <code>SiteIrrep</code> (but not currently an <code>LGIrrep</code>, since the physically real form is more complicated there) or a collection of either. For example, we can obtain an explicitly real form of the above irrep matrices:</p><pre><code class="language-julia hljs">physical_realify(pgirs′) # equivalent also to `physical_realify(pgirs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element Collection{PGIrrep{3}} for ⋕21 (6):
+Γ₁┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: 1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: 1
+  └ <span class="sgr7">6₀₀₁⁺</span>: 1
+
+Γ₂┌ <span class="sgr7">    1</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁺</span>: 1
+  ├ <span class="sgr7">3₀₀₁⁻</span>: 1
+  ├ <span class="sgr7"> 2₀₀₁</span>: -1
+  ├ <span class="sgr7">6₀₀₁⁻</span>: -1
+  └ <span class="sgr7">6₀₀₁⁺</span>: -1
+
+Γ₃Γ₅┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡   -0.5  0.866 ⎤
+    │        ⎣ -0.866   -0.5 ⎦
+    ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡  -0.5  -0.866 ⎤
+    │        ⎣ 0.866    -0.5 ⎦
+    ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡   -0.5  0.866 ⎤
+    │        ⎣ -0.866   -0.5 ⎦
+    ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡  -0.5  -0.866 ⎤
+    └        ⎣ 0.866    -0.5 ⎦
+
+Γ₄Γ₆┌ <span class="sgr7">    1</span>: ⎡ 1  0 ⎤
+    │        ⎣ 0  1 ⎦
+    ├ <span class="sgr7">3₀₀₁⁺</span>: ⎡   -0.5  0.866 ⎤
+    │        ⎣ -0.866   -0.5 ⎦
+    ├ <span class="sgr7">3₀₀₁⁻</span>: ⎡  -0.5  -0.866 ⎤
+    │        ⎣ 0.866    -0.5 ⎦
+    ├ <span class="sgr7"> 2₀₀₁</span>: ⎡ -1   0 ⎤
+    │        ⎣  0  -1 ⎦
+    ├ <span class="sgr7">6₀₀₁⁻</span>: ⎡   0.5  -0.866 ⎤
+    │        ⎣ 0.866     0.5 ⎦
+    ├ <span class="sgr7">6₀₀₁⁺</span>: ⎡    0.5  0.866 ⎤
+    └        ⎣ -0.866    0.5 ⎦</code></pre><h2 id="Data-sources"><a class="docs-heading-anchor" href="#Data-sources">Data sources</a><a id="Data-sources-1"></a><a class="docs-heading-anchor-permalink" href="#Data-sources" title="Permalink"></a></h2><p>Point group irreps are obtained from the Bilbao Crystallographic Server&#39;s <a href="https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg">Representations PG program</a> and little group irreps of space groups are obtained from <a href="https://stokes.byu.edu/iso/irtables.php">ISOTROPY&#39;s 2011 ISO-IR dataset</a>.</p><p>If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).</p><section class="footnotes is-size-7"><ul><li class="footnote" id="footnote-Inui"><a class="tag is-link" href="#citeref-Inui">Inui</a>Inui, Tanabe, &amp; Onodera, <em>Group Theory and its Applications in Physics</em>, Springer (1990). Section 11.9.</li><li class="footnote" id="footnote-1"><a class="tag is-link" href="#citeref-1">1</a>Cracknell, A.P., Davies, B.L., Miller, S.C., &amp; Love, W.F., <em>Kronecker Product Tables, Vol. 1. General Introduction and Tables of Irreducible Representations of Space Groups</em>, New York: IFI/Plenum (1979).</li><li class="footnote" id="footnote-2"><a class="tag is-link" href="#citeref-2">2</a>Koster, G.F., Dimmock, J.O., Wheeler, R.G., &amp; Statz, H., <em>Properties of the Thirty-two Point Groups</em>, Cambridge: MIT Press (1963).</li></ul></section></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../groups/">« Groups</a><a class="docs-footer-nextpage" href="../bravais/">Bravais types &amp; bases »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Thursday 21 August 2025 12:20">Thursday 21 August 2025</span>. Using Julia version 1.11.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
