@@ -66,8 +66,10 @@ JaggedVector(data::Vector{T}, offsets::Vector{Int}) where T = JaggedVector{T}(da
 # ::: constructor for "empty" jagged vector with specified element lengths :::
 """
     JaggedVector{T}(lengths::AbstractVector{<:Integer})
+    JaggedVector{T}(lengths_iter)
 
-Return a `JaggedVector{T}` with iterant lengths given by `lengths`, but uninitialized data.
+Return a `JaggedVector{T}` with iterant lengths given by `lengths` (or by an iterable of
+lengths `lengths_iter`, each returning an integer), but uninitialized data.
 This is useful for creating empty jagged vectors with known iterant lengths but
 uninitialized iterant data. The elements of `lengths` must be non-negative valued.
 
@@ -75,13 +77,20 @@ uninitialized iterant data. The elements of `lengths` must be non-negative value
 The following creates a 3-element jagged vector, whose iterants have lengths 3, 2, and 4,
 respectively, and with uninitialized data for each iterant:
 ```julia
-jv = JaggedVector{Int}([3, 2, 4])
+julia> jv = JaggedVector{Float64}([3, 2, 4])
+3-element JaggedVector{Float64}:
+ [5.0e-324, 5.0e-324, 5.0e-310]
+ [2.6e-322, 6.0e-310]
+ [6.0-310, 2.6e-322, 0.0, 0.0]
 ```
 """
 function JaggedVector{T}(lengths::AbstractVector{<:Integer}) where T
     # create a jagged vector with specified vector lengths, but uninitialized data (i.e., to
     # create empty jagged vectors, where we know the length of the vectors it iterates, but
     # don't specify the data of the iterants initially)
+    return _jaggedvector_from_lengths(T, lengths)
+end
+function _jaggedvector_from_lengths(::Type{T}, lengths) where T
     offsets = Vector{Int}(undef, length(lengths) + 1)
     last_offset = offsets[1] = 1
     for (i, l) in enumerate(lengths)
@@ -93,7 +102,6 @@ function JaggedVector{T}(lengths::AbstractVector{<:Integer}) where T
     data = Vector{T}(undef, last_offset - 1) # uninitialized data
     return JaggedVector{T}(data, offsets, Val(:unsafe))
 end
-
 JaggedVector{T}() where T = JaggedVector{T}(Vector{T}(), [1]) # empty jagged vector
 JaggedVector() = JaggedVector{Any}()
 
@@ -149,8 +157,28 @@ _possibly_unsafe_copyto!(dst::Vector, i, src::Vector, j, N) = unsafe_copyto!(dst
 Return a `JaggedVector{T}` from an iterable of iterables `iter`, whose inner iterable have
 elements convertible to type `T`.
 """
-JaggedVector{T}(iter) where T = convert(JaggedVector{T}, iter)
-JaggedVector(iter) = JaggedVector{eltype(first(first(iter)))}(iter)
+function JaggedVector{T}(iter) where T
+    E = typeof(first(iter))
+    if E <: Integer
+        # interpret as lengths of iterants, dispatching to `_jaggedvector_from_lengths`
+        return _jaggedvector_from_lengths(T, iter)
+    elseif E <: Number
+        error(lazy"cannot construct a JaggedVector from iterable of type $E; input should be an iterable of iterables or an iterable of integer lengths")
+    else
+        return convert(JaggedVector{T}, iter)
+    end
+end
+function JaggedVector(iter)
+    E = typeof(first(iter))
+    if E <: Integer
+        return _jaggedvector_from_lengths(Any, iter) # cannot do better than `Any` here
+    elseif E <: Number
+        error(lazy"cannot construct a JaggedVector from iterable of type $E; input should be an iterable of iterables or an iterable of integer lengths")
+    else
+        T = typeof(first(first(iter)))
+        return convert(JaggedVector{T}, iter)
+    end
+end
 
 function Base.convert(::Type{JaggedVector{T}}, iter) where T
     Nᵥ = length(iter)

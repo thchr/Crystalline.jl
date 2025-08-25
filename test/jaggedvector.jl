@@ -512,6 +512,36 @@ using Crystalline.Jagged: JaggedVector
             @test all(isempty(jv[i]) for i in 1:3)
             @test length(jv.data) == 0
         end
+
+        @testset "instantiation from _iterator_ of lengths" begin
+            iter = (i^2 for i in 1:3)
+            jv = JaggedVector{Int}(iter) # must be interpreted as JaggedVector{…}(lengths)
+            @test length(jv) == 3
+            @test length(jv[1]) == 1
+            @test length(jv[2]) == 4
+            @test length(jv[3]) == 9
+
+            jvc = JaggedVector{ComplexF64}(iter) # specify element type
+            @test jvc isa JaggedVector{ComplexF64}
+            @test length(jvc) == 3
+            @test length(jvc[1]) == 1
+            @test length(jvc[2]) == 4
+            @test length(jvc[3]) == 9
+
+            @test JaggedVector(iter) isa JaggedVector{Any} # default to Any eltype, if unspecified
+
+            iter = (Float64(i) for i in 1:2) # not allowed: iterable of non-integers
+            @test_throws ErrorException JaggedVector{Int}(iter)
+            @test_throws ErrorException JaggedVector(iter)
+
+            iter = ((i*1.0im for _ in 1) for i in 1:2) # allowed: iterable of iterables
+            jv_iter = JaggedVector{ComplexF64}(iter)
+            @test length(jv_iter) == 2
+            @test jv_iter[1] == [1.0im]
+            @test jv_iter[2] == [2.0im]
+
+            @test @inferred JaggedVector(iter) isa JaggedVector{ComplexF64} # type inferred correctly
+        end
     end
     
     @testset "Advanced features & implementation details" begin
