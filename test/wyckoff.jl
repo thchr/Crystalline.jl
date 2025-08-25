@@ -50,7 +50,8 @@ end
 
         # the band representations should include all maximal wyckoff positions; 
         # check consistency against that
-        max_wps_brs_str = getfield.(bandreps(sgnum, 3).bandreps, Ref(:wyckpos))
+        brs = bandreps(sgnum, 3)
+        max_wps_brs_str = map(_br -> _br.wyckpos, brs.bandreps)
         @test sort(unique(max_wps_brs_str)) == sort(label.(max_wps))
     end
 

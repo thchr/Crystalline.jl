@@ -17,7 +17,7 @@ using Crystalline, Test
 
                     # check irrep dimension vs. label
                     irDs = irdim.(pgirs)
-                    mlabs_main = getfield.(match.(Ref(r"A|B|¹E|²E|E|T"), mlabs), Ref(:match))
+                    mlabs_main = map(mlab -> match(r"A|B|¹E|²E|E|T", mlab).match, mlabs)
                     for (irD, mlab_main) in zip(irDs, mlabs_main)
                         if irD == 1
                             @test mlab_main ∈ ("A", "B", "¹E", "²E")

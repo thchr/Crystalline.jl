@@ -614,7 +614,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         stack(brs);
         # row/column names
         row_labels = vcat(irlabs, "μ"),
-        header = (label.(position.(brs)), label.(getfield.(brs, :siteir))),
+        header = (label.(position.(brs)), map(br -> label(br.siteir), brs)),
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],

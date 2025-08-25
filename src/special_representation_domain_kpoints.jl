@@ -734,7 +734,7 @@ function ΦnotΩ_kvecs(sgnum::Integer, D::Integer=3)
         #       for otype = 1:2
         #           arith_orphs = Crystalline.find_arithmetic_partner.(Crystalline.ORPHAN_SGNUMS[otype])
         #           kvmaps_pg = get.(Ref(Crystalline.ΦNOTΩ_KVECS_AND_MAPS), arith_orphs, Ref(nothing))
-        #           check = all.(xyzt.(getfield.(kvmap, :op)) .!= "-x,-y,-z" for kvmap in kvmaps_pg)
+        #           check = all.(map(x -> xyzt(x.op), kvmap) .!= "-x,-y,-z" for kvmap in kvmaps_pg)
         #           display(check) # ⇒ vector of `true`s
         #       end
         if matchidx === nothing
