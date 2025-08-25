@@ -15,6 +15,9 @@ using Crystalline, Test
     include("kvecs.jl")
     include("wyckoff.jl")
 
+    # JaggedVector type
+    include("jaggedvector.jl")
+
     # symmetry vectors
     include("symmetryvectors.jl")
 
