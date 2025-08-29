@@ -743,29 +743,48 @@ matrix, or, equivalently, the trace of the representation of the identity matrix
 irdim(ir::AbstractIrrep) = size(first(matrices(ir)), 1)
 translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.translations : nothing
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
-klabel(ir::AbstractIrrep) = klabel(label(ir))
 order(ir::AbstractIrrep) = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(::AbstractIrrep{D}) where D = D
 Base.position(ir::AbstractIrrep) = position(group(ir))
-function klabel(irlab::String)
-    idx₁ = findfirst(isletter, irlab)
-    isnothing(idx₁) && return ""
-    idx′ = idx₁
-    if idx′ != lastindex(irlab) # single-letter label
-        idx₂ = idx₁
-        while true
-            idx′ = nextind(irlab, idx′)
-            idx′ > lastindex(irlab) && break
-            c=irlab[idx′]
-            (isletter(c) || c=='′') || break
-            idx₂ = idx′
-        end
-    else
-        idx₂ = idx₁
-    end
+function klabel(ir::AbstractIrrep, return_as_substring...)
+    return klabel(label(ir), return_as_substring...)
+end
+"""
+    klabel(irlab::AbstractString[, return_as_substring=Val(false)]) --> String or SubString
+
+Return the **k**-label associated with an irrep label `irlab` (e.g., `"X₃"` → `"X"`,
+`"KA₃⁺"` → `"KA"`, or `"Γ′₁⁺"` → `"Γ′"`).
+
+If optional argument `return_as_substring` is set to `Val(true)`, the returned value is a
+view (`SubString`) into the original string `irlab`. Otherwise a new `String` is allocated
+and returned (default behavior).
+"""
+function klabel(irlab::AbstractString, return_as_substring::Val{false}=Val(false))
+    idx₁, idx₂ = _klabel_indices_in_irlab(irlab)
     return irlab[idx₁:idx₂]
+    return SubString(irlab, idx₁, idx₂)
+end
+function klabel(irlab::AbstractString, return_as_substring::Val{true})
+    idx₁, idx₂ = _klabel_indices_in_irlab(irlab)
+    return SubString(irlab, idx₁, idx₂)
+end
+@inline function _klabel_indices_in_irlab(irlab::AbstractString)
+    # return the indices, `idx₁` and `idx₂`, that bracket the k-label in `irlab`, such that
+    # `irlab[idx₁:idx₂]` returns the k-label; if no identifying k-label is found, return 
+    # `1, 0` (which, if getindex'ed into `irlab`, returns the empty string)
+    idx₁ = findfirst(isletter, irlab)
+    isnothing(idx₁) && return 1, 0
+    
+    idx′ = idx₂ = idx₁
+    while idx′ < lastindex(irlab)
+        idx′ = nextind(irlab, idx′)
+        c = @inbounds irlab[idx′]
+        (isletter(c) || c == '′') || break
+        idx₂ = idx′
+    end
+    return idx₁, idx₂
 end
 (ir::AbstractIrrep)(αβγ) = [copy(m) for m in matrices(ir)]
 
