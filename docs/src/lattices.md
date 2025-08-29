@@ -2,7 +2,7 @@
 
 Crystalline.jl implements a function [`levelsetlattice`](@ref) to generate symmetry-constrained periodic isosurfaces, following the approach described in Supplemental Section S3.D of [Phys. Rev. X **12**, 021066 (2022)](https://doi.org/10.1103/PhysRevX.12.021066) which relates and constrains the orbits of an expansion in reciprocal-lattice plane waves.
 
-The resulting isosurfaces can be visualized by a 3D-capable backend of Makie.jl such as GLMakie.jl. 
+The resulting isosurfaces can be visualized using a 3D-capable backend of Makie.jl such as GLMakie.jl. 
 
 ## Example
 To illustrate the functionality, we construct and visualize an isosurface for the double gyroid in space group 230. First, we build a "base", unparameterized surface for space group 230:
@@ -31,7 +31,7 @@ plot(mflat, Rs; filling = 0.3)
 
 In the above, `filling` sets the filling fraction of the displayed lattice (see also [`filling2isoval`](@ref) and [`isoval2filling`](@ref) to map between filling fractions and isovalues).
 
-By default, `levelsetlattice` (and `directbasis`) operates in the conventional basis. Conversion to a to a primitive basis (here, body-centered with centering type `I`) can be achieved via `primitivize`:
+By default, `levelsetlattice` (and `directbasis`) operates in the conventional basis. Conversion to a primitive basis (here, body-centered with centering type `I`) can be achieved via `primitivize`:
 
 ```@example levelsetlattice
 plot(primitivize(mflat, 'I'), primitivize(Rs, 'I'); filling = 0.3)

@@ -10,7 +10,7 @@ using Crystalline
 
 D     = 3  # dimension
 sgnum = 16 # space group number (≤2 in 1D, ≤17 in 2D, ≤230 in 3D)
-sg    = spacegroup(sgnum, D) # or `spacegroup(sngum, Val(D))`
+sg    = spacegroup(sgnum, D) # or `spacegroup(sgnum, Val(D))`
 ```
 Where practical, `spacegroup` should be called with a `Val(D)` dimension to ensure type stability; here and elsewhere in the documentation, we will often use `D::Int` instead for simplicity.
 

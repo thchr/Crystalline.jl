@@ -13,7 +13,7 @@
 """ 
     parsefraction(str::AbstractString, T::Type=Float64)
 
-Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), return as a type T (default,
+Parse a string `str`, allowing fraction inputs (e.g. `"1/2"`), and return as type T (default,
 `Float64`).
 """
 function parsefraction(str::AbstractString, ::Type{T}=Float64) where T

@@ -93,9 +93,9 @@ end
 
 """
     bandreps(sgnum::Integer, D::Integer=3; 
-             allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true)
+             allpaths::Bool=false, spinful::Bool=false, timereversal::Bool=true) --> BandRepSet
 
-Returns the elementary band representations (EBRs) as a `BandRepSet` for space group `sgnum`
+Return the elementary band representations (EBRs) as a `BandRepSet` for space group `sgnum`
 and dimension `D`.
 
 ## Keyword arguments

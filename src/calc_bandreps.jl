@@ -256,10 +256,10 @@ end
     calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
                   timereversal::Bool=true,
                   allpaths::Bool=false,
-                  explicitly_real::Bool=timereversal)
+                  explicitly_real::Bool=timereversal) 
+                                                    --> Collection{NewBandRep{D}}
 
-Compute the band representations of space group `sgnum` in dimension `D`, returning a
-`BandRepSet`.
+Compute the band representations of space group `sgnum` in dimension `D`.
 
 ## Keyword arguments
 - `timereversal` (default, `true`): whether the irreps used to induce the band

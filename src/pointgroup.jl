@@ -100,8 +100,8 @@ end
 
 # 3D
 """
-    pgirreps(iuclab::String, ::Val{D}=Val(3); mullikken::Bool=false) where D ∈ (1,2,3)
-    pgirreps(iuclab::String, D; mullikken::Bool=false)
+    pgirreps(iuclab::String, ::Val{D}=Val(3); mulliken::Bool=false) where D ∈ (1,2,3)
+    pgirreps(iuclab::String, D; mulliken::Bool=false)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
 as a `Vector{PGIrrep{D}}`.

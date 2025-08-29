@@ -23,11 +23,11 @@ classcharacters(pgirs)
 
 ### Notation 
 The default point group irrep labeling follows the Bilbao Crystallographic Server's labeling, which in turn follows the 1963 labelling of Koster, Dimmock, Wheeler, & Statz [^2] (which is also followed e.g. by CDML [^1] labeling as well as Bradley and Cracknell's book).
-Associated Muliken (or "spectroscopist's") notation can be obtained via `mulliken`.
+Associated Mulliken (or "spectroscopist's") notation can be obtained via `mulliken`.
 
 
 ## Little group irreps
-Little group irreps, sometimes called ''small'' irreps, are accessible via [`lgirreps`](@ref) and provided with CDML [^1] labels (courtesy of ISOTROPY).
+Little group irreps, sometimes called "small" irreps, are accessible via [`lgirreps`](@ref) and provided with CDML [^1] labels (courtesy of ISOTROPY).
 As an example, we can obtain the irreps of space group 183 (P6mm; the trivial 3D extension of plane group 17, which in turn is the space group extension of point group 6mm from above) by:
 ```@example lgirs
 using Crystalline
