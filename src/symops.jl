@@ -1,16 +1,27 @@
 """
-    @S_str -> SymOperation
+    S"..." --> SymOperation
 
 Construct a `SymOperation` from a triplet form given as a string.
 
-## Example 
+The expressions specify coordinate mappings from initial positions `x,y,z` (reduced 
+coordinates relative to lattice basis) with constant terms as translations.
+
+## Examples
 
 ```jldoctest
 julia> S"-y,x"
 4⁺ ──────────────────────────────── (-y,x)
  ┌ 0 -1 ╷ 0 ┐
  └ 1  0 ╵ 0 ┘
+
+julia> S"x,-y,z+1/2"
+m₀₁₋₁ ─────────────────────── (x,-y,z+1/2)
+ ┌ 1  0  0 ╷   0 ┐
+ │ 0 -1  0 ┆   0 │
+ └ 0  0  1 ╵ 1/2 ┘
 ```
+
+See also [`SymOperation`](@ref).
 """
 macro S_str(s)
     SymOperation(s)
@@ -866,7 +877,7 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
     for (j, opⱼ) in enumerate(ops)
         Wⱼ = rotation(opⱼ)
         wⱼ = translation(opⱼ)
-        wⱼ′ = P\w
+        wⱼ′ = P\wⱼ
 
         if W == Wⱼ # rotation-part of op and opⱼ is identical
             # check if translation-part of op and opⱼ is equivalent, modulo a primitive lattice translation

@@ -178,4 +178,24 @@ end
     cG′ = reduce(vcat, (compose.(Ref(q), H) for q in Q′))
     @test sort(cG,  by=xyzt) == sort(G, by=xyzt)
     @test sort(cG′, by=xyzt) == sort(G, by=xyzt)
+
+    @testset "findequiv" begin
+        # regression test: ensure different translations with same rotation are distinguished
+        ops = [S"x,y,z", S"x,y+1/2,z", S"x,y,z+1/3"]
+        result = Crystalline.findequiv(ops[2], ops, 'P')
+        @test result == (2, [0.0, 0.0, 0.0])  # should find exact match at index 2
+        result = Crystalline.findequiv(ops[3], ops, 'P')
+        @test result == (3, [0.0, 0.0, 0.0])  # should find exact match at index 3
+        
+        # test nothing return when no match found
+        result = Crystalline.findequiv(S"-x,y,z", ops, 'P')  # different rotation
+        @test result === nothing
+        
+        # test with I centering (body-centered)
+        ops_I = [S"x,y,z", S"x+1/2,y+1/2,z+1/2"]  # identity and body-center translation
+        result = Crystalline.findequiv(ops_I[1], ops_I, 'I')
+        @test result == (1, [0.0, 0.0, 0.0])  # exact match
+        result = Crystalline.findequiv(ops_I[2], ops_I, 'I')  
+        @test result == (1, [0.5, 0.5, 0.5])  # equivalent to first op + lattice vector
+    end
 end

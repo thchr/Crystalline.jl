@@ -21,7 +21,7 @@ dim(::AbstractOperation{D}) where D = D
 """
     rotation(op::AbstractOperation{D}) --> SMatrix{D, D, Float64}
 
-Return the `D`×`D`` rotation part of `op`.
+Return the `D`×`D` rotation part of `op`.
 """
 rotation(op::AbstractOperation) = SMatrix(SymOperation(op).rotation)
 """
@@ -179,7 +179,7 @@ freeparams(v::AbstractVec)  = map(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 """
 $(TYPEDSIGNATURES)
 
-Return total number of free parameters occuring in `v`.
+Return total number of free parameters occurring in `v`.
 """
 nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 
@@ -730,7 +730,7 @@ matrices(ir::AbstractIrrep) = ir.matrices
 """
     reality(ir::AbstractIrrep) --> Reality
 
-Return the reality of `ir` (see []`Reality`](@ref)).
+Return the reality of `ir` (see [`Reality`](@ref)).
 """
 reality(ir::AbstractIrrep) = ir.reality
 
@@ -764,7 +764,6 @@ and returned (default behavior).
 function klabel(irlab::AbstractString, return_as_substring::Val{false}=Val(false))
     idx₁, idx₂ = _klabel_indices_in_irlab(irlab)
     return irlab[idx₁:idx₂]
-    return SubString(irlab, idx₁, idx₂)
 end
 function klabel(irlab::AbstractString, return_as_substring::Val{true})
     idx₁, idx₂ = _klabel_indices_in_irlab(irlab)
