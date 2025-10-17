@@ -1,7 +1,7 @@
 name = "Crystalline"
 uuid = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
 authors = ["Thomas Christensen <thomas@dtu.dk>"]
-version = "0.6.22"
+version = "0.6.23"
 
 [deps]
 Bravais = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
