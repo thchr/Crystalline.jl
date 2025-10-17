@@ -8,7 +8,7 @@ DocMeta.setdocmeta!(Crystalline, :DocTestSetup, :(using Crystalline); recursive=
 makedocs(
     modules = [Crystalline, Bravais],
     sitename = "Crystalline.jl",
-    authors = "Thomas Christensen <tchr@mit.edu> and contributors",
+    authors = "Thomas Christensen <thomas@dtu.dk> and contributors",
     repo = Remotes.GitHub("thchr", "Crystalline.jl"),
     format=Documenter.HTML(;
         prettyurls = get(ENV, "CI", nothing) == "true",

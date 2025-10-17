@@ -107,7 +107,7 @@ The returned basis is right-handed.
   surface's intercept with each of the axes spanned by `Rs`.
 
 ## Example
-```jldoctest
+```jldoctest; filter = [r"-?\\d+\\.\\d+e-1[4-9]" => s"0.0", r"(\\d+\\.\\d{10})\\d+" => s"\\1"]
 julia> sgnum = 195; # P23, a cubic lattice
 
 julia> Rs = directbasis(sgnum, 3)
