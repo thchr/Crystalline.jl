@@ -148,52 +148,88 @@ function isocaps_3d_levelsetlattice(vals, isoval::Real, Rs::DirectBasis{3})
     return patches_vs, patches_fs, patches_contours
 end
 
+"""
+    find_exteriors_and_interiors(lines)
+
+Classify a collection of closed polygonal lines into patches. Each patch is identified with
+an exterior boundary and a set of (possibly empty) interior holes.
+
+# Strategy
+The identification of exterior and interior boundaries is determined by containment
+hierachy. More specifically:
+1. Build a parent tree where each line's parent is the innermost line containing it
+2. Compute the nesting depth of each line in this containment tree
+3. Lines at even depths (0, 2, 4, ...) are patch boundaries (exteriors)
+4. Lines at odd depths (1, 3, 5, ...) are holes in their parent patches
+5. Each exterior's holes are its direct children in the tree
+
+This strategy explicitly allows handling of cases where we have multiply nested lines,
+corresponding to patches within holes of other patches.
+
+# Returns
+- `exteriors`: vector whose elements `exteriors[i]` give the boundary of the `i`th patch.
+- `interiors`: vector whose elements `interiors[i]` give all hole boundaries of the
+  `i`th patch.
+"""
 function find_exteriors_and_interiors(
     lines::AbstractVector{<:AbstractVector{P}}
 ) where P<:AbstractVector{<:Real}
-    # the implementation here explicitly assumes and depends on that there are never any
-    # multiply-nested polygons: i.e., a polygon which is interior to another polygon (i.e.,
-    # is a hole) cannot itself contain any holes
-    exteriors = Vector{Vector{P}}()
-    interiors = Vector{Vector{Vector{P}}}()
-    seen = Set{Int}()
+    n = length(lines)
+    
+    # build parent tree: parent[i] stores the index j of the line that immediately 
+    # contains line i (i.e., the innermost line containing i), or -1 if line i is 
+    # at the root level (not contained in any other line)
+    parent = fill(-1, n)
     for i in eachindex(lines)
-        i ∈ seen && continue
-        push!(seen, i)
-        sample_i = lines[i][1]
-        was_interior = false
+        sample_i = lines[i][1]  # test point from line i
         for j in eachindex(lines)
-            j ∈ seen && continue
+            i == j && continue
             if inpolygon(sample_i, lines[j])
-                push!(seen, j)
-                push!(exteriors, lines[j])
-                push!(interiors, [lines[i]])
+                # j contains i; verify that j is the *immediate* parent by ensuring
+                # no intermediate line k exists where i ∈ k ∈ j. Without this check,
+                # we might incorrectly assign a grandparent as the parent.
+                is_immediate = true
                 for k in eachindex(lines)
-                    k ∈ seen && continue
+                    (k == i || k == j) && continue
                     sample_k = lines[k][1]
-                    if inpolygon(sample_k, lines[j])
-                        push!(seen, k)
-                        push!(last(interiors), lines[k])
+                    # check if k is between i and j in the containment hierarchy
+                    if inpolygon(sample_i, lines[k]) && inpolygon(sample_k, lines[j])
+                        is_immediate = false
+                        break
                     end
                 end
-                was_interior = true # `i` was interior to `j`
-                break
-            end
-        end
-        if !was_interior
-            push!(exteriors, lines[i])
-            push!(interiors, Vector{Float64}[]) # `i` is exterior to itself
-            # see if there were any interior lines
-            for j in eachindex(lines)
-                j ∈ seen && continue
-                sample_j = lines[j][1]
-                if inpolygon(sample_j, lines[i])
-                    push!(seen, j)
-                    push!(last(interiors), lines[j])
+                if is_immediate
+                    parent[i] = j
+                    break
                 end
             end
         end
     end
+    
+    # compute nesting depth of each line by walking up the parent chain
+    depth = zeros(Int, n)
+    for i in eachindex(lines)
+        d = 0
+        p = parent[i]
+        while p ≠ -1
+            d += 1
+            p = parent[p]
+        end
+        depth[i] = d
+    end
+    
+    # exteriors have even depth; collect each exterior with its direct children as holes
+    exteriors = Vector{Vector{P}}()
+    interiors = Vector{Vector{Vector{P}}}()
+    for i in eachindex(lines)
+        if iseven(depth[i])
+            push!(exteriors, lines[i])
+            # holes are the direct children of this exterior in the parent tree
+            holes = [lines[j] for j in eachindex(lines) if parent[j] == i]
+            push!(interiors, holes)
+        end
+    end
+
     return exteriors, interiors
 end
 
