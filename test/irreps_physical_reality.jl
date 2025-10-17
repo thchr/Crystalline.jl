@@ -2,7 +2,12 @@ using LinearAlgebra: eigvals
 using Crystalline
 using Test
 
-_eigsortby(λ::Number) = reim(round(λ, digits=13))
+function _eigsortby(λ::Number)
+    r, i = reim(round(λ, digits=13)) # round slightly to avoid sorting issues
+    # normalize -0.0 to 0.0 for similar reasons (don't want (-0.0, 1) to sort differently
+    # than (0.0, 1))
+    return ((iszero(r) ? zero(r) : r), (iszero(i) ? zero(i) : i))
+end
 @testset "physical_realify" begin
     @testset "pgirreps" begin
         for D in 1:3
