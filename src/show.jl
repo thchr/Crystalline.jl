@@ -56,10 +56,14 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     pretty_table(io,
         getindex.(Ref(seitz_ops), mt.table);
         row_labels = seitz_ops,
-        header = seitz_ops,
-        vlines = [1,],
-        hlines = [:begin, 1, :end]
+        column_labels = seitz_ops,
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_line_after_data_rows = true,
+            vertical_lines_at_data_columns = [1,],
         )
+    )
     return nothing
 end
 
