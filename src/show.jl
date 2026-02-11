@@ -540,7 +540,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
         # options/formatting/styling
         formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_label_alignment = :l,
+        row_label_column_alignment = :l,
         alignment = :c, 
         highlighters = [h_odd, h_μ],
         style = TextTableStyle(column_label = crayon"bold")
@@ -624,7 +624,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         # options/formatting/styling
         formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_label_alignment = :l,
+        row_label_column_alignment = :l,
         alignment = :c, 
         highlighters = [h_odd, h_μ],
         style = TextTableStyle(column_label = crayon"bold")
