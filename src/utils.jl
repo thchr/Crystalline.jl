@@ -241,7 +241,8 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=identity)
         formatters = [(v,i,j) -> elformat(v)],
         alignment = :r)
     X_str  = String(take!(io′))
-    X_rows = split(X_str, '\n')
+    X_str_stripped = strip(X_str, '\n')
+    X_rows = split(X_str_stripped, '\n')
     for i in rowsA
         i != first(rowsA) && print(io, prerow)
         # w/ unicode characters for left/right square braces (https://en.wikipedia.org/wiki/Miscellaneous_Technical)
