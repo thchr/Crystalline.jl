@@ -558,7 +558,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
         table_format = TextTableFormat(;
             horizontal_line_at_beginning = true,
             horizontal_line_after_column_labels = true,
-            horizontal_lines_at_data_rows = [Nⁱʳʳ+1],
+            horizontal_lines_at_data_rows = [Nⁱʳʳ],
             horizontal_line_after_data_rows = true,
             vertical_line_at_beginning = false,
             vertical_lines_at_data_columns = :none,
