@@ -237,8 +237,8 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=identity)
     io′ = IOBuffer()
     pretty_table(io′, X; 
         table_format = tf_compact_borderless,
-        show_header=false,
-        formatters = (v,i,j) -> elformat(v),
+        show_column_labels = false,
+        formatters = [(v,i,j) -> elformat(v)],
         alignment = :r)
     X_str  = String(take!(io′))
     X_rows = split(X_str, '\n')
