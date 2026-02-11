@@ -539,11 +539,17 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
         ],
         # options/formatting/styling
         formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
-        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
         row_label_column_alignment = :l,
         alignment = :c, 
         highlighters = [h_odd, h_μ],
-        style = TextTableStyle(column_label = crayon"bold")
+        style = TextTableStyle(column_label = crayon"bold"),
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_lines_at_data_rows = [Nⁱʳʳ+1],
+            horizontal_line_after_data_rows = true,
+            vertical_lines_at_data_columns = [1,],
+        )
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
@@ -623,11 +629,17 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         ],
         # options/formatting/styling
         formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
-        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
         row_label_column_alignment = :l,
         alignment = :c, 
         highlighters = [h_odd, h_μ],
-        style = TextTableStyle(column_label = crayon"bold")
+        style = TextTableStyle(column_label = crayon"bold"),
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_lines_at_data_rows = [Nⁱʳʳ+1],
+            horizontal_line_after_data_rows = true,
+            vertical_lines_at_data_columns = [1,],
+        )
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
