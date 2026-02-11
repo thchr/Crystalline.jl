@@ -22,7 +22,17 @@ function test_show(expected::AbstractString, observed::AbstractString)
         @test :expected == :observed
     end
 end
-test_tp_show(v, observed::AbstractString) = test_show(repr(MIME"text/plain"(), v), observed)
+
+function test_tp_show(v, expected::AbstractString)
+    buffer = IOBuffer()
+    # TODO: make sure the displaysize is large enough to hold the string,
+    #       or include the ellipsis in the expected string
+    io = IOContext(buffer, :displaysize => (50, 80))
+    show(io, MIME"text/plain"(), v)
+    observed = String(take!(buffer))
+    test_show(observed, expected)
+end
+
 
 # ---------------------------------------------------------------------------------------- #
 
