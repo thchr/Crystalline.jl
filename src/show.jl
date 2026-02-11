@@ -539,7 +539,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
         row_label_alignment = :l,
         alignment = :c, 
-        highlighters = (h_odd, h_μ), 
+        highlighters = [h_odd, h_μ],
         header_crayon = crayon"bold"
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
@@ -620,7 +620,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
         row_label_alignment = :l,
         alignment = :c, 
-        highlighters = (h_odd, h_μ), 
+        highlighters = [h_odd, h_μ],
         header_crayon = crayon"bold"
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
