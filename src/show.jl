@@ -398,10 +398,16 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
         chars_formatted;
         # row/column names
         row_labels = seitz.(ops), # seitz labels
-        header = labels(ct),     # irrep labels
-        tf = tf_unicode,
-        vlines = [1,], hlines = [:begin, 1, :end]
+        column_labels = labels(ct),     # irrep labels
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_line_after_data_rows = true,
+            vertical_line_at_beginning = false,
+            vertical_lines_at_data_columns = :none,
+            vertical_line_after_data_columns = false,
         )
+    )
 
     if ct isa ClassCharacterTable
         _print_class_representatives(io, ct)
