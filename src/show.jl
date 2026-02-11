@@ -560,7 +560,9 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
             horizontal_line_after_column_labels = true,
             horizontal_lines_at_data_rows = [Nⁱʳʳ+1],
             horizontal_line_after_data_rows = true,
-            vertical_lines_at_data_columns = [1,],
+            vertical_line_at_beginning = false,
+            vertical_lines_at_data_columns = :none,
+            vertical_line_after_data_columns = false,
         )
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
