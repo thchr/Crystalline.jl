@@ -60,6 +60,9 @@ using Crystalline, Test
     include("isomorphic_parent_pointgroup.jl") # => do we find the same "parent" point
                                                #    groups as Bilbao?
 
+    # primitivize collections of irreps
+    include("primitivize_irreps.jl")
+
     # analysis of symmetry eigenvalue data (to symmetry vectors)
     include("symeigs_analysis.jl")
     

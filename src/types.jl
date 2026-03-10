@@ -589,6 +589,14 @@ Base.position(::AbstractGroup) = nothing
 # sorting
 sort!(g::AbstractGroup; by=xyzt, kws...) = (sort!(operations(g); by, kws...); g)
 
+function (==)(g1::AbstractGroup, g2::AbstractGroup)
+    dim(g1) == dim(g2) || return false
+    order(g1) == order(g2) || return false
+    position(g1) == position(g2) || return false
+    operations(g1) == operations(g2) || return false
+    return true
+end
+
 # --- Generic group ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -861,8 +869,7 @@ issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
-                             # Site symmetry irreps
-
+# --- Site symmetry irreps ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """

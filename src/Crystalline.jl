@@ -77,13 +77,15 @@ export SymOperation,                        # types
        isspecial,
        irdim,
        dim, parts,                          # ::KVec & RVec
-       irreplabels, klabels,                # ::BandRep & ::BandRepSet 
+       irreplabels, klabels,                # ::BandRep & ::BandRepSet
        isspinful
 
 include("types_symmetryvectors.jl")
 export SymmetryVector, SymmetryVectors, NewBandRep, CompositeBandRep
 export irreps, multiplicities, occupation
 export @composite
+
+include("collection_extensions.jl") # various methods on `Collection{T}` for various `T`
 
 include("notation.jl")
 export schoenflies, iuc, centering, seitz, mulliken
