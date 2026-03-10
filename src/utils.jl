@@ -87,10 +87,13 @@ const SUBSCRIPT_MAP = Dict('1'=>'₁', '2'=>'₂', '3'=>'₃', '4'=>'₄', '5'=>
                            'a'=>'ₐ', 'e'=>'ₑ', 'h'=>'ₕ', 'i'=>'ᵢ', 'j'=>'ⱼ',  # letters (missing several)
                            'k'=>'ₖ', 'l'=>'ₗ',  'm'=>'ₘ', 'n'=>'ₙ', 'o'=>'ₒ', 
                            'p'=>'ₚ', 'r'=>'ᵣ', 's'=> 'ₛ', 't'=>'ₜ', 'u'=>'ᵤ', 
-                           'v'=>'ᵥ', 'x'=>'ₓ', 
+                           'v'=>'ᵥ', 'x'=>'ₓ',
                            '+'=>'₊', '-'=>'₋', '='=>'₌', '('=>'₍', ')'=>'₎',  # special characters
                            'β'=>'ᵦ', 'γ'=>'ᵧ', 'ρ'=>'ᵨ', 'ψ'=>'ᵩ', 'χ'=>'ᵪ',  # greek
-                           # missing letter subscripts: b, c, d, f, g, q, w, y, z
+                           # missing letter subscripts: b, c, d, f, g, q, (w, y, z)
+                           # w, y, z are coming (https://www.unicode.org/L2/L2024/24268-n5291-post-17-chart.pdf),
+                           # but not implemented in most fonts: (TODO: toggle when support is widespread)
+                           #'w' => '\U209D', 'y' => '\U209E', 'z' => '\U209F',
                            )                                          
 const SUPSCRIPT_MAP = Dict('1'=>'¹', '2'=>'²', '3'=>'³', '4'=>'⁴', '5'=>'⁵',  # digits
                            '6'=>'⁶', '7'=>'⁷', '8'=>'⁸', '9'=>'⁹', '0'=>'⁰',
@@ -99,10 +102,11 @@ const SUPSCRIPT_MAP = Dict('1'=>'¹', '2'=>'²', '3'=>'³', '4'=>'⁴', '5'=>'�
                            'k'=>'ᵏ', 'l'=>'ˡ', 'm'=>'ᵐ', 'n'=>'ⁿ', 'o'=>'ᵒ', 
                            'p'=>'ᵖ', 'r'=>'ʳ', 's'=>'ˢ', 't'=>'ᵗ', 'u'=>'ᵘ', 
                            'v'=>'ᵛ', 'w'=>'ʷ', 'x'=>'ˣ', 'y'=>'ʸ', 'z'=>'ᶻ',
+                           'q'=>'𐞥',
                            '+'=>'⁺', '-'=>'⁻', '='=>'⁼', '('=>'⁽', ')'=>'⁾',  # special characters
+                           ','=>'˒', '.'=>'⋅', # NB: not true matches, but workable (https://stackoverflow.com/questions/34350441/is-there-an-unicode-symbol-for-superscript-comma)
                            'α'=>'ᵅ', 'β'=>'ᵝ', 'γ'=>'ᵞ', 'δ'=>'ᵟ', 'ε'=>'ᵋ',  # greek
                            'θ'=>'ᶿ', 'ι'=>'ᶥ', 'φ'=>'ᶲ', 'ψ'=>'ᵠ', 'χ'=>'ᵡ',
-                           # missing letter superscripts: q
                            )                                          
 const SUBSCRIPT_MAP_REVERSE = Dict(v=>k for (k,v) in SUBSCRIPT_MAP)
 const SUPSCRIPT_MAP_REVERSE = Dict(v=>k for (k,v) in SUPSCRIPT_MAP)
