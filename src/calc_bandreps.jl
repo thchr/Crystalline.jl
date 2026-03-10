@@ -253,11 +253,19 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 """
-    calc_bandreps(sgnum::Integer, Dᵛ::Val{D}=Val(3);
-                  timereversal::Bool=true,
-                  allpaths::Bool=false,
-                  explicitly_real::Bool=timereversal) 
-                                                    --> Collection{NewBandRep{D}}
+    calc_bandreps(
+        sgnum::Integer,
+        ::Val{D}=Val(3);
+        timereversal::Bool=true,
+        allpaths::Bool=false,
+        explicitly_real::Bool=timereversal
+    ) --> Collection{NewBandRep{D}}
+
+    calc_bandreps( # type-unstable convenience accessor
+        sgnum::Integer,
+        D::Integer;
+        kws...
+    ) --> Collection{NewBandRep{D}}
 
 Compute the band representations of space group `sgnum` in dimension `D`.
 
@@ -318,7 +326,7 @@ function calc_bandreps(
 
     return Collection(brs)
 end
-
+calc_bandreps(sgnum::Integer, D::Integer; kws...) = calc_bandreps(sgnum, Val(D); kws...)
 
 # ---------------------------------------------------------------------------------------- #
 

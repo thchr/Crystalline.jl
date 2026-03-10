@@ -429,7 +429,7 @@ end
 irreps(brs::Collection{<:NewBandRep}) = irreps(SymmetryVector(first(brs)))
 irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(SymmetryVector(first(brs)))
 klabels(brs::Collection{<:NewBandRep}) = klabels(SymmetryVector(first(brs)))
-littlegroups(::Collection{<:NewBandRep}) = group.(irreps(brs))
+littlegroups(brs::Collection{<:NewBandRep}) = group.(irreps(brs))
 
 # ::: Conversion to BandRepSet :::
 function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})

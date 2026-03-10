@@ -279,7 +279,7 @@ function nigglibasis( # 2D by 3D-piggybacking
         Rs′ = transform(Rs′, P_flip)      
     end
     if det(P) < 0 # basis change did not preserve handedness, contrary to intent
-        error("2D Niggli reduction failed to produce a preserve handedness")
+        error("2D Niggli reduction failed to preserve handedness")
     end
     if P³ᴰ[1,3] ≠ 0 || P³ᴰ[2,3] ≠ 0 || P³ᴰ[3,1] ≠ 0 || P³ᴰ[3,2] ≠ 0
         error(lazy"interim 3D transformation has unexpected nonzero elements: P³ᴰ=$P³ᴰ")
