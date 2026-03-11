@@ -64,7 +64,8 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
             vertical_line_at_beginning = false,
             vertical_lines_at_data_columns = :none,
             vertical_line_after_data_columns = false,
-        )
+        ),
+        new_line_at_end = false
     )
     return nothing
 end
@@ -406,7 +407,8 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
             vertical_line_at_beginning = false,
             vertical_lines_at_data_columns = :none,
             vertical_line_after_data_columns = false,
-        )
+        ),
+        new_line_at_end = false
     )
 
     if ct isa ClassCharacterTable
@@ -563,14 +565,13 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
             vertical_line_at_beginning = false,
             vertical_lines_at_data_columns = :none,
             vertical_line_after_data_columns = false,
-        )
+        ),
+        new_line_at_end = false
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 
     # print k-vec labels
-    print(io, "  KVecs: ")
-    join(io, klabels(brs), ", ")
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -650,13 +651,15 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
         table_format = TextTableFormat(;
             horizontal_line_at_beginning = true,
             horizontal_line_after_column_labels = true,
-            horizontal_lines_at_data_rows = [Nⁱʳʳ+1],
+            horizontal_lines_at_data_rows = [Nⁱʳʳ],
             horizontal_line_after_data_rows = true,
-            vertical_lines_at_data_columns = [1,],
-        )
+            @text__no_vertical_lines(),
+            vertical_line_after_row_label_column = true
+        ),
+        new_line_at_end = false
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
-        )
+    )
 end
 
 function Base.show(io :: IO, brs :: Collection{<:NewBandRep})
