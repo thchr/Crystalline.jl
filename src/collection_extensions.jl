@@ -73,7 +73,7 @@ function primitivize(
     # --- primitivize little group irreps ---
     # NB: all elements of `brs` point to the same set of irreps, by assumption
     lgirsv = irreps(brs)
-    lgirsv′ = Vector{Vector{LGIrrep{D}}}(undef, length(lgirsv))
+    lgirsv′ = Vector{Collection{LGIrrep{D}}}(undef, length(lgirsv))
     for (i, lgirs) in enumerate(lgirsv)
         lgirsv′[i] = primitivize(lgirs, cntr)
     end
