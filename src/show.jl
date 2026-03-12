@@ -56,10 +56,17 @@ function show(io::IO, ::MIME"text/plain", mt::MultTable)
     pretty_table(io,
         getindex.(Ref(seitz_ops), mt.table);
         row_labels = seitz_ops,
-        header = seitz_ops,
-        vlines = [1,],
-        hlines = [:begin, 1, :end]
-        )
+        column_labels = seitz_ops,
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_line_after_data_rows = true,
+            vertical_line_at_beginning = false,
+            vertical_lines_at_data_columns = :none,
+            vertical_line_after_data_columns = false,
+        ),
+        new_line_at_end = false
+    )
     return nothing
 end
 
@@ -392,10 +399,17 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
         chars_formatted;
         # row/column names
         row_labels = seitz.(ops), # seitz labels
-        header = labels(ct),     # irrep labels
-        tf = tf_unicode,
-        vlines = [1,], hlines = [:begin, 1, :end]
-        )
+        column_labels = labels(ct),     # irrep labels
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_line_after_data_rows = true,
+            vertical_line_at_beginning = false,
+            vertical_lines_at_data_columns = :none,
+            vertical_line_after_data_columns = false,
+        ),
+        new_line_at_end = false
+    )
 
     if ct isa ClassCharacterTable
         _print_class_representatives(io, ct)
@@ -526,28 +540,38 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
 
     # print band representations as table
     k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
-    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
-    h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+    h_odd = TextHighlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_μ   = TextHighlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
         stack(brs);
         # row/column names
         row_labels = vcat(irreplabels(brs), "μ"),
-        header = (position.(brs), chop.(label.(brs), tail=2)), # remove repetitive "↑G" postfix
+        column_labels = [
+            position.(brs),
+            chop.(label.(brs), tail=2)  # remove repetitive "↑G" postfix
+        ],
         # options/formatting/styling
-        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
-        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_label_alignment = :l,
+        formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
+        row_label_column_alignment = :l,
         alignment = :c, 
-        highlighters = (h_odd, h_μ), 
-        header_crayon = crayon"bold"
+        highlighters = [h_odd, h_μ],
+        style = TextTableStyle(column_label = crayon"bold"),
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_lines_at_data_rows = [Nⁱʳʳ],
+            horizontal_line_after_data_rows = true,
+            vertical_line_at_beginning = false,
+            vertical_lines_at_data_columns = :none,
+            vertical_line_after_data_columns = false,
+        ),
+        new_line_at_end = false
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
         )
 
     # print k-vec labels
-    print(io, "  KVecs: ")
-    join(io, klabels(brs), ", ")
 end
 
 # ---------------------------------------------------------------------------------------- #
@@ -607,24 +631,35 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
 
     # print band representations as table
     k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
-    h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
-    h_μ   = Highlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
+    h_odd = TextHighlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
+    h_μ   = TextHighlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
     pretty_table(io, 
         # table contents
         stack(brs);
         # row/column names
         row_labels = vcat(irlabs, "μ"),
-        header = (label.(position.(brs)), map(br -> label(br.siteir), brs)),
+        column_labels = [
+            label.(position.(brs)),
+            map(br -> label(br.siteir), brs)
+        ],
         # options/formatting/styling
-        formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
-        vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_label_alignment = :l,
+        formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
+        row_label_column_alignment = :l,
         alignment = :c, 
-        highlighters = (h_odd, h_μ), 
-        header_crayon = crayon"bold"
+        highlighters = [h_odd, h_μ],
+        style = TextTableStyle(column_label = crayon"bold"),
+        table_format = TextTableFormat(;
+            horizontal_line_at_beginning = true,
+            horizontal_line_after_column_labels = true,
+            horizontal_lines_at_data_rows = [Nⁱʳʳ],
+            horizontal_line_after_data_rows = true,
+            @text__no_vertical_lines(),
+            vertical_line_after_row_label_column = true
+        ),
+        new_line_at_end = false
         # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
         #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
-        )
+    )
 end
 
 function Base.show(io :: IO, brs :: Collection{<:NewBandRep})
