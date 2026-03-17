@@ -22,7 +22,17 @@ function test_show(expected::AbstractString, observed::AbstractString)
         @test :expected == :observed
     end
 end
-test_tp_show(v, observed::AbstractString) = test_show(repr(MIME"text/plain"(), v), observed)
+
+function test_tp_show(v, expected::AbstractString)
+    buffer = IOBuffer()
+    # TODO: make sure the displaysize is large enough to hold the string,
+    #       or include the ellipsis in the expected string
+    io = IOContext(buffer, :displaysize => (50, 80))
+    show(io, MIME"text/plain"(), v)
+    observed = String(take!(buffer))
+    test_show(observed, expected)
+end
+
 
 # ---------------------------------------------------------------------------------------- #
 
@@ -142,8 +152,7 @@ str = """
         2₀₀₁ │  2₀₀₁  6₀₀₁⁻  6₀₀₁⁺      1  3₀₀₁⁺  3₀₀₁⁻
        6₀₀₁⁻ │ 6₀₀₁⁻  6₀₀₁⁺   2₀₀₁  3₀₀₁⁺  3₀₀₁⁻      1
        6₀₀₁⁺ │ 6₀₀₁⁺   2₀₀₁  6₀₀₁⁻  3₀₀₁⁻      1  3₀₀₁⁺
-      ───────┴──────────────────────────────────────────
-      """
+      ───────┴──────────────────────────────────────────"""
 test_tp_show(MultTable(pointgroup("6")), str)
 
 str = """
@@ -155,8 +164,7 @@ str = """
        {2₀₁₀|0,0,½} │ {2₀₁₀|0,0,½}             1  {m₀₁₀|0,0,½}            -1
                  -1 │           -1  {m₀₁₀|0,0,½}             1  {2₀₁₀|0,0,½}
        {m₀₁₀|0,0,½} │ {m₀₁₀|0,0,½}            -1  {2₀₁₀|0,0,½}             1
-      ──────────────┴────────────────────────────────────────────────────────
-      """
+      ──────────────┴────────────────────────────────────────────────────────"""
 test_tp_show(MultTable(spacegroup(13)), str)
 
 # -------------------------------
@@ -325,8 +333,7 @@ CharacterTable{3} for ⋕21 (6):
   2₀₀₁ │  1  -1     2    -2
  6₀₀₁⁻ │  1  -1    -1     1
  6₀₀₁⁺ │  1  -1    -1     1
-───────┴────────────────────
-"""
+───────┴────────────────────"""
 test_tp_show(characters(pgirs′), str)
 
 str = """
@@ -358,8 +365,7 @@ CharacterTable{3} for ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2]:
   {m₁₀₋₁|¼,¼,¼} │      0       0     0
    {m₀₁₁|¼,¾,¼} │      0       0     0
   {m₀₁₋₁|¼,¼,¼} │      0       0     0
-────────────────┴──────────────────────
-"""
+────────────────┴──────────────────────"""
 test_tp_show(characters(lgirreps(230)["P"]), str)
 
 # -------------------------------
@@ -391,8 +397,7 @@ BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
  L₁ │ 1   1   1   1   2   2
 ────┼────────────────────────
  μ  │ 1   1   1   1   2   2
-────┴────────────────────────
-  KVecs: Γ, T, Y, Z, L"""
+────┴────────────────────────"""
 test_tp_show(brs, str)
 
 test_tp_show(brs[1],   "1-band BandRep (A₁↑G at 4a):\n [Γ₁, T₁, Y₁, Z₁, L₁]")
