@@ -226,14 +226,8 @@ function readuntil(io::IO, delim::F; keep::Bool=false) where F<:Function
     return String(take!(buf))
 end
 
-
-const text_table_format__compact_borderless = TextTableFormat(;
-    borders = text_table_borders__borderless,
-    @text__no_vertical_lines,
-    @text__no_horizontal_lines
-)
-
-
+const tf_compact_borderless = TextFormat(
+                ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', Symbol[], :none)
 """
 $(TYPEDSIGNATURES)
 
@@ -244,9 +238,9 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=identity)
     rowsA = UnitRange(axes(X,1))
     io′ = IOBuffer()
     pretty_table(io′, X; 
-        table_format = text_table_format__compact_borderless,
-        show_column_labels = false,
-        formatters = [(v,i,j) -> elformat(v)],
+        tf=tf_compact_borderless,
+        show_header=false,
+        formatters = (v,i,j) -> elformat(v),
         alignment = :r)
     X_str  = String(take!(io′))
     X_rows = split(X_str, '\n')
