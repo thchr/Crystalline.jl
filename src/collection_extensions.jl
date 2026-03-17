@@ -48,6 +48,10 @@ function primitivize(lgirsd::Dict{String, Collection{LGIrrep{D}}}) where D
 end
 
 function _rebuild_irrep_with_modified_group(ir::LGIrrep{D}, g′::LittleGroup{D}) where D
+    # TODO: This is wrong if unless `ir.translations` is all zeros. Remember: eventually,
+    #       the translations (τ) come into play as phase factors `cispi(2k⋅τ)` (nevermind
+    #       sign now): so if we have updated `k` to a primitive counterpart `k′`, then we
+    #       need to update the translations to `τ′` such that `cispi(2k⋅τ) == cispi(2k′⋅τ′)`
     return LGIrrep{D}(ir.cdml, g′, ir.matrices, ir.translations, ir.reality, ir.iscorep)
 end
 function _rebuild_irrep_with_modified_group(ir::SiteIrrep{D}, g′::SiteGroup{D}) where D
