@@ -99,3 +99,5 @@ function primitivize(
 
     return brs′
 end
+
+isspecial(c::Collection{<:AbstractIrrep}) = isspecial(first(c))

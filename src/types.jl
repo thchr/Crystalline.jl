@@ -166,6 +166,35 @@ constant(v::AbstractVec)  = v.cnst
 free(v::AbstractVec)      = v.free
 parts(v::AbstractVec)     = (constant(v), free(v))
 dim(::AbstractVec{D}) where D = D
+
+"""
+    isspecial(v::AbstractVec) --> Bool
+    isspecial(g::AbstractGroup) --> Bool
+    isspecial(p::AbstractIrrep) --> Bool
+
+Return whether the input is associated with a "special" position, i.e., a position without
+any free parameters.
+For `AbstractGroup`s and `AbstractIrrep`s with a well-defined notion of position, the
+result of the result of `position` applied to the input is passed to `isspecial`.
+
+## Examples
+```jldoctest
+julia> isspecial(KVec("1/2,1/2,1/2"))
+true
+
+julia> isspecial(KVec("1/2,α,1/2"))
+false
+
+julia> wp = wyckoffs(22)[1]
+16k: [α, β, γ]
+
+julia> isspecial(wp)
+false
+
+julia> isspecial(sitegroup(22, wp))
+false
+```
+"""
 isspecial(v::AbstractVec) = iszero(free(v))
 parent(v::AbstractVec)    = v # fall-back for non-wrapped `AbstracVec`s
 
@@ -586,6 +615,9 @@ Applicable cases include `LittleGroup` (return the associated **k**-vector) and 
 """
 Base.position(::AbstractGroup) = nothing
 
+isspecial(g::AbstractGroup) = isspecial(position(g))
+isspecial(::Nothing) = error("`nothing` is not a valid position input to `isspecial`: ensure that input group has a well-defined notion of position")
+
 # sorting
 sort!(g::AbstractGroup; by=xyzt, kws...) = (sort!(operations(g); by, kws...); g)
 
@@ -753,6 +785,7 @@ translations(ir::AbstractIrrep) = hasfield(typeof(ir), :translations) ? ir.trans
 characters(ir::AbstractIrrep, αβγ::Union{AbstractVector{<:Real},Nothing}=nothing) = tr.(ir(αβγ))
 order(ir::AbstractIrrep) = order(group(ir))
 operations(ir::AbstractIrrep) = operations(group(ir))
+isspecial(ir::AbstractIrrep) = isspecial(group(ir))
 num(ir::AbstractIrrep) = num(group(ir))
 dim(::AbstractIrrep{D}) where D = D
 Base.position(ir::AbstractIrrep) = position(group(ir))
@@ -864,7 +897,6 @@ function LGIrrep{D}(cdml::String, lg::LittleGroup{D},
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
-isspecial(lgir::LGIrrep) = isspecial(position(lgir))
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))

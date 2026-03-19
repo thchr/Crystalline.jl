@@ -14,6 +14,7 @@ using Crystalline, Test
     # abstractvecs
     include("kvecs.jl")
     include("wyckoff.jl")
+    include("isspecial.jl")
 
     # JaggedVector type
     include("jaggedvector.jl")
