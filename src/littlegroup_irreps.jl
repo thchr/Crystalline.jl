@@ -147,7 +147,7 @@ function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothin
                 # Bloch phases exp(i𝐤⋅𝐫).
                 # Importantly, the exp(i𝐤⋅τ) is also the convention adopted by Stokes et al.
                 # in Eq. (1) of Acta Cryst. A69, 388 (2013), i.e. in ISOTROPY (also
-                # explicated at https://stokes.byu.edu/iso/irtableshelp.php), so, overall,
+                # explicated at https://iso.byu.edu/irtableshelp.php), so, overall,
                 # this is probably the sanest choice for this dataset.
                 # This weird state of affairs was also noted explicitly by Chen Fang in
                 # https://doi.org/10.1088/1674-1056/28/8/087102 (near Eqs. (11-12)).
@@ -173,7 +173,7 @@ function (lgir::LGIrrep)(αβγ::Union{AbstractVector{<:Real}, Nothing} = nothin
     if !issymmorph(lg)
         k = position(lgir)(αβγ)
         for (i,op) in enumerate(lg)
-            Ps[i] .* cis(-4π*dot(k, translation(op)))
+            Ps[i] .*= cis(-4π*dot(k, translation(op)))
         end
     end
     =#

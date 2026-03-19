@@ -176,7 +176,7 @@ function _induce_bandrep(
 
         site_symmetry_index = findfirst(≈(gα′⁻¹ggα′), siteg)
         if site_symmetry_index !== nothing
-            χᴳₖ += cis(2π*dot(kv′, tα′α′)) * χs[site_symmetry_index]
+            χᴳₖ += cispi(2*dot(kv′, tα′α′)) * χs[site_symmetry_index]
             # NB: The sign in this `cis(...)` above is different from in Elcoro's. 
             #     I think this is consistent with our overall sign convention (see #12),
             #     however, and flipping the sign causes problems for the calculation of some

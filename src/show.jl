@@ -275,7 +275,7 @@ function prettyprint_irrep_matrix(
     ϕabc_contrib = norm(ϕabc) > sqrt(dim(lgir))*DEFAULT_ATOL
 
     # print the constant part of the irrep that is independent of α,β,γ
-    printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cis(2π*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
+    printP = abs(ϕ₀) < DEFAULT_ATOL ? P : cispi(2*ϕ₀)*P # avoids copy if ϕ₀≈0; copies otherwise
     prettyprint_scalar_or_matrix(io, printP, ϕabc_contrib)
 
     # print the variable phase part that depends on the free parameters α,β,γ 

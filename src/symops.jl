@@ -366,7 +366,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             # See Inui et al. Eq. (5.29) for explanation.
             # Note that the phase's sign is opposite to that used in many other 
             # conventions (e.g. Bradley & Cracknell, 1972, Eq. 3.7.7 & 3.7.8), 
-            # but consistent with that used in Stokes' paper (see irreps(::LGIrrep)).
+            # but consistent with that used in Stokes' paper (see `(lgir::LGIrrep)(αβγ)`).
             # It is still a puzzle to me why I cannot successfully flip the sign 
             # of `ϕ` here and in `(lgir::LGIrrep)(αβγ)`.
             if ir isa LGIrrep
