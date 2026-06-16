@@ -878,19 +878,19 @@ $(TYPEDEF)$(TYPEDFIELDS)
     cdml::String # CDML label of irrep (including k-point label)
     g::LittleGroup{D} # contains sgnum, kv, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
-    translations::Vector{Vector{Float64}}
+    translations::Vector{SVector{D, Float64}}
     reality::Reality
     iscorep::Bool
 end
 function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
                     matrices::Vector{Matrix{ComplexF64}}, 
-                    translations::Union{Vector{Vector{Float64}}, Nothing},
+                    translations::Union{Vector{<:AbstractVector{Float64}}, Nothing},
                     reality::Reality) where D
 
     translations = if translations === nothing # sentinel value for all-zero translations
-        [zeros(Float64, D) for _=OneTo(order(lg))]
+        [zeros(SVector{D, Float64}) for _=OneTo(order(lg))]
     else
-        translations
+        [SVector{D, Float64}(τ) for τ in translations]
     end
     return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
