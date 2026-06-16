@@ -113,8 +113,9 @@ end
 show(io::IO, v::AbstractVec) = show(io, MIME"text/plain"(), v)
 
 function prettyprint_scalar(io, v::Real)
-    if isinteger(v)
-        print(io, Int(v))
+    v_int = round(Int, v)
+    if abs(v_int-v) < DEFAULT_ATOL # approximate `isinteger`
+        print(io, v_int)
     else
         # print all fractions divisible by 2, ..., 10 as fractions, and everything else
         # as decimal
