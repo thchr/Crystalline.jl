@@ -41,6 +41,7 @@ using Crystalline, Test
     include("irreps_reality.jl")
     include("irreps_physical_reality.jl")
     include("lgirreps_vs_pgirreps_at_Gamma.jl")
+    include("irreps_utils.jl")
 
     # compatibility
     include("compatibility.jl")

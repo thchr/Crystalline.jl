@@ -33,7 +33,7 @@ and overall band occupation number.
 - From "raw" concatenated vectors: see [`SymmetryVector`](@ref)`(::AbstractVector{<:Integer},
   ...)`.
 """
-mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
+@struct_hash_equal mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
     const lgirsv :: Vector{Collection{LGIrrep{D}}}
     const multsv :: JaggedVector{Int} # Vector{Vector{Int}}
     occupation   :: Int
@@ -389,7 +389,7 @@ dim(::Type{<:AbstractSymmetryVector}) = nothing
 # ---------------------------------------------------------------------------------------- #
 # NewBandRep
 
-struct NewBandRep{D} <: AbstractSymmetryVector{D}
+@struct_hash_equal struct NewBandRep{D} <: AbstractSymmetryVector{D}
     siteir       :: SiteIrrep{D}
     n            :: SymmetryVector{D}
     timereversal :: Bool
@@ -514,7 +514,7 @@ julia> SymmetryVector(cbr)
  [Z₁⁺, Y₁⁻, U₁⁻, X₁⁻, T₁⁻, Γ₁⁻, V₁⁻, R₁⁻] (1 band)
 ```
 """
-struct CompositeBandRep{D} <: AbstractSymmetryVector{D}
+@struct_hash_equal struct CompositeBandRep{D} <: AbstractSymmetryVector{D}
     coefs :: Vector{Rational{Int}}
     brs   :: Collection{NewBandRep{D}}
     function CompositeBandRep{D}(coefs, brs) where D

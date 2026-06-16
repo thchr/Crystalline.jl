@@ -1,7 +1,7 @@
 name = "Crystalline"
 uuid = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
+version = "0.6.25"
 authors = ["Thomas Christensen <thomas@dtu.dk>"]
-version = "0.6.24"
 
 [deps]
 Bravais = "ada6cbde-b013-4edf-aa94-f6abe8bd6e6b"
@@ -20,6 +20,7 @@ Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+StructEquality = "6ec83bb0-ed9f-11e9-3b4c-2b04cb4e219c"
 
 [weakdeps]
 GraphMakie = "1ecd5474-83a3-4783-bb4f-06765db800d2"
@@ -46,6 +47,7 @@ PrettyTables = "3"
 Reexport = "1"
 StaticArrays = "1.3"
 Statistics = "1"
+StructEquality = "2.1"
 julia = "1.10"
 
 [extras]

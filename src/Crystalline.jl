@@ -11,6 +11,7 @@ using Reexport
 using DocStringExtensions
 using Statistics: quantile    # →  `filling2isoval` in fourierlattices.jl
 import Graphs
+using StructEquality: @struct_hash_equal # convenient field-based `==` & `hash` of structs
 
 using Base: OneTo, @propagate_inbounds
 

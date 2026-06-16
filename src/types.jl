@@ -41,7 +41,7 @@ matrix(op::AbstractOperation) = matrix(SymOperation(op))
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SymOperation{D} <: AbstractOperation{D}
+@struct_hash_equal struct SymOperation{D} <: AbstractOperation{D}
     rotation    :: SqSMatrix{D, Float64} # a square stack-allocated matrix
     translation :: SVector{D, Float64}
 end
@@ -84,9 +84,6 @@ translation(m::AbstractMatrix{<:Real}) = @view m[:,end]  # translation part of a
 rotation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,SOneTo(D)] # needed for type-stability w/ StaticArrays (returns an SMatrix{D,D,...})
 translation(m::SMatrix{D,Dp1,<:Real}) where {D,Dp1} = m[:,Dp1]    # not strictly needed for type-stability    (returns an SVector{D,...})
 
-function (==)(op1::SymOperation{D}, op2::SymOperation{D}) where D
-    return op1.rotation == op2.rotation && translation(op1) == translation(op2)
-end
 function Base.isapprox(op1::SymOperation{D}, op2::SymOperation{D},
             cntr::Union{Nothing,Char}=nothing, modw::Bool=true;
             kws...) where D
@@ -684,7 +681,7 @@ orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
+@struct_hash_equal struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
     num::Int
     wp::WyckoffPosition{D}
     operations::Vector{SymOperation{D}}
@@ -861,7 +858,7 @@ Base.:+(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = +(+(ir1, ir2), ir3..
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct PGIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct PGIrrep{D} <: AbstractIrrep{D}
     cdml::String
     g::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
@@ -877,7 +874,7 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct LGIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct LGIrrep{D} <: AbstractIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
     g::LittleGroup{D} # contains sgnum, kv, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
@@ -905,7 +902,7 @@ orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SiteIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct SiteIrrep{D} <: AbstractIrrep{D}
     cdml     :: String
     g        :: SiteGroup{D}
     matrices :: Vector{Matrix{ComplexF64}}
@@ -974,7 +971,7 @@ tag(ct::AbstractCharacterTable) = ct.tag
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct CharacterTable{D} <: AbstractCharacterTable
+@struct_hash_equal struct CharacterTable{D} <: AbstractCharacterTable
     ops::Vector{SymOperation{D}}
     irlabs::Vector{String}
     table::Matrix{ComplexF64} # irreps along columns & operations along rows
