@@ -40,6 +40,33 @@ using Crystalline, Test
         end
     end
 
+    # Correctly primitivizing also in the presence of a nonzero `lgir.translations` field,
+    # where k-points are mapped. This only ever happens at nonspecial k-points; with e.g.
+    # SG 214 at the Δ point being an example
+    sgnum = 214
+    lgirsd = lgirreps(sgnum, Val(3))
+    lgirs = lgirsd["Δ"]
+    lgirs′ = primitivize(lgirs)
+    β = 0.314 # free parameter in Δ = (0, β, 0) [conv.] & Δ′ = [β, -β, β]/2 [primitive]
+    αβγ = [0, β, 0]
+    k = position(lgirs)(αβγ...)   # conventional basis
+    k′ = position(lgirs′)(αβγ...) # primitive basis
+    @test k == [0,β,0] && k′ ≈ [β,-β,β]/2
+    for (lgir, lgir′) in zip(lgirs, lgirs′)
+        # evaluate each at (α,β,γ) = (0,β,0) (specified in "basis" of free parameters, not 
+        # in k-space per se)
+        @test lgir(αβγ) ≈ lgir′(αβγ) # representation matrices should be the same
+
+        # equivalently, the irrep matrices should _print_ the same, since both original and
+        # primitivized versions refer to the same α, β, γ parameters: easiest to check by
+        # comparing `Crystalline.prettyprint_irrep_matrix` calls
+        matrix_sprint = (io, ir, i) -> Crystalline.prettyprint_irrep_matrix(io, ir, i)
+        for i in eachindex(lgir.matrices)
+            @test (sprint((io, ir) -> matrix_sprint(io, ir, i), lgir) == 
+                   sprint((io, ir) -> matrix_sprint(io, ir, i), lgir′))
+        end
+    end
+
     # SiteIrrep{3}
     sgnum = 230 # I-centered
     sitegs = sitegroups(sgnum, Val(3))

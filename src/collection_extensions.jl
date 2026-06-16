@@ -48,11 +48,28 @@ function primitivize(lgirsd::Dict{String, Collection{LGIrrep{D}}}) where D
 end
 
 function _rebuild_irrep_with_modified_group(ir::LGIrrep{D}, g′::LittleGroup{D}) where D
+    # we have to also update the τᵢ = `ir.translations[i]` field, since if `g′` now refers to a
+    # a k-point in a new basis, say, `k′`, while the original `g` referred to `k`, we must
+    # ensure that k′⋅τᵢ′ = k⋅τᵢ, so the k-τ products are invariant (→ invariant phase factors
+    # in the representation matrices)
+    k′ = position(g′)
+    k = position(ir)
+    τs = ir.translations
+    τs′ = if k == k′ || all(iszero, τs) # unchanged momentum or zero-translates: keep `τs`
+        τs
+    else # changed momentum: convert τᵢ as well
+        # use invariance of dot-product under transformation:
+        #    k′ = Pᵀk ⇒ k′⋅τ′ = k⋅τ ⇒ τ′ = P⁻¹τ
+        P = primitivebasismatrix(centering(num(ir)), Val(D))
+        [P\τ for τ in τs]
+    end :: typeof(τs)
+
+
     # TODO: This is wrong if unless `ir.translations` is all zeros. Remember: eventually,
     #       the translations (τ) come into play as phase factors `cispi(2k⋅τ)` (nevermind
     #       sign now): so if we have updated `k` to a primitive counterpart `k′`, then we
     #       need to update the translations to `τ′` such that `cispi(2k⋅τ) == cispi(2k′⋅τ′)`
-    return LGIrrep{D}(ir.cdml, g′, ir.matrices, ir.translations, ir.reality, ir.iscorep)
+    return LGIrrep{D}(ir.cdml, g′, ir.matrices, τs′, ir.reality, ir.iscorep)
 end
 function _rebuild_irrep_with_modified_group(ir::SiteIrrep{D}, g′::SiteGroup{D}) where D
     return SiteIrrep{D}(ir.cdml, g′, ir.matrices, ir.reality, ir.iscorep, ir.pglabel)

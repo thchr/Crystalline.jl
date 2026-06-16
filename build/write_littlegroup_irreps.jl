@@ -47,7 +47,6 @@ function __write_littlegroupirreps(
     
         # ==== irreps data ====
         matrices_list = [[lgir.matrices for lgir in lgirs] for lgirs in values(lgirsd)]
-        #translations_list = [[lgir.translations for lgir in lgirs] for lgirs in values(lgirsd)]
         # don't want to save a bunch of zeros if all translations are zero: 
         # instead, save `nothing` as a sentinel value
         translations_list = [Union{Nothing, Vector{Vector{Float64}}}[
