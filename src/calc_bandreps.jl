@@ -281,6 +281,9 @@ Compute the band representations of space group `sgnum` in dimension `D`.
   ensure that the site symmetry irreps accompanying the band representations are chosen
   to be explicitly real (or "physically" real; see [`physical_realify`](@ref)). This
   is helpful for subsequent analysis of the action of time-reversal symmetry.
+- `include_nonmaximal` (default, `false`): whether to include band representations induced
+  from site symmetry irreps of non-maximal Wyckoff positions. Passing as `true` will include
+  band representations induced from all Wyckoff positions, regardless of maximality.
 
 ## Notes
 All band representations associated with maximal Wyckoff positions are returned, 
@@ -298,7 +301,8 @@ function calc_bandreps(
         Dᵛ::Val{D} = Val(3);
         timereversal::Bool = true,
         allpaths::Bool = false,
-        explicitly_real::Bool = timereversal
+        explicitly_real::Bool = timereversal,
+        include_nonmaximal::Bool = false,
     ) where D
 
     if explicitly_real && !timereversal
@@ -312,9 +316,12 @@ function calc_bandreps(
     lgirsv = [lgirs for lgirs in values(lgirsd)]
 
     # get the bandreps induced by every maximal site symmetry irrep
-    sg     = spacegroup(sgnum, Dᵛ)
-    sitegs = findmaximal(sitegroups(sg))
-    brs    = NewBandRep{D}[]
+    sg = spacegroup(sgnum, Dᵛ)
+    sitegs = sitegroups(sg)
+    if !include_nonmaximal
+        sitegs = findmaximal(sitegs)
+    end
+    brs = NewBandRep{D}[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal

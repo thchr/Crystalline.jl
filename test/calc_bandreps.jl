@@ -189,4 +189,23 @@ end
     @test stack(brs) == invoke(stack, Tuple{AbstractVector{<:AbstractVector}}, brs)
 end
 
+@testset "`include_nonmaximal` kwarg" begin
+    # space group 147
+    brs_max = calc_bandreps(147, Val(3))
+    brs_incl_nonmax = calc_bandreps(147, Val(3); include_nonmaximal = true) # all BRs, maximal or nonmaximal
+    wps_incl_nonmax = wyckoffs(147, Val(3)) # all Wyckoff positions, maximal or nonmaximal
+    sort!(wps_incl_nonmax; by=string) # for stable selection and comparison below
+    wps_max = wps_incl_nonmax[[1,2,4,5,6]] # 1a, 1b, 2d, 3e, 3f
+    @test wps_max == sort(unique(position.(brs_max)); by=string)
+    @test wps_incl_nonmax == sort(unique(position.(brs_incl_nonmax)); by=string)
+    @test length(wps_incl_nonmax) > length(wps_max)
+
+    # space group 2
+    brs_max = calc_bandreps(2, Val(3))
+    brs_incl_nonmax = calc_bandreps(2, Val(3); include_nonmaximal=true)
+    @test length(brs_max) == 16
+    @test length(brs_incl_nonmax) == 17
+    @test "2i: [α, β, γ]" ∉ string.(unique(position.(brs_max)))
+    @test "2i: [α, β, γ]" ∈ string.(unique(position.(brs_incl_nonmax)))
+end
 end # @testset "calc_bandreps"
