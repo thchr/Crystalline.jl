@@ -59,3 +59,19 @@ using Crystalline, Test, LinearAlgebra
     @test siteirsA !== siteirsB # not `===`
     @test hash(siteirsA) == hash(siteirsB)
 end
+
+
+@testset "Instantiation of LGIrrep{3} with various input types and args-completion" begin
+    lgirs = lgirreps(221, Val(3))["Γ"]
+    # construction with `translations` as `Vector{SVector{D, Float64}}`
+    A = [LGIrrep{3}(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
+    B = [LGIrrep(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
+    C = [LGIrrep(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality #= default: iscorep = false =#) for ir in lgirs]
+    
+    # construction with `translations` as `Vector{Vector{Float64}}`
+    D = [LGIrrep{3}(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality, ir.iscorep) for ir in lgirs]
+    E = [LGIrrep(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality, ir.iscorep) for ir in lgirs]
+    F = [LGIrrep(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality #= default: iscorep = false =#) for ir in lgirs]
+
+    @test lgirs = A == B == C == D == E == F
+end

@@ -881,19 +881,35 @@ $(TYPEDEF)$(TYPEDFIELDS)
     translations::Vector{SVector{D, Float64}}
     reality::Reality
     iscorep::Bool
-end
-function LGIrrep{D}(cdml::String, lg::LittleGroup{D}, 
-                    matrices::Vector{Matrix{ComplexF64}}, 
-                    translations::Union{Vector{<:AbstractVector{Float64}}, Nothing},
-                    reality::Reality) where D
-
-    translations = if translations === nothing # sentinel value for all-zero translations
-        [zeros(SVector{D, Float64}) for _=OneTo(order(lg))]
-    else
-        [SVector{D, Float64}(τ) for τ in translations]
+    # constructor with automatic conversion & defaults
+    function LGIrrep{D}(
+        cdml::AbstractString,
+        g::LittleGroup{D},
+        matrices::Vector{Matrix{ComplexF64}},
+        translations::Union{AbstractVector{<:AbstractVector{<:Real}}, Nothing},
+        reality::Reality,
+        iscorep::Bool = false
+    ) where {D}
+        translations = if translations === nothing # sentinel value for all-zero translations
+            [zeros(SVector{D, Float64}) for _=OneTo(order(g))]
+        else
+            convert(Vector{SVector{D, Float64}}, translations) # no re-allocation if a `Vector{SVector{D, Float64}}`
+        end
+        if !(length(matrices) == length(translations) == order(g))
+            error(lazy"length(matrices) (=$(length(matrices))), length(translations) (=$(length(translations))), & length(operations(g)) (=$(length(operations(g)))) must all be equal")
+        end
+        return new{D}(
+            String(cdml),
+            g,
+            matrices,
+            translations,
+            reality,
+            iscorep
+        )
     end
-    return LGIrrep{D}(cdml, lg, matrices, translations, reality, false)
 end
+LGIrrep(cdml::String, g::LittleGroup{D}, args...) where D = LGIrrep{D}(cdml, g, args...)
+
 issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
 orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
