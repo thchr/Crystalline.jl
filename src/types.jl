@@ -885,7 +885,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
     function LGIrrep{D}(
         cdml::AbstractString,
         g::LittleGroup{D},
-        matrices::Vector{Matrix{ComplexF64}},
+        matrices::AbstractVector{<:AbstractMatrix{<:Number}},
         translations::Union{AbstractVector{<:AbstractVector{<:Real}}, Nothing},
         reality::Reality,
         iscorep::Bool = false
@@ -893,11 +893,12 @@ $(TYPEDEF)$(TYPEDFIELDS)
         translations = if translations === nothing # sentinel value for all-zero translations
             [zeros(SVector{D, Float64}) for _=OneTo(order(g))]
         else
-            convert(Vector{SVector{D, Float64}}, translations) # no re-allocation if a `Vector{SVector{D, Float64}}`
+            convert(Vector{SVector{D, Float64}}, translations) # no re-allocation if already `::Vector{SVector{D, Float64}}`
         end
         if !(length(matrices) == length(translations) == order(g))
             error(lazy"length(matrices) (=$(length(matrices))), length(translations) (=$(length(translations))), & length(operations(g)) (=$(length(operations(g)))) must all be equal")
         end
+        matrices = convert(Vector{Matrix{ComplexF64}}, matrices) # no re-allocation if already `::Vector{Matrix{ComplexF64}}`
         return new{D}(
             String(cdml),
             g,

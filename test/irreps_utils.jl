@@ -67,11 +67,17 @@ end
     A = [LGIrrep{3}(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
     B = [LGIrrep(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
     C = [LGIrrep(ir.cdml, ir.g, ir.matrices, ir.translations, ir.reality #= default: iscorep = false =#) for ir in lgirs]
+    @test lgirs == A == B == C
     
     # construction with `translations` as `Vector{Vector{Float64}}`
     D = [LGIrrep{3}(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality, ir.iscorep) for ir in lgirs]
     E = [LGIrrep(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality, ir.iscorep) for ir in lgirs]
     F = [LGIrrep(ir.cdml, ir.g, ir.matrices, convert(Vector{Vector{Float64}}, ir.translations), ir.reality #= default: iscorep = false =#) for ir in lgirs]
+    @test lgirs == D == E == F
 
-    @test lgirs = A == B == C == D == E == F
+    # also allow abstract inputs of different eltype in `matrices` field (here,
+    # ::Vector{Matrix{Float64}}; possible here since all irreps are real)
+    H = [LGIrrep{3}(ir.cdml, ir.g, real.(ir.matrices), ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
+    I = [LGIrrep(ir.cdml, ir.g, real.(ir.matrices), ir.translations, ir.reality, ir.iscorep) for ir in lgirs]
+    @test lgirs == H == I
 end
