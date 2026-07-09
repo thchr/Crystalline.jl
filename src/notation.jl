@@ -370,16 +370,22 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
         # there is near-infinitesimal chance that u′ is zero for random v, but check anyway
         u′ = Yₖ*rand(SVector{3, Float64})
     end
-    # TODO: this ought to be more robust: the below doesn't allow for axes that are e.g.,
-    #       [2 3 0]; only axes that have a `1` somewhere; in general, we need to find a way
-    #       to e.g., "multiply-up" [1, 1.333333, 0] to [3, 4, 0]. Conceptually, it is
-    #       related to identifying a floating-point analogue of gcd.
-    n = minimum(abs, Base.Filter(x->abs(x)>DEFAULT_ATOL, u′)) # minimum nonzero element
-    u′ = u′/n # normalize
-    u  = round.(Int, u′) # convert from float to integer and check validity of conversion
-    if !isapprox(u′, u, atol=DEFAULT_ATOL)
-        throw(DomainError(u′, "the rotation axis must be equivalent to an integer vector by appropriate normalization"))
-    end
+
+    # scale u′ to a primitive integer vector; dividing out the largest component puts every
+    # entry in [-1,1], and `rationalize` then effectively does a continued-fraction
+    # rational approximation of each entry, which we can use to build an effective,
+    # toleranced floating point gcd with, with which we can the rescale to an integer vector
+    rats = rationalize.(Int, u′ ./ maximum(abs, u′); tol=DEFAULT_ATOL)
+    L = lcm(denominator.(rats)) # common denominator across components
+    u = numerator.(rats .* L)   # clear denominators → integer vector
+    u = u .÷ gcd(u)             # reduce to primitive (gcd = 1) form
+    # verify u is genuinely parallel to u′ (|sin∠(u,u′)| ≤ tol), i.e. that the axis really
+    # was rational to within tolerance
+    if norm(cross(u′, u)) > DEFAULT_ATOL * norm(u′) * norm(u)
+        throw(DomainError(u′,
+            "the rotation axis is not equivalent to an integer vector by rational scaling"))
+    end    
+
     # the sign of u is arbitrary: we adopt the convention there are always more '+' elements
     # than '-' elements (e.g. we pick [-1, 1, 1] over [1, -1, -1]); and if there is an
     # equal number of '+' and '-' elements, we place the '+' elements first (e.g. [1 0 -1]
@@ -402,7 +408,6 @@ function rotation_axis_3d(W::AbstractMatrix{<:Real}, detW::Real, order::Integer)
     end
 
     return u
-
 end
 
 rotation_axis_3d(W::AbstractMatrix)   = rotation_axis_3d(W, det(W), rotation_order(W))
