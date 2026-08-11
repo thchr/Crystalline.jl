@@ -358,12 +358,15 @@ function Base.iterate(n::AbstractSymmetryVector, state::Tuple{Int, Int})
     return multiplicities(n)[i][j], (i, j)
 end
 
-# ::: Algebraic operations :::
+# ::: Arithmetic operations :::
 function Base.:+(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D
-    irreps(n) === irreps(m) || error("cannot add symmetry vectors with different irreps")
-    return SymmetryVector(irreps(n), 
-                          multiplicities(n) + multiplicities(m),
-                          occupation(n) + occupation(m))
+    # check equal irreps: fast path `===`, then fall back to field-wise `==`
+    if !(irreps(n) === irreps(m) || irreps(n) == irreps(m))
+        error("cannot add or subtract symmetry vectors with different irreps")
+    end
+    return SymmetryVector(
+        irreps(n), multiplicities(n) + multiplicities(m), occupation(n) + occupation(m)
+    )
 end
 function Base.:-(n::AbstractSymmetryVector{D}) where D
     SymmetryVector{D}(irreps(n), -multiplicities(n), -occupation(n))

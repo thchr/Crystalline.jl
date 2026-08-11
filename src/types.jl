@@ -619,6 +619,9 @@ isspecial(::Nothing) = error("`nothing` is not a valid position input to `isspec
 sort!(g::AbstractGroup; by=xyzt, kws...) = (sort!(operations(g); by, kws...); g)
 
 function (==)(g1::AbstractGroup, g2::AbstractGroup)
+    # fast path check: equal if egal
+    g1 === g2 && return true
+    # field-by-field check: equal if all fields are equal
     dim(g1) == dim(g2) || return false
     order(g1) == order(g2) || return false
     position(g1) == position(g2) || return false
