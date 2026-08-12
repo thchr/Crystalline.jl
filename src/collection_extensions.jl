@@ -65,7 +65,7 @@ function _rebuild_irrep_with_modified_group(ir::LGIrrep{D}, g′::LittleGroup{D}
     end :: typeof(τs)
 
 
-    # TODO: This is wrong if unless `ir.translations` is all zeros. Remember: eventually,
+    # TODO: This is wrong unless `ir.translations` is all zeros. Remember: eventually,
     #       the translations (τ) come into play as phase factors `cispi(2k⋅τ)` (nevermind
     #       sign now): so if we have updated `k` to a primitive counterpart `k′`, then we
     #       need to update the translations to `τ′` such that `cispi(2k⋅τ) == cispi(2k′⋅τ′)`

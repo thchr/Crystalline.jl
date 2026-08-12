@@ -73,4 +73,7 @@ using Crystalline, Test
 
     # group relations (sub- & supergroups)
     include("grouprelations.jl")
+
+    # misc
+    include("misc.jl")
 end

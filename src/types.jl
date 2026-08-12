@@ -946,6 +946,10 @@ In Crystalline, it is assumed that all elements of the wrapped vector are associ
 the _same_ space, point, or little group. Accordingly, if `T` implements [`dim`](@ref) or 
 [`num`](@ref), either must return the same value for each element of the `Collection`
 (and is equal to `dim(::Collection)` and `num(::Collection)`).
+
+Attempting to wrap a general `AbstractVector` type in `Collection` will first `convert` the
+input to a `Vector{T}`.
+If the input is itself a `Collection`, the return value is `===` to the input.
 """
 struct Collection{T} <: AbstractVector{T}
     vs :: Vector{T}
@@ -959,6 +963,10 @@ Base.IndexStyle(::Type{<:Collection}) = IndexLinear()
 Base.similar(c::Collection{T}) where T = Collection{T}(similar(c.vs))
 Base.iterate(c::Collection) = iterate(c.vs)
 Base.iterate(c::Collection, state) = iterate(c.vs, state)
+
+# ::: Non-default constructors :::
+Collection(c::Collection) = c
+Collection(vs::AbstractVector{T}) where T = Collection{T}(convert(Vector{T}, vs))
 
 # ::: view-like interface; for modification :::
 parent(vs::Collection) = vs.vs
