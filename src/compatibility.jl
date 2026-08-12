@@ -200,7 +200,16 @@ function remap_to_kstar(
             ) where D
     
     kv = position(first(lgirs))
-    kv′ == kv && return Collection(lgirs)
+    if kv′ == kv
+        # return input directly but copy all contents, so we don't alias the input (this
+        # ensures we *always* return non-aliased input/output, not only for `kv ≠ kv′`)
+        lg = group(lgirs)
+        lg′ = LittleGroup{D}(num(lgirs), kv′, klabel(lgirs), copy.(operations(lg)))
+        lgirs′ = map(lgirs) do lgir
+            LGIrrep{D}(lgir.cdml, lg′, copy.(lgir.matrices), copy(lgir.translations), lgir.reality, lgir.iscorep)
+        end
+        return Collection(lgirs′)
+    end
 
     # feasibility checks
     if freeparams(kv) != freeparams(kv′)

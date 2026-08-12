@@ -32,4 +32,26 @@ using Test, Crystalline, StaticArrays
     # check that R₄²²² subduces into R₄R₅²¹⁸
     @test subduction_count(R₄²²², R₄R₅²¹⁸′) == 1
 end # @testset "Subduction"
+
+@testset "`remap_to_kstar`" begin
+    # TODO: very limited, incomplete testing - testing only a single bug encountered. This
+    #       needs actual testing of the implementation in cases where it does something
+    #       nontrivial
+
+    # trivial case: input k-point is the same as the actual k-point of the `lgirs` - nothing
+    # needs to be done, and the same exact set of irreps should just be returned (deepcopy,
+    # not aliased at any field or indexing level)
+    lgirs = lgirreps(225)["X"]
+    kv = position(lgirs)
+    lgirs_map_to_self = remap_to_kstar(lgirs, kv)
+    @test lgirs_map_to_self ==  lgirs  # map to same k-star doesn't do anything
+    @test lgirs_map_to_self !== lgirs # should not alias
+    @test lgirs_map_to_self[1] ==  lgirs[1]
+    @test lgirs_map_to_self[1] !== lgirs[1]
+    
+    # smoke-test: test it works/runs without error for non-trivial (different) `kv` input
+    kv′ = kstar(first(lgirs))[2]
+    @test kv ≠ kv′
+    @test remap_to_kstar(lgirs, kv′) isa Collection{LGIrrep{3}}
+end
 end # @testset "Compatibility"
