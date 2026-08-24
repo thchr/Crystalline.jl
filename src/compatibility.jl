@@ -1,36 +1,42 @@
 @doc raw"""
-    subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]) --> Int
+    subduction_count(Dᴳᵢ, Dᴴⱼ[, αβγᴴⱼ]; cntr=nothing) --> Int
 
 For two groups ``G`` and ``H``, where ``H`` is a subgroup of ``G``, i.e. ``H<G``, with
 associated irreducible representations `Dᴳᵢ` = ``D^G_i(g)`` and `Dᴴⱼ` = ``D^H_j(g)`` over
 operations ``g∈G`` and ``h∈H<G``, compute the compatibility relation between the two irreps
 from the subduction reduction formula (or "magic" formula/Schur orthogonality relation),
-returning how many times ``n^{GH}_{ij}`` the subduced representation ``D^G_i↓H`` contains 
+returning how many times ``n^{GH}_{ij}`` the subduced representation ``D^G_i ↓ H`` contains 
 the irrep ``D^H_j``; in other words, this gives the compatibility between the two irreps.
 
 Optionally, a vector `αβγᴴⱼ` may be provided, to evaluate the characters/irreps 
-of `Dᴳᵢ` at a concrete value of ``(α,β,γ)``. This is e.g. meaningful for `LGIrrep`s at
-non-special **k**-vectors. Defaults to `nothing`.
+of `Dᴳᵢ` at a concrete value of the free parameters ``(α,β,γ)``. This is meaningful for
+`LGIrrep`s at non-special **k**-vectors. Defaults to `nothing`.
 
-The result is computed using the reduction formula [see e.g. Eq. (15) of
+The result is computed using the reduction formula [see e.g., Eq. (15) of
 [arXiv:1706.09272v2](https://arxiv.org/abs/1706.09272)]:
 
-``n^{GH}_{ij} = |H|^{-1} \sum_h \chi^G_i(h)\chi^H_j(h)^*``
+```math
+    n^{GH}_{ij} = |H|^{-1} \sum_h \chi^G_i(h)\chi^H_j(h)^*
+```
 
 ## Example
 Consider the two compatible **k**-vectors Γ (a point) and Σ (a line) in space group 207:
+
 ```jl
 lgirsd  = lgirreps(207, Val(3));
 Γ_lgirs = lgirsd["Γ"]; # at Γ ≡ [0.0, 0.0, 0.0]
 Σ_lgirs = lgirsd["Σ"]; # at Σ ≡ [α, α, 0.0]
 ```
+
 We can test their compatibility via:
+
 ```jl
 [[subduction_count(Γi, Σj) for Γi in Γ_lgirs] for Σj in Σ_lgirs]
 > # Γ₁ Γ₂ Γ₃ Γ₄ Γ₅
 >  [ 1, 0, 1, 1, 2] # Σ₁
 >  [ 0, 1, 1, 2, 1] # Σ₂
 ```
+
 With following enterpretatation for compatibility relations between irreps at Γ and Σ:
 
 | Compatibility relation | Degeneracies |
@@ -42,19 +48,39 @@ With following enterpretatation for compatibility relations between irreps at Γ
 | Γ₅ → 2Σ₁ + Σ₂          | 3 → 2 + 1    |
 
 where, in this case, all the small irreps are one-dimensional.
+
+## Keyword arguments
+- `cntr`: if provided, the operations of `Dᴳᵢ` and `Dᴴⱼ` are compared in the primitive basis
+  associated with the centering `cntr` rather than in the basis they are provided in (see
+  [`_findsubgroup`](@ref)). This is necessary for a correct general treatment if the two
+  irreps' little groups are supplied in a conventional setting, but belong to a centered
+  lattice. This is because the two irreps' little groups in general may differ by both
+  sorting and by primitive direct lattice vectors; correct identification of the latter
+  requires comparison in a primitive setting (achievable by knowing `cntr`). Differences
+  due to primitive lattice vector parts of a little group operation are explicitly
+  compensated for in the character computation, so that subduction counts are unaffected by
+  such trivial "spelling-differences".
 """
 function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T, 
-                          αβγᴴⱼ::Union{<:AbstractVector{<:Real},Nothing}=nothing
+                          αβγᴴⱼ::Union{<:AbstractVector{<:Real},Nothing}=nothing;
+                          cntr::Union{Char, Nothing}=nothing
                           ) where T<:AbstractIrrep
     # find matching operations between H & G and verify that H<G 
-    boolsubgroup, idxsᴳ²ᴴ = _findsubgroup(operations(Dᴳᵢ), operations(Dᴴⱼ))
+    boolsubgroup, idxsᴳ²ᴴ = _findsubgroup(operations(Dᴳᵢ), operations(Dᴴⱼ), cntr)
     !boolsubgroup && throw(DomainError("Provided irreps are not H<G subgroups"))
 
-    # compute characters 
-    # TODO: Care should be taken that the irreps 
-    # actually can refer to identical k-points; that should be a check 
-    # too, and then we should make sure that the characters are actually
-    # evaluated at that KVec
+    # check that the k-points agree for the two sets of irreps - modulo a (primitive)
+    # reciprocal lattice vector, which is a legitimate difference, as it corresponds to the
+    # *monodromy* setting, where `Dᴴⱼ` reaches `Dᴳᵢ`'s k-point in a neighboring cell.
+    if T <: LGIrrep # `position` is nothing in non-`LGIrrep` cases; nothing to check there
+        kᴳ, kᴴ = position(Dᴳᵢ)(), position(Dᴴⱼ)(αβγᴴⱼ)
+        isapprox(KVec(kᴳ), KVec(kᴴ), cntr, #=modw=#true) ||
+            error(lazy"incompatible k-points for provided irreps: kᴳ = $kᴳ vs. kᴴ = $kᴴ")
+    end
+    # TODO: maybe identify `αβγᴴⱼ` by using `_can_intersect` instead if `αβγᴴⱼ` is nothing,
+    #       throwing if they cannot intersect?
+
+    # compute characters
     χᴳᵢ = characters(Dᴳᵢ)
     χᴴⱼ = characters(Dᴴⱼ, αβγᴴⱼ)
 
@@ -62,7 +88,8 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     # subduced irrep Dᴳᵢ↓H
     s = zero(ComplexF64)
     @inbounds for (idxᴴ, χᴴⱼ′) in enumerate(χᴴⱼ)
-        s += χᴳᵢ[idxsᴳ²ᴴ[idxᴴ]]*conj(χᴴⱼ′)
+        idxᴳ = idxsᴳ²ᴴ[idxᴴ]
+        s += χᴳᵢ[idxᴳ]*_matched_translation_phase(Dᴳᵢ, Dᴴⱼ, idxᴳ, idxᴴ, αβγᴴⱼ)*conj(χᴴⱼ′)
     end
     (abs(imag(s)) > DEFAULT_ATOL) && error(lazy"unexpected finite imaginary part $(abs(imag(s)))")
     nᴳᴴᵢⱼ_float = real(s)/order(Dᴴⱼ)
@@ -74,6 +101,27 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     
     return nᴳᴴᵢⱼ
 end
+
+# `_findsubgroup` identifies an operation `h ∈ H` with an operation `g ∈ G` when the two
+# agree modulo a lattice translation `Δ𝛕 = 𝛕_h - 𝛕_g` - if a centering `cntr` was given,
+# `Δ𝛕` is a *primitive* lattice vector; if not given, it is simply a lattice vector of
+# whatever basis the operations are written in.
+# Identification in an arbitrary basis is dangerous though, since the characters of
+# `LGIrrep`s are not generally invariant lattice translations (nonsymmorphic operations).
+# Specifically, in the current phase-convention `Dᵏ({1|𝐭}) = exp(i𝐤⋅𝐭)` (Inui Eq. (11.37); 
+# also ISOTROPY, cf. the note in `(lgir::LGIrrep)(αβγ)`), we have
+# `χᴳ(h) = exp(2πi 𝐤⋅Δ𝛕) χᴳ(g)`, and it is `χᴳ(h)` that we require in the orthogonality sum.
+function _matched_translation_phase(Dᴳᵢ::LGIrrep{D}, Dᴴⱼ::LGIrrep{D},
+    idxᴳ::Integer, idxᴴ::Integer,
+    αβγᴴⱼ::Union{<:AbstractVector{<:Real},Nothing}
+) where D
+    Δτ = translation(operations(Dᴴⱼ)[idxᴴ]) - translation(operations(Dᴳᵢ)[idxᴳ])
+    # Whenever the matched operations are equal, the phase is 1.
+    all(x -> abs(x) < DEFAULT_ATOL, Δτ) && return one(ComplexF64)
+    k = position(Dᴴⱼ)(αβγᴴⱼ)
+    return cispi(2*dot(k, Δτ))
+end
+_matched_translation_phase(::T, ::T, _, _, _) where T <: AbstractIrrep = one(ComplexF64) # for non-`LGIrrep`s
 
 """
 $(TYPEDSIGNATURES)
@@ -217,40 +265,43 @@ function remap_to_kstar(
     end
     special_bool = isspecial(kv)
 
-    # check if `kv′` is in the star of `kv`
+    # check if `kv′` is in the star of `kv` & determine coset representative `g`
     kv_star = map(coset_representatives) do g # compute {star(k)}
         g * kv
     end
-    idx = begin
-        idx′ = findfirst(≈(kv′), kv_star)
-        if !isnothing(idx′)
-            # as first priority, we return an exact match if it exists
-            idx′
-        else
-            # otherwise, we look for any compatible match
-            findfirst(kv_star) do kv′′
-                if special_bool
-                    can_intersect(kv′′, kv′).bool
-                else
-                    # nonspecial pts: check if parallel & possibly separated by a reciprocal
-                    # vector; this is slightly more annoying because we might then have to deal
-                    # later with a nonzero reciprocal vector
-                    (kv′′.free == kv′.free || kv′′.free == -kv′.free) && 
-                    all(isinteger, kv′′.cnst - kv′.cnst)
-                end
-            end
-        end
-    end
-    isnothing(idx) && error(lazy"kv′=$kv′ is not compatible with any element in star(k)=$kv_star")
-    g = coset_representatives[something(idx)] # g ∘ kv = kv′
+    # NB: the search below must be done modulo *primitive* reciprocal lattice vectors - not
+    #     modulo the conventional ones! - so plain `≈` or `isinteger` is insufficient.
+    #     This is because a conventional reciprocal vector need not correspond to a
+    #     primitive in a centered lattice. Ignoring this can lead to misidentification of
+    #     the correct element of `kv_star`, since two genuinely distinct arms of a star can
+    #     differ by a conventional reciprocal lattice vector (e.g., [½,½,w] & [½,-½,w] in
+    #     space group 46, which differ by [0,1,0] ∉ reciprocal lattice of I). Picking an
+    #     arm that differs by a fractional primitive reciprocal lattice vector would entail
+    #     picking the wrong coset representative, leading us to e.g., return irreps that
+    #     were not transported correctly
+    cntr = centering(num(first(lgirs)), D)
+    idx = @something(
+        # 1st priority: exact match
+        findfirst(kv′′ -> isapprox(kv′′, kv′, cntr, #=modw=#false), kv_star),
+        # 2nd priority: same orientation, separated by a reciprocal lattice vector
+        findfirst(kv′′ -> isapprox(kv′′, kv′, cntr, #=modw=#true), kv_star),
+        # 3rd priority: merely parallel, the free part may be sign-flipped
+        findfirst(kv_star) do kv′′
+            special_bool && return false
+            kv′_flip = KVec(kv′.cnst, -kv′.free)
+            return isapprox(kv′′, kv′_flip, cntr, #=modw=#true)
+        end,
+        error(lazy"kv′=$kv′ is not compatible with any element in star(k)=$kv_star")
+    )
+    g = coset_representatives[idx] # g ∘ kv = kv′
 
     # remap irrep operations according to D′(h′) = D(h) = D(g⁻¹h′g),  (w/ D referencing
     # `kv′`, and D′ referencing `kv`). I.e., we have h = g⁻¹h′g s.t. h′ = ghg⁻¹
     lg = group(first(lgirs))
     ops′ = similar(operations(lg));
-    for (idx, h) in enumerate(lg)
+    for (i, h) in enumerate(lg)
         h′ = compose(g, compose(h, inv(g), #=modτ=#false), #=modτ=#false)
-        ops′[idx] = h′
+        ops′[i] = h′
     end
     lg′ = LittleGroup{D}(num(lg), kv′, klabel(lg), ops′)
 
@@ -277,7 +328,7 @@ function remap_to_kstar(
     # phase factor depends on a term αβγ ⋅ free(k)ᵀτ - so if free(k)ᵀτ is zero, we are safe
     # TODO: Try to actually do this without failing; should be possible if we decompose G
     #       into parts that are ∥/⟂ to free(k)ᵀτ (only parallel parts matter)
-    ΔG = kv_star[something(idx)].cnst - kv′.cnst
+    ΔG = kv_star[idx].cnst - kv′.cnst
     if (!special_bool && 
         norm(ΔG) > DEFAULT_ATOL &&
         any(lgir -> 

@@ -8,7 +8,10 @@ using Test, Crystalline, StaticArrays
 
     # --- point to line subduction (R → Λ) ---
     # R₁R₂ → Λ₁+Λ₂ | R₃R₃ → 2Λ₃ | R₄R₅  → Λ₁+Λ₂+2Λ₃
-    @test [[subduction_count(Rᵢ, Λᵢ) for Λᵢ in Λᵢ²¹⁸] for Rᵢ in Rᵢ²¹⁸] == [[1,1,0],[0,0,2],[1,1,2]]
+    # NB: Λ must be evaluated at the free parameter that puts it *at* R, i.e. α = ½; leaving
+    #     `αβγ` unset would compare Λ at [0,0,0] against R at [½,½,½]
+    @test ([[subduction_count(Rᵢ, Λᵢ, [1/2,0,0]) for Λᵢ in Λᵢ²¹⁸] for Rᵢ in Rᵢ²¹⁸] ==
+           [[1,1,0],[0,0,2],[1,1,2]])
 
     # --- corep-specifics ---
     R₄R₅²¹⁸ = Rᵢ²¹⁸[end]
@@ -53,5 +56,27 @@ end # @testset "Subduction"
     kv′ = kstar(first(lgirs))[2]
     @test kv ≠ kv′
     @test remap_to_kstar(lgirs, kv′) isa Collection{LGIrrep{3}}
+
+    # arms of a star that differ by a conventional - but not primitive - reciprocal vector:
+    # in the body-centered space group 46, the arms [½,½,w] & [½,-½,w] of the P line differ
+    # by [0,1,0], which is not in the reciprocal lattice of `I`, so they are genuinely
+    # distinct. Identifying `kv′` with an arm modulo the *conventional* lattice would pick
+    # the wrong coset representative, leading to the irreps not being "transported" as they
+    # should; below, we test that irreps are in fact transported (i.e., phased) correctly.
+    lgirs⁴⁶ = lgirreps(46)["P"]
+    kv⁴⁶, kv′⁴⁶ = position(first(lgirs⁴⁶)), KVec("1/2,-1/2,w")
+    @test !isapprox(kv⁴⁶, kv′⁴⁶, centering(46, 3), #=modw=#true) # distinct arms …
+    @test isapprox(kv⁴⁶, kv′⁴⁶, nothing, #=modw=#true)           # … but not conventionally
+
+    lgirs′⁴⁶ = remap_to_kstar(lgirs⁴⁶, kv′⁴⁶)
+    @test position(first(lgirs′⁴⁶)) == kv′⁴⁶
+    # transport negates the character of 2₀₀₁: conjugation by the coset representative
+    # {m₀₁₀|½,0,0} sends it to {2₀₀₁|1,0,0}, and exp(2πi𝐤⋅[1,0,0]) = -1 at 𝐤 = [½,±½,w]
+    i₂ = findfirst(op -> rotation(op) == rotation(S"-x,-y,z"), group(lgirs′⁴⁶))
+    @test !isnothing(i₂)
+    αβγ = [0,0,0.3]
+    for (lgir, lgir′) in zip(lgirs⁴⁶, lgirs′⁴⁶)
+        @test characters(lgir′, αβγ)[i₂] ≈ -characters(lgir, αβγ)[i₂]
+    end
 end
 end # @testset "Compatibility"
