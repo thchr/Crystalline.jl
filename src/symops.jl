@@ -558,27 +558,26 @@ julia> [compose.(Ref(q), H) for q in Q]
 ```
 """
 function cosets(
-            G::AbstractVector{T},
-            H::AbstractVector{T}
-            ) where T<:AbstractOperation
-
+    G::AbstractVector{T},
+    H::AbstractVector{T}
+) where T<:AbstractOperation
     iszero(rem(length(G), length(H))) || error("H must be a subgroup of G: failed Lagrange's theorem")
     ind = div(length(G), length(H)) # [H:G]
-    
-    representatives = [one(T)]
-    _cosets         = Vector{T}[operations(H)]
-    sizehint!(representatives, ind)
-    sizehint!(_cosets, ind)
-    for g in G
-        any(_coset -> isapproxin(g, _coset), _cosets) && continue
-        
-        push!(representatives, g)
-        push!(_cosets, compose.(Ref(g), H))
+    ind == 1 && return [one(T)] # `H` is all of `G`, however either may be spelled
 
-        length(representatives) == ind && break
+    representatives = Vector{T}(undef, ind)
+    representatives[1] = one(T)
+    _cosets = Vector{Vector{T}}(undef, ind-1)
+    _cosets[1] = operations(H)
+    idx = 1
+    for g in G
+        any(_coset -> isapproxin(g, _coset), @view _cosets[1:idx]) && continue
+        idx += 1
+        representatives[idx] = g
+        idx == ind && return representatives # we can skip updating `_cosets` if returning
+        _cosets[idx] = compose.(Ref(g), H)
     end
-    length(representatives) == ind || error("failed to find a set of coset representatives")
-    return representatives
+    error("failed to find a full set of coset representatives")
 end
 
 @doc raw"""

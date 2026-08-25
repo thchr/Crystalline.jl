@@ -179,6 +179,14 @@ end
     @test sort(cG,  by=xyzt) == sort(G, by=xyzt)
     @test sort(cG′, by=xyzt) == sort(G, by=xyzt)
 
+    @testset "G and H both single-element (identity) vectors" begin
+        G = [one(SymOperation{3})]
+        H = [one(SymOperation{3})]
+        Q = cosets(G, H)
+        @test length(Q) == 1
+        @test Q[1] == one(SymOperation{3})
+    end
+
     @testset "findequiv" begin
         # regression test: ensure different translations with same rotation are distinguished
         ops = [S"x,y,z", S"x,y+1/2,z", S"x,y,z+1/3"]
