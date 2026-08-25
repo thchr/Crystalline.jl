@@ -209,6 +209,17 @@ Return total number of free parameters occurring in `v`.
 """
 nfreeparams(v::AbstractVec) = count(colⱼ->!iszero(colⱼ), eachcol(free(v)))
 
+"""
+$(TYPEDSIGNATURES)
+
+Return `v` with its free part negated, i.e. the same set of points, traversed in the
+opposite direction (e.g., `[α, 1/2+β, 1-γ]` ↦ `[-α, 1/2-β, 1+γ]`).
+
+Two `AbstractVec`s that differ only in this way parametrize the same line, plane, or
+volume; see also the `modrev` keyword argument of [`orbit`](@ref).
+"""
+reverse_free(v::AbstractVec) = typeof(v)(constant(v), -free(v))
+
 function (v::AbstractVec)(αβγ::AbstractVector{<:Real})
     cnst, free = parts(v)
     return cnst + free*αβγ

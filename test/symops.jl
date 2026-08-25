@@ -199,3 +199,20 @@ end
         @test result == (1, [0.5, 0.5, 0.5])  # equivalent to first op + lattice vector
     end
 end
+@testset "orbit: `modrev`" begin
+    sg = spacegroup(2, Val(3)) # P-1: identity & inversion
+    # inversion maps a line onto itself, traversed backwards; `modrev` identifies the two
+    @test orbit(sg, KVec("α,0,0")) == [KVec("α,0,0"), KVec("-α,0,0")]
+    @test orbit(sg, KVec("α,0,0"); modrev=true) == [KVec("α,0,0")]
+    # ... also when the constant part is nonzero (the reversal is about that point)
+    @test length(orbit(sg, KVec("1/2+α,0,0"))) == 2
+    @test orbit(sg, KVec("1/2+α,0,0"); modrev=true) == [KVec("1/2+α,0,0")]
+    # a no-op if there are no free parameters to reverse
+    @test orbit(sg, KVec("1/3,0,0"); modrev=true) == orbit(sg, KVec("1/3,0,0"))
+    # `modrev` only merges *reversed* arms, not distinct ones: in a body-centered group the two
+    # arms [½,±½,γ] differ by [0,1,0], which is a conventional but not a primitive reciprocal
+    # lattice vector, and their free parts agree — so both settings keep both arms
+    sg′ = spacegroup(46, Val(3))
+    @test length(orbit(sg′, KVec("1/2,1/2,w"), centering(sg′); modrev=true)) ==
+          length(orbit(sg′, KVec("1/2,1/2,w"), centering(sg′))) == 2
+end

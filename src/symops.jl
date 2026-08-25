@@ -487,25 +487,42 @@ If the centering type of the group `g` can be inferred from `g` (e.g., if `g` is
 `SpaceGroup`), `orbit` will assume a conventional setting and use the inferred centering
 type; otherwise, if `cntr` is neither explicitly set nor inferrable, a primitive setting is
 assumed.
+
+## Keyword arguments
+
+- `modrev` (default, `false`): if `true`, two vectors are considered equivalent if their
+  free parts differ by an overall sign (e.g., `[α,0,0]` and `[-α,0,0]`), i.e., if they 
+  parametrize the same set of points, but merely traverse them in opposite directions. 
+  The returned arms of the orbit still span (under free-parameter variation) the same set of
+  points as when `modrev = false`. Useful when the orbit is wanted as a set of **manifolds**
+  rather than of parametrizations.
 """
-function orbit(g::AbstractVector{SymOperation{D}},
-               v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
-               P::Union{Nothing, AbstractMatrix{<:Real}} = nothing) where D
+function orbit(
+    g::AbstractVector{SymOperation{D}},
+    v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
+    P::Union{Nothing, AbstractMatrix{<:Real}} = nothing;
+    modrev::Bool = false
+) where D
     vs = [v]
     for op in g
         v′ = op*v
-        if !isapproxin(v′, vs, P, #=modw=#true)
-            push!(vs, v′)
+        if (isapproxin(v′, vs, P, #=modw=#true) ||
+            modrev && isapproxin(reverse_free(v′), vs, P, #=modw=#true))
+            continue
         end
+        push!(vs, v′)
     end
     return vs
 end
-function orbit(g::AbstractVector{SymOperation{D}},
-               v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
-               cntr::Char) where D
-    return orbit(g, v, primitivebasismatrix(cntr, Val(D)))
+function orbit(
+    g::AbstractVector{SymOperation{D}},
+    v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
+    cntr::Char;
+    kws...
+) where D
+    return orbit(g, v, primitivebasismatrix(cntr, Val(D)); kws...)
 end
-orbit(sg::SpaceGroup{D}, kv::KVec{D}) where D = orbit(sg, kv, centering(sg))
+orbit(sg::SpaceGroup{D}, kv::KVec{D}; kws...) where D = orbit(sg, kv, centering(sg); kws...)
 
 """
     cosets(G, H)
