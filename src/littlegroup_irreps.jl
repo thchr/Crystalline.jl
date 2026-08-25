@@ -21,10 +21,8 @@ the symmetry operations returned by `spacegroup` thus includes e.g. both `{1|0}`
 `{1|½,½,½}` while the symmetry operations returned by `littlegroups` only include
 `{1|0}` (and so on).
 
-Currently, only `D = 3` is supported.
-
 ## References
-The underlying data is sourced from the ISOTROPY dataset: see also [`lgirreps`](@ref).
+The underlying 3D data is sourced from the ISOTROPY dataset: see also [`lgirreps`](@ref).
 """
 function littlegroups(sgnum::Integer, ::Val{D}=Val(3),
                           jldfile::JLD2.JLDFile=LGS_JLDFILES[D][]) where D
