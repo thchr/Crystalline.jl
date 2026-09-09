@@ -40,7 +40,7 @@ and overall band occupation number.
 end
 function SymmetryVector(
     lgirsv::Vector{Collection{LGIrrep{D}}},
-    multsv::Vector{Vector{Int}},
+    multsv::AbstractVector{<:AbstractVector{<:Integer}},
     occupation::Int
 ) where D
     return SymmetryVector{D}(lgirsv, JaggedVector{Int}(multsv), occupation)
