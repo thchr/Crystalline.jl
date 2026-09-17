@@ -4,3 +4,5 @@ Manifest.toml
 *.pdf
 .DS_Store
 .claude
+build/crawls/
+.devcontainer
