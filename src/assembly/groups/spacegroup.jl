@@ -1,9 +1,12 @@
 """
-    spacegroup(sgnum::Integer, ::Val{D}=Val(3))
-    spacegroup(sgnum::Integer, D::Integer)          --> SpaceGroup{D}
+    spacegroup(sgnum::Integer, ::Val{D}=Val(3), ::Val{S}=Val(false))
+    spacegroup(sgnum::Integer, D::Integer, spinful::Bool=false)
+                                                    --> SpaceGroup{D} or DSpaceGroup{D}
 
 Return the space group symmetry operations for a given space group number `sgnum` and 
 dimensionality `D` as a `SpaceGroup{D}`.
+If `S` (or `spinful`) is `true`, the double group is returned instead, as a
+`DSpaceGroup{D}` (currently supported in 3D only).
 The returned symmetry operations are specified relative to the conventional basis vectors,
 i.e. are not necessarily primitive (see [`centering`](@ref)).
 If desired, operations for the primitive unit cell can subsequently be generated using 
@@ -28,8 +31,9 @@ Crystallographic Server, SPACEGROUP GENPOS](https://www.cryst.ehu.es/cryst/get_g
 The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
 """
-function spacegroup(sgnum, Dᵛ::Val{D}=Val(3)) where D
+function spacegroup(sgnum, Dᵛ::Val{D}=Val(3), ::Val{S}=Val(false)) where {D, S}
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
+    S && D ≠ 3 && _only_3d(D)
     codes = SG_CODES_Vs[D][sgnum]
 
     cntr = centering(sgnum, D)
@@ -46,9 +50,12 @@ function spacegroup(sgnum, Dᵛ::Val{D}=Val(3)) where D
         _include_symops_centering_related!(operations, cntr_translations, Nop)
     end
 
-    return SpaceGroup{D}(sgnum, operations)
+    sg = SpaceGroup{D}(sgnum, operations)
+    return S ? doublegroup(sg) : sg
 end
-spacegroup(sgnum::Integer, D::Integer) = spacegroup(sgnum, Val(D))
+function spacegroup(sgnum::Integer, D::Integer, spinful::Bool=false)
+    return spacegroup(sgnum, Val(D), Val(spinful))
+end
 
 function _include_symops_from_codes!(
             operations::Vector{SymOperation{D}}, codes;

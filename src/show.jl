@@ -1,20 +1,23 @@
 # ---------------------------------------------------------------------------------------- #
 # SymOperation
 function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
+    _print_operation_header(io, op)
+    get(io, :compact, false) && return nothing
+    println(io)
+    _print_operation_matrix(io, op)
+end
+
+# print the Seitz symbol, and, unless the IOContext is :compact=>true, the triplet expression
+function _print_operation_header(io::IO, op::AbstractOperation)
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
-    
-    # don't print triplet & matrix format if the IOContext is :compact=>true
-    if get(io, :compact, false)
-        return nothing
-    end
-
-    # --- print triplet expression ---
+    get(io, :compact, false) && return nothing
     printstyled(io, " ", repeat('─',max(38-length(opseitz)-length(opxyzt), 1)),
                     " (", opxyzt, ")"; color=:light_black)
-    println(io)
+    return nothing
+end
 
-    # --- print matrix ---
+function _print_operation_matrix(io::IO, op::AbstractOperation{D}) where D
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
@@ -38,7 +41,6 @@ function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
         op isa MSymOperation && i == 1 && timereversal(op) && print(io, '′')
-        op isa DSymOperation && i == 1 && isbarred(op) && print(io, 'ᵈ')
         i ≠ D && println(io)
     end
     return nothing
@@ -264,10 +266,10 @@ function prettyprint_irrep_scalars(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, lgir::LGIrrep, i::Integer; digits::Int=4
+        io::IO, lgir::AbstractLGIrrep, i::Integer; digits::Int=4
     )
     # unpack
-    k₀, kabc = parts(position(group(lgir)))
+    k₀, kabc = parts(position(lgir))
     P = lgir.matrices[i]
     τ = lgir.translations[i]
 
@@ -318,7 +320,7 @@ function prettyprint_irrep_matrix(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer
+        io::IO, ir::Union{<:AbstractPGIrrep, <:SiteIrrep}, i::Integer
     )
     P = ir.matrices[i]
     prettyprint_scalar_or_matrix(io, P, false)
@@ -326,7 +328,7 @@ end
 
 function prettyprint_irrep_matrices(
         io::IO,
-        ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep},
+        ir::Union{<:AbstractLGIrrep, <:AbstractPGIrrep, <:SiteIrrep},
         nindent::Integer
     )
     indent = repeat(' ', nindent)

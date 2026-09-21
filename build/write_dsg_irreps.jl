@@ -1,6 +1,12 @@
 # Convert the parsed Bilbao double space group pages into Crystalline's own JLD2 layout, i.e.
 # the spinful counterpart of `data/irreps/lgs/3d/irreps_data.jld2`.
 #
+# Two files are written, both in `data/irreps/lgs/3d/`:
+# - `irreps_data_spinful.jld2`: the double-valued irreps, loaded by
+#   `lgirreps(…, Val(true))`;
+# - `irreps_data_spinless_bilbao.jld2`: Bilbao's single-valued irreps, which are not loaded
+#   by the package, but kept for comparison with the ISOTROPY irreps in `irreps_data.jld2`.
+#
 # Mirrors `write_littlegroup_irreps.jl`: per space group, the file stores `matrices_list`,
 # `translations_list`, `realities_list` and `cdml_list`, each indexed first by k-manifold and
 # then by irrep. The **little groups themselves are not rewritten** — the operations are aligned
@@ -19,6 +25,11 @@
 # `P` is evaluated at `αβγ = 0`: it is αβγ-independent by construction (verified on every page),
 # and zero keeps the arithmetic cleanest.
 #
+# If the phase `exp(2πi 𝐤⋅τ)` does not depend on `αβγ` for any operation (i.e., if
+# `kabcᵀτ = 0`; always so at special **k**-points), it is instead folded into the matrices,
+# and `translations` is stored as `nothing`. So `translations` is non-`nothing` only if the
+# irrep has a genuinely αβγ-dependent phase — as in ISOTROPY's data.
+#
 # ## Realities are NOT determined here
 #
 # Bilbao's little group tables do not state the reality type, and computing it for a spinful
@@ -28,12 +39,13 @@
 #
 # ## Usage
 #
-#   julia --project=build build/write_dsg_irreps.jl [outpath] [--sgnums 1:230]
+#   julia --project=build build/write_dsg_irreps.jl [outdir] [--sgnums 1:230]
 
 include(joinpath(@__DIR__, "parse_dsg_irreps.jl"))
 using JLD2
+using LinearAlgebra: dot, norm
 
-const DEFAULT_OUT = joinpath(CRAWL_DIR, "irreps_data_spinful.jld2") # gitignored while in flux
+const DEFAULT_OUTDIR = joinpath(dirname(@__DIR__), "data", "irreps", "lgs", "3d")
 
 # the crawler owns the cache layout; restate just the one path we need rather than including it
 page_path(sgnum, klab) = joinpath(CRAWL_DIR, "out", "sg$(sgnum)-$(klab).html")
@@ -68,38 +80,57 @@ function collect_sg(sgnum::Integer, lgs::AbstractDict)
             [crystalline_matrix(p, invp[i], j, kv; αβγ = (0.0, 0.0, 0.0)) for i in 1:n]
         end
         τs = [Vector{Float64}(translation(op)) for op in lg]
-        alltrivial = all(iszero, τs)
+        k₀, kabc = parts(kv)
+        foldphase = all(τ -> norm(kabc' * τ) < 1e-10, τs) # phases independent of αβγ
+        if foldphase
+            for P in Ps, (i, τ) in enumerate(τs)
+                P[i] *= cispi(2 * dot(k₀, τ))
+            end
+        end
 
         push!(klabs, klab)
         push!(matrices_list, Ps)
-        push!(translations_list, [alltrivial ? nothing : τs for _ in eachindex(p.irlabels)])
+        push!(translations_list, [foldphase ? nothing : τs for _ in eachindex(p.irlabels)])
         push!(realities_list, fill(Int8(2), length(p.irlabels)))   # UNDEF; see header
         push!(cdml_list, cdml_irlabels(p))
     end
     return klabs, matrices_list, translations_list, realities_list, cdml_list
 end
 
-function write_dsg_irreps(outpath::AbstractString = DEFAULT_OUT; sgnums = 1:230)
-    mkpath(dirname(outpath))
-    JLD2.jldopen(outpath, "w") do f
+function write_dsg_irreps(outdir::AbstractString = DEFAULT_OUTDIR; sgnums = 1:230)
+    mkpath(outdir)
+    path_double = joinpath(outdir, "irreps_data_spinful.jld2")
+    path_single = joinpath(outdir, "irreps_data_spinless_bilbao.jld2")
+    f_double = JLD2.jldopen(path_double, "w")
+    f_single = JLD2.jldopen(path_single, "w")
+    try
         for sgnum in sgnums
             lgs = littlegroups(sgnum, Val(3))
             klabs, ms, τs, rs, cs = collect_sg(sgnum, lgs)
-            f["$(sgnum)/klab_list"]         = klabs
-            f["$(sgnum)/matrices_list"]     = ms
-            f["$(sgnum)/translations_list"] = τs
-            f["$(sgnum)/realities_list"]    = rs
-            f["$(sgnum)/cdml_list"]         = cs
+            for (f, isdouble) in ((f_double, true), (f_single, false))
+                # per k-manifold, the irreps of the requested kind
+                idxs = [findall(l -> endswith(l, SPINFUL_MARK) == isdouble, c) for c in cs]
+                f["$(sgnum)/klab_list"]         = klabs
+                f["$(sgnum)/matrices_list"]     = [m[i] for (m, i) in zip(ms, idxs)]
+                f["$(sgnum)/translations_list"] = [τ[i] for (τ, i) in zip(τs, idxs)]
+                f["$(sgnum)/realities_list"]    = [r[i] for (r, i) in zip(rs, idxs)]
+                f["$(sgnum)/cdml_list"]         = [c[i] for (c, i) in zip(cs, idxs)]
+            end
             sgnum % 20 == 0 && println("  … sg $sgnum")
         end
+    finally
+        close(f_double)
+        close(f_single)
     end
-    println("wrote $(outpath)  ($(round(filesize(outpath)/2^20; digits=1)) MiB)")
-    return outpath
+    for path in (path_double, path_single)
+        println("wrote $(path)  ($(round(filesize(path)/2^20; digits=1)) MiB)")
+    end
+    return path_double, path_single
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__
-    out = length(ARGS) ≥ 1 && !startswith(ARGS[1], "--") ? ARGS[1] : DEFAULT_OUT
+    outdir = length(ARGS) ≥ 1 && !startswith(ARGS[1], "--") ? ARGS[1] : DEFAULT_OUTDIR
     i = findfirst(==("--sgnums"), ARGS)
     sgnums = i === nothing ? (1:230) : eval(Meta.parse(ARGS[i+1]))
-    write_dsg_irreps(out; sgnums)
+    write_dsg_irreps(outdir; sgnums)
 end

@@ -72,7 +72,10 @@ using Crystalline, Test
     include("mspacegroup.jl")
 
     # double (spinful) groups
-    include("double_groups.jl")
+    include("double/groups.jl")
+    include("double/lgirreps.jl")
+    include("double/pgirreps.jl")
+    include("double/show.jl")
 
     # group relations (sub- & supergroups)
     include("grouprelations.jl")

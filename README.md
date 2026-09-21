@@ -49,7 +49,7 @@ A₂┌    1: 1
 
 # construct the character table for the small irreps at the Γ point
 julia> characters(lgirs["Γ"])
-CharacterTable{3} for ⋕16 (P222) at Γ = [0, 0, 0]:
+CharacterTable{SymOperation{3}} for ⋕16 (P222) at Γ = [0, 0, 0]:
 ──────┬────────────────
       │ Γ₁  Γ₂  Γ₃  Γ₄ 
 ──────┼────────────────

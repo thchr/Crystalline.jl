@@ -10,7 +10,7 @@ with ``|a|^2 + |b|^2 = 1``. This is the spin-½ part of a double group operation
 SU(2) elements of a spatial operation differ by an overall sign, `u` and `-u`, and that
 sign is what distinguishes an operation from its ``\\bar{E}``-barred partner.
 """
-@struct_hash_equal struct SU2
+@struct_hash_equal struct SU2 <: AbstractMatrix{ComplexF64}
     a :: ComplexF64
     b :: ComplexF64
     @inline function SU2(a::ComplexF64, b::ComplexF64)
@@ -35,6 +35,11 @@ function SU2(U::AbstractMatrix{<:Number})
 end
 
 matrix(u::SU2) = SMatrix{2,2,ComplexF64}(u.a, -conj(u.b), u.b, conj(u.a))
+
+# ::: AbstractArray interface :::
+Base.size(::SU2) = (2, 2)
+Base.IndexStyle(::Type{SU2}) = IndexCartesian()
+@propagate_inbounds Base.getindex(u::SU2, i::Int, j::Int) = matrix(u)[i, j]
 
 # `(a, b)` multiply as the corresponding matrices do; written out to avoid building them.
 # A product of SU(2) elements is normalized already, so skip the constructor's check.
@@ -82,7 +87,12 @@ function compose(dop₁::DSymOperation{D}, dop₂::DSymOperation{D}, modτ::Bool
 end
 (*)(dop₁::DSymOperation{D}, dop₂::DSymOperation{D}) where D = compose(dop₁, dop₂)
 
+inv(dop::DSymOperation{D}) where D = DSymOperation{D}(inv(dop.op), inv(dop.su2))
+
 one(::Type{DSymOperation{D}}) where D = DSymOperation{D}(one(SymOperation{D}), one(SU2))
+# a pure lattice translation, which acts trivially on spin
+_translation_operation(::Type{DSymOperation{D}}, t) where D =
+    DSymOperation{D}(SymOperation{D}(t), one(SU2))
 one(dop::DSymOperation) = one(typeof(dop))
 # the SU(2) parameters are irrational for most operations, so unlike `isone(::SymOperation)`
 # the check below must be approximate
@@ -90,10 +100,11 @@ one(dop::DSymOperation) = one(typeof(dop))
 isone(dop::DSymOperation) = isone(dop.op) && isapprox(dop.su2, one(SU2))
 
 function Base.isapprox(
-        dop₁ :: DSymOperation{D},
-        dop₂ :: DSymOperation{D},
-        vs...;
-        kws...) where D
+    dop₁::DSymOperation{D},
+    dop₂::DSymOperation{D},
+    vs...;
+    kws...
+) where D
     return isapprox(dop₁.su2, dop₂.su2) && isapprox(dop₁.op, dop₂.op, vs...; kws...)
 end
 
@@ -103,4 +114,22 @@ function seitz(dop::DSymOperation)
     isbarred(dop) || return s
     # `seitz` omits the braces when the translation part vanishes
     return startswith(s, '{') ? "{ᵈ" * SubString(s, 2) : "ᵈ" * s
+end
+
+# --- change of lattice basis ---
+# A change of lattice basis keeps the Cartesian frame fixed, so the SU(2) element is
+# unchanged. (A rotation of the Cartesian frame by `V` would instead act as `U → VUV†`.)
+function transform(
+    dop::DSymOperation{D},
+    P::AbstractMatrix{<:Real},
+    p::Union{AbstractVector{<:Real}, Nothing}=nothing,
+    modw::Bool=true
+) where D
+    return DSymOperation{D}(transform(dop.op, P, p, modw), dop.su2)
+end
+function primitivize(dop::DSymOperation{D}, cntr::Char, modw::Bool=true) where D
+    return DSymOperation{D}(primitivize(dop.op, cntr, modw), dop.su2)
+end
+function conventionalize(dop::DSymOperation{D}, cntr::Char, modw::Bool=true) where D
+    return DSymOperation{D}(conventionalize(dop.op, cntr, modw), dop.su2)
 end

@@ -25,9 +25,12 @@ The values are tabulated rather than evaluated from that expression. It fixes `U
 operation with ``φ ≠ π``, but two-fold rotations and mirrors have ``φ = π``, where `U` and
 `-U` describe the same spatial operation and the choice between them is convention.
 """
-function su2(op::SymOperation{3}, sgnum::Integer)
-    return su2(op, crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal"))
-end
+su2(op::SymOperation{3}, sgnum::Integer) = su2(op, _ishexagonal(sgnum))
+# whether space group `sgnum`, or group `g`, uses the hexagonal Cartesian frame (see
+# `SU2_BY_ROTATION_HEX`); point groups 16-27 are the trigonal and hexagonal ones
+_ishexagonal(sgnum::Integer) = crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal")
+_ishexagonal(g::Union{SpaceGroup{3}, LittleGroup{3}}) = _ishexagonal(num(g))
+_ishexagonal(pg::PointGroup{3}) = 16 ≤ num(pg) ≤ 27
 function su2(op::SymOperation{3}, hexagonal::Bool)
     k = _rotation_key(op)
     if hexagonal

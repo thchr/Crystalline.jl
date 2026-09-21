@@ -870,9 +870,17 @@ Base.:+(ir1::T, ir2::T, ir3::T...) where T<:AbstractIrrep = +(+(ir1, ir2), ir3..
 
 # --- Point group irreps ---
 """
+    AbstractPGIrrep{D} <: AbstractIrrep{D}
+
+Abstract supertype for irreps of point groups in dimension `D`. Beyond the requirements of
+[`AbstractIrrep`](@ref), a subtype must have a point group as its group `g`.
+"""
+abstract type AbstractPGIrrep{D} <: AbstractIrrep{D} end
+
+"""
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-@struct_hash_equal struct PGIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct PGIrrep{D} <: AbstractPGIrrep{D}
     cdml::String
     g::PointGroup{D}
     matrices::Vector{Matrix{ComplexF64}}
@@ -886,9 +894,25 @@ end
 
 # --- Little group irreps ---
 """
+    AbstractLGIrrep{D} <: AbstractIrrep{D}
+
+Abstract supertype for irreps of little groups in dimension `D`.
+
+In addition to the requirements of [`AbstractIrrep`](@ref), a subtype must have:
+- a field `translations :: Vector{SVector{D, Float64}}`, holding for each operation the
+  translation `𝛕` that enters the Bloch phase `exp(2πi𝐤⋅𝛕)` when the irrep is evaluated;
+- a little group as its group `g`, i.e., a group whose `position` returns the irrep's
+  `KVec{D}`, whose `num` is the space group number, and which can be `primitivize`d.
+
+Subtypes then get evaluation at a **k**-point with Bloch phases, `lgir(αβγ)`, as well as
+[`israyrep`](@ref), `issymmorph`, [`orbit`](@ref), and printing.
+"""
+abstract type AbstractLGIrrep{D} <: AbstractIrrep{D} end
+
+"""
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-@struct_hash_equal struct LGIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct LGIrrep{D} <: AbstractLGIrrep{D}
     cdml::String # CDML label of irrep (including k-point label)
     g::LittleGroup{D} # contains sgnum, kv, klab, and operations that define the little group
     matrices::Vector{Matrix{ComplexF64}}
@@ -925,8 +949,8 @@ $(TYPEDEF)$(TYPEDFIELDS)
 end
 LGIrrep(cdml::String, g::LittleGroup{D}, args...) where D = LGIrrep{D}(cdml, g, args...)
 
-issymmorph(lgir::LGIrrep) = issymmorph(group(lgir))
-orbit(lgir::LGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
+issymmorph(lgir::AbstractLGIrrep) = issymmorph(group(lgir))
+orbit(lgir::AbstractLGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(lgir),
                              centering(num(lgir), dim(lgir)))
 
 # --- Site symmetry irreps ---
@@ -990,8 +1014,8 @@ num(vs::Collection) = num(first(vs))
 Base.position(c::Collection{<:AbstractIrrep}) = position(first(c))
 group(c::Collection{<:AbstractIrrep}) = group(first(c))
 
-# ::: Methods for `Collection{<:LGIrrep}` :::
-klabel(c::Collection{<:LGIrrep}) = klabel(first(c))
+# ::: Methods for `Collection{<:AbstractLGIrrep}` :::
+klabel(c::Collection{<:AbstractLGIrrep}) = klabel(first(c))
 
 # ---------------------------------------------------------------------------------------- #
 # CharacterTable
@@ -1010,8 +1034,8 @@ tag(ct::AbstractCharacterTable) = ct.tag
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-@struct_hash_equal struct CharacterTable{D} <: AbstractCharacterTable
-    ops::Vector{SymOperation{D}}
+@struct_hash_equal struct CharacterTable{O<:AbstractOperation} <: AbstractCharacterTable
+    ops::Vector{O}
     irlabs::Vector{String}
     table::Matrix{ComplexF64} # irreps along columns & operations along rows
     # TODO: for LGIrreps, it might be nice to keep this more versatile and include the 
@@ -1019,10 +1043,13 @@ $(TYPEDEF)$(TYPEDFIELDS)
     #       specialize on a given αβγ choice (see also CharacterTable(::LGirrep))
     tag::String
 end
-function CharacterTable{D}(ops::AbstractVector{SymOperation{D}},
-            irlabs::AbstractVector{String},
-            table::AbstractMatrix{<:Real}) where D
-    return CharacterTable{D}(ops, irlabs, table, "")
+function CharacterTable(
+    ops::AbstractVector{O},
+    irlabs::AbstractVector{String},
+    table::AbstractMatrix{<:Number},
+    tag::String=""
+) where O<:AbstractOperation
+    return CharacterTable{O}(ops, irlabs, table, tag)
 end
 operations(ct::CharacterTable) = ct.ops
 
@@ -1047,14 +1074,22 @@ function characters(irs::AbstractVector{<:AbstractIrrep{D}},
         col .= characters(irs[j], αβγ)
     end
     
-    return CharacterTable{D}(operations(g), label.(irs), table, _group_descriptor(g))
+    return CharacterTable(operations(g), label.(irs), table, _group_descriptor(g))
 end
 
-struct ClassCharacterTable{D} <: AbstractCharacterTable
-    classes_ops::Vector{Vector{SymOperation{D}}}
+struct ClassCharacterTable{O<:AbstractOperation} <: AbstractCharacterTable
+    classes_ops::Vector{Vector{O}}
     irlabs::Vector{String}
     table::Matrix{ComplexF64} # irreps along columns & class-representative along rows
     tag::String
+end
+function ClassCharacterTable(
+    classes_ops::AbstractVector{<:AbstractVector{O}},
+    irlabs::AbstractVector{String},
+    table::AbstractMatrix{<:Number},
+    tag::String
+) where O<:AbstractOperation
+    return ClassCharacterTable{O}(classes_ops, irlabs, table, tag)
 end
 classes(ct::ClassCharacterTable) = ct.classes_ops
 operations(ct::ClassCharacterTable) = first.(classes(ct)) # representative operations
@@ -1090,7 +1125,7 @@ function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
             table[i,j] = tr(ir[idx])
         end
     end
-    return ClassCharacterTable{D}(classes_ops, label.(irs), table, _group_descriptor(g))
+    return ClassCharacterTable(classes_ops, label.(irs), table, _group_descriptor(g))
 end
 
 # ---------------------------------------------------------------------------------------- #

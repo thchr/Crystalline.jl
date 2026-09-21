@@ -245,7 +245,7 @@ e.g. [`pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
 ```jl-doctest
 julia> pgirs = pgirreps("4", Val(3));
 julia> characters(pgirs)
-CharacterTable{3}: ⋕9 (4)
+CharacterTable{SymOperation{3}} for ⋕9 (4):
 ───────┬────────────────────
        │ Γ₁  Γ₂    Γ₃    Γ₄ 
 ───────┼────────────────────
@@ -256,7 +256,7 @@ CharacterTable{3}: ⋕9 (4)
 ───────┴────────────────────
 
 julia> characters(realify(pgirs))
-CharacterTable{3}: ⋕9 (4)
+CharacterTable{SymOperation{3}} for ⋕9 (4):
 ───────┬──────────────
        │ Γ₁  Γ₂  Γ₃Γ₄ 
 ───────┼──────────────
@@ -473,7 +473,7 @@ end
 
 # Frobenius-Schur criterion for point group irreps (Inui p. 74-76):
 #   |g|⁻¹∑ χ(g²) = {1 (≡ real), -1 (≡ pseudoreal), 0 (≡ complex)}
-function calc_reality(pgir::PGIrrep)
+function calc_reality(pgir::AbstractPGIrrep)
     χs = characters(pgir)
     pg = group(pgir)
 

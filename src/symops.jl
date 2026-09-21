@@ -332,7 +332,7 @@ function MultTable(ops; modτ::Bool=true)
 end
 
 
-function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing) where D
+function check_multtable_vs_ir(lgir::AbstractLGIrrep{D}, αβγ=nothing) where D
     ops = operations(lgir)
     sgnum = num(lgir); cntr = centering(sgnum, D)
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices in `compose`
@@ -343,7 +343,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
     havewarned = false
     Ds = ir(αβγ)
     ops = operations(ir)
-    if ir isa LGIrrep
+    if ir isa AbstractLGIrrep
         k = position(ir)(αβγ)
     end
     N = length(ops)
@@ -369,7 +369,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             # but consistent with that used in Stokes' paper (see `(lgir::LGIrrep)(αβγ)`).
             # It is still a puzzle to me why I cannot successfully flip the sign 
             # of `ϕ` here and in `(lgir::LGIrrep)(αβγ)`.
-            if ir isa LGIrrep
+            if ir isa AbstractLGIrrep
                 t₀ = translation(ops[i]) .+ rotation(ops[i])*translation(ops[j]) .- 
                      translation(ops[mtidx])
                 ϕ =  2π*dot(k, t₀) # accumulated ray-phase
@@ -384,7 +384,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
                                 First failure at (row,col) = ($(i),$(j));
                                 Expected idx $(mtidx), got idx $(findall(≈(Dⁱʲ), Ds))""")
                     print("Expected irrep = ")
-                    if ir isa LGIrrep
+                    if ir isa AbstractLGIrrep
                         println(cis(ϕ)*Ds[mtidx])
                     else
                         println(Dⁱʲ)
@@ -921,9 +921,9 @@ If `cntr` is provided, comparison of operations in ``G`` and ``H`` is done in th
 primitive basis (i.e., `cntr` is passed to `isapprox` which compares operations in ``G`` and
 ``H``).
 """
-function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
-                       opsᴴ::AbstractVector{SymOperation{D}},
-                       cntr::Union{Char, Nothing}=nothing) where D
+function _findsubgroup(opsᴳ::AbstractVector{O},
+                       opsᴴ::AbstractVector{O},
+                       cntr::Union{Char, Nothing}=nothing) where O<:AbstractOperation
     idxsᴳ²ᴴ = Vector{Int}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
         idxᴳ = findfirst(opᴳ -> isapprox(opᴳ, opᴴ, cntr), opsᴳ)

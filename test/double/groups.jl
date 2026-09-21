@@ -6,6 +6,15 @@ using Crystalline: SU2, SU2_BY_ROTATION, SU2_BY_ROTATION_HEX, SU2_BINARY_AXES, s
 @testset "SU2 algebra" begin
     u = SU2(cis(π/3), 0)
     @test u * inv(u) == one(SU2)
+
+    # an `SU2` is a 2×2 matrix; powers go through `*`, and stay `SU2`s
+    @test u isa AbstractMatrix{ComplexF64} && size(u) == (2, 2)
+    @test Matrix(u) == matrix(u) && u[1, 2] == u.b && u[2, 1] == -conj(u.b)
+    @test u^2 isa SU2 && u^2 == u*u && u^3 ≈ u*u*u
+    # `u` is a three-fold rotation: `u³` is the rotation by 2π, i.e. Ē
+    @test u^3 ≈ -one(SU2) && u^6 ≈ one(SU2)
+    @test u^-1 ≈ inv(u) && isone(u^0)
+    @test det(u) ≈ 1 && tr(u) ≈ 2real(u.a)
     @test isapprox(SU2(matrix(u)), u)
     @test_throws DomainError SU2(0.5, 0.0)                    # not normalized, det ≠ 1
     @test_throws DomainError SU2(ComplexF64[1 0; 0 2])       # not of the form [a b; -b* a*]
@@ -85,7 +94,9 @@ end
         # Ē: the 2π rotation, present, barred, of order 2
         Ē = findfirst(d -> isbarred(d) && isone(SymOperation(d)), dsg)
         @test Ē !== nothing && isone(dsg[Ē]^2) && !isone(dsg[Ē])
+        @test all(d -> isone(d * inv(d)) && isone(inv(d) * d), dsg)
     end
+    @test @inferred(spacegroup(221, Val(3), Val(true))) isa DSpaceGroup{3}
     # the spinless path must be untouched by the `Val(false)` route
     @test spacegroup(221, Val(3), Val(false)) == spacegroup(221, Val(3))
     @test spacegroup(221, 3, true) == spacegroup(221, Val(3), Val(true))  # unstable form

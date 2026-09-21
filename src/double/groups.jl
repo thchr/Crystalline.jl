@@ -57,16 +57,18 @@ centering(::DSiteGroup) = nothing
 
 # --- construction ---
 """
-    doubled_operations(ops, hexagonal::Bool) --> Vector{DSymOperation{3}}
+    doubled_operations(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}})
+                                                            --> Vector{DSymOperation{3}}
 
-Attach the SU(2) element (see [`su2`](@ref)) to each operation of `ops`, returning the
-`2|G|` operations of the associated double group: the operations themselves first, then
-their ``\\bar{E}``-barred partners, in the same order.
+Attach the SU(2) element (see [`su2`](@ref)) to each operation of `g`, returning the `2|G|`
+operations of the associated double group: the operations themselves first, then their
+``\\bar{E}``-barred partners, in the same order.
 """
-function doubled_operations(ops::AbstractVector{SymOperation{3}}, hexagonal::Bool)
-    n = length(ops)
+function doubled_operations(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}})
+    hexagonal = _ishexagonal(g)
+    n = length(g)
     dops = Vector{DSymOperation{3}}(undef, 2n)
-    for (i, op) in enumerate(ops)
+    for (i, op) in enumerate(g)
         u = su2(op, hexagonal)
         dops[i]   = DSymOperation{3}(op,  u)
         dops[i+n] = DSymOperation{3}(op, -u)
@@ -74,24 +76,29 @@ function doubled_operations(ops::AbstractVector{SymOperation{3}}, hexagonal::Boo
     return dops
 end
 
-@noinline _only_3d(D) =
-    throw(DomainError(D, "double groups are currently only supported in 3D"))
+@noinline _only_3d(D) = throw(DomainError(D, "double groups are currently only supported in 3D"))
+
+centering(g::Union{DSpaceGroup{D}, DLittleGroup{D}}) where D = centering(num(g), D)
 
 """
-    spacegroup(sgnum::Integer, Dᵛ::Val{D}, spinfulᵛ::Val{S})
-                                        --> SpaceGroup{D} or DSpaceGroup{D}
+    doublegroup(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}})
+                                --> DSpaceGroup{3}, DLittleGroup{3}, or DPointGroup{3}
 
-Return the space group `sgnum`, as its double (spinful) group if `spinfulᵛ` is `Val(true)`.
-
-Double groups are currently supported in 3D only.
+Return the double group of the space, little, or point group `g` (see
+[`doubled_operations`](@ref)).
 """
-function spacegroup(sgnum::Integer, Dᵛ::Val{D}, ::Val{true}) where D
-    D == 3 || _only_3d(D)
-    sg = spacegroup(sgnum, Dᵛ)
-    hex = crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal")
-    return DSpaceGroup{D}(sgnum, doubled_operations(operations(sg), hex))
+doublegroup(sg::SpaceGroup{3}) = DSpaceGroup{3}(num(sg), doubled_operations(sg))
+function doublegroup(lg::LittleGroup{3})
+    return DLittleGroup{3}(num(lg), position(lg), klabel(lg), doubled_operations(lg))
 end
-spacegroup(sgnum::Integer, Dᵛ::Val, ::Val{false}) = spacegroup(sgnum, Dᵛ)
-function spacegroup(sgnum::Integer, D::Integer, spinful::Bool) # type-unstable convenience
-    return spacegroup(sgnum, Val(D), Val(spinful))
+doublegroup(pg::PointGroup{3}) = DPointGroup{3}(num(pg), label(pg), doubled_operations(pg))
+
+# --- change of lattice basis ---
+# Little groups hold no centring copies, so no operations become equivalent (unlike for
+# space groups, cf. `reduce_ops`)
+function primitivize(lg::DLittleGroup{D}, modw::Bool=true) where D
+    cntr = centering(lg)
+    kv′  = primitivize(position(lg), cntr)
+    ops′ = primitivize.(operations(lg), cntr, modw)
+    return DLittleGroup{D}(num(lg), kv′, klabel(lg), ops′)
 end
