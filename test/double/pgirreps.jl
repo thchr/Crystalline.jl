@@ -19,7 +19,6 @@ else
 @test pgirreps("4mm", Val(3), Val(false)) == pgirreps("4mm", Val(3))
 @test_throws DomainError pgirreps("4mm", Val(2), Val(true))
 @test_throws ErrorException pgirreps("4mm", Val(3), Val(true); mulliken=true)
-@test_throws ErrorException realify(pgirreps("4mm", Val(3), Val(true)))
 
 for iuc in PG_IUCs[3]
     pgirs = pgirreps(iuc, Val(3), Val(true))
@@ -51,6 +50,10 @@ for iuc in PG_IUCs[3]
 
     # Bilbao's stated realities agree with the Frobenius-Schur criterion in the double group
     @test all(pgir -> calc_reality(pgir) == reality(pgir), pgirs)
+
+    # time reversal: with T² = -1, Kramers degeneracy makes every co-representation
+    # even-dimensional
+    @test all(iseven ∘ irdim, realify(pgirs))
 end
 
 # At Γ, the double-valued little group irreps must be those of the double point group of the

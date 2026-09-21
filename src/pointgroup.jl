@@ -152,6 +152,9 @@ function pgirreps(
     return Collection(_pgirrep.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 _pgirrep(cdml, pg::PointGroup{D}, P, reality) where D = PGIrrep{D}(cdml, pg, P, reality)
+function _pgirrep(cdml, pg::DPointGroup{D}, P, reality) where D
+    return DPGIrrep{D}(cdml, pg, _doubled_matrices(P), reality)
+end
 
 _pgirreps_jldfile(::Val{false}) = PGIRREPS_JLDFILE[]
 function _pgirreps_jldfile(#=Val{S}=# ::Val{true})

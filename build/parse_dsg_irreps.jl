@@ -173,6 +173,30 @@ function parse_page(path::AbstractString)
 end
 
 """
+    parse_realities(path) --> Dict{String, Int8}
+
+The realities stated on the page, keyed by the Bilbao irrep label with `ˢ` marking a
+double-valued irrep. They are given in the page's second section, the representations of
+the full space group (the star of **k**), whose table header lists each irrep as e.g.
+`*X3 (0)`: `(1)` real, `(-1)` pseudoreal, `(0)` complex. This is the reality that the
+Herring criterion determines.
+"""
+function parse_realities(path::AbstractString)
+    src = read(path, String)
+    cut = findfirst("Matrices of the representations of the group", src)
+    cut === nothing && error("no full space group representations on $(basename(path))")
+    rows = rows_of(littlegroup_table(parsehtml(src[first(cut):end])))
+    realities = Dict{String, Int8}()
+    for c in tag_children(first(rows), :td)[3:end]
+        m = match(r"^\s*\*?\s*(\S+)\s*\((-?\d)\)\s*$", text_of(c))
+        m === nothing && error("unexpected irrep label cell $(repr(text_of(c))) on \
+                                $(basename(path))")
+        realities[m[1] * (has_overline(c) ? string(SPINFUL_MARK) : "")] = parse(Int8, m[2])
+    end
+    return realities
+end
+
+"""
     entry_strings(cell) --> Vector{String}
 
 The matrix entries of one irrep cell, in row-major order, each kept verbatim (e.g. `"0"`,

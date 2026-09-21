@@ -67,24 +67,11 @@ function DPGIrrep{D}(
     return DPGIrrep{D}(cdml, pg, matrices, reality, false)
 end
 
-# --- Time reversal ---
-# For spinful systems, time reversal squares to -1, and `realify`'s pairing of irreps into
-# co-representations does not apply
-function realify(::AbstractVector{<:Union{DLGIrrep, DPGIrrep}}; kws...)
-    error("co-representations of double-valued irreps are not yet implemented")
-end
-
 # --- Loading (see `lgirreps` in /src/littlegroup_irreps.jl and `pgirreps` in
 #     /src/pointgroup.jl) ---
-# The data file stores a double-valued irrep only on the operations of the ordinary little
-# group; the barred operations follow them in the double little group (see
+# The data files store a double-valued irrep only on the operations of the ordinary little
+# or point group; the barred operations follow them in the double group (see
 # `doubled_operations`) and are represented by `D(Ēg) = -D(g)`
-function _lgirrep(cdml, lg::DLittleGroup{D}, P, τ, reality) where D
-    return DLGIrrep{D}(cdml, lg, _doubled_matrices(P), _doubled_translations(τ), reality)
-end
-function _pgirrep(cdml, pg::DPointGroup{D}, P, reality) where D
-    return DPGIrrep{D}(cdml, pg, _doubled_matrices(P), reality)
-end
 _doubled_matrices(Ps) = vcat(Ps, [-P for P in Ps])
 _doubled_translations(::Nothing) = nothing
 _doubled_translations(τs) = vcat(τs, τs)

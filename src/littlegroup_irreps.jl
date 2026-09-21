@@ -134,6 +134,9 @@ end
 lgirreps(sgnum::Integer, D::Integer, spinful::Bool=false) = lgirreps(sgnum, Val(D), Val(spinful))
 
 _lgirrep(cdml, lg::LittleGroup{D}, P, τ, reality) where D = LGIrrep{D}(cdml, lg, P, τ, reality)
+function _lgirrep(cdml, lg::DLittleGroup{D}, P, τ, reality) where D
+    return DLGIrrep{D}(cdml, lg, _doubled_matrices(P), _doubled_translations(τ), reality)
+end
 
 _lgirreps_jldfile(::Val{D}, ::Val{false}) where D = LGIRREPS_JLDFILES[D][]
 function _lgirreps_jldfile(::Val{D}, #=Val{S}=# ::Val{true}) where D

@@ -21,9 +21,16 @@ function realify!(lgirsd::AbstractDict{<:AbstractString, <:AbstractVector{<:Abst
 end
 
 # ---------------------------------------------------------------------------------------- #
+# The reality of the irreps that time reversal pairs with themselves, doubling them: those
+# that are pseudoreal for ordinary (single-valued) irreps, but those that are real for
+# double-valued irreps, since time reversal then squares to -1 (see Elcoro et al., J. Appl.
+# Cryst. 50, 1457 (2017), subsection "Complex conjugation")
+_selfdoubling_reality(::AbstractIrrep) = PSEUDOREAL
+_selfdoubling_reality(::Union{DLGIrrep, DPGIrrep}) = REAL
+
 """
-    realify(lgirs::AbstractVector{<:LGIrrep}; verbose::Bool=false)
-                                                        --> AbstractVector{<:LGIrrep}
+    realify(lgirs::AbstractVector{<:AbstractLGIrrep}; verbose::Bool=false)
+                                                        --> AbstractVector{<:AbstractLGIrrep}
 
 From `lgirs`, a vector of `LGIrrep`s, determine the associated (gray) co-representations,
 i.e. the "real", or "physical" irreps that are relevant in scenarios with time-reversal
@@ -39,6 +46,10 @@ method computes this pairing and sets the `LGIrrep` field `iscorep` to true, to 
 that the resulting "paired irrep" (i.e. the co-representation) should be doubled with 
 itself (`PSEUDOREAL` reality) or its complex conjugate (`COMPLEX` reality).
 
+For double-valued irreps (`DLGIrrep`s), time reversal squares to -1 and the roles of `REAL`
+and `PSEUDOREAL` are interchanged: `REAL` irreps are doubled with themselves, while
+`PSEUDOREAL` irreps are unchanged.
+
 ### Background
 For background, see p. 650-652 (and p. 622-626 for point groups) in Bradley & Cracknell's
 book. Their discussion is for magnetic groups (the "realified" irreps are, in fact, simply
@@ -49,7 +60,10 @@ Cornwell's book also explicates this at some length as does Inui et al. (p. 296-
 - `verbose::Bool`: if set to `true`, prints details about mapping from small irrep to small
 corep for each `LGIrrep` (default: `false`).
 """
-function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
+function realify(
+    lgirs::AbstractVector{IR};
+    verbose::Bool=false
+) where {D, IR<:AbstractLGIrrep{D}}
     Nirr = length(lgirs)
     lg = group(first(lgirs))
     kv = position(lg) # must be the same for all irreps in list
@@ -60,7 +74,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
     Nops = order(lg) # order of little group (= number of operations)
 
     cntr = centering(sgnum, D)
-    sgops = operations(spacegroup(sgnum, Val(D)))
+    sgops = operations(spacegroup(sgnum, Val(D), Val(IR <: DLGIrrep)))
 
     verbose && print(klabel(lg), " │ ")
 
@@ -96,7 +110,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
         else
             # This is a bit silly: if k_equiv_kv₋ = true, we will never use g₋; but I'm not sure if 
             # the compiler will figure that out, or if it will needlessly guard against missing g₋?
-            g₋ = one(SymOperation{D}) # ... the unit element I
+            g₋ = one(eltype(sgops)) # ... the unit element I
         end
 
         # -𝐤 is part of star{𝐤}; we infer reality of irrep from ISOTROPY's data (could also 
@@ -107,17 +121,18 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
             _check_not_corep(lgir)
             verbose && i ≠ 1 && print("  │ ")
 
-            if reality(lgir) == REAL
-                push!(corep_idxs, [i])
-                if verbose
-                    println(label(lgir), " (real) ⇒  no additional degeneracy")
-                end
-
-            elseif reality(lgir) == PSEUDOREAL
+            r = reality(lgir)
+            if r == _selfdoubling_reality(lgir)
                 # doubles irrep on its own
                 push!(corep_idxs, [i, i])
                 if verbose
-                    println(label(lgir)^2, " (pseudo-real) ⇒  doubles degeneracy")
+                    println(label(lgir)^2, " (", r, ") ⇒  doubles degeneracy")
+                end
+
+            elseif r == REAL || r == PSEUDOREAL
+                push!(corep_idxs, [i])
+                if verbose
+                    println(label(lgir), " (", r, ") ⇒  no additional degeneracy")
                 end
 
             elseif reality(lgir) == COMPLEX
@@ -177,7 +192,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
                         if match # ⇒ a match
                             partner = j
                             if verbose
-                                println(label(lgir)*label(lgirs[j]), " (complex) ⇒  doubles degeneracy")
+                                println(label(lgir)*label(lgirs[j]), " (", r, ") ⇒  doubles degeneracy")
                             end
                         end
                     end
@@ -201,20 +216,20 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
     # 298-299. For pseudo-real and complex co-reps, we set a flag `iscorep = true`, to
     # indicate to "evaluation" methods, `(lgir::LGIrrep)(αβγ)`, that a diagonal
     # "doubling" is required (see below).
-    lgirs′ = Vector{LGIrrep{D}}(undef, Ncoreps)
+    lgirs′ = Vector{IR}(undef, Ncoreps)
     for i′ in OneTo(Ncoreps)
         idxs = corep_idxs[i′]
-        if length(idxs) == 1      # ⇒ real or type x (unchanged irreps)
+        if length(idxs) == 1      # ⇒ unchanged irreps (type x, or not self-doubling)
             lgirs′[i′] = lgirs[idxs[1]] # has iscorep = false flag set already
 
-        elseif idxs[1] == idxs[2] # ⇒ pseudoreal     ("self"-doubles irreps)
-            # The resulting co-rep of a pseudo-real irrep Dᵢ is
+        elseif idxs[1] == idxs[2] # ⇒ self-doubling (pseudoreal, or real if double-valued)
+            # The resulting co-rep of a self-doubling irrep Dᵢ is
             #   D = diag(Dᵢ, Dᵢ)
             # See other details under complex case.
             lgir = lgirs[idxs[1]]
             blockmatrices = _blockdiag2x2.(lgir.matrices)
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, lgir.translations,
-                                    PSEUDOREAL, true)
+            lgirs′[i′] = IR(newlabs[i′], lg, blockmatrices, lgir.translations,
+                            reality(lgir), true)
             
         else                      # ⇒ complex        (doubles irreps w/ complex conjugate)
             # The co-rep of a complex irreps Dᵢ and Dⱼ is 
@@ -228,7 +243,7 @@ function realify(lgirs::AbstractVector{LGIrrep{D}}; verbose::Bool=false) where D
             @assert τsᵢ == τsⱼ
             blockmatrices = _blockdiag2x2.(lgirs[idxs[1]].matrices, lgirs[idxs[2]].matrices)
             
-            lgirs′[i′] = LGIrrep{D}(newlabs[i′], lg, blockmatrices, τsᵢ, COMPLEX, true)
+            lgirs′[i′] = IR(newlabs[i′], lg, blockmatrices, τsᵢ, COMPLEX, true)
         end
     end
     
@@ -282,10 +297,10 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
         _check_not_corep(ir)
         r = reality(ir)
 
-        # usually REAL; inline-check
-        r == REAL && (push!(irs′, ir); continue)
-            
-        # ir is either COMPLEX or PSEUDOREAL if we reached this point
+        # unchanged unless complex or self-doubling (see `_selfdoubling_reality`)
+        (r == REAL || r == PSEUDOREAL) && r ≠ _selfdoubling_reality(ir) &&
+            (push!(irs′, ir); continue)
+
         if r == COMPLEX
             idx ∈ skiplist && continue # already included
             χs = characters(ir)
@@ -308,8 +323,9 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
                 newlab = label(ir)*label(ir_partner)
             end
 
-        elseif r == PSEUDOREAL
-            # NB: this case doesn't actually ever arise for crystallographic point groups...
+        else # self-doubling
+            # NB: for single-valued irreps (pseudoreal), this case never arises for
+            #     crystallographic point groups; for double-valued irreps (real), it does
             blockmatrices = _blockdiag2x2.(ir.matrices)
             newlab = label(ir)^2
         end
@@ -395,11 +411,13 @@ function _abbreviated_mulliken_corep_label(lab1, lab2)
 end
 # ---------------------------------------------------------------------------------------- #
 @doc raw"""
-    calc_reality(lgir::LGIrrep, 
-                 sgops::AbstractVector{SymOperation{D}},
-                 αβγ::Union{Vector{<:Real},Nothing}=nothing) --> ::(Enum Reality)
+    calc_reality(
+        lgir::AbstractLGIrrep, 
+        sgops::AbstractVector{<:AbstractOperation{D}},
+        αβγ::Union{Vector{<:Real},Nothing} = nothing
+    ) --> ::(Enum Reality)
 
-Compute and return the reality of a `lgir::LGIrrep` using the Herring criterion.
+Compute and return the reality of a `lgir::AbstractLGIrrep` using the Herring criterion.
 
 The computed value is one of three integers in ``{1,-1,0}``.
 In practice, this value is returned via a member of the Enum `Reality`, which has instances
@@ -416,20 +434,25 @@ translation vectors; i.e. using `spacegroup(...)` directly is **not** allowable 
 of operations can be obtained e.g. from the Γ point irreps of ISOTROPY's dataset, or
 alternatively, from `reduce_ops(spacegroup(...), true)`.
 
+For a double-valued irrep (a `DLGIrrep`), `sgops` must be the operations of the double
+space group, likewise reduced (e.g., the operations of its little group at Γ).
+
 ## Implementation
 The Herring criterion evaluates the following sum
 
-``[∑ χ({β|b}²)]/[g_0/M(k)]``
+``[M(k)/g_0] ∑ χ({β|b}²)``
 
 over symmetry operations ``{β|b}`` that take ``k → -k``. Here ``g_0`` is the order of the
 point group of the space group and ``M(k)`` is the order of star(``k``) [both in a primitive
-basis].
+basis]. Their ratio is the order of the little co-group, i.e. the number of operations of
+the little group of `lgir` (which includes no centering copies). For a double group, the
+sum and the ratio both double, and the criterion is otherwise unchanged.
 
 See e.g. Cornwell, p. 150-152 & 187-188 (which we mainly followed), Inui Eq. (13.48), 
 Dresselhaus, p. 618, or [Herring's original paper](https://doi.org/10.1103/PhysRev.52.361).
 """
-function calc_reality(lgir::LGIrrep{D}, 
-                      sgops::AbstractVector{SymOperation{D}}, 
+function calc_reality(lgir::AbstractLGIrrep{D}, 
+                      sgops::AbstractVector{<:AbstractOperation{D}}, 
                       αβγ::Union{Vector{<:Real},Nothing}=nothing) where D
     iscorep(lgir) && throw(DomainError(iscorep(lgir), "method should not be called with LGIrreps where iscorep=true"))
     lgops = operations(lgir)
@@ -456,10 +479,12 @@ function calc_reality(lgir::LGIrrep{D},
         end
     end
 
-    pgops = pointgroup(sgops) # point group assoc. w/ space group
-    g₀ = length(pgops) # order of pgops (denoted h, or macroscopic order, in Bradley & Cracknell)
-    Mk = length(orbit(pgops, kv, cntr)) # order of star of k (denoted qₖ in Bradley & Cracknell)
-    normalization = convert(Int, g₀/Mk) # order of G₀ᵏ; the point group derived from the little group Gᵏ (denoted b in Bradley & Cracknell; [𝐤] in Inui)
+    # g₀/M(k), with g₀ the order of the point group of the space group (denoted h, or
+    # macroscopic order, in Bradley & Cracknell) and M(k) the order of the star of k (qₖ in
+    # Bradley & Cracknell), is the order of the little co-group G₀ᵏ (b in Bradley & Cracknell;
+    # [𝐤] in Inui): i.e., the number of operations in the little group, which holds no
+    # centering copies
+    normalization = length(lgops)
     
     # s = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation
     type_float = real(s)/normalization
@@ -507,7 +532,8 @@ For such "physically real" irreps, the conventional orthogonality relations (by 
 we mean orthogonality relations that sum only over unitary operations, i.e. no "gray"
 operations/products with time-inversion) still hold if we include a multiplicative factor
 `f` that depends on the underlying reality type `r` of the corep, such that `f(REAL) = 1`,
-`f(COMPLEX) = 2`, and `f(PSEUDOREAL) = 4`.
+`f(COMPLEX) = 2`, and `f(PSEUDOREAL) = 4`. For double-valued irreps, the roles of `REAL` and
+`PSEUDOREAL` are interchanged.
 If the provided irrep is not a corep (i.e. has `iscorep(ir) = false`), the multiplicative
 factor is 1.
 
@@ -517,8 +543,8 @@ See e.g. Bradley & Cracknell Eq. (7.4.10).
 function corep_orthogonality_factor(ir::AbstractIrrep)
     if iscorep(ir)
         r = reality(ir)
-        r == PSEUDOREAL && return 4
-        r == COMPLEX    && return 2
+        r == _selfdoubling_reality(ir) && return 4
+        r == COMPLEX                   && return 2
         # error call is needed for type stability
         error("unreachable; invalid combination of iscorep=true and reality type")
 

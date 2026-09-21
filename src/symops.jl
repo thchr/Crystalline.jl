@@ -498,7 +498,7 @@ assumed.
   rather than of parametrizations.
 """
 function orbit(
-    g::AbstractVector{SymOperation{D}},
+    g::AbstractVector{<:AbstractOperation{D}},
     v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
     P::Union{Nothing, AbstractMatrix{<:Real}} = nothing;
     modrev::Bool = false
@@ -515,7 +515,7 @@ function orbit(
     return vs
 end
 function orbit(
-    g::AbstractVector{SymOperation{D}},
+    g::AbstractVector{<:AbstractOperation{D}},
     v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
     cntr::Char;
     kws...
@@ -882,8 +882,11 @@ returns `nothing`.
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
 """
-function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
-            cntr::Char) where D
+function findequiv(
+    op::O,
+    ops::AbstractVector{O},
+    cntr::Char
+) where {D, O<:AbstractOperation{D}}
     W = rotation(op)
     w = translation(op)
 
@@ -895,7 +898,7 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
         wⱼ = translation(opⱼ)
         wⱼ′ = P\wⱼ
 
-        if W == Wⱼ # rotation-part of op and opⱼ is identical
+        if W == Wⱼ && _same_su2(op, opⱼ) # rotation-part of op and opⱼ is identical
             # check if translation-part of op and opⱼ is equivalent, modulo a primitive lattice translation
             if all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), w′.-wⱼ′)
                 return j, w.-wⱼ
@@ -904,6 +907,9 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
     end
     return nothing # didn't find any match
 end
+# for double group operations, the SU(2) parts must agree as well
+_same_su2(::AbstractOperation, ::AbstractOperation) = true
+_same_su2(dop₁::DSymOperation, dop₂::DSymOperation) = isapprox(dop₁.su2, dop₂.su2)
 
 
 """

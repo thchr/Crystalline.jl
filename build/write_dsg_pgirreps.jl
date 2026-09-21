@@ -127,6 +127,8 @@ end
 
 function write_dsg_pgirreps(outpath::AbstractString = DEFAULT_OUT)
     mkpath(dirname(outpath))
+    # Crystalline keeps the spinful data file open for reading, which blocks overwriting it
+    isassigned(Crystalline.DPGIRREPS_JLDFILE) && close(Crystalline.DPGIRREPS_JLDFILE[])
     JLD2.jldopen(outpath, "w") do f
         for iuc in Crystalline.PG_IUCs[3]
             matrices, realities, cdmls = collect_pg(iuc)

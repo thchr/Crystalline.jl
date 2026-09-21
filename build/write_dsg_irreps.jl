@@ -30,12 +30,10 @@
 # and `translations` is stored as `nothing`. So `translations` is non-`nothing` only if the
 # irrep has a genuinely αβγ-dependent phase — as in ISOTROPY's data.
 #
-# ## Realities are NOT determined here
+# ## Realities
 #
-# Bilbao's little group tables do not state the reality type, and computing it for a spinful
-# irrep needs the Herring criterion evaluated in the double group (the Z₂ cocycle σ). So every
-# reality is written as `UNDEF`, to be filled in at Stage 5. Do not mistake this for a claim
-# that the irreps are of undefined reality.
+# The realities are Bilbao's, as stated for the full space group representations on each
+# page (see `parse_realities`); the Herring criterion (`calc_reality`) reproduces them.
 #
 # ## Usage
 #
@@ -91,7 +89,9 @@ function collect_sg(sgnum::Integer, lgs::AbstractDict)
         push!(klabs, klab)
         push!(matrices_list, Ps)
         push!(translations_list, [foldphase ? nothing : τs for _ in eachindex(p.irlabels)])
-        push!(realities_list, fill(Int8(2), length(p.irlabels)))   # UNDEF; see header
+        realities = parse_realities(path)
+        push!(realities_list, [realities[l * (d ? string(SPINFUL_MARK) : "")]
+                               for (l, d) in zip(p.irlabels, p.isdouble)])
         push!(cdml_list, cdml_irlabels(p))
     end
     return klabs, matrices_list, translations_list, realities_list, cdml_list
@@ -101,6 +101,8 @@ function write_dsg_irreps(outdir::AbstractString = DEFAULT_OUTDIR; sgnums = 1:23
     mkpath(outdir)
     path_double = joinpath(outdir, "irreps_data_spinful.jld2")
     path_single = joinpath(outdir, "irreps_data_spinless_bilbao.jld2")
+    # Crystalline keeps the spinful data file open for reading, which blocks overwriting it
+    isassigned(Crystalline.DLGIRREPS_JLDFILE) && close(Crystalline.DLGIRREPS_JLDFILE[])
     f_double = JLD2.jldopen(path_double, "w")
     f_single = JLD2.jldopen(path_single, "w")
     try

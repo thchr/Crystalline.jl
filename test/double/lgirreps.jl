@@ -1,5 +1,6 @@
 using Crystalline, Test, LinearAlgebra
-using Crystalline: check_multtable_vs_ir, matrices, can_intersect, TEST_αβγs
+using Crystalline: check_multtable_vs_ir, matrices, can_intersect, corep_orthogonality_factor,
+                   TEST_αβγs
 
 datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
                     "irreps_data_spinful.jld2")
@@ -23,6 +24,7 @@ for sgnum in 1:MAX_SGNUM[3]
     dlgirsd = lgirreps(sgnum, Val(3), Val(true))
     lgirsd  = lgirreps(sgnum, Val(3))
     @test Set(keys(dlgirsd)) == Set(keys(lgirsd))
+    dsgops = operations(group(first(dlgirsd["Γ"]))) # the double space group, mod translations
     for (klab, dlgirs) in dlgirsd
         dlg = group(first(dlgirs))
         n = order(dlg) ÷ 2
@@ -68,6 +70,22 @@ for sgnum in 1:MAX_SGNUM[3]
         # basis, and including ray-representation phases at nonsymmorphic k-points)
         for dlgir in dlgirs, αβγ′ in (nothing, αβγ)
             @test all(check_multtable_vs_ir(dlgir, αβγ′))
+        end
+
+        # Bilbao's stated realities agree with the Herring criterion in the double group
+        @test all(dlgir -> calc_reality(dlgir, dsgops) == reality(dlgir), dlgirs)
+
+        # time reversal: with T² = -1, Kramers degeneracy makes every co-representation at a
+        # k-point equivalent to -k even-dimensional; the co-representations are orthogonal
+        # with the adjusted normalization
+        coreps = realify(dlgirs)
+        kv = position(dlg)
+        if isapprox(-kv, kv, centering(sgnum, 3))
+            @test all(iseven ∘ irdim, coreps)
+        end
+        @test all(coreps) do corep
+            χ = characters(corep, αβγ)
+            dot(χ, χ) ≈ 2n * corep_orthogonality_factor(corep)
         end
 
         # the ray-representation phases depend only on the spatial operations
@@ -139,6 +157,17 @@ end
         "H₁₁ˢ" => Dict("P₆ˢ" => 1), "H₁₂ˢ" => Dict("P₆ˢ" => 1))
 end
 
+# Elcoro et al., J. Appl. Cryst. 50, 1457 (2017): "the double-valued irrep P̄₇ in [...] Ia-3
+# (No. 206) is real, so that it doubles when time-reversal is considered. On the contrary,
+# [P̄₇] in [...] I4₁32 (No. 214) is pseudoreal and it does not double"
+@testset "Time reversal: Elcoro et al.'s examples" begin
+    P₇²⁰⁶ = only(filter(ir -> label(ir) == "P₇ˢ", lgirreps(206, 3, true)["P"]))
+    P₇²¹⁴ = only(filter(ir -> label(ir) == "P₇ˢ", lgirreps(214, 3, true)["P"]))
+    @test reality(P₇²⁰⁶) == REAL && reality(P₇²¹⁴) == PSEUDOREAL
+    @test "P₇ˢP₇ˢ" ∈ label.(realify(lgirreps(206, 3, true)["P"]))
+    @test "P₇ˢ"    ∈ label.(realify(lgirreps(214, 3, true)["P"]))
+end
+
 end # @testset "Double-valued little group irreps"
 end # if isfile(datafile)
 
@@ -168,6 +197,7 @@ if isfile(datafile_bilbao)
                     kabc = parts(position(lgir))[2]
                     Δτs = lgir.translations .- lgir_bilbao.translations
                     @test χ ≈ χ′
+                    @test reality(lgir) == reality(lgir_bilbao)
                     @test all(zip(χ, Δτs)) do (c, Δτ)
                         abs(c) < 1e-10 || norm(kabc'*Δτ) < 1e-10
                     end

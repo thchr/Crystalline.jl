@@ -86,13 +86,21 @@ function compose(dop₁::DSymOperation{D}, dop₂::DSymOperation{D}, modτ::Bool
     return DSymOperation{D}(compose(dop₁.op, dop₂.op, modτ), dop₁.su2 * dop₂.su2)
 end
 (*)(dop₁::DSymOperation{D}, dop₂::DSymOperation{D}) where D = compose(dop₁, dop₂)
+# acting on positions and **k**-vectors, only the spatial part matters
+function compose(
+    dop::DSymOperation{D},
+    v::Union{AbstractVec{D}, AbstractPoint{D}},
+    args...
+) where D
+    return compose(dop.op, v, args...)
+end
+function (*)(dop::DSymOperation{D}, v::Union{AbstractVec{D}, AbstractPoint{D}}) where D
+    return compose(dop, v)
+end
 
 inv(dop::DSymOperation{D}) where D = DSymOperation{D}(inv(dop.op), inv(dop.su2))
 
 one(::Type{DSymOperation{D}}) where D = DSymOperation{D}(one(SymOperation{D}), one(SU2))
-# a pure lattice translation, which acts trivially on spin
-_translation_operation(::Type{DSymOperation{D}}, t) where D =
-    DSymOperation{D}(SymOperation{D}(t), one(SU2))
 one(dop::DSymOperation) = one(typeof(dop))
 # the SU(2) parameters are irrational for most operations, so unlike `isone(::SymOperation)`
 # the check below must be approximate
