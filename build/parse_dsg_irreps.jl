@@ -412,7 +412,7 @@ end
 """
     sparse_entry(e) --> Union{Nothing, Tuple{Int,Int,String}}
 
-Bilbao gives irreps of dimension > 5 **sparsely**, listing only the non-zero elements as
+Bilbao gives irreps of dimension > 4 **sparsely**, listing only the non-zero elements as
 `(i;j):x` (the page says so in its own preamble). Returns `(i, j, x)` for such an entry, or
 `nothing` for an ordinary dense one.
 """
@@ -592,22 +592,24 @@ end
 # Label normalisation
 
 """
-    OVERBAR
+    SPINFUL_MARK
 
-The combining overline `U+0305`, used to mark a double-valued irrep (`Γ̄₇`), following CDML and
-Bilbao — which overline the whole k-label symbol (`<font overline>WA</font><sub>5</sub>`).
+The modifier letter `ˢ` (`U+02E2`), appended to mark a double-valued irrep: `Γ₇⁺ˢ`, `WA₅ˢ`.
 
-⚠ The mark must follow the **complete** letter run, not each letter: `klabel` walks the leading
-letters and stops at the first non-letter, so `"WA̅₅"` gives `"WA"` while an interleaved
-`"W̄Ā₅"` would give just `"W"`.
+CDML and Bilbao instead overline the k-label symbol (`<font overline>WA</font><sub>5</sub>`),
+but an overbar is awkward here: it is a combining mark that must follow the *complete* letter
+run rather than each letter, it collides with the overbar of a roto-inversion, and it renders
+unreliably. The `ˢ` spelling already exists in Crystalline for the spinful EBR labels
+(`build/crawl_and_write_bandreps.jl`, and `isspinful` at `src/bandrep.jl`), which write it as
+`Γˢ₁₀`; we append it instead, so that `klabel` needs no special casing here.
 """
-const OVERBAR = '̅'
+const SPINFUL_MARK = 'ˢ'
 
 """
     cdml_irlabel(lab, isdouble) --> String
 
 Normalise a Bilbao irrep label to Crystalline's CDML spelling: `"GM1+"` → `"Γ₁⁺"`,
-`"X3"` (overlined) → `"X̄₃"`, `"WA5"` (overlined) → `"WA̅₅"`.
+`"X3"` (overlined) → `"X₃ˢ"`, `"WA5"` (overlined) → `"WA₅ˢ"`.
 
 Every label in the crawl matches `^[A-Z]+[0-9]+[+-]?\$` (checked over all 20088 of them), so the
 parse is exhaustive rather than best-effort; anything else throws.
@@ -617,9 +619,9 @@ function cdml_irlabel(lab::AbstractString, isdouble::Bool)
     m === nothing && error("unexpected irrep label $(repr(lab))")
     klab_b, num, sgn = m.captures
     return string(cdml_klabel(klab_b),
-                  isdouble ? OVERBAR : "",
                   Crystalline.subscriptify(num),
-                  isempty(sgn) ? "" : Crystalline.supscriptify(sgn))
+                  isempty(sgn) ? "" : Crystalline.supscriptify(sgn),
+                  isdouble ? SPINFUL_MARK : "")
 end
 
 cdml_irlabels(p::DsgPage) = [cdml_irlabel(l, d) for (l, d) in zip(p.irlabels, p.isdouble)]

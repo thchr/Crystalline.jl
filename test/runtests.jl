@@ -71,6 +71,9 @@ using Crystalline, Test
     # magnetic space groups
     include("mspacegroup.jl")
 
+    # double (spinful) groups
+    include("double_groups.jl")
+
     # group relations (sub- & supergroups)
     include("grouprelations.jl")
 

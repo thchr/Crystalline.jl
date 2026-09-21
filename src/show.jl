@@ -38,6 +38,7 @@ function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
         printstyled(io, " ", i == 1 ? "╷" : (i == D ? "╵" : "┆"), " ", repeat(' ', Nsepτ-length(τstrs[i])), τstrs[i], " ", color=:light_black)
         printstyled(io, i == 1 ? '┐' : (i == D ? '┘' : '│'), color=:light_black) # close brace char
         op isa MSymOperation && i == 1 && timereversal(op) && print(io, '′')
+        op isa DSymOperation && i == 1 && isbarred(op) && print(io, 'ᵈ')
         i ≠ D && println(io)
     end
     return nothing

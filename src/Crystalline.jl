@@ -98,6 +98,13 @@ include("magnetic/notation-data.jl")
 include("magnetic/types.jl")
 export MSymOperation, MSpaceGroup
 
+include("double/types.jl")
+include("double/su2_table.jl")
+include("double/su2.jl")
+include("double/groups.jl")
+export SU2, DSymOperation, su2, isbarred
+export DSpaceGroup, DPointGroup, DLittleGroup, DSiteGroup
+
 include("tables/rotation_translation.jl")
 include("tables/groups/pointgroup.jl")
 include("tables/groups/spacegroup.jl")
