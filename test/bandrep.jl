@@ -109,3 +109,15 @@ end
     end
 end
 =#
+@testset "Spinful irrep labels" begin
+    # double-valued irreps are marked by an `ˢ` after the full irrep label (e.g., `Γ₅ˢ`), so
+    # `klabel` recovers the k-label of every irrep, and every band representation prints
+    for sgnum in 1:MAX_SGNUM[3], timereversal in (false, true)
+        brs = bandreps(sgnum; spinful=true, timereversal)
+        @test all(irlab -> klabel(irlab) ∈ klabels(brs), irreplabels(brs))
+        @test all(irlab -> endswith(irlab, 'ˢ'), irreplabels(brs))
+    end
+    brs = bandreps(22; spinful=true)
+    @test irreplabels(brs) == ["Γ₅ˢ", "T₅ˢ", "Y₅ˢ", "Z₅ˢ", "L₂ˢL₂ˢ"]
+    @test contains(sprint(show, MIME"text/plain"(), brs), "(spin-½ w/ TR)")
+end

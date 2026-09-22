@@ -57,7 +57,7 @@ function html2dlm(body::String, oplus::Union{String,Char}='⊕')
         "<br>"=>"",                             # linebreak tag in html; no </br> tag exists
         "<font size=\"5\">&uarr;</font>"=>"↑",  # induction arrow
         r"<font style\=\"text-decoration:overline;\"\>([1-6])\<\/font\>"=>s"-\1", # wyckoff site symmetry groups w/ (roto)inversion (must come before spinful irrep conversion)
-        r"\<font style\=\"text-decoration:overline;\"\>(.*?)\<\/font\>"=>s"\1ˢ",  # spinful irrep
+        r"\<font style\=\"text-decoration:overline;\"\>(.*?)\<\/font\>"=>s"\1ˢ",  # spinful irrep (see below)
         "&oplus;"=>oplus,                       # special symbols # ⊕
         "&Gamma;"=>'Γ',                                           # Γ
         "&Sigma;"=>'Σ',                                           # Σ
@@ -75,6 +75,10 @@ function html2dlm(body::String, oplus::Union{String,Char}='⊕')
         "$(dlm)\n"=>"\n",                       # if the last bits of a line is ", ", get rid of it
         r"\n\s*\Z"=>"",                         # if the last char in the string is a newline (possibly with spurious spaces), get rid of it
         r"\n\s+"=>"\n",                         # remove spurious white/space at start of any lines
+        # move the spinful mark `ˢ` from after the k-label (or Mulliken letter) to after the
+        # full irrep label, e.g. `Γˢ₅` → `Γ₅ˢ` and `Eˢ₁g` → `E₁gˢ` (must come after the
+        # subscript and prime conversions above)
+        r"ˢ([₀-₉]*[gᵤ′]*)"=>s"\1ˢ",
         #r"((_.){2,})"=>(x)->"_{"*replace(x,"_"=>"")*"}",  # tidy up multi-index subscripts
         #r"((\^.){2,})"=>(x)->"^{"*replace(x,"^"=>"")*"}"  # tidy up multi-index superscripts
     )
