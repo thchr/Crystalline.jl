@@ -11,3 +11,5 @@
 *.pdf binary
 *.jld2 binary
 *.ai binary
+# crawled data: collapse in GitHub diffs
+data/bandreps/** linguist-generated=true
