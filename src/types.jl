@@ -955,9 +955,19 @@ orbit(lgir::AbstractLGIrrep) = orbit(spacegroup(num(lgir), dim(lgir)), position(
 
 # --- Site symmetry irreps ---
 """
+    AbstractSiteIrrep{D} <: AbstractIrrep{D}
+
+Abstract supertype for irreps of site symmetry groups in dimension `D`. Beyond the
+requirements of [`AbstractIrrep`](@ref), a subtype must have a site symmetry group as its
+group `g`, and a field `pglabel :: String` holding the label of the point group that is
+isomorphic to `g`.
+"""
+abstract type AbstractSiteIrrep{D} <: AbstractIrrep{D} end
+
+"""
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-@struct_hash_equal struct SiteIrrep{D} <: AbstractIrrep{D}
+@struct_hash_equal struct SiteIrrep{D} <: AbstractSiteIrrep{D}
     cdml     :: String
     g        :: SiteGroup{D}
     matrices :: Vector{Matrix{ComplexF64}}
@@ -965,7 +975,7 @@ $(TYPEDEF)$(TYPEDFIELDS)
     iscorep  :: Bool
     pglabel  :: String # label of point group that is isomorphic to the site group `g`
 end
-Base.position(siteir::SiteIrrep) = position(group(siteir))
+Base.position(siteir::AbstractSiteIrrep) = position(group(siteir))
 
 # ---------------------------------------------------------------------------------------- #
 # Collection{T}

@@ -42,8 +42,14 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - Double groups: `SU2`, `DSymOperation`, `DSpaceGroup`, `DLittleGroup`, `DPointGroup`,
   `DSiteGroup`, `su2`, `isbarred`; `spacegroup`, `pointgroup` accept a spinful argument.
 - Double-valued irreps: `DLGIrrep`, `DPGIrrep`, via `lgirreps(sgnum, Val(3), Val(true))` and
-  `pgirreps(iuclab, Val(3), Val(true))` (or `lgirreps(sgnum, 3, true)`, etc.).
-- Abstract supertypes `AbstractLGIrrep` and `AbstractPGIrrep`; `realify`, `calc_reality`,
-  `characters`, `classes`, `subduction_count`, `primitivize`, `collect_compatible`,
-  `collect_irrep_annotations` accept double-valued irreps.
+  `pgirreps(iuclab, Val(3), Val(true))` (or `lgirreps(sgnum, 3, true)`, etc.). Point group
+  and site symmetry irreps also have Mulliken labels (`mulliken=true`), as in Bilbao.
+- Double-valued site symmetry irreps: `DSiteIrrep`, via `siteirreps` of a double site
+  symmetry group: `sitegroup(sg::DSpaceGroup, wp)`, `sitegroups(sgnum, Val(3), Val(true))`.
+- `doublegroup`: the double group of a space, little, point, or site symmetry group.
+- SU(2) elements (`su2`) follow Bilbao and Altmann & Herzig, whose Cartesian frame differs
+  from Crystalline's for hexagonal and trigonal lattices (see the `su2` docstring).
+- Abstract supertypes `AbstractLGIrrep`, `AbstractPGIrrep`, and `AbstractSiteIrrep`;
+  `realify`, `calc_reality`, `characters`, `classes`, `subduction_count`, `primitivize`,
+  `collect_compatible`, `collect_irrep_annotations` accept double-valued irreps.
 - `isspinful` for irreps, symmetry vectors, and band representations.

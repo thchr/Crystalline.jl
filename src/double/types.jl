@@ -6,9 +6,13 @@ An element of SU(2), stored by the two complex parameters `a` and `b` of
 
 ``U = \\begin{pmatrix} a & b \\\\ -b^* & a^* \\end{pmatrix}``
 
-with ``|a|^2 + |b|^2 = 1``. This is the spin-½ part of a double group operation: the two
-SU(2) elements of a spatial operation differ by an overall sign, `u` and `-u`, and that
-sign is what distinguishes an operation from its ``\\bar{E}``-barred partner.
+with ``|a|^2 + |b|^2 = 1``. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
+``U = \\exp[-i(φ/2)\\,𝐧⋅𝛔] = \\cos(φ/2)𝟙 - i\\sin(φ/2)\\,(𝐧⋅𝛔)``, i.e.
+``a = \\cos(φ/2) - i n_z\\sin(φ/2)`` and ``b = -(n_y + i n_x)\\sin(φ/2)`` (see [`su2`](@ref)).
+
+This is the spin-½ part of a double group operation: the two SU(2) elements of a spatial
+operation differ by an overall sign, `u` and `-u`, and that sign is what distinguishes an
+operation from its ``\\bar{E}``-barred partner.
 """
 @struct_hash_equal struct SU2 <: AbstractMatrix{ComplexF64}
     a :: ComplexF64
@@ -126,7 +130,10 @@ end
 
 # --- change of lattice basis ---
 # A change of lattice basis keeps the Cartesian frame fixed, so the SU(2) element is
-# unchanged. (A rotation of the Cartesian frame by `V` would instead act as `U → VUV†`.)
+# unchanged (see `su2`). This also holds when `transform` is used for a change of setting:
+# the SU(2) element stays with the physical operation, and need not equal the one tabulated
+# for the new setting. (A rotation of the Cartesian frame by `V` would instead act as
+# `U → VUV†`.)
 function transform(
     dop::DSymOperation{D},
     P::AbstractMatrix{<:Real},

@@ -27,7 +27,7 @@ explicitly as `nothing`.
 function classes(
             ops::AbstractVector{O},
             cntr::Union{Char, Nothing}=nothing,
-            _modτ::Bool=!(ops isa SiteGroup) # `SiteGroup` elements compose w/ `modτ=false`
+            _modτ::Bool=!(ops isa Union{SiteGroup, DSiteGroup}) # compose w/ `modτ=false`
             ) where {D, O<:AbstractOperation{D}}
 
     ops⁻¹ = inv.(ops)

@@ -314,10 +314,11 @@ function realify(irs::AbstractVector{T}) where T<:AbstractIrrep
 
             ir_partner = irs[idx_partner]
             blockmatrices = _blockdiag2x2.(ir.matrices, ir_partner.matrices)
-            if T <: PGIrrep || T <: SiteIrrep
+            if T <: AbstractPGIrrep || T <: AbstractSiteIrrep
                 # if `irs` were a SiteIrrep or PGIrrep w/ Mulliken labels, we may have to
                 # manually abbreviate the composite label
-                newlab = _abbreviated_mulliken_corep_label(label(ir), label(ir_partner))
+                newlab = _abbreviated_mulliken_corep_label(label(ir), label(ir_partner),
+                                                           irs)
             else
                 newlab = label(ir)*label(ir_partner)
             end
@@ -381,33 +382,24 @@ function _blockdiag2x2(A::AbstractMatrix{T}) where T
 end
 
 # ---------------------------------------------------------------------------------------- #
-function _abbreviated_mulliken_corep_label(lab1, lab2)
+function _abbreviated_mulliken_corep_label(lab1, lab2, irs)
     # the Mulliken label of a corep is not always the concatenation of the Mulliken labels
     # of the associated irrep labels, because the corep label is sometimes abbreviated 
     # relative to the concatenated form; this only occurs for COMPLEX labels where the
-    # abbreviation will remove repeated pre-superscript labels; we fix it below in a
-    # slightly dull way by just checking the abbreviation-exceptions manually listed in
-    # `MULLIKEN_LABEL_REALITY_EXCEPTIONS` and abbreviating accordingly; if not an exception
-    # it is still the concatenation of irrep-labels
-    MULLIKEN_LABEL_REALITY_EXCEPTIONS = (
-        ("²E", "¹E") => "E",
-        ("²Eg", "¹Eg") => "Eg",
-        ("²Eᵤ", "¹Eᵤ") => "Eᵤ",
-        ("²E₁", "¹E₁") => "E₁",
-        ("²E₂", "¹E₂") => "E₂",
-        ("²E′", "¹E′") => "E′",
-        ("²E′′", "¹E′′") => "E′′",
-        ("²E₁g", "¹E₁g") => "E₁g",
-        ("²E₁ᵤ", "¹E₁ᵤ") => "E₁ᵤ",
-        ("²E₂g", "¹E₂g") => "E₂g",
-        ("²E₂ᵤ", "¹E₂ᵤ") => "E₂ᵤ")
-    for (lab1′lab2′, abbreviated_lab1′lab2′) in MULLIKEN_LABEL_REALITY_EXCEPTIONS
-        if (lab1, lab2) == lab1′lab2′ || (lab2, lab1) == lab1′lab2′
-            return abbreviated_lab1′lab2′
+    # abbreviation will remove repeated pre-superscript labels, i.e., where ¹X and ²X
+    # abbreviate to X; we abbreviate accordingly - unless X is itself the label of an irrep
+    # in `irs`, as for the double-valued irreps of 3 and -3, which have both a ¹Xˢ, a ²Xˢ,
+    # and an Xˢ; if not abbreviated, the label is still the concatenation of irrep-labels
+    startswith(lab1, '²') && startswith(lab2, '¹') && ((lab1, lab2) = (lab2, lab1))
+    if startswith(lab1, '¹') && startswith(lab2, '²')
+        X = lab1[nextind(lab1, 1):end]
+        if X == lab2[nextind(lab2, 1):end] && !any(ir -> label(ir) == X, irs)
+            return X
         end
     end
     return lab1*lab2
 end
+
 # ---------------------------------------------------------------------------------------- #
 @doc raw"""
     calc_reality(

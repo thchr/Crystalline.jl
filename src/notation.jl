@@ -420,7 +420,7 @@ _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for 
 # -----------------------------------------------------------------------------------------
 # MULLIKEN NOTATION FOR POINT GROUP IRREPS
 
-const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
+const PGIRLABS_CDML2MULLIKEN_3D = Dict(
     # sorted in ascending order wrt. Γᵢ CDML sorting; i.e. as 
     #       Γ₁, Γ₂, ... 
     #   or  Γ₁⁺, Γ₁⁻, Γ₂⁺, Γ₂⁻, ...
@@ -486,7 +486,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     "m-3m"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
 )
 
-const PGIRLABS_CDML2MULLIKEN_3D_COREP = ImmutableDict(
+const PGIRLABS_CDML2MULLIKEN_3D_COREP = Dict(
     # Same as `PGIRLABS_CDML2MULLIKEN_3D` but with labels for physically real irreps 
     # (coreps); the label for real irreps are unchanged, but the labels for complex irreps
     # differ (e.g. ¹E and ²E becomes E). Point groups 1, -1, 2, m, 2/m, 222, mm2, mmm, 422,
@@ -536,17 +536,19 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 [^2]: Bilbao Crystallographic Database's
       [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
-function mulliken(pgir::PGIrrep{D}) where D
+function mulliken(pgir::AbstractPGIrrep)
     pglab   = label(group(pgir))
     pgirlab = label(pgir)
     return _mulliken(pglab, pgirlab, iscorep(pgir))
 end
 function _mulliken(pglab, pgirlab, iscorep) # split up to let `SiteIrrep` overload `mulliken`
-    if iscorep
-        return PGIRLABS_CDML2MULLIKEN_3D_COREP[pglab][pgirlab]
+    if endswith(pgirlab, 'ˢ') # double-valued irrep (see `src/double/notation.jl`)
+        tbl = iscorep ? PGIRLABS_CDML2MULLIKEN_3D_SPINFUL_COREP :
+                        PGIRLABS_CDML2MULLIKEN_3D_SPINFUL
     else
-        return PGIRLABS_CDML2MULLIKEN_3D[pglab][pgirlab]
+        tbl = iscorep ? PGIRLABS_CDML2MULLIKEN_3D_COREP : PGIRLABS_CDML2MULLIKEN_3D
     end
+    return tbl[pglab][pgirlab]
 end
 
 #=

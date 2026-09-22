@@ -145,3 +145,24 @@ end
 end
 
 end # @testset "Double groups"
+
+@testset "Cartesian frame of the tabulated SU(2) elements" begin
+    # the rotation `R` by which an SU(2) element `u` acts on vectors, via
+    # `U σⱼ U† = Σᵢ Rᵢⱼ σᵢ` (`U = matrix(u)`)
+    σ = ([0 1; 1 0], [0 -im; im 0], [1 0; 0 -1])
+    rotation_of(u) = (U = Crystalline.matrix(u);
+                      [real(tr(σ[i]*U*σ[j]*adjoint(U)))/2 for i in 1:3, j in 1:3])
+    # the frame documented in the `su2` docstring: Crystalline's, except for hexagonal and
+    # trigonal lattices, where it is rotated by a two-fold rotation about (1,1,0)
+    Q = SMatrix{3,3}(0, 1, 0, 1, 0, 0, 0, 0, -1)
+    for sgnum in 1:MAX_SGNUM[3]
+        hexagonal = crystalsystem(sgnum) ∈ ("hexagonal", "trigonal")
+        A = stack(directbasis(sgnum)) # any compatible basis; the rotations do not depend on it
+        for op in spacegroup(sgnum, Val(3))
+            W = rotation(op)
+            R = A * (det(W) * W) / A # Cartesian rotation (proper part: spin is axial)
+            hexagonal && (R = Q * R * Q')
+            @test rotation_of(su2(op, sgnum)) ≈ R atol=1e-10
+        end
+    end
+end

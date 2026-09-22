@@ -161,7 +161,7 @@ function show(io::IO, g::AbstractGroup)
     join(io, g, ", ")
     print(io, ']')
 end
-function show(io::IO, g::Union{LittleGroup, SiteGroup})
+function show(io::IO, g::Union{LittleGroup, SiteGroup, DLittleGroup, DSiteGroup})
     print(io, '[')
     join(io, g, ", ")
     print(io, ']')
@@ -320,7 +320,7 @@ function prettyprint_irrep_matrix(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, ir::Union{<:AbstractPGIrrep, <:SiteIrrep}, i::Integer
+        io::IO, ir::Union{<:AbstractPGIrrep, <:AbstractSiteIrrep}, i::Integer
     )
     P = ir.matrices[i]
     prettyprint_scalar_or_matrix(io, P, false)
@@ -328,7 +328,7 @@ end
 
 function prettyprint_irrep_matrices(
         io::IO,
-        ir::Union{<:AbstractLGIrrep, <:AbstractPGIrrep, <:SiteIrrep},
+        ir::Union{<:AbstractLGIrrep, <:AbstractPGIrrep, <:AbstractSiteIrrep},
         nindent::Integer
     )
     indent = repeat(' ', nindent)

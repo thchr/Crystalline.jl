@@ -103,10 +103,12 @@ include("double/su2_table.jl")
 include("double/su2.jl")
 include("double/groups.jl")
 include("double/irreps.jl")
+include("double/notation.jl")
 include("double/show.jl")
 export SU2, DSymOperation, su2, isbarred
 export DSpaceGroup, DPointGroup, DLittleGroup, DSiteGroup
-export DLGIrrep, DPGIrrep
+export doublegroup
+export DLGIrrep, DPGIrrep, DSiteIrrep
 
 include("tables/rotation_translation.jl")
 include("tables/groups/pointgroup.jl")

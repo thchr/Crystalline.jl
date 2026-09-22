@@ -18,7 +18,6 @@ else
 @test pgirreps("4mm", 3, true) == pgirreps(13, Val(3), Val(true))
 @test pgirreps("4mm", Val(3), Val(false)) == pgirreps("4mm", Val(3))
 @test_throws DomainError pgirreps("4mm", Val(2), Val(true))
-@test_throws ErrorException pgirreps("4mm", Val(3), Val(true); mulliken=true)
 
 for iuc in PG_IUCs[3]
     pgirs = pgirreps(iuc, Val(3), Val(true))
@@ -80,6 +79,17 @@ for sgnum in 1:MAX_SGNUM[3]
     end
 end
 end
+end
+
+@testset "Mulliken labels" begin
+    for iuc in Crystalline.PG_IUCs[3]
+        pgirs  = pgirreps(iuc, Val(3), Val(true))
+        pgirsₘ = pgirreps(iuc, Val(3), Val(true); mulliken=true)
+        @test label.(pgirsₘ) == mulliken.(pgirs)
+        @test allunique(label.(pgirsₘ)) && all(l -> endswith(l, 'ˢ'), label.(pgirsₘ))
+        # co-reps: `mulliken` of the co-reps agrees with `realify` of Mulliken-labelled irreps
+        @test label.(realify(pgirsₘ)) == mulliken.(realify(pgirs))
+    end
 end
 
 end # @testset "Double-valued point group irreps"

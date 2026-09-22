@@ -108,9 +108,9 @@ as a `Vector{PGIrrep{D}}`.
 
 If `S` (or `spinful`) is `true`, the double-valued irreps of the double point group are
 returned instead, as `DPGIrrep{D}`s (currently available in 3D only). Their labels are the
-CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`); Mulliken labels are not yet available for
-them. The single-valued irreps of a double group coincide with those of the ordinary group
-and are not included.
+CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
+`"¹E₁ˢ"`). The single-valued irreps of a double group coincide with those of the ordinary
+group and are not included.
 
 See `Crystalline.PG_IUC2NUM[D]` for possible IUC labels in dimension `D`.
 
@@ -146,7 +146,6 @@ function pgirreps(
     pg = pointgroup(iuclab, Dᵛ, spinfulᵛ) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab, _pgirreps_jldfile(spinfulᵛ))
-    S && mulliken && error("Mulliken labels are not yet available for double-valued irreps")
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
     return Collection(_pgirrep.(pgirlabs, Ref(pg), matrices, Reality.(realities)))

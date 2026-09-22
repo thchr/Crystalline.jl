@@ -163,6 +163,16 @@ julia> issubgroup(sg168′, sg3) # settings now agree, and subgroup relationship
 true
 ```
 Here, there is only one possible transformation: in general, however, there may be many.
+
+## Double groups
+A double group is fixed by its spatial operations, so a subgroup relation between two space
+groups holds also between their double groups, and the above suffices to establish it. To
+obtain the double group operations in the setting of the target group, transform the
+spatial operations as above and attach the SU(2) elements tabulated for the target setting
+(see [`su2`](@ref)), e.g. `DSymOperation{3}(op′, su2(op′, 3))` for an operation `op′` of
+`sg168′` that belongs to ⋕3 (with `-su2(op′, 3)` for its barred partner). Transforming the
+operations of a `DSpaceGroup` directly does not give the tabulated SU(2) elements, since
+`transform` keeps each SU(2) element with its physical operation.
 """
 function conjugacy_relations(
             gr::GroupRelationGraph{D},

@@ -68,6 +68,24 @@ function DPGIrrep{D}(
 end
 
 """
+$(TYPEDEF)$(TYPEDFIELDS)
+
+A double-valued (spinful) irrep of a site symmetry group, i.e., an irrep of a double site
+symmetry group `g` in which ``\bar{E}`` is represented by `-𝟙`.
+
+The fields mirror those of [`SiteIrrep`](@ref), with one matrix for each of the `2|G|`
+operations of `g`.
+"""
+@struct_hash_equal struct DSiteIrrep{D} <: AbstractSiteIrrep{D}
+    cdml     :: String
+    g        :: DSiteGroup{D}
+    matrices :: Vector{Matrix{ComplexF64}}
+    reality  :: Reality
+    iscorep  :: Bool
+    pglabel  :: String # label of point group that is isomorphic to the site group `g`
+end
+
+"""
     isspinful(x) -> Bool
 
 Return whether `x` (an irrep, an irrep type, a symmetry vector, or a band representation) is
@@ -76,7 +94,7 @@ spinful, i.e., double-valued, as appropriate for half-integer angular momentum. 
 """
 isspinful(ir::AbstractIrrep) = isspinful(typeof(ir))
 isspinful(::Type{<:AbstractIrrep}) = false
-isspinful(::Type{<:Union{DLGIrrep, DPGIrrep}}) = true
+isspinful(::Type{<:Union{DLGIrrep, DPGIrrep, DSiteIrrep}}) = true
 
 # --- Loading (see `lgirreps` in /src/littlegroup_irreps.jl and `pgirreps` in
 #     /src/pointgroup.jl) ---
