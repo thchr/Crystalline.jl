@@ -246,7 +246,7 @@ Equivalently, every element of the orbit of ``\\mathbf{r}`` can be written as th
 composition of a coset representative of the Wyckoff position's site group in ``G`` with
 ``\\mathbf{r}``.
 """
-function orbit(g::SiteGroup)
+function orbit(g::Union{SiteGroup, DSiteGroup})
     rv′s = cosets(g) .* Ref(position(g))
 end
 
@@ -285,7 +285,7 @@ SiteGroup{2} ⋕5 (c1m1) at 2a = [0, β] with 2 operations:
  m₁₀
 ```
 """
-function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
+function findmaximal(sitegs::AbstractVector{<:Union{SiteGroup{D}, DSiteGroup{D}}}) where D
     maximal = Int[]
     for (idx, g) in enumerate(sitegs)
         wp = position(g)

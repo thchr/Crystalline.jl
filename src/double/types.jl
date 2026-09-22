@@ -77,6 +77,10 @@ in any setting, so [`isbarred`](@ref) computes it on demand rather than every
     su2 :: SU2
 end
 SymOperation{D}(dop::DSymOperation{D}) where D = dop.op
+# a pure lattice translation, which acts trivially on spin (cf. `SymOperation{D}(::AbstractVector)`)
+function DSymOperation{D}(t::AbstractVector{<:Real}) where D
+    return DSymOperation{D}(SymOperation{D}(t), one(SU2))
+end
 SymOperation(dop::DSymOperation) = dop.op
 
 """

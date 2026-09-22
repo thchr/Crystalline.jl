@@ -46,6 +46,8 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   and site symmetry irreps also have Mulliken labels (`mulliken=true`), as in Bilbao.
 - Double-valued site symmetry irreps: `DSiteIrrep`, via `siteirreps` of a double site
   symmetry group: `sitegroup(sg::DSpaceGroup, wp)`, `sitegroups(sgnum, Val(3), Val(true))`.
+- Spinful band representations: `calc_bandreps(sgnum, Val(3), Val(true))` (or
+  `calc_bandreps(sgnum, 3, true)`), induced from the double-valued site symmetry irreps.
 - `doublegroup`: the double group of a space, little, point, or site symmetry group.
 - SU(2) elements (`su2`) follow Bilbao and Altmann & Herzig, whose Cartesian frame differs
   from Crystalline's for hexagonal and trigonal lattices (see the `su2` docstring).

@@ -34,7 +34,7 @@ function classes(
     cntr_ops = if cntr === nothing
         nothing
     else
-        _translation_operation.(O, all_centeringtranslations(cntr, Val(D)))
+        O.(all_centeringtranslations(cntr, Val(D)))
     end
 
     conj_classes = Vector{Vector{O}}()
@@ -80,12 +80,6 @@ function classes(
     return conj_classes
 end
 classes(g::AbstractGroup) = classes(g, centering(g))
-# a pure lattice translation (which acts trivially on spin)
-_translation_operation(::Type{SymOperation{D}}, t) where D = SymOperation{D}(t)
-function _translation_operation(::Type{DSymOperation{D}}, t) where D
-    return DSymOperation{D}(SymOperation{D}(t), one(SU2))
-end
-
 # adds `b` to `class` and index of `b` in `ops` to `classified`
 function add_to_class!(classified, class, b, ops)
     i′ = findfirst(op -> isapprox(op, b, nothing, false), ops)

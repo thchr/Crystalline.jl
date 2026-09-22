@@ -69,8 +69,8 @@ function _rebuild_irrep_with_modified_group(ir::IR, g′) where {D, IR<:Abstract
 
     return IR(ir.cdml, g′, ir.matrices, τs′, ir.reality, ir.iscorep)
 end
-function _rebuild_irrep_with_modified_group(ir::SiteIrrep{D}, g′::SiteGroup{D}) where D
-    return SiteIrrep{D}(ir.cdml, g′, ir.matrices, ir.reality, ir.iscorep, ir.pglabel)
+function _rebuild_irrep_with_modified_group(ir::IR, g′) where IR<:AbstractSiteIrrep
+    return IR(ir.cdml, g′, ir.matrices, ir.reality, ir.iscorep, ir.pglabel)
 end
 
 """
