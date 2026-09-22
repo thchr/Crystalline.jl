@@ -373,7 +373,7 @@ test_tp_show(characters(lgirreps(230)["P"]), str)
 # -------------------------------
 brs = bandreps(42, 3)
 str = """
-BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
+BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spinless w/ TR)
 ────┬────────────────────────
     │ 4a  4a  4a  4a  8b  8b
     │ A₁  A₂  B₁  B₂  A   B

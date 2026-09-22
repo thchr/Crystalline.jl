@@ -75,6 +75,7 @@ using Crystalline, Test
     include("double/groups.jl")
     include("double/lgirreps.jl")
     include("double/pgirreps.jl")
+    include("double/symmetryvectors.jl")
     include("double/show.jl")
 
     # group relations (sub- & supergroups)

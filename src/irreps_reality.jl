@@ -25,8 +25,7 @@ end
 # that are pseudoreal for ordinary (single-valued) irreps, but those that are real for
 # double-valued irreps, since time reversal then squares to -1 (see Elcoro et al., J. Appl.
 # Cryst. 50, 1457 (2017), subsection "Complex conjugation")
-_selfdoubling_reality(::AbstractIrrep) = PSEUDOREAL
-_selfdoubling_reality(::Union{DLGIrrep, DPGIrrep}) = REAL
+_selfdoubling_reality(ir::AbstractIrrep) = isspinful(ir) ? REAL : PSEUDOREAL
 
 """
     realify(lgirs::AbstractVector{<:AbstractLGIrrep}; verbose::Bool=false)

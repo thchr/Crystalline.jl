@@ -67,6 +67,17 @@ function DPGIrrep{D}(
     return DPGIrrep{D}(cdml, pg, matrices, reality, false)
 end
 
+"""
+    isspinful(x) -> Bool
+
+Return whether `x` (an irrep, an irrep type, a symmetry vector, or a band representation) is
+spinful, i.e., double-valued, as appropriate for half-integer angular momentum. Otherwise,
+`x` is spinless, i.e., single-valued, as appropriate for integer angular momentum.
+"""
+isspinful(ir::AbstractIrrep) = isspinful(typeof(ir))
+isspinful(::Type{<:AbstractIrrep}) = false
+isspinful(::Type{<:Union{DLGIrrep, DPGIrrep}}) = true
+
 # --- Loading (see `lgirreps` in /src/littlegroup_irreps.jl and `pgirreps` in
 #     /src/pointgroup.jl) ---
 # The data files store a double-valued irrep only on the operations of the ordinary little

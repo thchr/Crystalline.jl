@@ -17,7 +17,9 @@ lowest-lying bands are returned first.
   convention that `symeigsv[kidx][bandidx][opidx]` gives the symmetry eigenvalue of the
   `kidx`th **k**-point and the `bandidx`th band, under the action of the `opidx`th symmetry
    operation in the little group of the `kidx`th **k**-point. The sorting of little group
-   operations must correspond to those in `group(irreps(brs)[kidx])`.
+   operations must correspond to those in `group(irreps(brs)[kidx])`. For spinful band
+   representations, the required little group operations are those of the doubled little
+   group, including "barred" operations.
 - `brs :: Collection{NewBandRep{D}}`: a collection of band representations, iterating a set
    of `NewBandRep{D}` objects, obtained from [`calc_bandreps`](@ref), and is expected to be
    provided in `primitivized` form (see [`primitivize(::Collection{<:NewBandRep})`](@ref)).
@@ -41,17 +43,17 @@ used by [`find_multiplicities`](@ref).
 """
 function collect_compatible(
     symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
-    brs::Collection{NewBandRep{D}},
+    brs::Collection{<:NewBandRep{D, IR}},
     F::Smith{<:Integer} = smith(stack(brs));
     kws...
-) where D
+) where {D, IR}
     lgirsv = irreps(brs)
     bandirsv = map(zip(lgirsv, symeigsv)) do (lgirs, symeigs)
         find_multiplicities(symeigs, lgirs; kws...)
     end
     candidate_ns = build_candidate_symmetryvectors(bandirsv, lgirsv)
 
-    ns = SymmetryVector{D}[]
+    ns = SymmetryVector{D, IR}[]
     idx = 1
     while idx ≤ length(candidate_ns)
         n_and_idx = _find_next_separable_band_grouping(candidate_ns, F, idx)
@@ -110,9 +112,9 @@ The required irrep data `bandirsv` can be obtained from
 """
 function build_candidate_symmetryvectors(
     bandirsv::Vector{Vector{Pair{UnitRange{Int}, Vector{Int}}}},
-    lgirsv::AbstractVector{Collection{LGIrrep{D}}};
+    lgirsv::AbstractVector{Collection{IR}};
     latestarts::Union{Dict{String, Int}, Nothing} = nothing
-) where D
+) where {D, IR<:AbstractLGIrrep{D}}
     if length(bandirsv) ≠ length(lgirsv)
         throw(DimensionMismatch("incompatible lengths of `bandirsv` and `lgirsv`"))
     end
@@ -121,7 +123,7 @@ function build_candidate_symmetryvectors(
     # line will throw an error.
     if any(isempty, bandirsv)
         # return empty `collectibles_bands, collectibles_symvecs`
-        return Vector{SymmetryVector{D}}()
+        return Vector{SymmetryVector{D, IR}}()
     end
 
     Nbands = mapreduce(last∘first∘last, min, bandirsv) # smallest "last" band-index
@@ -215,13 +217,12 @@ corresponding to `group(lgirs)[opidx]`.
 """
 function find_multiplicities(
     symeigs::AbstractVector{<:AbstractVector{<:Number}},
-    lgirs::Collection{LGIrrep{D}};
+    lgirs::Collection{<:AbstractLGIrrep};
     atol::Real = MULTIPLICITY_ATOL,
     αβγ::AbstractVector{<:Real} = TEST_αβγ,
     latestarts::Union{Dict{String,Int}, Nothing} = nothing,
     maxresnorm::Real = MAXRESNORM_TOL
-) where D
-    
+)
     Nbands = length(symeigs)
     bandirs = Pair{UnitRange{Int}, Vector{Int}}[]
     start = stop = isnothing(latestarts) ? 1 : get(latestarts, klabel(lgirs), 1)
@@ -287,9 +288,9 @@ julia> collect_irrep_annotations(symeigs, lgirs)
 """
 function collect_irrep_annotations(
     symeigs::AbstractVector{<:AbstractVector{<:Number}},
-    lgirs::Collection{LGIrrep{D}};
+    lgirs::Collection{<:AbstractLGIrrep};
     multiplicity_kws...
-) where D
+)
     # `bandirs` contains a vector of pairs, over band indices (a UnitRange) & irrep
     # multiplicities into `lgirs` (a Vector{Int})
     bandirs = find_multiplicities(symeigs, lgirs; multiplicity_kws...)
@@ -320,9 +321,9 @@ Keyword arguments are passed to [`Crystalline.find_multiplicities`](@ref).
 """
 function collect_irrep_annotations(
     symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
-    lgirsv::AbstractVector{Collection{LGIrrep{D}}};
+    lgirsv::AbstractVector{Collection{IR}};
     multiplicity_kws...
-) where D
+) where IR<:AbstractLGIrrep
     annotations_map = Iterators.map(zip(symeigsv, lgirsv)) do (symeigs, lgirs)
         klabel(lgirs) => collect_irrep_annotations(symeigs, lgirs; multiplicity_kws...)
     end

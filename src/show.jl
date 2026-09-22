@@ -529,6 +529,12 @@ function show(io::IO, BR::BandRep)
 end
 
 # ---------------------------------------------------------------------------------------- #
+# Spin tag for band representations and symmetry vectors: single-valued irreps apply to any
+# integer (total) angular momentum, double-valued irreps to any half-integer one
+
+_spin_tag(x) = isspinful(x) ? "spinful" : "spinless"
+
+# ---------------------------------------------------------------------------------------- #
 # BandRepSet
 
 function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
@@ -539,7 +545,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
     println(io, "BandRepSet (⋕", num(brs), "): ",
                 length(brs), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
-                "(spin-", isspinful(brs) ? "½" : "1", " ",
+                "(", _spin_tag(brs), " ",
                 brs.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
@@ -581,8 +587,13 @@ end
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
 
+# the type name with only its dimension, e.g. `SymmetryVector{3}`: the irrep type parameters
+# are not relevant to a user, beyond whether the irreps are spinful (see `_spin_tag`)
+_typename_with_dim(::T) where T<:AbstractSymmetryVector = _typename_with_dim(T)
+_typename_with_dim(T::Type{<:AbstractSymmetryVector}) = string(nameof(T), "{", dim(T), "}")
+
 function Base.show(io :: IO, ::MIME"text/plain", n :: SymmetryVector)
-    print(io, length(n)-1, "-irrep ", typeof(n), ":\n ")
+    print(io, length(n)-1, "-irrep ", _typename_with_dim(n), " (", _spin_tag(n), "):\n ")
     show(io, n)
 end
 function Base.show(io :: IO, n :: SymmetryVector)
@@ -605,7 +616,8 @@ end
 # NewBandRep
 
 function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
-    print(io, length(br.n)-1, "-irrep ", typeof(br), ":\n ")
+    print(io, length(br.n)-1, "-irrep ", _typename_with_dim(br),
+              " (", _spin_tag(br), "):\n ")
     print(io, "(", )
     printstyled(io, label(position(br.siteir)); bold=true)
     print(io, "|")
@@ -626,10 +638,11 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
     Nⁱʳʳ = length(irlabs)
 
     # print a "summary" line
-    print(io, length(brs), "-element ", typeof(brs), " for ⋕", num(brs))
+    print(io, length(brs), "-element Collection{", _typename_with_dim(eltype(brs)), "}")
+    print(io, " for ⋕", num(brs))
     print(io, " (", iuc(num(brs), dim(brs)), ") ")
     print(io, "over ", Nⁱʳʳ, " irreps")
-    print(io, " (spin-", first(brs).spinful ? "½" : "1", 
+    print(io, " (", _spin_tag(first(brs)), 
               " w/", first(brs).timereversal ? "" : "o", "TR):")
     println(io)
 
@@ -673,7 +686,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 # CompositeBandRep
 
-function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
+function Base.show(io::IO, cbr::CompositeBandRep)
     first = true
     for (j, c) in enumerate(cbr.coefs)
         iszero(c) && continue
@@ -696,8 +709,9 @@ function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
     first && print(io, "0")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
-    println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
+function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep)
+    println(io, length(irreplabels(cbr)), "-irrep ", _typename_with_dim(cbr),
+                " (", _spin_tag(cbr), "):")
     print(io, " ")
     show(io, cbr)
     μ = occupation(cbr)

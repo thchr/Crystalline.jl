@@ -207,10 +207,8 @@ function calc_bandrep(
         m * irdim(lgir)
     end
     n = SymmetryVector(lgirsv, multsv, occupation)
-    
-    spinful = false # NB: default; Crystalline currently doesn't have spinful irreps
 
-    return NewBandRep(siteir, n, timereversal, spinful)
+    return NewBandRep(siteir, n, timereversal)
 end
 function calc_bandrep(
         siteir :: SiteIrrep{D}; 
@@ -294,7 +292,7 @@ function calc_bandreps(
     if !include_nonmaximal
         sitegs = findmaximal(sitegs)
     end
-    brs = NewBandRep{D}[]
+    brs = NewBandRep{D, LGIrrep{D}, SiteIrrep{D}}[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal
@@ -311,7 +309,7 @@ calc_bandreps(sgnum::Integer, D::Integer; kws...) = calc_bandreps(sgnum, Val(D);
 # ---------------------------------------------------------------------------------------- #
 
 # performance optimization
-function Base.stack(brs::Collection{NewBandRep{D}}) where D
+function Base.stack(brs::Collection{<:NewBandRep})
     B = Matrix{Int}(undef, length(first(brs)), length(brs))
     @inbounds for (j, br) in enumerate(brs)
         i = 1

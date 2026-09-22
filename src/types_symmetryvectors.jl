@@ -1,19 +1,29 @@
 # ---------------------------------------------------------------------------------------- #
 # AbstractSymmetryVector definition
-abstract type AbstractSymmetryVector{D} <: AbstractVector{Int} end
+
+"""
+    AbstractSymmetryVector{D, IR<:AbstractLGIrrep{D}} <: AbstractVector{Int}
+
+Abstract supertype for symmetry vectors in dimension `D`, over little group irreps of type
+`IR` (`LGIrrep{D}` for spinless and `DLGIrrep{D}` for spinful symmetry vectors).
+"""
+abstract type AbstractSymmetryVector{D, IR<:AbstractLGIrrep{D}} <: AbstractVector{Int} end
+
+isspinful(::AbstractSymmetryVector{D, IR}) where {D, IR} = isspinful(IR)
 
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
 
 """
-    SymmetryVector{D} <: AbstractSymmetryVector{D}
+    SymmetryVector{D, IR<:AbstractLGIrrep{D}} <: AbstractSymmetryVector{D}
 
 A symmetry vector in dimension `D`, containing the featured irreps and their multiplicities
-and overall band occupation number.
+and overall band occupation number. The irreps are of type `IR`: `LGIrrep{D}` for spinless
+and `DLGIrrep{D}` for spinful symmetry vectors.
 
 ## Fields
-- `lgirsv :: Vector{Collection{LGIrrep{D}}}` (`const`): a vector of `LGIrrep{D}` collections
-  associated with each high-symmetry **k**-point of a space group.
+- `lgirsv :: Vector{Collection{IR}}` (`const`): a vector of irrep collections associated
+  with each high-symmetry **k**-point of a space group.
 - `multsv :: JaggedVector{Int}}` (`const`): a vector of vectors of associated irrep
   multiplicities, with a `JaggedVector` representation.
   The irrep `lgirsv[i][j]` occurs with multiplicity `multsv[i][j]` in the symmetry vector.
@@ -28,22 +38,24 @@ and overall band occupation number.
   `Vector`.
 
 ## Construction
-- From strings: see `parse(::Type{SymmetryVector{D}}, ::AbstractString,
-  ::Vector{Collection{LGIrrep{D}}})`.
+- From strings: see `parse(::Type{<:SymmetryVector}, ::AbstractString,
+  ::Vector{<:Collection{<:AbstractLGIrrep}})`.
 - From "raw" concatenated vectors: see [`SymmetryVector`](@ref)`(::AbstractVector{<:Integer},
   ...)`.
 """
-@struct_hash_equal mutable struct SymmetryVector{D} <: AbstractSymmetryVector{D}
-    const lgirsv :: Vector{Collection{LGIrrep{D}}}
+@struct_hash_equal mutable struct SymmetryVector{
+    D, IR<:AbstractLGIrrep{D}
+} <: AbstractSymmetryVector{D, IR}
+    const lgirsv :: Vector{Collection{IR}}
     const multsv :: JaggedVector{Int} # Vector{Vector{Int}}
     occupation   :: Int
 end
 function SymmetryVector(
-    lgirsv::Vector{Collection{LGIrrep{D}}},
+    lgirsv::Vector{Collection{IR}},
     multsv::AbstractVector{<:AbstractVector{<:Integer}},
     occupation::Int
-) where D
-    return SymmetryVector{D}(lgirsv, JaggedVector{Int}(multsv), occupation)
+) where {D, IR<:AbstractLGIrrep{D}}
+    return SymmetryVector{D, IR}(lgirsv, JaggedVector{Int}(multsv), occupation)
 end
 
 # ::: AbstractSymmetryVector interface :::
@@ -55,8 +67,8 @@ SymmetryVector{D}(n::SymmetryVector{D}) where D = n
 SymmetryVector{D′}(::SymmetryVector{D}) where {D′, D} = error("incompatible dimensions")
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
-function Base.similar(n::SymmetryVector{D}) where D
-    SymmetryVector{D}(irreps(n), similar(multiplicities(n)), 0)
+function Base.similar(n::SymmetryVector)
+    SymmetryVector(irreps(n), similar(multiplicities(n)), 0)
 end
 @propagate_inbounds function Base.getindex(n::SymmetryVector, i::Int)
     Nⁱʳ = length(n)
@@ -74,9 +86,9 @@ end
 end
 
 # copy: want to copy just the multiplicities, but not the underlying irrep data
-function Base.copy(n::SymmetryVector{D}) where D
+function Base.copy(n::SymmetryVector)
     # NB: `copy(multiplicities(n))` is _not_ a shallow copy, since it is a JaggedVector
-    SymmetryVector{D}(n.lgirsv, copy(multiplicities(n)), n.occupation)
+    SymmetryVector(n.lgirsv, copy(multiplicities(n)), n.occupation)
 end
 
 # ::: Optimizations and utilities :::
@@ -95,9 +107,9 @@ num(n::SymmetryVector) = num(first(first(irreps(n))))
 
 
 """ 
-    parse(::Type{SymmetryVector{D}}, 
+    parse(::Type{<:SymmetryVector},
           s::AbstractString,
-          lgirsv::Vector{Collection{LGIrrep{D}}})  ->  SymmetryVector{D}
+          lgirsv::Vector{<:Collection{<:AbstractLGIrrep}})  ->  SymmetryVector
 
 Parse a string `s` to a `SymmetryVector` over the irreps provided in `lgirsv`. 
 The irrep labels of `lgirsv` and `s` must use the same convention.
@@ -111,14 +123,14 @@ julia> lgirsv = irreps(brs); # irreps at Γ, H, P, PA, & N
 julia> s = "[Γ₁+Γ₂+Γ₄+Γ₅, H₁H₂+H₄H₅, 2P₃, 2PA₃, 4N₁]";
 
 julia> parse(SymmetryVector, s, lgirsv)
-15-irrep SymmetryVector{3}:
+15-irrep SymmetryVector{3} (spinless):
  [Γ₁+Γ₂+Γ₄+Γ₅, H₁H₂+H₄H₅, 2P₃, 2PA₃, 4N₁] (8 bands)
 ```
 """
 function Base.parse(
             T::Type{<:SymmetryVector},
             s::AbstractString, 
-            lgirsv::Vector{Collection{LGIrrep{D}}}) where D
+            lgirsv::Vector{Collection{IR}}) where {D, IR<:AbstractLGIrrep{D}}
     if !isnothing(dim(T)) && dim(T) != D
         # small dance to allow using both `T=SymmetryVector` & `T=SymmetryVector{D}`
         error("incompatible dimensions of requested SymmetryVector and provided `lgirsv`")
@@ -159,7 +171,7 @@ end
     SymmetryVector(
         nv :: AbstractVector{<:Integer},
         irlabs_nv :: AbstractVector{<:AbstractString},
-        lgirsd :: AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) --> SymmetryVector{D}
+        lgirsd :: AbstractDict{String, <:AbstractVector{IR}}) --> SymmetryVector{D, IR}
 
 Build a structured `SymmetryVector` representation of a "raw" vector `nv` of irrep
 multiplicities, whose `i`th element gives the irrep multiplicity of the irrep whose label 
@@ -174,14 +186,15 @@ is the main utility of the function: to map between differently sorted raw vecto
 structured irrep storage in `lgirsd`.
 """
 function SymmetryVector(
-            nv::AbstractVector{<:Integer},
-            irlabs_nv::AbstractVector{String},
-            lgirsd::AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) where D
+    nv::AbstractVector{<:Integer},
+    irlabs_nv::AbstractVector{String},
+    lgirsd::AbstractDict{String, <:AbstractVector{IR}}
+) where {D, IR<:AbstractLGIrrep{D}}
 
     klabs = klabel.(unique(klabel, irlabs_nv))
     Nk = length(klabs)
     multsv = [Int[] for _ in 1:Nk]
-    lgirsv = [LGIrrep{D}[] for _ in 1:Nk]
+    lgirsv = [IR[] for _ in 1:Nk]
     j = 1
     for (nᵢ, irlabᵢ) in zip(nv, irlabs_nv)
         klabᵢ = klabel(irlabᵢ)
@@ -207,36 +220,37 @@ function SymmetryVector(
         error("n must contain its band connectivity")
     end
     μ = nv[end]
-    return SymmetryVector{D}(lgirsv, multsv, μ)
+    return SymmetryVector(lgirsv, multsv, μ)
 end
 
 """
     SymmetryVectors(
         nvs :: AbstractVector{<:Integer},
         irlabs_nv :: AbstractVector{<:AbstractString},
-        lgirsd :: AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) 
-                                                            --> Vector{SymmetryVector{D}}
+        lgirsd :: AbstractDict{String, <:AbstractVector{IR}})
+                                                        --> Vector{SymmetryVector{D, IR}}
 
 Similar to
 [`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)`](@ref),
 but for a vector of distinct raw multiplicy vectors `nvs`, rather than a single vector,
-returning a `Vector{SymmetryVector{D}}`.
+returning a `Vector{SymmetryVector{D, IR}}`.
 
 The returned `SymmetryVector`s, `ns`, will share the same underlying irrep information such
 that `irreps(n) === irreps(n′)` for all `n` and `n′` in `ns`.
 """
 function SymmetryVectors(
-            nvs::AbstractVector{<:AbstractVector{<:Integer}},
-            irlabs_nv::AbstractVector{String},
-            lgirsd::AbstractDict{String, <:AbstractVector{LGIrrep{D}}}) where D
+    nvs::AbstractVector{<:AbstractVector{<:Integer}},
+    irlabs_nv::AbstractVector{String},
+    lgirsd::AbstractDict{String, <:AbstractVector{IR}}
+) where {D, IR<:AbstractLGIrrep{D}}
 
-    isempty(nvs) && return SymmetryVector{D}[]
+    isempty(nvs) && return SymmetryVector{D, IR}[]
 
     klabs = klabel.(unique(klabel, irlabs_nv))
     Nk, Nir = length(klabs), length(irlabs_nv)
     j = 1
     sortidxs = Vector{Tuple{Int, Int}}(undef, Nir)
-    lgirsv = [Collection(LGIrrep{D}[]) for _ in 1:Nk] # to be shared across all `ns`
+    lgirsv = [Collection(IR[]) for _ in 1:Nk] # to be shared across all `ns`
     max_qs = zeros(Int, Nk)
     for (i, irlabᵢ) in enumerate(irlabs_nv)
         klabᵢ = klabel(irlabᵢ)
@@ -255,7 +269,7 @@ function SymmetryVectors(
         end
     end
 
-    ns = Vector{SymmetryVector{D}}(undef, length(nvs))
+    ns = Vector{SymmetryVector{D, IR}}(undef, length(nvs))
     for (r, nv) in enumerate(nvs)
         if length(nv) ≠ length(irlabs_nv)+1
             error("`nv` must contain its band connectivity")
@@ -368,17 +382,13 @@ function Base.:+(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) whe
         irreps(n), multiplicities(n) + multiplicities(m), occupation(n) + occupation(m)
     )
 end
-function Base.:-(n::AbstractSymmetryVector{D}) where D
-    SymmetryVector{D}(irreps(n), -multiplicities(n), -occupation(n))
-end
+Base.:-(n::AbstractSymmetryVector) = SymmetryVector(irreps(n), -multiplicities(n), -occupation(n))
 Base.:-(n::AbstractSymmetryVector{D}, m::AbstractSymmetryVector{D}) where D = n + (-m)
-function Base.:*(n::AbstractSymmetryVector{D}, k::Integer) where D
-    SymmetryVector{D}(irreps(n), multiplicities(n) * k, occupation(n) * k)
+function Base.:*(n::AbstractSymmetryVector, k::Integer)
+    SymmetryVector(irreps(n), multiplicities(n) * k, occupation(n) * k)
 end
 Base.:*(k::Integer, n::AbstractSymmetryVector) = n * k
-function Base.zero(n::AbstractSymmetryVector{D}) where D
-    SymmetryVector{D}(irreps(n), zero(multiplicities(n)), 0)
-end
+Base.zero(n::AbstractSymmetryVector) = SymmetryVector(irreps(n), zero(multiplicities(n)), 0)
 # make sure `sum(::AbstractSymmetryVector)` is type-stable (necessary since the + operation
 # now may change the type of an `AbstractSymmetryVector` - so `n[1]` and `n[1]+n[2]` may
 # be of different types) and always returns a `SymmetryVector`
@@ -392,20 +402,28 @@ dim(::Type{<:AbstractSymmetryVector}) = nothing
 # ---------------------------------------------------------------------------------------- #
 # NewBandRep
 
-@struct_hash_equal struct NewBandRep{D} <: AbstractSymmetryVector{D}
-    siteir       :: SiteIrrep{D}
-    n            :: SymmetryVector{D}
+"""
+    NewBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}}
+                                                        <: AbstractSymmetryVector{D, IR}
+
+A band representation in dimension `D`, induced from the site symmetry irrep `siteir` (of
+type `SIR`), with symmetry vector `n` over little group irreps of type `IR`.
+"""
+@struct_hash_equal struct NewBandRep{
+    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}
+} <: AbstractSymmetryVector{D, IR}
+    siteir       :: SIR
+    n            :: SymmetryVector{D, IR}
     timereversal :: Bool
-    spinful      :: Bool
 end
 
 # ::: AbstractSymmetryVector interface :::
 SymmetryVector(br::NewBandRep) = br.n
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
-Base.setindex!(br::NewBandRep{D}, v::Int, i::Int) where D = (br.n[i] = v)
-function Base.similar(br::NewBandRep{D}) where D
-    NewBandRep{D}(br.siteir, similar(br.n), br.timereversal, br.spinful)
+Base.setindex!(br::NewBandRep, v::Int, i::Int) = (br.n[i] = v)
+function Base.similar(br::NewBandRep)
+    NewBandRep(br.siteir, similar(br.n), br.timereversal)
 end
 Base.Vector(br::NewBandRep) = Vector(br.n)
 
@@ -414,12 +432,12 @@ group(br::NewBandRep) = group(br.siteir)
 Base.position(br::NewBandRep) = position(group(br))
 
 # ::: Conversion to BandRep :::
-function Base.convert(::Type{BandRep}, br::NewBandRep{D}) where D
+function Base.convert(::Type{BandRep}, br::NewBandRep)
     wyckpos     = label(position(br.siteir))
     sitesym     = br.siteir.pglabel
     siteirlabel = label(br.siteir)*"↑G"
     dim         = occupation(br)
-    spinful     = br.spinful
+    spinful     = isspinful(br)
     irvec       = collect(br)[1:end-1]
     irlabs      = irreplabels(br)
     return BandRep(wyckpos, sitesym, siteirlabel, dim, spinful, irvec, irlabs)
@@ -441,7 +459,7 @@ function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})
     kvs = [position(lgirs) for lgirs in irreps(brs)]
     klabs = klabels(brs)
     irlabs = irreplabels(brs)
-    spinful = first(brs).spinful
+    spinful = isspinful(first(brs))
     timereversal = first(brs).timereversal
     return BandRepSet(sgnum, bandreps, kvs, klabs, irlabs, spinful, timereversal)
 end
@@ -451,9 +469,10 @@ end
 # CompositeBandRep
 
 """
-    CompositeBandRep{D} <: AbstractSymmetryVector{D}
+    CompositeBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}}
+                                                        <: AbstractSymmetryVector{D, IR}
 
-A type representing a linear rational-coefficient combination of `NewBandRep{D}`s. 
+A type representing a linear rational-coefficient combination of `NewBandRep{D, IR, SIR}`s.
 
 Although the coefficients may be rational numbers in general, their superposition must
 correspond to integer-valued irrep multiplicities and band occupation numbers; in
@@ -466,7 +485,8 @@ indices into `brs`.
 - `coefs::Vector{Rational{Int}}`: a coefficient vector associated with each band
   representation in `brs`; the coefficient of the `i`th band representation `brs[i]` is
   `coefs[i]`.
-- `brs::Collection{NewBandRep{D}}`: the band representations referenced by `coefs`.
+- `brs::Collection{NewBandRep{D, IR, SIR}}`: the band representations referenced by
+  `coefs`.
 
 ## Example
 ### Fragile symmetry vector
@@ -478,7 +498,7 @@ julia> brs = calc_bandreps(2);
 julia> coefs = [0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1];
 
 julia> cbr = CompositeBandRep(coefs, brs)
-16-irrep CompositeBandRep{3}:
+16-irrep CompositeBandRep{3} (spinless):
  (1g|Ag) + (1f|Aᵤ) + (1e|Ag) - (1a|Aᵤ) (2 bands)
 ```
 We can build the associated [`SymmetryVector`](@ref) to inspect the associated irrep 
@@ -509,27 +529,35 @@ physical symmetry vector):
 julia> coefs = [-1//4, 0, -1//4, 0, -1//4, 0, 1//4, 0, 1//4, 0, 1//4, 0, -1//4, 0, 1//4, 1];
 
 julia> cbr = CompositeBandRep{3}(coefs, brs)
-16-irrep CompositeBandRep{3}:
+16-irrep CompositeBandRep{3} (spinless):
  -(1/4)×(1h|Ag) - (1/4)×(1g|Ag) - (1/4)×(1f|Ag) + (1/4)×(1e|Ag) + (1/4)×(1d|Ag) + (1/4)×(1c|Ag) - (1/4)×(1b|Ag) + (1/4)×(1a|Ag) + (1a|Aᵤ) (1 band)
 
 julia> SymmetryVector(cbr)
-16-irrep SymmetryVector{3}:
+16-irrep SymmetryVector{3} (spinless):
  [Γ₁⁻, R₁⁻, T₁⁻, U₁⁻, V₁⁻, X₁⁻, Y₁⁻, Z₁⁺] (1 band)
 ```
 """
-@struct_hash_equal struct CompositeBandRep{D} <: AbstractSymmetryVector{D}
+@struct_hash_equal struct CompositeBandRep{
+    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}
+} <: AbstractSymmetryVector{D, IR}
     coefs :: Vector{Rational{Int}}
-    brs   :: Collection{NewBandRep{D}}
-    function CompositeBandRep{D}(coefs, brs) where D
+    brs   :: Collection{NewBandRep{D, IR, SIR}}
+    function CompositeBandRep{D, IR, SIR}(coefs, brs) where {D, IR, SIR}
         if length(coefs) ≠ length(brs)
             error("length of provided coefficients do not match length of provided band \
                    representations")
         end
-        new{D}(coefs, brs)
+        new{D, IR, SIR}(coefs, brs)
     end
 end
-function CompositeBandRep(coefs, brs::Collection{NewBandRep{D}}) where D
-    return CompositeBandRep{D}(coefs, brs)
+function CompositeBandRep(coefs, brs::Collection{NewBandRep{D, IR, SIR}}) where {D, IR, SIR}
+    return CompositeBandRep{D, IR, SIR}(coefs, brs)
+end
+function CompositeBandRep{D}(
+    coefs,
+    brs::Collection{NewBandRep{D, IR, SIR}}
+) where {D, IR, SIR}
+    return CompositeBandRep{D, IR, SIR}(coefs, brs)
 end
 
 # ::: Convenience constructor :::
@@ -551,14 +579,14 @@ with what multiplicity (the multiplicity of the `i`th `brs`-element being equali
 julia> brs = calc_bandreps(2);
 
 julia> cbr = CompositeBandRep_from_indices([1, 1, 2, 6], brs)
-16-irrep CompositeBandRep{3}:
+16-irrep CompositeBandRep{3} (spinless):
  (1f|Aᵤ) + (1h|Aᵤ) + 2(1h|Ag) (4 bands)
 
 julia> cbr == brs[1] + brs[1] + brs[2] + brs[6]
 true
 
 julia> SymmetryVector(cbr)
-16-irrep SymmetryVector{3}:
+16-irrep SymmetryVector{3} (spinless):
  [2Γ₁⁺+2Γ₁⁻, R₁⁺+3R₁⁻, 3T₁⁺+T₁⁻, 2U₁⁺+2U₁⁻, 3V₁⁺+V₁⁻, 2X₁⁺+2X₁⁻, Y₁⁺+3Y₁⁻, 2Z₁⁺+2Z₁⁻] (4 bands)
 ```
 """
@@ -572,7 +600,7 @@ function CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:NewB
 end
 
 # ::: AbstractSymmetryVector interface :::
-function SymmetryVector(cbr::CompositeBandRep{D}) where {D}
+function SymmetryVector(cbr::CompositeBandRep)
     brs = cbr.brs
     lgirsv = irreps(brs)
     multsv_r = zeros.(eltype(cbr.coefs), size.(multiplicities(first(brs))))
@@ -596,7 +624,7 @@ function SymmetryVector(cbr::CompositeBandRep{D}) where {D}
     end
     multsv = [Int.(mults) for mults in multsv_r]
     μ = Int(μ)
-    return SymmetryVector{D}(lgirsv, multsv, μ)
+    return SymmetryVector(lgirsv, multsv, μ)
 end
 function occupation(cbr::CompositeBandRep)
     μ_r = sum(c * occupation(cbr.brs[j]) for (j, c) in enumerate(cbr.coefs) if !iszero(c);
@@ -613,7 +641,7 @@ num(cbr::CompositeBandRep) = num(first(cbr.brs))
 
 # ::: AbstractArray interface :::
 Base.size(cbr::CompositeBandRep) = size(first(cbr.brs))
-function Base.getindex(cbr::CompositeBandRep{D}, i::Int) where {D}
+function Base.getindex(cbr::CompositeBandRep, i::Int)
     m_r = sum(c * cbr.brs[j][i] for (j, c) in enumerate(cbr.coefs) if !iszero(c);
               init=zero(eltype(cbr.coefs)))
     isinteger(m_r) || error(lazy"CompositeBandRep has non-integer multiplicity (= $m_r)")
@@ -621,18 +649,16 @@ function Base.getindex(cbr::CompositeBandRep{D}, i::Int) where {D}
 end
 
 # ::: Arithmetic operations :::
-function Base.:+(cbr1::CompositeBandRep{D}, cbr2::CompositeBandRep{D}) where D
+function Base.:+(cbr1::T, cbr2::T) where T<:CompositeBandRep
     if cbr1.brs !== cbr2.brs
         error("provided CompositeBandReps must reference egal `brs`")
     end
-    return CompositeBandRep{D}(cbr1.coefs + cbr2.coefs, cbr1.brs)
+    return CompositeBandRep(cbr1.coefs + cbr2.coefs, cbr1.brs)
 end
-Base.:-(cbr::CompositeBandRep{D}) where D = CompositeBandRep{D}(-cbr.coefs, cbr.brs)
-Base.:-(cbr1::CompositeBandRep{D}, cbr2::CompositeBandRep{D}) where D = cbr1 + (-cbr2)
-function Base.:*(cbr::CompositeBandRep{D}, n::Integer) where D
-    return CompositeBandRep{D}(cbr.coefs .* n, cbr.brs)
-end
-Base.zero(cbr::CompositeBandRep{D}) where D = CompositeBandRep{D}(zero(cbr.coefs), cbr.brs)
+Base.:-(cbr::CompositeBandRep) = CompositeBandRep(-cbr.coefs, cbr.brs)
+Base.:-(cbr1::T, cbr2::T) where T<:CompositeBandRep = cbr1 + (-cbr2)
+Base.:*(cbr::CompositeBandRep, n::Integer) = CompositeBandRep(cbr.coefs .* n, cbr.brs)
+Base.zero(cbr::CompositeBandRep) = CompositeBandRep(zero(cbr.coefs), cbr.brs)
 
 # ::: Macro for building `CompositeBandRep` from Collection{<:NewBandRep}` :::
 
@@ -662,11 +688,11 @@ See also [`CompositeBandRep`](@ref) and [`Crystalline.CompositeBandRep_from_indi
 julia> brs = calc_bandreps(2, Val(3));
 
 julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3] - brs[4]
-16-irrep CompositeBandRep{3}:
+16-irrep CompositeBandRep{3} (spinless):
  3(1h|Ag) + 2(1h|Aᵤ) - (1g|Ag) - (1g|Aᵤ) (3 bands)
 
 julia> n = 3brs[1] + 2brs[2] - brs[3] - brs[4]
-16-irrep SymmetryVector{3}:
+16-irrep SymmetryVector{3} (spinless):
  [2Γ₁⁺+Γ₁⁻, R₁⁺+2R₁⁻, 2T₁⁺+T₁⁻, 2U₁⁺+U₁⁻, 2V₁⁺+V₁⁻, X₁⁺+2X₁⁻, Y₁⁺+2Y₁⁻, Z₁⁺+2Z₁⁻] (3 bands)
 
 julia> SymmetryVector(cbr) == n
@@ -677,7 +703,7 @@ Coefficients can be positive or negative integers, multiplied onto band represen
 the left or right; if from the left, `*` can be omitted:
 ```jldoctest composite
 julia> @composite -brs[1] + brs[2]*3 - brs[7]*(-2) + (-3)*brs[end-2]
-16-irrep CompositeBandRep{3}:
+16-irrep CompositeBandRep{3} (spinless):
  -(1h|Ag) + 3(1h|Aᵤ) + 2(1e|Ag) - 3(1b|Aᵤ) (1 band)
 ```
 
