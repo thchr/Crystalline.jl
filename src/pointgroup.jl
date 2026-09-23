@@ -100,14 +100,15 @@ end
 
 # 3D
 """
-    pgirreps(iuclab::String, ::Val{D}=Val(3), ::Val{S}=Val(false); mulliken::Bool=false)
-    pgirreps(iuclab::String, D::Integer, spinful::Bool=false; mulliken::Bool=false)
+    pgirreps(iuclab::String, ::Val{D}=Val(3); spinful=Val(false), mulliken::Bool=false)
+    pgirreps(iuclab::String, D::Integer; spinful=Val(false), mulliken::Bool=false)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
 as a `Vector{PGIrrep{D}}`.
 
-If `S` (or `spinful`) is `true`, the double-valued irreps of the double point group are
-returned instead, as `DPGIrrep{D}`s (currently available in 3D only). Their labels are the
+If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double point group
+are returned instead, as `DPGIrrep{D}`s (currently available in 3D only), with the `Val`
+spelling keeping the return type inferrable. Their labels are the
 CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
 `"¹E₁ˢ"`). The single-valued irreps of a double group coincide with those of the ordinary
 group and are not included.
@@ -139,11 +140,12 @@ functionality in an explicit fashion, please cite the original reference [^3].
 """
 function pgirreps(
     iuclab::String,
-    Dᵛ::Val{3}=Val(3),
-    spinfulᵛ::Val{S}=Val(false);
+    Dᵛ::Val{3}=Val(3);
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
-) where S
-    pg = pointgroup(iuclab, Dᵛ, spinfulᵛ) # operations
+)
+    spinfulᵛ = _spinfulval(spinful)
+    pg = pointgroup(iuclab, Dᵛ; spinful=spinfulᵛ) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab, _pgirreps_jldfile(spinfulᵛ))
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
@@ -161,7 +163,13 @@ function _pgirreps_jldfile(#=Val{S}=# ::Val{true})
     return DPGIRREPS_JLDFILE[]
 end
 # 2D
-function pgirreps(iuclab::String, ::Val{2}, ::Val{false}=Val(false); mulliken::Bool=false)
+function pgirreps(
+    iuclab::String,
+    ::Val{2};
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
+    mulliken::Bool=false
+)
+    _isspinful(spinful) && _only_3d(2)
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -176,7 +184,13 @@ function pgirreps(iuclab::String, ::Val{2}, ::Val{false}=Val(false); mulliken::B
     return Collection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
-function pgirreps(iuclab::String, ::Val{1}, ::Val{false}=Val(false); mulliken::Bool=false)
+function pgirreps(
+    iuclab::String,
+    ::Val{1};
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
+    mulliken::Bool=false
+)
+    _isspinful(spinful) && _only_3d(1)
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
@@ -194,25 +208,19 @@ function pgirreps(iuclab::String, ::Val{1}, ::Val{false}=Val(false); mulliken::B
     
     return Collection(PGIrrep{1}.(pgirlabs, Ref(pg), matrices, REAL))
 end
-# invalid dimensions, and spinful irreps in 1D or 2D
-function pgirreps(iuclab::String, ::Val{D}, ::Val=Val(false); kws...) where D
-    return D ∈ (1,2) ? _only_3d(D) : _throw_invalid_dim(D)
-end
-function pgirreps(iuclab::String, D::Integer, spinful::Bool=false; kws...)
-    return pgirreps(iuclab, Val(D), Val(spinful); kws...)
-end
+pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
+pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
 function pgirreps(
     pgnum::Integer,
-    Dᵛ::Val{D}=Val(3),
-    spinfulᵛ::Val=Val(false);
+    Dᵛ::Val{D}=Val(3);
     setting::Integer=1,
     kws...
 ) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
-    return pgirreps(iuc, Dᵛ, spinfulᵛ; kws...)
+    return pgirreps(iuc, Dᵛ; kws...)
 end
-function pgirreps(pgnum::Integer, D::Integer, spinful::Bool=false; kws...)
-    return pgirreps(pgnum, Val(D), Val(spinful); kws...) :: Collection{<:AbstractPGIrrep}
+function pgirreps(pgnum::Integer, D::Integer; kws...)
+    return pgirreps(pgnum, Val(D); kws...) :: Collection{<:AbstractPGIrrep}
 end
 
 function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D

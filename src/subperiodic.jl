@@ -164,7 +164,7 @@ subperiodic group and ``T`` is the translation group of the associated lattice.
 - `num`: the canonical number of the group, following the International Tables for
 Crystallography, Volume E.
 """
-struct SubperiodicGroup{D,P} <: AbstractGroup{D, SymOperation{D}}
+struct SubperiodicGroup{D,P} <: AbstractSpaceGroup{D, SymOperation{D}}
     num :: Int
     operations :: Vector{SymOperation{D}}
 end
@@ -214,6 +214,7 @@ function _check_valid_subperiodic_num_and_dim(num::Integer, D::Integer, P::Integ
 end
 
 label(g::SubperiodicGroup{D,P}) where {D,P} = _subperiodic_label(num(g), D, P)
+iuc(g::SubperiodicGroup) = label(g)
 @inline function _subperiodic_label(num::Integer, D::Integer, P::Integer)
     @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)
     if D == 3 && P == 2

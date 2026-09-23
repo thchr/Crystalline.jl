@@ -33,7 +33,9 @@ The notation is sometimes also known as the
         _throw_invalid_dim(D)
     end
 end
-@inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
+@inline function iuc(sg::Union{AbstractSpaceGroup{D},AbstractLittleGroup{D}}) where D
+    return iuc(num(sg), D)
+end
 
 """ 
     centering(g::AbstractGroup) --> Char
@@ -42,7 +44,9 @@ Return the conventional centering type of a group.
 
 For groups without lattice structure (e.g., point groups), return `nothing`.
 """
-centering(sg_or_lg::Union{SpaceGroup{D},LittleGroup{D}}) where D = centering(num(sg_or_lg), D)
+function centering(sg_or_lg::Union{AbstractSpaceGroup{D},AbstractLittleGroup{D}}) where D
+    return centering(num(sg_or_lg), D)
+end
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]

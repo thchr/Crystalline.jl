@@ -9,18 +9,18 @@ else
 
 @testset "Double-valued point group irreps" begin
 
-@test @inferred(pointgroup("4mm", Val(3), Val(true))) isa DPointGroup{3}
-@test pointgroup("4mm", 3, true) == pointgroup(13, Val(3), 1, Val(true))
-@test pointgroup("4mm", Val(3), Val(false)) == pointgroup("4mm", Val(3))
-@test_throws DomainError pointgroup("4mm", Val(2), Val(true))
+@test @inferred(pointgroup("4mm", Val(3); spinful=Val(true))) isa DPointGroup{3}
+@test pointgroup("4mm", 3; spinful=true) == pointgroup(13, Val(3), 1; spinful=Val(true))
+@test pointgroup("4mm", Val(3); spinful=Val(false)) == pointgroup("4mm", Val(3))
+@test_throws DomainError pointgroup("4mm", Val(2); spinful=Val(true))
 
-@test @inferred(pgirreps("4mm", Val(3), Val(true))) isa Collection{DPGIrrep{3}}
-@test pgirreps("4mm", 3, true) == pgirreps(13, Val(3), Val(true))
-@test pgirreps("4mm", Val(3), Val(false)) == pgirreps("4mm", Val(3))
-@test_throws DomainError pgirreps("4mm", Val(2), Val(true))
+@test @inferred(pgirreps("4mm", Val(3); spinful=Val(true))) isa Collection{DPGIrrep{3}}
+@test pgirreps("4mm", 3; spinful=true) == pgirreps(13, Val(3); spinful=Val(true))
+@test pgirreps("4mm", Val(3); spinful=Val(false)) == pgirreps("4mm", Val(3))
+@test_throws DomainError pgirreps("4mm", Val(2); spinful=Val(true))
 
 for iuc in PG_IUCs[3]
-    pgirs = pgirreps(iuc, Val(3), Val(true))
+    pgirs = pgirreps(iuc, Val(3); spinful=Val(true))
     pg = group(first(pgirs))
     n = order(pg) ÷ 2
     @test n == order(pointgroup(iuc, Val(3)))
@@ -63,10 +63,10 @@ datafile_lgs = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
                         "irreps_data_spinful.jld2")
 if isfile(datafile_lgs)
 for sgnum in 1:MAX_SGNUM[3]
-    lgirs = lgirreps(sgnum, Val(3), Val(true))["Γ"]
+    lgirs = lgirreps(sgnum, Val(3); spinful=Val(true))["Γ"]
     lg = group(first(lgirs))
     iuc = label(Crystalline.find_parent_pointgroup(littlegroups(sgnum)["Γ"]))
-    pgirs = pgirreps(iuc, Val(3), Val(true))
+    pgirs = pgirreps(iuc, Val(3); spinful=Val(true))
     pg = group(first(pgirs))
     idxs = map(operations(lg)) do op
         findfirst(pgop -> rotation(pgop) ≈ rotation(op) && su2(pgop) ≈ su2(op), pg)
@@ -83,11 +83,11 @@ end
 
 @testset "Mulliken labels" begin
     for iuc in Crystalline.PG_IUCs[3]
-        pgirs  = pgirreps(iuc, Val(3), Val(true))
-        pgirsₘ = pgirreps(iuc, Val(3), Val(true); mulliken=true)
+        pgirs  = pgirreps(iuc, Val(3); spinful=Val(true))
+        pgirsₘ = pgirreps(iuc, Val(3); spinful=Val(true), mulliken=true)
         @test label.(pgirsₘ) == mulliken.(pgirs)
         @test allunique(label.(pgirsₘ)) && all(l -> endswith(l, 'ˢ'), label.(pgirsₘ))
-        # co-reps: `mulliken` of the co-reps agrees with `realify` of Mulliken-labelled irreps
+        # co-reps: `mulliken` of a co-rep agrees with `realify` of Mulliken-labelled irreps
         @test label.(realify(pgirsₘ)) == mulliken.(realify(pgirs))
     end
 end

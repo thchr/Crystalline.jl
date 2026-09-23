@@ -17,8 +17,9 @@
 #                                      phys=, vecfinal=<klab>&(<kv>)}
 #        → matrices of the little group irreps, single- *and* double-valued, plus the SU(2)
 #          spin lift and the Seitz symbol of every operation.
-# The single-valued irreps come along for free and are what `validate_dsg_vs_isotropy.jl`
-# checks against `lgirreps`, before we trust any of the double-valued data.
+# The single-valued irreps come along for free; `write_dsg_irreps.jl` stores them
+# separately, and `validate_bilbao_vs_isotropy.jl` checks them against the ISOTROPY irreps
+# of `lgirreps`, before we trust any of the double-valued data.
 #
 # ## Request flow (point groups)
 #
@@ -109,10 +110,9 @@ end
 """
     fetch(method, url, cookie; body, referer, tries) --> String
 
-One request, retrying *transient* failures with a linear backoff. A multi-hour sweep will meet
-the occasional dropped connection — one such ("http parse error: unexpected EOF while reading
-HTTP/1 data", at sg 137) killed an otherwise healthy 2700-page run — and dying on it wastes
-the rest of a cookie for no reason.
+One request, retrying *transient* failures with a linear backoff. A multi-hour sweep will
+meet the occasional dropped connection, and dying on it wastes the rest of a cookie for no
+reason.
 
 `GateBlocked` is deliberately **not** retried: that is a cookie problem, not a network one, and
 retrying it would hammer the server precisely when it is refusing us.

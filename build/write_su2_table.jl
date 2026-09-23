@@ -16,63 +16,54 @@
 include(joinpath(@__DIR__, "parse_dsg_irreps.jl"))
 
 const DEFAULT_OUT = joinpath(@__DIR__, "..", "src", "double", "su2_table.jl")
-const NOVALS = Dict{Symbol,Real}()
+const HEX_SYSTEMS = ("hexagonal", "trigonal")
 
-# (a, b) = (U₁₁, U₁₂)
-su2_of(s) = (v = [entry_value(x, NOVALS) for x in split(strip(s))]; (v[1], v[2]))
-# column-major, as `SMatrix` stores it
-wkey(op) = NTuple{9,Int}(round.(Int, rotation(op)))
+wkey(op) = NTuple{9,Int}(round.(Int, rotation(op)))  # column-major, as `SMatrix` stores it
+rounded(u::SU2) = (round(u.a; digits=9), round(u.b; digits=9)) # compare up to float noise
 
-"Collect `rotation part => (a, b)` for every space group, tagged by crystal system."
+"Collect `rotation part => crystal system => SU(2) element` over all space groups."
 function collect_su2s()
-    byW = Dict{NTuple{9,Int}, Dict{String, Set{Tuple{ComplexF64,ComplexF64}}}}()
+    byW = Dict{NTuple{9,Int}, Dict{String, Set{SU2}}}()
     for sgnum in 1:230
         p = parse_page(joinpath(CRAWL_DIR, "out", "sg$sgnum-GM.html"))
         sys = crystalsystem(sgnum, 3)
         for i in 1:(length(p.seitz) ÷ 2)                      # the unbarred coset only
-            k = wkey(operation_of(p, i))
-            d = get!(byW, k, Dict{String, Set{Tuple{ComplexF64,ComplexF64}}}())
-            push!(get!(d, sys, Set{Tuple{ComplexF64,ComplexF64}}()), su2_of(p.su2[i]))
+            d = get!(byW, wkey(operation_of(p, i)), Dict{String, Set{SU2}}())
+            push!(get!(d, sys, Set{SU2}()), su2_of(p, i))
         end
     end
     return byW
 end
 
-
 function main(outpath = DEFAULT_OUT)
     byW = collect_su2s()
     println("distinct rotation parts: ", length(byW))
 
-    # (i) within one crystal system a rotation part must have a single lift
-    for (k, d) in byW, (sys, us) in d
-        length(unique(u -> round.(collect(u); digits=9), collect(us))) == 1 ||
-            error("rotation part $k is ambiguous within crystal system $sys: $us")
-    end
-
-    # (ii) find which rotation parts lift differently across crystal systems, and check that
-    #      the split is exactly hexagonal+trigonal vs the rest
-    const_hex = ("hexagonal", "trigonal")
-    split = NTuple{9,Int}[]
+    # a rotation part must have a single lift within a crystal system; across crystal
+    # systems it may have two, but then the split must be hexagonal+trigonal vs. the rest
+    hexsplit = NTuple{9,Int}[]
     for (k, d) in byW
-        us = unique(u -> round.(collect(u); digits=9), [first(v) for v in values(d)])
-        length(us) == 1 && continue
-        push!(split, k)
-        hexus = unique(u -> round.(collect(u); digits=9),
-                       [first(d[s]) for s in keys(d) if s in const_hex])
-        othus = unique(u -> round.(collect(u); digits=9),
-                       [first(d[s]) for s in keys(d) if !(s in const_hex)])
-        (length(hexus) == 1 && length(othus) == 1) ||
+        for (sys, us) in d
+            length(unique(rounded, us)) == 1 ||
+                error("rotation part $k is ambiguous within crystal system $sys: $us")
+        end
+        length(unique(rounded, [first(us) for us in values(d)])) == 1 && continue
+        hex = unique(rounded, [first(d[s]) for s in keys(d) if s ∈ HEX_SYSTEMS])
+        oth = unique(rounded, [first(d[s]) for s in keys(d) if s ∉ HEX_SYSTEMS])
+        (length(hex) == 1 && length(oth) == 1) ||
             error("rotation part $k splits in a way that is not hexagonal-vs-rest: $d")
+        push!(hexsplit, k)
     end
-    println("rotation parts that differ by crystal system: ", length(split))
+    println("rotation parts that differ by crystal system: ", length(hexsplit))
 
-    E = Pair{NTuple{9,Int}, Tuple{ComplexF64,ComplexF64}}
+    nsplit = length(hexsplit)
+    E = Pair{NTuple{9,Int}, SU2}
     main_tbl, hex_tbl = E[], E[]
     for (k, d) in sort!(collect(byW), by=first)
-        oth = [first(d[s]) for s in keys(d) if !(s in const_hex)]
-        hex = [first(d[s]) for s in keys(d) if s in const_hex]
+        oth = [first(d[s]) for s in keys(d) if s ∉ HEX_SYSTEMS]
+        hex = [first(d[s]) for s in keys(d) if s ∈ HEX_SYSTEMS]
         push!(main_tbl, k => (isempty(oth) ? first(hex) : first(oth)))
-        (k in split) && push!(hex_tbl, k => first(hex))
+        k ∈ hexsplit && push!(hex_tbl, k => first(hex))
     end
 
     open(outpath, "w") do io
@@ -87,17 +78,17 @@ function main(outpath = DEFAULT_OUT)
         #
         # The SU(2) element is not fixed by the rotation part alone: a rotation matrix in
         # fractional coordinates does not determine the Cartesian rotation axis. A few
-        # rotation parts ($(length(split)) of them) therefore differ between the hexagonal
+        # rotation parts ($(nsplit) of them) therefore differ between the hexagonal
         # and trigonal settings and the rest; `SU2_BY_ROTATION_HEX` holds those and takes
         # precedence for those two crystal systems.
 
         const SU2_BY_ROTATION = Dict{NTuple{9,Int}, SU2}(""")
         for (k, u) in main_tbl
-            println(io, "    $(k) =>\n        SU2($(repr(u[1])), $(repr(u[2]))),")
+            println(io, "    $(k) =>\n        SU2($(repr(u.a)), $(repr(u.b))),")
         end
         println(io, ")\n\nconst SU2_BY_ROTATION_HEX = Dict{NTuple{9,Int}, SU2}(")
         for (k, u) in hex_tbl
-            println(io, "    $(k) =>\n        SU2($(repr(u[1])), $(repr(u[2]))),")
+            println(io, "    $(k) =>\n        SU2($(repr(u.a)), $(repr(u.b))),")
         end
         println(io, ")")
     end

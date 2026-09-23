@@ -3,8 +3,8 @@
 """
     littlegroups(
         sgnum::Integer,
-        D::Union{Val{Int}, Integer}=Val(3),
-        spinful::Union{Val{Bool}, Bool}=Val(false)
+        D::Union{Val{Int}, Integer}=Val(3);
+        spinful = Val(false)
     ) -> Dict{String, LittleGroup{D}} or Dict{String, DLittleGroup{D}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little groups
@@ -14,8 +14,9 @@ For given space group number `sgnum` and dimension `D`, return the associated li
 Returns a `Dict` with little group **k**-point labels as keys and vectors of
 `LittleGroup{D}`s as values.
 
-If `spinful` is `true`, the double little groups are returned instead, as
-`DLittleGroup{D}`s (currently supported in 3D only).
+If `spinful` is `Val(true)` (or `true`), the double little groups are returned instead, as
+`DLittleGroup{D}`s (currently supported in 3D only). As for `D`, the `Val` spelling keeps
+the return type inferrable and the `Bool` spelling does not.
 
 ## Notes
 A conventional crystallographic setting is assumed (as in [`spacegroup`](@ref)).
@@ -33,10 +34,11 @@ The underlying 3D data is sourced from the ISOTROPY dataset: see also [`lgirreps
 function littlegroups(
     sgnum::Integer,
     ::Val{D}=Val(3),
-    ::Val{S}=Val(false),
-    jldfile::JLD2.JLDFile=LGS_JLDFILES[D][]
-) where {D, S}
+    jldfile::JLD2.JLDFile=LGS_JLDFILES[D][];
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
+) where D
     D ∉ (1,2,3) && _throw_invalid_dim(D)
+    S = _isspinful(spinful)
     S && D ≠ 3 && _only_3d(D)
 
     sgops_str, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, jldfile)
@@ -52,9 +54,7 @@ function littlegroups(
     return Dict{String, DLittleGroup{D}}(klab => doublegroup(lg) for (klab, lg) in lgs)
 end
 # convenience functions without Val(D) usage; avoid internally
-function littlegroups(sgnum::Integer, D::Integer, spinful::Bool=false)
-    return littlegroups(sgnum, Val(D), Val(spinful))
-end
+littlegroups(sgnum::Integer, D::Integer; kws...) = littlegroups(sgnum, Val(D); kws...)
 
 # ---------------------------------------------------------------------------------------- #
 # LGIrrep data loading
@@ -62,8 +62,8 @@ end
 """
     lgirreps(
         sgnum::Integer,
-        D::Union{Val{Int}, Integer}=Val(3),
-        spinful::Union{Val{Bool}, Bool}=Val(false)
+        D::Union{Val{Int}, Integer}=Val(3);
+        spinful = Val(false)
     ) -> Dict{String, Collection{LGIrrep{D}}} or Dict{String, Collection{DLGIrrep{D}}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little group
@@ -72,8 +72,9 @@ For given space group number `sgnum` and dimension `D`, return the associated li
 Returns a `Dict` with little group **k**-point labels as keys and vectors of `LGIrrep{D}`s
 as values.
 
-If `spinful` is `true`, the double-valued irreps of the double little groups are returned
-instead, as `DLGIrrep{D}`s (currently available in 3D only). Their labels are the CDML
+If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double little
+groups are returned instead, as `DLGIrrep{D}`s (currently available in 3D only), with the
+`Val` spelling keeping the return type inferrable. Their labels are the CDML
 labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`). The single-valued irreps of a double group
 coincide with those of the ordinary group and are not included.
 
@@ -110,17 +111,20 @@ tool:
 function lgirreps(
     sgnum::Integer,
     Dᵛ::Val{D}=Val(3),
-    spinfulᵛ::Val{S}=Val(false),
     lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D][],
-    irs_jldfile::JLD2.JLDFile=_lgirreps_jldfile(Dᵛ, spinfulᵛ)
-) where {D, S}
+    # NB: a positional default cannot see the `spinful` keyword argument, so the default
+    #     irrep file is resolved below rather than here
+    irs_jldfile::Union{JLD2.JLDFile, Nothing}=nothing;
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
+) where D
     D ∉ (1,2,3) && _throw_invalid_dim(D)
-  
-    lgs = littlegroups(sgnum, Dᵛ, spinfulᵛ, lgs_jldfile)
 
-    Ps_list, τs_list, realities_list, cdmls_list = _load_lgirreps_data(sgnum, irs_jldfile)
+    lgs = littlegroups(sgnum, Dᵛ, lgs_jldfile; spinful)
+    irs_jldfile′ = something(irs_jldfile, _lgirreps_jldfile(Dᵛ, _spinfulval(spinful)))
 
-    lgirsd = Dict{String, Collection{S ? DLGIrrep{D} : LGIrrep{D}}}()
+    Ps_list, τs_list, realities_list, cdmls_list = _load_lgirreps_data(sgnum, irs_jldfile′)
+
+    lgirsd = Dict{String, Collection{_lgirrep_type(valtype(lgs))}}()
     for (Ps, τs, realities, cdmls) in zip(Ps_list, τs_list, realities_list, cdmls_list)
         klab = klabel(first(cdmls))
         lg   = lgs[klab]
@@ -131,12 +135,16 @@ function lgirreps(
     
     return lgirsd
 end
-lgirreps(sgnum::Integer, D::Integer, spinful::Bool=false) = lgirreps(sgnum, Val(D), Val(spinful))
+lgirreps(sgnum::Integer, D::Integer; kws...) = lgirreps(sgnum, Val(D); kws...)
 
-_lgirrep(cdml, lg::LittleGroup{D}, P, τ, reality) where D = LGIrrep{D}(cdml, lg, P, τ, reality)
+function _lgirrep(cdml, lg::LittleGroup{D}, P, τ, reality) where D
+    return LGIrrep{D}(cdml, lg, P, τ, reality)
+end
 function _lgirrep(cdml, lg::DLittleGroup{D}, P, τ, reality) where D
     return DLGIrrep{D}(cdml, lg, _doubled_matrices(P), _doubled_translations(τ), reality)
 end
+_lgirrep_type(::Type{LittleGroup{D}}) where D = LGIrrep{D}
+_lgirrep_type(::Type{DLittleGroup{D}}) where D = DLGIrrep{D}
 
 _lgirreps_jldfile(::Val{D}, ::Val{false}) where D = LGIRREPS_JLDFILES[D][]
 function _lgirreps_jldfile(::Val{D}, #=Val{S}=# ::Val{true}) where D

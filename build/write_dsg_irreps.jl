@@ -5,7 +5,8 @@
 # - `irreps_data_spinful.jld2`: the double-valued irreps, loaded by
 #   `lgirreps(…, Val(true))`;
 # - `irreps_data_spinless_bilbao.jld2`: Bilbao's single-valued irreps, which are not loaded
-#   by the package, but kept for comparison with the ISOTROPY irreps in `irreps_data.jld2`.
+#   by the package, but kept for comparison with the ISOTROPY irreps in `irreps_data.jld2`
+#   (see `validate_bilbao_vs_isotropy.jl`).
 #
 # Mirrors `write_littlegroup_irreps.jl`: per space group, the file stores `matrices_list`,
 # `translations_list`, `realities_list` and `cdml_list`, each indexed first by k-manifold and
@@ -20,10 +21,10 @@
 #
 #     P = D_bilbao(t=0) · exp(-2πi 𝐤⋅τ_bilbao)
 #
-# and `translations` holds **our** operation's `τ`. Those differ by a lattice vector `Δ` for 181
-# operations (all centred lattices), and the phases cancel exactly — see `parse_dsg_irreps.jl`.
-# `P` is evaluated at `αβγ = 0`: it is αβγ-independent by construction (verified on every page),
-# and zero keeps the arithmetic cleanest.
+# and `translations` holds **our** operation's `τ`. The two translations can differ by a
+# lattice vector in centred lattices, where the phases then cancel exactly. `P` is evaluated
+# at `αβγ = 0`: it is αβγ-independent by construction (verified on every page), and zero
+# keeps the arithmetic cleanest.
 #
 # If the phase `exp(2πi 𝐤⋅τ)` does not depend on `αβγ` for any operation (i.e., if
 # `kabcᵀτ = 0`; always so at special **k**-points), it is instead folded into the matrices,

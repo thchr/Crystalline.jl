@@ -150,14 +150,14 @@ part is zero or a lattice vector in the associated primitive basis.
 end
 
 """
-    issymmorph(sg::Union{SpaceGroup, LittleGroup}) --> Bool
+    issymmorph(sg::Union{AbstractSpaceGroup, AbstractLittleGroup}) --> Bool
 
 Return whether a given space group `sg` is symmorphic (`true`) or nonsymmorphic (`false`).
 """
 function issymmorph(g::AbstractGroup)
     all(op->issymmorph(op, centering(g)), operations(g))
 end
-issymmorph(::PointGroup) = true
+issymmorph(::AbstractPointGroup) = true
 
 """
     issymmorph(sgnum::Integer, D::Integer=3) --> Bool
@@ -806,17 +806,24 @@ lattice vectors; otherwise not.
 A final argument of type `::Val{P}` can be specified to indicate a subperiodic group of
 periodicity dimension `P`, different from the spatial embedding dimension `D`.
 """
-function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
-                    conv_or_prim::Bool=true, modw::Bool=true,
-                    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
+function reduce_ops(
+    ops::AbstractVector{O},
+    cntr::Char, 
+    conv_or_prim::Bool=true,
+    modw::Bool=true,
+    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#
+) where {D, O<:AbstractOperation{D}, Pdim}
     
     P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
     # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
     # for each SymOperation
     ops′ = transform.(ops, Ref(P), nothing, modw)
 
-    # remove equivalent operations
-    ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
+    # remove equivalent operations; the comparison is of the operations themselves, rather
+    # than of their matrices, since a double group operation is not determined by its matrix
+    # (`u` and `-u` share one). Translations are compared as-is (`modw = false`), `ops′`
+    # being already reduced to whatever extent was asked for
+    ops′_reduced = uniquetol(ops′, nothing, #=modw=# false)
 
     if conv_or_prim # `true`: return in conventional basis
         return transform.(ops′_reduced, Ref(inv(P)), nothing, modw)
@@ -824,14 +831,14 @@ function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char,
         return ops′_reduced
     end
 end
-@inline function reduce_ops(slg::Union{SpaceGroup, LittleGroup}, 
+@inline function reduce_ops(slg::Union{AbstractSpaceGroup, AbstractLittleGroup},
                             conv_or_prim::Bool=true, modw::Bool=true)
     return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-function primitivize(sg::SpaceGroup, modw::Bool=true)
+function primitivize(sg::AbstractSpaceGroup, modw::Bool=true)
     return typeof(sg)(num(sg), reduce_ops(sg, false, modw))
 end
-function primitivize(lg::LittleGroup, modw::Bool=true)
+function primitivize(lg::AbstractLittleGroup, modw::Bool=true)
     cntr = centering(lg)
     # transform both k-point and operations
     kv′  = primitivize(position(lg), cntr)

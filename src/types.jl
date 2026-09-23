@@ -640,6 +640,53 @@ function (==)(g1::AbstractGroup, g2::AbstractGroup)
     return true
 end
 
+# --- Kinds of group ---
+# Supertypes for the kinds of group that Crystalline distinguishes. They let a method
+# dispatch on the kind of group rather than enumerate its variants, of which each kind has
+# several: spinless and spinful (double group), and, for space groups, magnetic and
+# subperiodic. Not exported.
+#
+# The variants differ in what their `num` identifies, so a method that looks a group up in
+# the space group tables by `(num, D)` — `iuc`, `centering` and `sitegroups`, say — holds
+# only where `num` is a space group number in `D` dimensions. Where it is not — a
+# `SubperiodicGroup`, whose number also needs its periodicity dimension `P`, or an
+# `MSpaceGroup`, identified by a pair of BNS numbers — the subtype overrides such a method,
+# or leaves it undefined. `GenericGroup` has no number at all and stays outside.
+
+"""
+    AbstractSpaceGroup{D,O} <: AbstractGroup{D,O}
+
+Abstract supertype for space groups in dimension `D` whose operations are of type `O`;
+includes ordinary, double, magnetic, and subperiodic space groups.
+"""
+abstract type AbstractSpaceGroup{D,O} <: AbstractGroup{D,O} end
+
+"""
+    AbstractPointGroup{D,O} <: AbstractGroup{D,O}
+
+Abstract supertype for point groups in dimension `D` whose operations are of type `O`.
+Subtypes must have a `label` field, giving the IUC label of the point group.
+"""
+abstract type AbstractPointGroup{D,O} <: AbstractGroup{D,O} end
+
+"""
+    AbstractLittleGroup{D,O} <: AbstractGroup{D,O}
+
+Abstract supertype for little groups in dimension `D` whose operations are of type `O`.
+Beyond the requirements of [`AbstractSpaceGroup`](@ref), subtypes must have a `kv :: KVec{D}`
+field, returned by `position`, and a `klab :: String` field, returned by [`klabel`](@ref).
+"""
+abstract type AbstractLittleGroup{D,O} <: AbstractGroup{D,O} end
+
+"""
+    AbstractSiteGroup{D,O} <: AbstractGroup{D,O}
+
+Abstract supertype for site symmetry groups in dimension `D` whose operations are of type
+`O`. Subtypes must have a `wp :: WyckoffPosition{D}` field, returned by `position`, and a
+`cosets` field, returned by [`cosets`](@ref).
+"""
+abstract type AbstractSiteGroup{D,O} <: AbstractGroup{D,O} end
+
 # --- Generic group ---
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -654,7 +701,7 @@ label(::GenericGroup) = ""
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct SpaceGroup{D} <: AbstractGroup{D, SymOperation{D}}
+struct SpaceGroup{D} <: AbstractSpaceGroup{D, SymOperation{D}}
     num::Int
     operations::Vector{SymOperation{D}}
 end
@@ -664,7 +711,7 @@ label(sg::SpaceGroup) = iuc(sg)
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct PointGroup{D} <: AbstractGroup{D, SymOperation{D}}
+struct PointGroup{D} <: AbstractPointGroup{D, SymOperation{D}}
     num::Int
     label::String
     operations::Vector{SymOperation{D}}
@@ -677,7 +724,7 @@ centering(::PointGroup) = nothing
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct LittleGroup{D} <: AbstractGroup{D, SymOperation{D}}
+struct LittleGroup{D} <: AbstractLittleGroup{D, SymOperation{D}}
     num::Int
     kv::KVec{D}
     klab::String
@@ -695,7 +742,7 @@ orbit(lg::LittleGroup) = orbit(spacegroup(num(lg), dim(lg)), position(lg),
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-@struct_hash_equal struct SiteGroup{D} <: AbstractGroup{D, SymOperation{D}}
+@struct_hash_equal struct SiteGroup{D} <: AbstractSiteGroup{D, SymOperation{D}}
     num::Int
     wp::WyckoffPosition{D}
     operations::Vector{SymOperation{D}}

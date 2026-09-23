@@ -4,13 +4,13 @@ using Crystalline: check_multtable_vs_ir
 datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "pgs", "3d",
                     "irreps_data_spinful.jld2")
 if !isfile(datafile)
-    @warn "spinful point group irrep data not found; skipping tests of spinful site irreps" datafile
+    @warn "spinful point group irrep data not found; skipping spinful site irrep tests" datafile
 else
 
 @testset "Double site groups and their irreps" begin
     for sgnum in 1:MAX_SGNUM[3]
         sg = spacegroup(sgnum, Val(3))
-        dsg = spacegroup(sgnum, Val(3), Val(true))
+        dsg = spacegroup(sgnum, Val(3); spinful=Val(true))
         for wp in wyckoffs(sgnum, Val(3))
             siteg = sitegroup(sg, wp)
             dsiteg = doublegroup(siteg)

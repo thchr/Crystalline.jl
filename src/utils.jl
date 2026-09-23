@@ -303,21 +303,19 @@ Determine whether `x` ∈ `itr` with approximate equality.
 """
 isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; kwargs...), itr)
 
-
 """
-    uniquetol(a; kwargs)
+    uniquetol(A, optargs...; kwargs...)
 
-Computes approximate-equality unique with tolerance specifiable
-via keyword arguments `kwargs` in O(n²) runtime.
+Computes approximate-equality unique in O(n²) runtime, with any positional arguments
+`optargs` and keyword arguments `kwargs` forwarded to `isapprox`.
 
-Copied from https://github.com/JuliaLang/julia/issues/19147#issuecomment-256981994
+Originally based on https://github.com/JuliaLang/julia/issues/19147#issuecomment-256981994
 """
-function uniquetol(A::AbstractArray{T}; kwargs...) where T
+function uniquetol(A::AbstractArray{T}, optargs...; kwargs...) where T
     S = Vector{T}()
     for a in A
-         if !any(s -> isapprox(s, a; kwargs...), S)
-             push!(S, a)
-         end
+        isapproxin(a, S, optargs...; kwargs...) || push!(S, a)
     end
     return S
 end
+

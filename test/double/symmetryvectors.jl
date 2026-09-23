@@ -3,11 +3,11 @@ using Crystalline, Test
 datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
                     "irreps_data_spinful.jld2")
 if !isfile(datafile)
-    @warn "spinful irrep data not found; skipping tests of spinful symmetry vectors" datafile
+    @warn "spinful irrep data not found; skipping spinful symmetry vector tests" datafile
 else
 
 @testset "Spinful symmetry vectors" begin
-    lgirsd = lgirreps(221, Val(3), Val(true))
+    lgirsd = lgirreps(221, Val(3); spinful=Val(true))
     lgirsv = [lgirsd[klab] for klab in ("Γ", "X", "M", "R")]
 
     # parsing: a 2-band symmetry vector over the double-valued irreps
@@ -34,11 +34,12 @@ else
     @test !(SymmetryVector(br) isa SymmetryVector{3, DLGIrrep{3}})
     @test isspinful(n) && !isspinful(br) && !isspinful(SymmetryVector(br))
     @test isspinful(first(lgirsv[1])) && !isspinful(first(lgirreps(221)["Γ"]))
-    @test startswith(sprint(show, MIME"text/plain"(), br), "40-irrep NewBandRep{3} (spinless):")
+    @test startswith(sprint(show, MIME"text/plain"(), br),
+                     "40-irrep NewBandRep{3} (spinless):")
 end
 
 @testset "Spinful irreps in symmetry eigenvalue analysis and primitivization" begin
-    lgirsd = lgirreps(229, Val(3), Val(true)) # body-centered
+    lgirsd = lgirreps(229, Val(3); spinful=Val(true)) # body-centered
     αβγ = [0.1, 0.2, 0.3]
     for lgirs in values(lgirsd)
         lgirs′ = primitivize(lgirs)

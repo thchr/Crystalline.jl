@@ -6,7 +6,7 @@ using LinearAlgebra: dot, \
 # ---------------------------------------------------------------------------------------- #
 
 """
-    reduce_orbits_and_cosets(siteg::Union{SiteGroup{D}, DSiteGroup{D}})
+    reduce_orbits_and_cosets(siteg::AbstractSiteGroup{D})
 
 For an input site group, provided in conventional coordinates, reduce its cosets such
 that the resulting orbit only contains Wyckoff positions that are not equivalent when
@@ -23,7 +23,7 @@ The reduced site group is returned in a conventional basis, along with the reduc
 also in a conventional basis.
 """
 function reduce_orbits_and_cosets(
-    siteg::Union{SiteGroup{D}, DSiteGroup{D}}
+    siteg::AbstractSiteGroup{D}
 ) where D
 
     orbits = parent.(orbit(siteg))
@@ -134,7 +134,7 @@ function _induce_bandrep(
         χs::Vector{ComplexF64},  # characters of site irrep
         h::AbstractOperation{D},
         kv::KVec{D},
-        siteg::Union{SiteGroup{D}, DSiteGroup{D}}, # (centering-reduced) site group
+        siteg::AbstractSiteGroup{D},               # (centering-reduced) site group
         orbits::Vector{RVec{D}}, # (centering-reduced) orbit of `siteg``
     ) where D
     kv′ = constant(h*kv) # <-- TODO: Why only constant part?
@@ -165,7 +165,7 @@ end
 
 function subduce_onto_lgirreps(
         siteir_χs::AbstractVector{<:Number},
-        siteg::Union{SiteGroup{D}, DSiteGroup{D}},
+        siteg::AbstractSiteGroup{D},
         lgirs::AbstractVector{<:AbstractLGIrrep{D}}
     ) where D
     lg = group(first(lgirs))
@@ -217,7 +217,7 @@ function calc_bandrep(
         timereversal :: Bool=true, 
         allpaths :: Bool=false
     ) where D
-    lgirsd = lgirreps(num(siteir), Val(D), Val(isspinful(siteir)))
+    lgirsd = lgirreps(num(siteir), Val(D); spinful=Val(isspinful(siteir)))
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
     lgirsv = _collect_lgirsd_sorted(lgirsd)
@@ -228,25 +228,26 @@ end
 """
     calc_bandreps(
         sgnum::Integer,
-        ::Val{D}=Val(3),
-        ::Val{S}=Val(false);
+        ::Val{D}=Val(3);
+        spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
         timereversal::Bool=true,
         allpaths::Bool=false,
-        explicitly_real::Bool=timereversal && !S
+        explicitly_real::Union{Bool, Nothing}=nothing
     ) --> Collection{NewBandRep{D}}
 
     calc_bandreps( # type-unstable convenience accessor
         sgnum::Integer,
-        D::Integer,
-        spinful::Bool=false;
+        D::Integer;
         kws...
     ) --> Collection{NewBandRep{D}}
 
 Compute the band representations of space group `sgnum` in dimension `D`.
 
-If `S` (or `spinful`) is `true`, the spinful band representations are computed instead,
-induced from the double-valued site symmetry irreps (see [`siteirreps`](@ref)) and
-subduced onto the double-valued little group irreps (currently available in 3D only).
+If `spinful` is `Val(true)` (or `true`), the spinful band representations are computed
+instead, induced from the double-valued site symmetry irreps (see [`siteirreps`](@ref)) and
+subduced onto the double-valued little group irreps (currently available in 3D only). As
+for `D`, the `Val` spelling keeps the return type inferrable and the `Bool` spelling does
+not.
 
 ## Keyword arguments
 - `timereversal` (default, `true`): whether the irreps used to induce the band
@@ -256,7 +257,8 @@ subduced onto the double-valued little group irreps (currently available in 3D o
   distinct **k**-points returned by `lgirreps` (`allpaths = false`), including high-symmetry
   **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
   just to high-symmetry points.
-- `explicitly_real` (default, `timereversal`): whether, if `timereversal = true`, to
+- `explicitly_real` (default, `timereversal` for spinless and `false` for spinful band
+  representations): whether, if `timereversal = true`, to
   ensure that the site symmetry irreps accompanying the band representations are chosen
   to be explicitly real (or "physically" real; see [`physical_realify`](@ref)). This
   is helpful for subsequent analysis of the action of time-reversal symmetry. Not yet
@@ -278,14 +280,17 @@ The implementation is based on Cano, Bradlyn, Wang, Elcoro, et al., [Phys. Rev. 
 """
 function calc_bandreps(
         sgnum::Integer,
-        Dᵛ::Val{D} = Val(3),
-        spinfulᵛ::Val{S} = Val(false);
+        Dᵛ::Val{D} = Val(3);
+        spinful = Val(false),
         timereversal::Bool = true,
         allpaths::Bool = false,
-        explicitly_real::Bool = timereversal && !S,
+        explicitly_real::Union{Bool, Nothing} = nothing,
         include_nonmaximal::Bool = false,
-    ) where {D, S}
+    ) where D
 
+    # spinful band representations cannot yet be made explicitly real (see `physical_realify`)
+    S = _isspinful(spinful)
+    explicitly_real = something(explicitly_real, timereversal && !S)
     if explicitly_real && !timereversal
         error("`explicitly_real = true` is only meaningful for `timereversal = true`")
     end
@@ -295,19 +300,18 @@ function calc_bandreps(
     end
 
     # get all the little group irreps that we want to subduce onto
-    lgirsd = lgirreps(sgnum, Dᵛ, spinfulᵛ)
+    lgirsd = lgirreps(sgnum, Dᵛ; spinful)
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
     lgirsv = _collect_lgirsd_sorted(lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
-    sg = spacegroup(sgnum, Dᵛ, spinfulᵛ)
+    sg = spacegroup(sgnum, Dᵛ; spinful)
     sitegs = sitegroups(sg)
     if !include_nonmaximal
         sitegs = findmaximal(sitegs)
     end
-    brs = S ? NewBandRep{D, DLGIrrep{D}, DSiteIrrep{D}}[] :
-              NewBandRep{D, LGIrrep{D}, SiteIrrep{D}}[]
+    brs = _bandrep_type(_spinfulval(spinful), Dᵛ)[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal
@@ -319,9 +323,13 @@ function calc_bandreps(
 
     return Collection(brs)
 end
-function calc_bandreps(sgnum::Integer, D::Integer, spinful::Bool=false; kws...)
-    return calc_bandreps(sgnum, Val(D), Val(spinful); kws...)
-end
+calc_bandreps(sgnum::Integer, D::Integer; kws...) = calc_bandreps(sgnum, Val(D); kws...)
+
+# the band representation type induced by spinless or by spinful site symmetry irreps; keyed
+# on `Val`s so that the type is fixed by dispatch, and so is propagated even if the
+# dimension is not a compile-time constant
+_bandrep_type(#=Val{S}=#::Val{false}, ::Val{D}) where D = NewBandRep{D, LGIrrep{D}, SiteIrrep{D}}
+_bandrep_type(#=Val{S}=#::Val{true}, ::Val{D}) where D = NewBandRep{D, DLGIrrep{D}, DSiteIrrep{D}}
 
 # ---------------------------------------------------------------------------------------- #
 

@@ -29,7 +29,6 @@ using JLD2
 
 const DEFAULT_OUT = joinpath(dirname(@__DIR__), "data", "irreps", "pgs", "3d",
                              "irreps_data_spinful.jld2")
-const NOVALS = Dict{Symbol,Real}()
 
 pg_path(iuc) = joinpath(CRAWL_DIR, "pg", replace(iuc, '/' => "_") * ".html")
 
@@ -54,21 +53,7 @@ function parse_pg_page(path::AbstractString)
         push!(realities, parse(Int8, m[2]))
     end
 
-    datarows = [r for r in rows[2:end] if length(tag_children(r, :td)) == length(hdr) + 1]
-    N, nir = length(datarows), length(irlabels)
-    opmatrix = Vector{String}(undef, N)
-    su2      = Vector{String}(undef, N)
-    seitz    = Vector{String}(undef, N)
-    entries  = Matrix{Vector{String}}(undef, N, nir)
-    for (i, r) in enumerate(datarows)
-        cs = tag_children(r, :td)
-        opmatrix[i] = text_of(cs[2])
-        su2[i]      = text_of(cs[3])
-        seitz[i]    = has_overline(cs[4]) ? "‾" * text_of(cs[4]) : text_of(cs[4])
-        for j in 1:nir
-            entries[i, j] = entry_strings(cs[4+j])
-        end
-    end
+    seitz, opmatrix, su2, entries = datarow_cells(rows, length(hdr)+1, length(irlabels), 2)
     page = DsgPage(0, "GM", "0,0,0", seitz, opmatrix, su2, irlabels, isdouble, entries)
     return page, realities
 end
@@ -79,9 +64,6 @@ function rotation_of(p::DsgPage, i::Integer)
     length(v) == 9 || error("expected 9 entries in the W cell of row $i, got $(length(v))")
     return SMatrix{3,3,Int}(v[1], v[4], v[7], v[2], v[5], v[8], v[3], v[6], v[9])
 end
-function su2_of(p::DsgPage, i::Integer)
-    return SU2(entry_value.(split(strip(p.su2[i])), Ref(NOVALS))[1:2]...)
-end
 
 """
     collect_pg(iuc) --> (matrices, realities, cdmls)
@@ -91,7 +73,7 @@ The double-valued irreps of point group `iuc`, with matrices in the operation or
 """
 function collect_pg(iuc::String)
     p, realities = parse_pg_page(pg_path(iuc))
-    check_barred_coset_numeric(p).ok || error("$iuc: D(Ē·g) ≠ ±D(g)")
+    check_barred_coset(p).ok || error("$iuc: D(Ē·g) ≠ ±D(g)")
     pg = pointgroup(iuc, Val(3))
     hexagonal = Crystalline._ishexagonal(pg)
 

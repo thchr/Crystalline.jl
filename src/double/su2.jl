@@ -10,8 +10,8 @@ on spin-½ degrees of freedom.
 The crystal system must be supplied, either as a space group number or directly as whether
 it is hexagonal or trigonal. It is needed because the SU(2) element is not fixed by the
 rotation part alone: a rotation matrix in fractional coordinates does not determine the
-Cartesian rotation axis, and four rotation parts differ between the hexagonal and trigonal
-settings and the rest.
+Cartesian rotation axis, and four rotation parts are assigned differently in the hexagonal
+and trigonal settings than elsewhere.
 
 The assignment follows Altmann & Herzig, *Point-Group Theory Tables* (1994), as used by the
 Bilbao Crystallographic Server. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
@@ -23,9 +23,10 @@ with ``𝛔 = (σ_x, σ_y, σ_z)`` the Pauli matrices.
 An improper operation acts through its proper part alone, spin being axial; inversion
 therefore maps to the identity.
 
-The values are tabulated rather than evaluated from that expression. It fixes `U` for every
-operation with ``φ ≠ π``, but two-fold rotations and mirrors have ``φ = π``, where `U` and
-`-U` describe the same spatial operation and the choice between them is convention.
+The values are tabulated rather than evaluated from that expression: the expression fixes
+`U` for every operation with ``φ ≠ π``, but two-fold rotations and mirrors have ``φ = π``,
+where `U` and `-U` describe the same spatial operation and the choice between them is
+convention.
 
 ## Cartesian frame
 `op` must be given in a conventional setting, whose basis is taken in a fixed orientation
@@ -94,10 +95,9 @@ _binary_axis(u::SU2) = SVector{3,Float64}(-imag(u.b), -real(u.b), -imag(u.a))
 
 # The two-fold axis directions that occur in the conventional settings, with each lattice in
 # the Cartesian frame of the tables above, and oriented as Altmann orients them. Nothing is
-# special about the directions themselves; the orientations are convention: Altmann fixes
-# them by requiring the matrices to form a representation of the double group of `D₂`,
-# which constrains the set as a whole, and no rule on the individual axis reproduces them
-# (of six rules tried, the best matched 10 of these 13).
+# special about the directions themselves; the orientations are convention, and are tabulated
+# rather than derived because Altmann fixes them as a set (by requiring the matrices to
+# represent the double group of `D₂`) and not by any rule on the individual axis.
 const SU2_BINARY_AXES = let ns = SVector{3,Float64}[]
     for tbl in (SU2_BY_ROTATION, SU2_BY_ROTATION_HEX), u in values(tbl)
         if abs(real(u.a)) ≤ DEFAULT_ATOL
@@ -123,11 +123,11 @@ rotation angle is taken in ``[-π, π]``, so an unbarred element always has
 ``φ ≠ π``.
 
 Two-fold rotations and mirrors have `real(u.a) = 0` for both elements, and are settled by
-their oriented "axis" (see `_binary_axis`) instead, against `SU2_BINARY_AXES`: the 13
+their oriented "axis" (see `_binary_axis`) instead, against `SU2_BINARY_AXES`: the
 directions that two-fold axes take in the conventional settings of the space groups, with
 each lattice in the Cartesian frame used by the Bilbao tables, and oriented as Altmann
-orients them. For any other direction, we take as unbarred the element whose axis has a
-positive final non-zero component — a choice that agrees with 10 of the 13 tabulated ones.
+orients them. Any other direction lies outside Altmann's tables; there, we take as unbarred
+the element whose axis has a positive final non-zero component.
 
 Reads only the SU(2) element, never the rotation part, and is hence unaffected by a change
 of lattice basis (e.g., to a primitive setting).

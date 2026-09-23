@@ -7,7 +7,8 @@ function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
     _print_operation_matrix(io, op)
 end
 
-# print the Seitz symbol, and, unless the IOContext is :compact=>true, the triplet expression
+# print the Seitz symbol and, unless the IOContext is `:compact=>true`, the triplet
+# expression
 function _print_operation_header(io::IO, op::AbstractOperation)
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
@@ -161,7 +162,7 @@ function show(io::IO, g::AbstractGroup)
     join(io, g, ", ")
     print(io, ']')
 end
-function show(io::IO, g::Union{LittleGroup, SiteGroup, DLittleGroup, DSiteGroup})
+function show(io::IO, g::Union{AbstractLittleGroup, AbstractSiteGroup})
     print(io, '[')
     join(io, g, ", ")
     print(io, ']')
@@ -391,6 +392,13 @@ function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
 end
 
 # ---------------------------------------------------------------------------------------- #
+# Spin tag for character tables, band representations, and symmetry vectors: single-valued
+# irreps apply to any integer (total) angular momentum, double-valued irreps to any
+# half-integer one
+
+_spin_tag(x) = isspinful(x) ? "spinful" : "spinless"
+
+# ---------------------------------------------------------------------------------------- #
 # CharacterTable
 
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
@@ -398,7 +406,9 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars_formatted = _stringify_characters.(chars; digits=4)
 
     ops = operations(ct)
-    println(io, typeof(ct), " for ", tag(ct), ":") # type name and space group/k-point tags
+    # the operation type parameter is not informative to a user, beyond whether the table is
+    # over a double group, which `_spin_tag` states instead
+    println(io, nameof(typeof(ct)), " for ", tag(ct), " (", _spin_tag(ct), "):")
     pretty_table(io,
         chars_formatted;
         # row/column names
@@ -527,12 +537,6 @@ end
 function show(io::IO, BR::BandRep)
     prettyprint_symmetryvector(io, BR, irreplabels(BR))
 end
-
-# ---------------------------------------------------------------------------------------- #
-# Spin tag for band representations and symmetry vectors: single-valued irreps apply to any
-# integer (total) angular momentum, double-valued irreps to any half-integer one
-
-_spin_tag(x) = isspinful(x) ? "spinful" : "spinless"
 
 # ---------------------------------------------------------------------------------------- #
 # BandRepSet

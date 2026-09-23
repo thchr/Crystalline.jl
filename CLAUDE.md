@@ -69,6 +69,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 | `src/notation.jl` | `schoenflies`, `iuc`, `seitz`, `mulliken` |
 | `src/subperiodic.jl` | `SubperiodicGroup` (layer, rod, frieze groups) |
 | `src/magnetic/` | `MSymOperation`, `MSpaceGroup` (type-IV magnetic space groups) |
+| `src/double/` | `SU2`, `DSymOperation`, the `D`-prefixed groups and irreps, `su2`, `isbarred`, `doublegroup`, `isspinful` (double groups and double-valued/spinful irreps) |
 | `src/assembly/` | `spacegroup`, `pointgroup`, `subperiodicgroup`, `mspacegroup`, `generate`, `generators` |
 | `src/tables/` | Tabulated generator strings and rotation/translation tables for all group types |
 | `src/collection_extensions.jl` | Additional methods on `Collection{T}` for specific `T` |
@@ -86,6 +87,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 AbstractOperation{D} <: AbstractMatrix{Float64}
   SymOperation{D}          — D×D rotation (SqSMatrix) + D-vector translation (SVector)
   MSymOperation{D}         — wraps SymOperation + time-reversal flag
+  DSymOperation{D}         — wraps SymOperation + SU2 (a double group operation)
 
 AbstractVec{D}
   KVec{D}                  — k₀ + kabc·(α,β,γ) in reciprocal coords (cnst + free·αβγ)
@@ -100,18 +102,26 @@ AbstractGroup{D,O} <: AbstractVector{O}
   SubperiodicGroup{D,P}
   MSpaceGroup{D}
   GenericGroup{D}          — group from arbitrary operations; num = 0
+  DSpaceGroup{D}, DPointGroup{D}, DLittleGroup{D}, DSiteGroup{D}
+                           — double group counterparts, over DSymOperation{D}
 
-AbstractIrrep{D}
-  PGIrrep{D}               — point group irrep
-  LGIrrep{D}               — little group irrep; has `translations` field for phase factors
-  SiteIrrep{D}             — site symmetry irrep; carries a `pglabel` field
+AbstractIrrep{D}           — the `D`-prefixed types below are the double-valued (spinful)
+                             irreps; they carry a `D`-prefixed group
+  AbstractPGIrrep{D}       — PGIrrep{D}, DPGIrrep{D}: point group irreps
+  AbstractLGIrrep{D}       — LGIrrep{D}, DLGIrrep{D}: little group irreps; have a
+                             `translations` field for phase factors
+  AbstractSiteIrrep{D}     — SiteIrrep{D}, DSiteIrrep{D}: site symmetry irreps; carry a
+                             `pglabel` field
 
 Collection{T} <: AbstractVector{T}    — thin wrapper around Vector{T}; same group for all T
-CharacterTable{D} / ClassCharacterTable{D}  — matrices of characters vs operations/classes
+CharacterTable{O} / ClassCharacterTable{O}  — characters vs operations/classes, over
+                                              operations of type O
 BandRep <: AbstractVector{Int}        — a single EBR (Wyckoff + site-irrep label + irvec)
 BandRepSet <: AbstractVector{BandRep} — all EBRs for a space group
-SymmetryVector{D} <: AbstractSymmetryVector{D} <: AbstractVector{Int}
-NewBandRep{D} <: AbstractSymmetryVector{D}
+SymmetryVector{D,IR} <: AbstractSymmetryVector{D,IR} <: AbstractVector{Int}
+NewBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
+CompositeBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
+                           — IR: little group irrep type; SIR: site symmetry irrep type
 ```
 
 ### Internal submodules
@@ -187,7 +197,7 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 
 ## Testing
 
-38 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
+46 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
 
 | Test file(s) | Coverage |
 |---|---|
@@ -202,6 +212,7 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 | `primitivize_irreps.jl` | Irrep transformation to primitive basis |
 | `grouprelations.jl` | Sub-/supergroup data integrity |
 | `mspacegroup.jl` | Magnetic space groups |
+| `double/` | Double groups and double-valued (spinful) irreps; the tests that need the spinful irrep data files are skipped if those are absent |
 | `symeigs_analysis.jl` | Symmetry eigenvalue → irrep assignment |
 
 ## CI/CD

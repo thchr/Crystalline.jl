@@ -53,21 +53,27 @@ Return all site symmetry groups associated with a space group, specified either 
 `D` defaults to 3).
 
 For a double space group `sg :: DSpaceGroup{D}`, or with `spinful = Val(true)` (or `true`),
-the double site symmetry groups are returned.
+the double site symmetry groups are returned; as for `D`, the `Val` spelling keeps the
+return type inferrable and the `Bool` spelling does not.
 
 See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
 Wyckoff position.
 """
-function sitegroups(sg::Union{SpaceGroup{D}, DSpaceGroup{D}}) where D
+function sitegroups(sg::SubperiodicGroup)
+    error("`sitegroups` is not implemented for subperiodic groups")
+end
+function sitegroups(sg::AbstractSpaceGroup{D}) where D
     wps = wyckoffs(num(sg), Val(D))
     return sitegroup.(Ref(sg), wps)
 end
-function sitegroups(sgnum::Integer, Dᵛ::Val{D}=Val(3), spinfulᵛ::Val=Val(false)) where D
-    return sitegroups(spacegroup(sgnum, Dᵛ, spinfulᵛ))
+function sitegroups(
+    sgnum::Integer,
+    Dᵛ::Val{D}=Val(3);
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
+) where D
+    return sitegroups(spacegroup(sgnum, Dᵛ; spinful))
 end
-function sitegroups(sgnum::Integer, D::Integer, spinful::Bool=false)
-    return sitegroups(sgnum, Val(D), Val(spinful))
-end
+sitegroups(sgnum::Integer, D::Integer; kws...) = sitegroups(sgnum, Val(D); kws...)
 
 """
 $(TYPEDSIGNATURES)
@@ -228,7 +234,7 @@ function sitegroup(sg::DSpaceGroup{D}, wp::WyckoffPosition{D}) where D
 end
 
 # `MulTable`s of `SiteGroup`s should be calculated with `modτ = false` always
-function MultTable(g::Union{SiteGroup, DSiteGroup})
+function MultTable(g::AbstractSiteGroup)
     MultTable(operations(g); modτ=false)
 end
 
@@ -246,7 +252,7 @@ Equivalently, every element of the orbit of ``\\mathbf{r}`` can be written as th
 composition of a coset representative of the Wyckoff position's site group in ``G`` with
 ``\\mathbf{r}``.
 """
-function orbit(g::Union{SiteGroup, DSiteGroup})
+function orbit(g::AbstractSiteGroup)
     rv′s = cosets(g) .* Ref(position(g))
 end
 
@@ -285,7 +291,7 @@ SiteGroup{2} ⋕5 (c1m1) at 2a = [0, β] with 2 operations:
  m₁₀
 ```
 """
-function findmaximal(sitegs::AbstractVector{<:Union{SiteGroup{D}, DSiteGroup{D}}}) where D
+function findmaximal(sitegs::AbstractVector{<:AbstractSiteGroup{D}}) where D
     maximal = Int[]
     for (idx, g) in enumerate(sitegs)
         wp = position(g)
@@ -326,7 +332,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-    siteirreps(sitegroup::Union{SiteGroup, DSiteGroup}; mulliken::Bool=false])
+    siteirreps(sitegroup::AbstractSiteGroup; mulliken::Bool=false])
                                                     --> Collection{<:AbstractSiteIrrep}
 
 Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
@@ -372,14 +378,10 @@ julia> siteirs = siteirreps(siteg)
   └ {3⁻|0,1}: exp(0.6667iπ)
 ```
 """
-function siteirreps(
-    siteg::Union{SiteGroup{D}, DSiteGroup{D}};
-    mulliken::Bool=false
-) where D
-    spinful = siteg isa DSiteGroup
+function siteirreps(siteg::AbstractSiteGroup{D}; mulliken::Bool=false) where D
     pglabel, Iᵖ²ᵍ = _isomorphic_parent_pointgroup_permutation(siteg)
-    pgirs = pgirreps(pglabel, Val(D), Val(spinful); mulliken)
-    IR = spinful ? DSiteIrrep{D} : SiteIrrep{D}
+    pgirs = pgirreps(pglabel, Val(D); spinful=Val(siteg isa DSiteGroup), mulliken)
+    IR = _siteirrep_type(typeof(siteg))
 
     # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
     # .jld files apparently cache accessed content; so if we modify it, we mess with the
@@ -403,7 +405,8 @@ function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{3})
     ops = @view operations(siteg)[1:n]
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup([op.op for op in ops])
     pglabel = label(parent_pg)
-    pgops = operations(pointgroup(pglabel, Val(3), Val(true))) # unbarred first, then barred
+    # unbarred operations first, then barred
+    pgops = operations(pointgroup(pglabel, Val(3); spinful=Val(true)))
     s = _lift_signs(ops, @view pgops[Iᵖ²ᵍ])
     Iᵖ²ᵍ′ = Vector{Int}(undef, 2n)
     for (i, j) in enumerate(Iᵖ²ᵍ)
@@ -412,6 +415,9 @@ function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{3})
     end
     return pglabel, Iᵖ²ᵍ′
 end
+_siteirrep_type(::Type{SiteGroup{D}}) where D = SiteIrrep{D}
+_siteirrep_type(::Type{DSiteGroup{D}}) where D = DSiteIrrep{D}
+
 mulliken(siteir::AbstractSiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))
 
 # ---------------------------------------------------------------------------------------- #

@@ -16,10 +16,11 @@
 # ## The double group is given explicitly
 #
 # The data rows list the **whole** double group: first the |G| spatial operations, then the
-# same operations again prefixed "d" in their Seitz symbol, meaning Ē·g. Verified on sg 61/X
-# that `D(Ē·g) == -D(g)` for every operation and irrep, which is what lets Crystalline store
-# only the first |G| matrices and recover the rest from the sign rule (see the plan, Stage 4).
-# `check_barred_coset` re-verifies this per page rather than trusting it globally.
+# same operations again prefixed "d" in their Seitz symbol, meaning Ē·g. A double-valued
+# irrep has `D(Ē·g) = -D(g)` and a single-valued one `D(Ē·g) = +D(g)`, which is what lets
+# Crystalline store only the first |G| matrices and recover the rest from the sign.
+# `check_barred_coset` checks this on a parsed page; `test/double/lgirreps.jl` checks it on
+# the data that is ultimately written.
 #
 # ## Matrix entries
 #
@@ -46,6 +47,7 @@ using StaticArrays
 using LinearAlgebra: dot
 
 const CRAWL_DIR = joinpath(@__DIR__, "crawls", "dsg")
+const NOVALS = Dict{Symbol,Real}()  # for entries that carry no `t` or `αβγ` symbols
 
 # ---------------------------------------------------------------------------------------- #
 # Gumbo helpers
@@ -129,6 +131,35 @@ struct DsgPage
     entries   :: Matrix{Vector{String}} # [op, irrep] -> flat list of entry strings
 end
 
+"""
+    datarow_cells(rows, ncol, nir, off) --> (seitz, opmatrix, su2, entries)
+
+The cells of the data rows of an irrep table, verbatim. Each such row holds the operation's
+matrix cell, its SU(2) cell, its Seitz symbol, and then one cell per irrep; `off` is the
+index of the matrix cell (1 on a space group page, 2 on a point group page, which prefixes
+a numbering column). Rows with a cell count other than `ncol` are not data rows.
+"""
+function datarow_cells(rows, ncol::Integer, nir::Integer, off::Integer)
+    datarows = [r for r in rows[2:end] if length(tag_children(r, :td)) == ncol]
+    N = length(datarows)
+    seitz    = Vector{String}(undef, N)
+    opmatrix = Vector{String}(undef, N)
+    su2      = Vector{String}(undef, N)
+    entries  = Matrix{Vector{String}}(undef, N, nir)
+    for (i, r) in enumerate(datarows)
+        cs = tag_children(r, :td)
+        opmatrix[i] = text_of(cs[off])
+        su2[i]      = text_of(cs[off+1])
+        # mark roto-inversions explicitly, since `text_of` drops the overline
+        c = cs[off+2]
+        seitz[i] = has_overline(c) ? "‾" * text_of(c) : text_of(c)
+        for j in 1:nir
+            entries[i, j] = entry_strings(cs[off+2+j])
+        end
+    end
+    return seitz, opmatrix, su2, entries
+end
+
 function parse_page(path::AbstractString)
     src = read(path, String)
     cut = findfirst("Matrices of the representations of the group", src)
@@ -144,23 +175,7 @@ function parse_page(path::AbstractString)
     isdouble = has_overline.(irlabel_cells)
     irlabels = text_of.(irlabel_cells)
 
-    datarows = [r for r in rows[2:end] if length(tag_children(r, :td)) == length(hdr) + 1]
-    N = length(datarows)
-    nir = length(irlabels)
-    seitz    = Vector{String}(undef, N)
-    opmatrix = Vector{String}(undef, N)
-    su2      = Vector{String}(undef, N)
-    entries  = Matrix{Vector{String}}(undef, N, nir)
-    for (i, r) in enumerate(datarows)
-        cs = tag_children(r, :td)
-        opmatrix[i] = text_of(cs[1])
-        su2[i]      = text_of(cs[2])
-        # mark roto-inversions explicitly, since text_of drops the overline
-        seitz[i]    = has_overline(cs[3]) ? "‾" * text_of(cs[3]) : text_of(cs[3])
-        for j in 1:nir
-            entries[i, j] = entry_strings(cs[3+j])
-        end
-    end
+    seitz, opmatrix, su2, entries = datarow_cells(rows, length(hdr)+1, length(irlabels), 1)
 
     sgnum, klabel = let m = match(r"sg(\d+)-(.+)\.html$", basename(path))
         m === nothing && error("cannot read sgnum/klabel from filename $(basename(path))")
@@ -205,33 +220,19 @@ superscripts are rendered as `^(…)` so that the exponent survives as structure
 being run together with the base by text extraction.
 """
 function entry_strings(cell::HTMLElement)
-    tbls = HTMLElement[]
-    collect_tables(el) = begin
-        el isa HTMLElement || return
-        tag(el) === :table && push!(tbls, el)
-        foreach(collect_tables, el.children)
-    end
-    collect_tables(cell)
+    tbls = innermost_tables(cell)
     # a 1×1 "matrix" is written as bare text, with no nested table at all
     isempty(tbls) && return [render_entry(cell)]
-    # entries live in the *innermost* tables: those containing no further table
-    inner = filter(t -> !any(u -> u !== t && is_descendant(u, t), tbls), tbls)
-    out = String[]
-    for t in inner, r in rows_of(t), c in tag_children(r, :td)
-        push!(out, render_entry(c))
-    end
-    return out
+    return [render_entry(c) for t in tbls for r in rows_of(t) for c in tag_children(r, :td)]
 end
 
-function is_descendant(candidate::HTMLElement, ancestor::HTMLElement)
-    found = false
-    walk(el) = begin
-        el isa HTMLElement || return
-        el === candidate && (found = true)
-        found || foreach(walk, el.children)
-    end
-    foreach(walk, ancestor.children)
-    return found
+# the tables below `el` that contain no further table, in document order
+function innermost_tables(el, out = HTMLElement[])
+    el isa HTMLElement || return out
+    n = length(out)
+    foreach(c -> innermost_tables(c, out), el.children)
+    tag(el) === :table && length(out) == n && push!(out, el)
+    return out
 end
 
 function render_entry(el)
@@ -251,73 +252,16 @@ function _render(io, el::HTMLElement)
 end
 
 # ---------------------------------------------------------------------------------------- #
-# Consistency checks on a parsed page
-
-"""
-    check_barred_coset(p::DsgPage) --> Bool
-
-Verify that the second half of the operation list is the Ē-barred coset of the first, i.e.
-that its Seitz symbols carry the "d" prefix and, entry by entry,
-
-    D(Ē·g) = +D(g)  for a single-valued irrep,
-    D(Ē·g) = -D(g)  for a double-valued one,
-
-which is exactly what distinguishes the two classes: Ē is represented faithfully only by the
-double-valued irreps. This is the assumption that lets Crystalline store only `|G|` matrices
-per irrep and recover the barred coset from a sign — and that sign *is* the `spinful` flag.
-Checked per page rather than assumed.
-
-⚠ The comparison here is **textual**, and therefore cannot settle any entry written as an
-exponential: Bilbao routinely absorbs the sign into the exponent as a π phase shift, e.g. for
-sg 100 at `B̄₃`, `D(g) = e^(-iπ(1/2-v)) = -i·e^(iπv)` and `D(Ē·g) = e^(iπ(1/2+v)) = +i·e^(iπv)`,
-whose ratio *is* -1 though no string manipulation will show it. The same applies to entries
-carrying the general translation `t`. Such entries are counted as `skipped` — neither passed
-nor failed — so that this check reports only what it can actually determine. Once the entry
-evaluator lands, the comparison should be done numerically and `skipped` should fall to zero.
-"""
-function check_barred_coset(p::DsgPage)
-    N = length(p.seitz)
-    isodd(N) && return (ok = false, skipped = 0, reason = "odd number of operations")
-    n = N ÷ 2
-    all(i -> occursin("d", p.seitz[i+n]), 1:n) ||
-        return (ok = false, skipped = 0, reason = "second half is not the d-prefixed coset")
-    skipped = 0
-    for i in 1:n, j in eachindex(p.irlabels)
-        a, b = p.entries[i, j], p.entries[i+n, j]
-        length(a) == length(b) ||
-            return (ok = false, skipped, reason = "shape mismatch at op $i, irrep $j")
-        a′ = p.isdouble[j] ? negate_entries(a) : a
-        for (x, y) in zip(a′, b)
-            if occursin("e^", x) || occursin("e^", y)
-                skipped += 1              # sign may sit inside the exponent; needs evaluation
-            elseif x != y
-                return (ok = false, skipped, reason = "D(Ē·g) ≠ -D(g) at op $i, irrep $j")
-            end
-        end
-    end
-    return (ok = true, skipped, reason = "")
-end
-
-# textual negation, sufficient for the observed entry grammar ("0", "±1", "±i", "e^(…)")
-function negate_entries(es::Vector{String})
-    map(es) do e
-        e == "0"            ? "0" :
-        startswith(e, "-")  ? e[2:end] :
-                              "-" * e
-    end
-end
-
-# ---------------------------------------------------------------------------------------- #
 
 pages(; dir = joinpath(CRAWL_DIR, "out")) = sort(readdir(dir; join = true))
 
 # ---------------------------------------------------------------------------------------- #
 # Evaluating matrix entries
 #
-# Over the whole crawl there are only ~136 distinct entry strings: `0`, a small integer, `±i`,
-# or `e^(<exponent>)` (~131 distinct exponents). The exponents are **bilinear**, not linear —
-# e.g. `i2πt3w`, `iπ(t1+t2+2t3w)` — which is exactly right: the phase is 2πi𝐤⋅𝐭 and 𝐤 carries
-# the free parameters, so components of 𝐭 multiply αβγ.
+# An entry is `0`, a small integer, `±i`, a surd, a parenthesised complex scalar, or
+# `e^(<exponent>)`. The exponents are **bilinear**, not linear — e.g. `i2πt3w`,
+# `iπ(t1+t2+2t3w)` — which is exactly right: the phase is 2πi𝐤⋅𝐭 and 𝐤 carries the free
+# parameters, so components of 𝐭 multiply αβγ.
 #
 # Symbols: `i` (imaginary unit), `π`, `t1,t2,t3` (a general lattice translation) and `u,v,w`
 # (the free parameters of 𝐤, i.e. Crystalline's αβγ). Juxtaposition means multiplication.
@@ -331,11 +275,10 @@ Turn a Bilbao scalar — a matrix entry *or* an exponent — into a Julia expres
 implicit multiplications explicit: `"iπ(t1+t2+2t3w)"` → `im*π*(t1+t2+2*t3*w)`,
 `"e^(i3π/4)√2/2"` → `exp(im*3*π/4)*sqrt(2)/2`, `"(1-i)/2"` → `(1-im)/2`.
 
-Deliberately one grammar for both. The entry grammar grew three times as the crawl advanced
-(136 → 375 distinct strings; then surds; then parenthesised complex scalars like `(1-i)/2` in
-the SU(2) column), each time breaking a parser written to the forms seen so far. Parsing the
-general expression instead of enumerating shapes ends that. Anything outside the grammar still
-throws, so a genuinely new construct is a loud failure rather than a silent misreading.
+Deliberately one grammar for both, rather than an enumeration of the shapes seen so far: the
+set of shapes grew repeatedly as the crawl advanced, breaking each such parser in turn.
+Anything outside the grammar throws, so a genuinely new construct is a loud failure rather
+than a silent misreading.
 """
 function expr_of(s::AbstractString)
     toks = String[]
@@ -411,9 +354,8 @@ end
 
 Numeric value of a single matrix entry. An entry is a product of optional factors — a leading
 sign, `i`, an exponential `e^(…)`, a surd `√n`, an integer, and a divisor `/n` — e.g. `-1`,
-`i`, `e^(iπ(1/2+w))`, `√2/2`, `i√2/2`, `e^(i7π/12)√2/2`. Unrecognised forms **throw**: the
-grammar grows as the crawl reaches new space groups (it went from 136 to 375 distinct entry
-strings between two sweeps), so silently ignoring an unknown factor would corrupt a matrix.
+`i`, `e^(iπ(1/2+w))`, `√2/2`, `i√2/2`, `e^(i7π/12)√2/2`. Unrecognised forms **throw**:
+silently ignoring an unknown factor would corrupt a matrix.
 """
 function entry_value(e::AbstractString, vals::AbstractDict{Symbol,<:Real})
     e == "0" && return zero(ComplexF64)
@@ -480,14 +422,15 @@ function matrix_at(p::DsgPage, iop::Integer, iir::Integer;
 end
 
 """
-    check_barred_coset_numeric(p; kws...) --> NamedTuple
+    check_barred_coset(p; kws...) --> NamedTuple
 
-The numeric counterpart of [`check_barred_coset`](@ref): evaluates both cosets and verifies
-`D(Ē·g) = ±D(g)` with the sign set by whether the irrep is double-valued. Unlike the textual
-check this can settle every entry, including the exponentials where Bilbao absorbs the sign
-into the exponent as a shift by π.
+Verify that the second half of the operation list is the Ē-barred coset of the first, by
+evaluating both and checking `D(Ē·g) = ±D(g)`, with the sign set by whether the irrep is
+double-valued. The comparison must be numeric: Bilbao routinely absorbs the sign into the
+exponent as a shift by π, e.g. for sg 100 at `B̄₃`, where `D(g) = e^(-iπ(1/2-v))` and
+`D(Ē·g) = e^(iπ(1/2+v))` differ by -1 although no string manipulation would show it.
 """
-function check_barred_coset_numeric(p::DsgPage; atol = 1e-10, kws...)
+function check_barred_coset(p::DsgPage; atol = 1e-10, kws...)
     N = length(p.seitz)
     isodd(N) && return (ok = false, reason = "odd number of operations")
     n = N ÷ 2
@@ -529,6 +472,16 @@ function operation_of(p::DsgPage, i::Integer)
 end
 
 """
+    su2_of(p, i) --> SU2
+
+The SU(2) element of row `i`, from its 2×2 cell (`a` and `b` are its first two entries).
+"""
+function su2_of(p::DsgPage, i::Integer)
+    a, b = entry_value.(split(strip(p.su2[i]))[1:2], Ref(NOVALS))
+    return SU2(a, b)
+end
+
+"""
     KLABEL_BILBAO2CDML
 
 Bilbao spells five CDML k-labels in ASCII. Verified 2026-09-17 that, with just these five, the
@@ -546,9 +499,8 @@ page's `i`th operation.
 
 Comparison is modulo the lattice translations of the **primitive** cell, i.e. it must be told
 the `centering`: in a centred lattice the centring vector is a lattice translation, so two
-operations differing by e.g. `(0,½,½)` in an F-centred group are the same operation. Comparing
-only modulo *integer* translations fails on exactly the centred groups — measured: sgs 64, 67,
-68 (C), 70 (F) and 88, 141, 142 (I), and no others.
+operations differing by e.g. `(0,½,½)` in an F-centred group are the same operation.
+Comparing only modulo *integer* translations fails on a handful of the centred groups.
 
 Returns `ok = false` with a reason rather than throwing, so that a sweep can tabulate how the
 settings differ instead of stopping at the first mismatch.
@@ -624,8 +576,8 @@ CDML and Bilbao instead overline the k-label symbol (`<font overline>WA</font><s
 but an overbar is awkward here: it is a combining mark that must follow the *complete* letter
 run rather than each letter, it collides with the overbar of a roto-inversion, and it renders
 unreliably. The `ˢ` spelling already exists in Crystalline for the spinful EBR labels
-(`build/crawl_and_write_bandreps.jl`, and `isspinful` at `src/bandrep.jl`), which write it as
-`Γˢ₁₀`; we append it instead, so that `klabel` needs no special casing here.
+(`build/crawl_and_write_bandreps.jl`), which append it in the same position, so that
+`klabel` needs no special casing.
 """
 const SPINFUL_MARK = 'ˢ'
 

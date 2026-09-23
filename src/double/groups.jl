@@ -11,7 +11,7 @@
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct DSpaceGroup{D} <: AbstractGroup{D, DSymOperation{D}}
+struct DSpaceGroup{D} <: AbstractSpaceGroup{D, DSymOperation{D}}
     num        :: Int
     operations :: Vector{DSymOperation{D}}
 end
@@ -20,7 +20,7 @@ label(sg::DSpaceGroup) = iuc(num(sg), dim(sg))
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct DPointGroup{D} <: AbstractGroup{D, DSymOperation{D}}
+struct DPointGroup{D} <: AbstractPointGroup{D, DSymOperation{D}}
     num        :: Int
     label      :: String
     operations :: Vector{DSymOperation{D}}
@@ -32,7 +32,7 @@ centering(::DPointGroup) = nothing
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct DLittleGroup{D} <: AbstractGroup{D, DSymOperation{D}}
+struct DLittleGroup{D} <: AbstractLittleGroup{D, DSymOperation{D}}
     num        :: Int
     kv         :: KVec{D}
     klab       :: String
@@ -45,7 +45,7 @@ label(lg::DLittleGroup) = iuc(num(lg), dim(lg))
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct DSiteGroup{D} <: AbstractGroup{D, DSymOperation{D}}
+struct DSiteGroup{D} <: AbstractSiteGroup{D, DSymOperation{D}}
     num        :: Int
     wp         :: WyckoffPosition{D}
     operations :: Vector{DSymOperation{D}}
@@ -84,8 +84,6 @@ end
 
 @noinline _only_3d(D) = throw(DomainError(D, "double groups are currently only supported in 3D"))
 
-centering(g::Union{DSpaceGroup{D}, DLittleGroup{D}}) where D = centering(num(g), D)
-
 """
     doublegroup(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}, SiteGroup{3}})
                     --> DSpaceGroup{3}, DLittleGroup{3}, DPointGroup{3}, or DSiteGroup{3}
@@ -105,16 +103,6 @@ function doublegroup(siteg::SiteGroup{3})
     hexagonal = _ishexagonal(siteg)
     cosets′ = [DSymOperation{3}(op, su2(op, hexagonal)) for op in cosets(siteg)]
     return DSiteGroup{3}(num(siteg), position(siteg), doubled_operations(siteg), cosets′)
-end
-
-# --- change of lattice basis ---
-# Little groups hold no centring copies, so no operations become equivalent (unlike for
-# space groups, cf. `reduce_ops`)
-function primitivize(lg::DLittleGroup{D}, modw::Bool=true) where D
-    cntr = centering(lg)
-    kv′  = primitivize(position(lg), cntr)
-    ops′ = primitivize.(operations(lg), cntr, modw)
-    return DLittleGroup{D}(num(lg), kv′, klabel(lg), ops′)
 end
 
 # --- matching two double groups ---
@@ -149,7 +137,8 @@ function _lift_signs(
     k == k′ || error("the spatial parts of the two groups do not correspond")
 
     # a valid `s` must satisfy `s[i] s[j] c′[i,j] = c[i,j] s[k[i,j]]`; so `s` is fixed by
-    # its values on a set of generators
+    # its values on a set of generators. NB: index 1 must be the identity (as it is in every
+    # group built by Crystalline), both here and in `_generated`
     gens = Int[]
     for i in 1:n
         i ∈ _generated(gens, k) || push!(gens, i)

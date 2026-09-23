@@ -71,7 +71,7 @@ end
 $(TYPEDEF)$(TYPEDFIELDS)
 
 A double-valued (spinful) irrep of a site symmetry group, i.e., an irrep of a double site
-symmetry group `g` in which ``\bar{E}`` is represented by `-𝟙`.
+symmetry group `g` in which ``\\bar{E}`` is represented by `-𝟙`.
 
 The fields mirror those of [`SiteIrrep`](@ref), with one matrix for each of the `2|G|`
 operations of `g`.
@@ -88,13 +88,16 @@ end
 """
     isspinful(x) -> Bool
 
-Return whether `x` (an irrep, an irrep type, a symmetry vector, or a band representation) is
-spinful, i.e., double-valued, as appropriate for half-integer angular momentum. Otherwise,
-`x` is spinless, i.e., single-valued, as appropriate for integer angular momentum.
+Return whether `x` (an irrep, an irrep type, a character table, a symmetry vector, or a band
+representation) is spinful, i.e., double-valued, as appropriate for half-integer angular
+momentum. Otherwise, `x` is spinless, i.e., single-valued, as appropriate for integer
+angular momentum.
 """
 isspinful(ir::AbstractIrrep) = isspinful(typeof(ir))
 isspinful(::Type{<:AbstractIrrep}) = false
 isspinful(::Type{<:Union{DLGIrrep, DPGIrrep, DSiteIrrep}}) = true
+# a character table is spinful if it is a table over a double group
+isspinful(ct::AbstractCharacterTable) = eltype(operations(ct)) <: DSymOperation
 
 # --- Loading (see `lgirreps` in /src/littlegroup_irreps.jl and `pgirreps` in
 #     /src/pointgroup.jl) ---

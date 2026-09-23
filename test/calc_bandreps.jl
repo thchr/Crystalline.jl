@@ -3,6 +3,9 @@ using Crystalline
 using Crystalline: dlm2struct
 using Crystalline: constant
 
+_calc_bandreps_int_dim(sgnum::Int, D::Int, spinful::Val) =
+            calc_bandreps(sgnum, D; spinful) # dimension not a compile-time constant
+
 @testset "calc_bandreps" begin
 
 # defines `is_exceptional_br` to check if a BR induced by a maximal Wyckoff position is an
@@ -51,7 +54,7 @@ has_spinful_data = isfile(joinpath(pkgdir(Crystalline), "data", "irreps", "lgs",
         for timereversal in (false, true)
             had_tr_error = false
 
-            _brsᶜ = calc_bandreps(sgnum, Val(3), Val(spinful); timereversal, allpaths = false)
+            _brsᶜ = calc_bandreps(sgnum, Val(3); spinful, timereversal, allpaths = false)
             brsᶜ = convert(BandRepSet, _brsᶜ)
             brsʳ = bandreps(sgnum, 3; spinful, timereversal, allpaths = false)
                       
@@ -231,5 +234,17 @@ end
     @test length(brs_incl_nonmax) == 17
     @test "2i: [α, β, γ]" ∉ string.(unique(position.(brs_max)))
     @test "2i: [α, β, γ]" ∈ string.(unique(position.(brs_incl_nonmax)))
+end
+
+@testset "Inferred irrep types" begin
+    # a `Val` dimension infers concretely; a plain `Integer` dimension cannot, but `spinful`
+    # must still fix the irrep types on its own (it is only kept across an unknown dimension
+    # because `Crystalline._bandrep_type` picks them by dispatch rather than by a value)
+    @test @inferred(calc_bandreps(2, Val(3))) isa
+                Collection{NewBandRep{3, LGIrrep{3}, SiteIrrep{3}}}
+    T  = only(Base.return_types(_calc_bandreps_int_dim, (Int, Int, Val{false})))
+    Tᵈ = only(Base.return_types(_calc_bandreps_int_dim, (Int, Int, Val{true})))
+    @test T  <: Collection{<:NewBandRep{<:Any, <:LGIrrep,  <:SiteIrrep}}
+    @test Tᵈ <: Collection{<:NewBandRep{<:Any, <:DLGIrrep, <:DSiteIrrep}}
 end
 end # @testset "calc_bandreps"

@@ -29,7 +29,7 @@ _selfdoubling_reality(ir::AbstractIrrep) = isspinful(ir) ? REAL : PSEUDOREAL
 
 """
     realify(lgirs::AbstractVector{<:AbstractLGIrrep}; verbose::Bool=false)
-                                                        --> AbstractVector{<:AbstractLGIrrep}
+                                                    --> AbstractVector{<:AbstractLGIrrep}
 
 From `lgirs`, a vector of `LGIrrep`s, determine the associated (gray) co-representations,
 i.e. the "real", or "physical" irreps that are relevant in scenarios with time-reversal
@@ -73,7 +73,7 @@ function realify(
     Nops = order(lg) # order of little group (= number of operations)
 
     cntr = centering(sgnum, D)
-    sgops = operations(spacegroup(sgnum, Val(D), Val(IR <: DLGIrrep)))
+    sgops = operations(spacegroup(sgnum, Val(D); spinful=Val(isspinful(IR))))
 
     verbose && print(klabel(lg), " │ ")
 
@@ -259,7 +259,7 @@ e.g. [`pgirreps`](@ref)). Fallback method for point-group-like `AbstractIrrep`s.
 ```jl-doctest
 julia> pgirs = pgirreps("4", Val(3));
 julia> characters(pgirs)
-CharacterTable{SymOperation{3}} for ⋕9 (4):
+CharacterTable for ⋕9 (4) (spinless):
 ───────┬────────────────────
        │ Γ₁  Γ₂    Γ₃    Γ₄ 
 ───────┼────────────────────
@@ -270,7 +270,7 @@ CharacterTable{SymOperation{3}} for ⋕9 (4):
 ───────┴────────────────────
 
 julia> characters(realify(pgirs))
-CharacterTable{SymOperation{3}} for ⋕9 (4):
+CharacterTable for ⋕9 (4) (spinless):
 ───────┬──────────────
        │ Γ₁  Γ₂  Γ₃Γ₄ 
 ───────┼──────────────
@@ -472,9 +472,9 @@ function calc_reality(lgir::AbstractLGIrrep{D},
 
     # g₀/M(k), with g₀ the order of the point group of the space group (denoted h, or
     # macroscopic order, in Bradley & Cracknell) and M(k) the order of the star of k (qₖ in
-    # Bradley & Cracknell), is the order of the little co-group G₀ᵏ (b in Bradley & Cracknell;
-    # [𝐤] in Inui): i.e., the number of operations in the little group, which holds no
-    # centering copies
+    # Bradley & Cracknell), is the order of the little co-group G₀ᵏ (b in Bradley &
+    # Cracknell; [𝐤] in Inui): i.e., the number of operations in the little group, which
+    # holds no centering copies
     normalization = length(lgops)
     
     # s = ∑ χ({β|b}²) and normalization = g₀/M(k) in Cornwell's Eq. (7.18) notation

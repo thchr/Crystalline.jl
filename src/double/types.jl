@@ -8,7 +8,8 @@ An element of SU(2), stored by the two complex parameters `a` and `b` of
 
 with ``|a|^2 + |b|^2 = 1``. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
 ``U = \\exp[-i(φ/2)\\,𝐧⋅𝛔] = \\cos(φ/2)𝟙 - i\\sin(φ/2)\\,(𝐧⋅𝛔)``, i.e.
-``a = \\cos(φ/2) - i n_z\\sin(φ/2)`` and ``b = -(n_y + i n_x)\\sin(φ/2)`` (see [`su2`](@ref)).
+``a = \\cos(φ/2) - i n_z\\sin(φ/2)`` and ``b = -(n_y + i n_x)\\sin(φ/2)`` (see
+[`su2`](@ref)).
 
 This is the spin-½ part of a double group operation: the two SU(2) elements of a spatial
 operation differ by an overall sign, `u` and `-u`, and that sign is what distinguishes an
@@ -77,7 +78,8 @@ in any setting, so [`isbarred`](@ref) computes it on demand rather than every
     su2 :: SU2
 end
 SymOperation{D}(dop::DSymOperation{D}) where D = dop.op
-# a pure lattice translation, which acts trivially on spin (cf. `SymOperation{D}(::AbstractVector)`)
+# a pure lattice translation, which acts trivially on spin
+# (cf. `SymOperation{D}(::AbstractVector)`)
 function DSymOperation{D}(t::AbstractVector{<:Real}) where D
     return DSymOperation{D}(SymOperation{D}(t), one(SU2))
 end
@@ -152,3 +154,14 @@ end
 function conventionalize(dop::DSymOperation{D}, cntr::Char, modw::Bool=true) where D
     return DSymOperation{D}(conventionalize(dop.op, cntr, modw), dop.su2)
 end
+
+# --- the `spinful` keyword argument ---
+# Declared as `spinful::Union{Bool, Val{true}, Val{false}}`: given as a `Val`, it keeps the
+# caller's return type inferrable; given as a plain `Bool`, it does not — exactly as for a
+# dimension given as `Val(D)` or as a plain `Integer`. `_isspinful` reads it as a `Bool`,
+# constant-folded in the `Val` case; `_spinfulval` normalizes it to a `Val`, for passing on
+# to another such keyword argument.
+_isspinful(spinful::Val{S}) where S = S::Bool
+_isspinful(spinful::Bool) = spinful
+_spinfulval(spinful::Val{S}) where S = (S::Bool; spinful)
+_spinfulval(spinful::Bool) = Val(spinful)

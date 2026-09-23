@@ -15,7 +15,7 @@ isspinful(::AbstractSymmetryVector{D, IR}) where {D, IR} = isspinful(IR)
 # SymmetryVector
 
 """
-    SymmetryVector{D, IR<:AbstractLGIrrep{D}} <: AbstractSymmetryVector{D}
+    SymmetryVector{D, IR<:AbstractLGIrrep{D}} <: AbstractSymmetryVector{D, IR}
 
 A symmetry vector in dimension `D`, containing the featured irreps and their multiplicities
 and overall band occupation number. The irreps are of type `IR`: `LGIrrep{D}` for spinless
@@ -403,14 +403,14 @@ dim(::Type{<:AbstractSymmetryVector}) = nothing
 # NewBandRep
 
 """
-    NewBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}}
+    NewBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}}
                                                         <: AbstractSymmetryVector{D, IR}
 
 A band representation in dimension `D`, induced from the site symmetry irrep `siteir` (of
 type `SIR`), with symmetry vector `n` over little group irreps of type `IR`.
 """
 @struct_hash_equal struct NewBandRep{
-    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}
+    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}
 } <: AbstractSymmetryVector{D, IR}
     siteir       :: SIR
     n            :: SymmetryVector{D, IR}
@@ -469,7 +469,7 @@ end
 # CompositeBandRep
 
 """
-    CompositeBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}}
+    CompositeBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}}
                                                         <: AbstractSymmetryVector{D, IR}
 
 A type representing a linear rational-coefficient combination of `NewBandRep{D, IR, SIR}`s.
@@ -538,7 +538,7 @@ julia> SymmetryVector(cbr)
 ```
 """
 @struct_hash_equal struct CompositeBandRep{
-    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractIrrep{D}
+    D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}
 } <: AbstractSymmetryVector{D, IR}
     coefs :: Vector{Rational{Int}}
     brs   :: Collection{NewBandRep{D, IR, SIR}}
