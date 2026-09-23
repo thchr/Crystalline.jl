@@ -69,7 +69,7 @@ for sgnum in 1:MAX_SGNUM[3]
     pgirs = pgirreps(iuc, Val(3); spinful=Val(true))
     pg = group(first(pgirs))
     idxs = map(operations(lg)) do op
-        findfirst(pgop -> rotation(pgop) ≈ rotation(op) && su2(pgop) ≈ su2(op), pg)
+        findfirst(pgop -> rotation(pgop) ≈ rotation(op) && SU2(pgop) ≈ SU2(op), pg)
     end
     @test all(!isnothing, idxs)
     @test sort(label.(lgirs)) == sort(label.(pgirs))

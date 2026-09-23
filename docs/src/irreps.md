@@ -1,7 +1,7 @@
 # Irreducible representations
 
 Crystalline.jl provides easy access to crystallographic point group irreps, site symmetry group irreps, and the little group irreps of space groups.
-Currently, we only provide access to spinless (or "single-valued") irreps.
+Both spinless ("single-valued") and spinful ("double-valued") irreps are provided; the latter are described separately in [Double groups & spinful irreps](doublegroups.md), and this page concerns the spinless case unless noted otherwise.
 
 ## Point group irreps
 Irreps for the crystallographic point groups are accessible via [`pgirreps`](@ref), with the point group specified either by IUC label and dimensionality.
@@ -100,10 +100,10 @@ The function [`physical_realify`](@ref) determines and applies the transformatio
 physical_realify(pgirs′) # equivalent also to `physical_realify(pgirs)
 ```
 
-For double-valued (spinful) irreps, time reversal squares to $-1$ and an explicitly real form does not exist in general. There, `physical_realify` instead returns a canonical form defined through the unitary part $Γ$ of time reversal $T = ΓK$, with $K$ denoting complex conjugation: the returned matrices obey $Γ D^*(g) Γ^\dagger = D(g)$. The function [`timereversal_unitary`](@ref) returns $Γ$, which is the identity matrix for spinless irreps and $\mathrm{i}σ_y ⊗ 𝟙_n$ for spinful irreps of dimension $2n$. The matrices are additionally explicitly real whenever that is possible, i.e., unless the irrep is pseudoreal. Any subsequent use of the irrep matrices alongside time reversal must adopt the same convention for $Γ$.
+For double-valued (spinful) irreps, time reversal squares to $-1$ and an explicitly real form does not exist in general; `physical_realify` then returns a canonical form defined through the unitary part of time reversal instead, as described in [Double groups & spinful irreps](doublegroups.md).
 
 ## Data sources
-Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
+Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
 
 If these functionalities are used in published research, please cite the original publications (listed in associated function docstrings).
 

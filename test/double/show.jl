@@ -21,13 +21,13 @@ plain(x) = sprint(show, MIME"text/plain"(), x)
     # every SU(2) element of every crystallographic operation is written exactly
     @test all(1:MAX_SGNUM[3]) do sgnum
         all(spacegroup(sgnum, Val(3); spinful=Val(true))) do dop
-            all(z -> !occursin('.', _su2_entry_string(z)), matrix(su2(dop)))
+            all(z -> !occursin('.', _su2_entry_string(z)), matrix(SU2(dop)))
         end
     end
 end
 
 @testset "SU2" begin
-    u = su2(pointgroup("m-3m", Val(3); spinful=Val(true))[5])
+    u = SU2(pointgroup("m-3m", Val(3); spinful=Val(true))[5])
     @test plain(u) == """
         SU(2) element:
          (1-i)/2  -(1+i)/2

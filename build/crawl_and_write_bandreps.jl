@@ -2,7 +2,7 @@ using Crystalline, HTTP
 import ProgressMeter: @showprogress
 
 # crawling functionality
-const BANDREP_URL="https://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl"
+const BANDREP_URL="https://cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl"
 
 """
     crawlbandreps(sgnum::Integer, allpaths::Bool=false, timereversal::Bool=true)

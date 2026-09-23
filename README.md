@@ -60,13 +60,10 @@ CharacterTable for ⋕16 (P222) at Γ = [0, 0, 0] (spinless):
 ──────┴────────────────
 ```
 
-Additional functionality includes e.g. point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), subperiodic groups (`subperiodicgroup`), 3D magnetic space groups (`mspacegroup`), and physically real irreps (`realify`).
+Additional functionality includes e.g., point group operations (`pointgroup`) and irreps (`pgirreps`), elementary band representations (`bandreps`), Wyckoff positions (`wyckoffs`), conjugacy classes (`classes`), class-specific characters (`classcharacters`), group generators (`generators`), subperiodic groups (`subperiodicgroup`), 3D magnetic space groups (`mspacegroup`), coreps (`realify`), and double groups (`doublegroup`) and their double-valued, spinful irreps.
 In addition, Bravais lattice utilities and conventions are accessible via the lightweight stand-alone sub-package [Bravais.jl](https://github.com/thchr/Crystalline.jl/tree/master/Bravais).
 
 For a full description of the public API, see the [documentation][docs-dev-url].
-
-### Current limitations
-At present, the package's emphasis is on spinless systems (i.e., double groups and spinful irreps are not implemented).
 
 ## API stability
 Crystalline.jl is a research package: breaking changes may occur (but will respect semantic versioning).

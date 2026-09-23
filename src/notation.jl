@@ -110,7 +110,7 @@ const SG_IUCs = (
 ("p1", "p1m"),
 # ------------------------------------------------------------------------------------------
 # plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974, or
-# https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
+# https://cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
 # ------------------------------------------------------------------------------------------
 (
 # oblique
@@ -124,7 +124,7 @@ const SG_IUCs = (
 ),
 # ------------------------------------------------------------------------------------------
 # space-group notation (three dimensions) following the conventions of ITA and Bilbao:
-# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
+# https://cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
 # ------------------------------------------------------------------------------------------
 (
 # triclinic
@@ -429,8 +429,8 @@ const PGIRLABS_CDML2MULLIKEN_3D = Dict(
     #       Γ₁, Γ₂, ... 
     #   or  Γ₁⁺, Γ₁⁻, Γ₂⁺, Γ₂⁻, ...
     # the association between CDMl and Mulliken labels are obtained obtained from
-    # https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg
-    # note that e.g., https://www.cryst.ehu.es/rep/point.html cannot be used, because the 
+    # https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg
+    # note that e.g., https://cryst.ehu.es/rep/point.html cannot be used, because the 
     # Γ-labels there do not always refer to the CDML convention; more likely, the B&C 
     # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
     # point group irrep crawl script
@@ -538,7 +538,7 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 [^1]: Mulliken, Report on Notation for the Spectra of Polyatomic Molecules, 
       [J. Chem. Phys. *23*, 1997 (1955)](https://doi.org/10.1063/1.1740655).
 [^2]: Bilbao Crystallographic Database's
-      [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+      [Representations PG program](https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
 function mulliken(pgir::AbstractPGIrrep)
     pglab   = label(group(pgir))

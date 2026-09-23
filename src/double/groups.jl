@@ -64,7 +64,7 @@ positionlabel(g::DSiteGroup) = label(position(g))
     doubled_operations(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}, SiteGroup{3}})
                                                             --> Vector{DSymOperation{3}}
 
-Attach the SU(2) element (see [`su2`](@ref)) to each operation of `g`, returning the `2|G|`
+Attach the SU(2) element (see [`SU2`](@ref)) to each operation of `g`, returning the `2|G|`
 operations of the associated double group: the operations themselves first, then their
 ``\\bar{E}``-barred partners, in the same order.
 """
@@ -75,7 +75,7 @@ function doubled_operations(
     n = length(g)
     dops = Vector{DSymOperation{3}}(undef, 2n)
     for (i, op) in enumerate(g)
-        u = su2(op, hexagonal)
+        u = SU2(op, hexagonal)
         dops[i]   = DSymOperation{3}(op,  u)
         dops[i+n] = DSymOperation{3}(op, -u)
     end
@@ -101,7 +101,7 @@ end
 doublegroup(pg::PointGroup{3}) = DPointGroup{3}(num(pg), label(pg), doubled_operations(pg))
 function doublegroup(siteg::SiteGroup{3})
     hexagonal = _ishexagonal(siteg)
-    cosets′ = [DSymOperation{3}(op, su2(op, hexagonal)) for op in cosets(siteg)]
+    cosets′ = [DSymOperation{3}(op, SU2(op, hexagonal)) for op in cosets(siteg)]
     return DSiteGroup{3}(num(siteg), position(siteg), doubled_operations(siteg), cosets′)
 end
 

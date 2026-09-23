@@ -28,7 +28,7 @@ See also [`directbasis`](@ref).
 ## Data sources
 
 The symmetry operations returned by this function were originally retrieved from the [Bilbao
-Crystallographic Server, SPACEGROUP GENPOS](https://www.cryst.ehu.es/cryst/get_gen.html).
+Crystallographic Server, SPACEGROUP GENPOS](https://cryst.ehu.es/cryst/get_gen.html).
 The associated citation is: ([Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
 (2006).](https://doi.org/10.1524/zkri.2006.221.1.15)).
 """

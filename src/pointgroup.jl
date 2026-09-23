@@ -133,7 +133,7 @@ functionality in an explicit fashion, please cite the original reference [^3].
 [^1]: Cracknell, Davies, Miller, & Love, Kronecher Product Tables 1 (1979).
 
 [^2]: Bilbao Crystallographic Database's
-      [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+      [Representations PG program](https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 
 [^3]: Elcoro et al., 
       [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)

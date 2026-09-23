@@ -1,8 +1,8 @@
 # --- SU(2) elements of spatial operations ---
 
 """
-    su2(op::SymOperation{3}, sgnum::Integer)   --> SU2
-    su2(op::SymOperation{3}, hexagonal::Bool)  --> SU2
+    SU2(op::SymOperation{3}, sgnum::Integer)   --> SU2
+    SU2(op::SymOperation{3}, hexagonal::Bool)  --> SU2
 
 Return the SU(2) element of the spatial operation `op`: the 2×2 matrix by which `op` acts
 on spin-½ degrees of freedom.
@@ -55,15 +55,15 @@ with [`conjugacy_relations`](@ref)), the new basis is generally not in the orien
 above, and the SU(2) elements need not equal those tabulated for the new setting (e.g.,
 `2₀₀₁` written as `2₀₁₀` keeps `-iσz`, where the table has `-iσy` for `2₀₁₀`). To obtain the
 double group operations of the new setting, transform the spatial operations and attach
-the SU(2) elements tabulated for that setting, i.e., `su2(op′, sgnum′)`.
+the SU(2) elements tabulated for that setting, i.e., `SU2(op′, sgnum′)`.
 """
-su2(op::SymOperation{3}, sgnum::Integer) = su2(op, _ishexagonal(sgnum))
+SU2(op::SymOperation{3}, sgnum::Integer) = SU2(op, _ishexagonal(sgnum))
 # whether space group `sgnum`, or group `g`, uses the hexagonal Cartesian frame (see
 # `SU2_BY_ROTATION_HEX`); point groups 16-27 are the trigonal and hexagonal ones
 _ishexagonal(sgnum::Integer) = crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal")
 _ishexagonal(g::Union{SpaceGroup{3}, LittleGroup{3}, SiteGroup{3}}) = _ishexagonal(num(g))
 _ishexagonal(pg::PointGroup{3}) = 16 ≤ num(pg) ≤ 27
-function su2(op::SymOperation{3}, hexagonal::Bool)
+function SU2(op::SymOperation{3}, hexagonal::Bool)
     k = _rotation_key(op)
     if hexagonal
         u = get(SU2_BY_ROTATION_HEX, k, nothing)

@@ -9,7 +9,7 @@ An element of SU(2), stored by the two complex parameters `a` and `b` of
 with ``|a|^2 + |b|^2 = 1``. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
 ``U = \\exp[-i(φ/2)\\,𝐧⋅𝛔] = \\cos(φ/2)𝟙 - i\\sin(φ/2)\\,(𝐧⋅𝛔)``, i.e.
 ``a = \\cos(φ/2) - i n_z\\sin(φ/2)`` and ``b = -(n_y + i n_x)\\sin(φ/2)`` (see
-[`su2`](@ref)).
+[`SU2`](@ref)).
 
 This is the spin-½ part of a double group operation: the two SU(2) elements of a spatial
 operation differ by an overall sign, `u` and `-u`, and that sign is what distinguishes an
@@ -63,10 +63,10 @@ end
 $(TYPEDEF)$(TYPEDFIELDS)
 
 A double group operation: a spatial operation `op` together with its SU(2) element `su2`
-(see [`su2`](@ref)), which is how it acts on spin-½ degrees of freedom.
+(see [`SU2`](@ref)), which is how it acts on spin-½ degrees of freedom.
 
 The SU(2) element is carried rather than recomputed, because it is not determined by the
-rotation part alone (see [`su2`](@ref)) — and because carrying it is what keeps
+rotation part alone (see [`SU2`](@ref)) — and because carrying it is what keeps
 [`compose`](@ref) closed.
 
 Whether the operation is ``\\bar{E}``-barred is *not* stored: it follows from `su2` alone,
@@ -86,11 +86,11 @@ end
 SymOperation(dop::DSymOperation) = dop.op
 
 """
-    su2(dop::DSymOperation) --> SU2
+    SU2(dop::DSymOperation) --> SU2
 
 Return the SU(2) part of the double group operation `dop`.
 """
-su2(dop::DSymOperation) = dop.su2
+SU2(dop::DSymOperation) = dop.su2
 
 function compose(dop₁::DSymOperation{D}, dop₂::DSymOperation{D}, modτ::Bool=true) where D
     return DSymOperation{D}(compose(dop₁.op, dop₂.op, modτ), dop₁.su2 * dop₂.su2)
@@ -136,7 +136,7 @@ end
 
 # --- change of lattice basis ---
 # A change of lattice basis keeps the Cartesian frame fixed, so the SU(2) element is
-# unchanged (see `su2`). This also holds when `transform` is used for a change of setting:
+# unchanged (see `SU2`). This also holds when `transform` is used for a change of setting:
 # the SU(2) element stays with the physical operation, and need not equal the one tabulated
 # for the new setting. (A rotation of the Cartesian frame by `V` would instead act as
 # `U → VUV†`.)

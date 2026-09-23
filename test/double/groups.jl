@@ -27,12 +27,12 @@ end
 @testset "Altmann's conventions" begin
     # Altmann & Herzig (1994), eq. 16: the binary rotations about x, y, z. Reproducing these
     # is what pins our convention to Bilbao's; `R̃(πz) = diag(-i, i)` is their `2₀₀₁` cell.
-    @test matrix(su2(S"x,-y,-z", 221)) ≈ ComplexF64[0 -im; -im 0]     # R̃(πx)
-    @test matrix(su2(S"-x,y,-z", 221)) ≈ ComplexF64[0  -1;   1 0]     # R̃(πy)
-    @test matrix(su2(S"-x,-y,z", 221)) ≈ ComplexF64[-im 0;  0 im]     # R̃(πz)
+    @test matrix(SU2(S"x,-y,-z", 221)) ≈ ComplexF64[0 -im; -im 0]     # R̃(πx)
+    @test matrix(SU2(S"-x,y,-z", 221)) ≈ ComplexF64[0  -1;   1 0]     # R̃(πy)
+    @test matrix(SU2(S"-x,-y,z", 221)) ≈ ComplexF64[-im 0;  0 im]     # R̃(πz)
 
     # spin is axial, so inversion maps to the identity (Altmann eq. 11; Elcoro line 121)
-    @test su2(S"-x,-y,-z", 221) == one(SU2)
+    @test SU2(S"-x,-y,-z", 221) == one(SU2)
 
     # No tabulated element is the negative of another, and none has `real(a) < 0`. Together
     # these make the barring decidable from the SU(2) element alone, and hence `compose`
@@ -44,7 +44,7 @@ end
 
 @testset "Cartesian frame, and Altmann's assignment" begin
     # Bilbao's Cartesian frame is Crystalline's, except for hexagonal and trigonal lattices,
-    # where it is rotated by a two-fold about (1,1,0) (see the `su2` docstring)
+    # where it is rotated by a two-fold about (1,1,0) (see the `SU2` docstring)
     Q = SMatrix{3,3,Float64}(0, 1, 0, 1, 0, 0, 0, 0, -1)
     # the Cartesian rotation of `op`; `det(W)*W` is its proper part, spin being axial
     function bilbao_rotation(op, A, hexagonal)
@@ -73,7 +73,7 @@ end
         A = stack(directbasis(sgnum)) # any compatible basis: `R` does not depend on it
         hexagonal = crystalsystem(sgnum) ∈ ("hexagonal", "trigonal")
         for op in spacegroup(sgnum, Val(3))
-            R, u = bilbao_rotation(op, A, hexagonal), su2(op, sgnum)
+            R, u = bilbao_rotation(op, A, hexagonal), SU2(op, sgnum)
             @test rotation_of(u) ≈ R atol=1e-10
             u′ = altmann_su2(R)
             u′ === nothing && continue
@@ -138,7 +138,7 @@ end
     sgnum = 225
     dsg  = spacegroup(sgnum, Val(3); spinful=Val(true))
     cntr = centering(sgnum, 3)
-    prim = [DSymOperation(primitivize(SymOperation(d), cntr), su2(d)) for d in dsg]
+    prim = [DSymOperation(primitivize(SymOperation(d), cntr), SU2(d)) for d in dsg]
 
     @test all(isbarred(p) == isbarred(d) for (p, d) in zip(prim, dsg))  # barring survives
     @test seitz(prim[2]) isa String              # `seitz` must not need the rotation part

@@ -39,7 +39,7 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 ### New
 
 - Double groups: `SU2`, `DSymOperation`, `DSpaceGroup`, `DLittleGroup`, `DPointGroup`,
-  `DSiteGroup`, `su2`, `isbarred`.
+  `DSiteGroup`, `isbarred`.
 - A `spinful` keyword argument on `spacegroup`, `pointgroup`, `littlegroups`, `lgirreps`,
   `pgirreps`, `sitegroups` and `calc_bandreps` selects the double group or its
   double-valued irreps. As for the dimension, `spinful = Val(true)` keeps the return type
@@ -66,8 +66,10 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   and of unchanged characters and reality. Code that hardcodes specific physically real
   matrices, or a specific basis of tight-binding terms derived from them, may need updating.
 - `doublegroup`: the double group of a space, little, point, or site symmetry group.
-- SU(2) elements (`su2`) follow Bilbao and Altmann & Herzig, whose Cartesian frame differs
-  from Crystalline's for hexagonal and trigonal lattices (see the `su2` docstring).
+- SU(2) elements: `SU2(op, sgnum)` returns the SU(2) element of a spatial operation, and
+  `SU2(dop)` the one carried by a double group operation. The tabulated elements follow
+  Bilbao and Altmann & Herzig, whose Cartesian frame differs from Crystalline's for
+  hexagonal and trigonal lattices (see the `SU2` docstring).
 - Abstract supertypes `AbstractLGIrrep`, `AbstractPGIrrep`, and `AbstractSiteIrrep`;
   `realify`, `calc_reality`, `characters`, `classes`, `subduction_count`, `primitivize`,
   `collect_compatible`, `collect_irrep_annotations` accept double-valued irreps.
@@ -79,3 +81,6 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   `DSymOperation`, so a `DSpaceGroup` can now be primitivized.
 - `iuc(::SubperiodicGroup)`, which returns its subperiodic label.
 - `isspinful` for irreps, character tables, symmetry vectors, and band representations.
+- Documentation: a new manual page, *Double groups & spinful irreps*, covering the double
+  group types, the SU(2) conventions, double-valued irreps, and their behavior under time
+  reversal.

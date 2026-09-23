@@ -41,7 +41,7 @@ SubperiodicGroup{2, 1} ⋕7 (𝓅2mg) with 4 operations:
 ## Data sources
 
 The symmetry operations returned by this function were originally retrieved from the [Bilbao
-Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
+Crystallographic Database, SUBPERIODIC GENPOS](https://cryst.ehu.es/subperiodic/get_sub_gen.html).
 """
 function subperiodicgroup(num::Integer, Dᵛ::Val{D}=Val(3), Pᵛ::Val{P}=Val(2)) where {D, P}
     @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)

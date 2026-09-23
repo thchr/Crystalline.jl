@@ -12,6 +12,7 @@ Documentation for [Crystalline.jl](https://github.com/thchr/Crystalline.jl) and 
 Pages = ["operations.md",
          "groups.md",
          "irreps.md",
+         "doublegroups.md",
          "bravais.md",
          "bandreps.md",
          "lattices.md",

@@ -4,9 +4,9 @@ using Crystalline, HTTP, Gumbo, LinearAlgebra
 # getting the maximal subgroups of t type
 
 # getting the matching transformation matrix
-# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&super=2&sub=1&index=2&client=maxsub&what=&path=&series=&conj=all&type=t
+# https://cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&super=2&sub=1&index=2&client=maxsub&what=&path=&series=&conj=all&type=t
 # simpler: 
-# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&super=2&sub=1&type=t
+# https://cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&super=2&sub=1&type=t
 
 """ 
     crawl_maximal_subgroups(numᴳ::Integer; subgroup_kind=:tk))
@@ -55,7 +55,7 @@ end
 
 function http_request_maximal_subgroups(numᴳ::Integer, D::Integer=3)
     (numᴳ < 1 || numᴳ > 230) && error(DomainError(numᴳ))
-    bilbaourl = "https://www.cryst.ehu.es/cgi-bin/"
+    bilbaourl = "https://cryst.ehu.es/cgi-bin/"
     program_spec = if D == 3
         "cryst/programs/nph-lxi?client=maxsub&way=up&type=t&gnum="
     elseif D == 2
@@ -144,7 +144,7 @@ function http_request_subgroup_transformation(numᴴ::Integer, numᴳ::Integer, 
     (numᴳ < 1 || numᴳ > 230) && error(DomainError(numᴳ))
     (numᴴ < 1 || numᴴ > 230) && error(DomainError(numᴴ))
 
-    baseurl = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&"
+    baseurl = "https://cryst.ehu.es/cgi-bin/cryst/programs/nph-tranmax?way=up&"
     url = baseurl * "type=$(kind)&super=$(numᴳ)&sub=$(numᴴ)&index=$(index)"
     if D == 2
         url *= "&client=planesubmax&subtype=plane"

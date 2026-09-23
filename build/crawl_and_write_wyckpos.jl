@@ -4,7 +4,7 @@ using StaticArrays, LinearAlgebra
 # ---------------------------------------------------------------------------------------- #
 # CRAWL 3D WYCKOFF POSITIONS FROM BILBAO (2D and 1D obtained manually...)
 
-const BILBAO_URL = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/"
+const BILBAO_URL = "https://cryst.ehu.es/cgi-bin/cryst/programs/"
 const WYCK_URL_BASE_3D = BILBAO_URL*"nph-normsets?from=wycksets&gnum="
 wyck_3d_url(sgnum) = WYCK_URL_BASE_3D*string(sgnum)
 

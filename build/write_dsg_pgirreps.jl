@@ -18,7 +18,7 @@
 # ## Checks
 #
 # Each operation of `pointgroup(iuc)` is matched to the page row with the same rotation part
-# *and* the same SU(2) element as `su2` assigns it, so no assumption is made about the order
+# *and* the same SU(2) element as `SU2` assigns it, so no assumption is made about the order
 # of rows. Bilbao's single-valued irreps must then reproduce `pgirreps(iuc)` exactly, since
 # that data was crawled from the same Bilbao program.
 #
@@ -79,7 +79,7 @@ function collect_pg(iuc::String)
 
     # the page row of each of our operations
     rows = map(operations(pg)) do op
-        u = su2(op, hexagonal)
+        u = SU2(op, hexagonal)
         W = round.(Int, rotation(op))
         i = findfirst(i -> rotation_of(p, i) == W && isapprox(su2_of(p, i), u),
                       eachindex(p.seitz))

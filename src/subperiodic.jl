@@ -1,6 +1,6 @@
 # ---------------------------------------------------------------------------------------- #
 # NOTATION FOR LAYER, ROD, AND FRIEZE GROUPS
-# notation from https://www.cryst.ehu.es/cgi-bin/subperiodic/programs/nph-sub_gen with a
+# notation from https://cryst.ehu.es/cgi-bin/subperiodic/programs/nph-sub_gen with a
 # few manual corrections from Kopsky & Litvin's 'Nomenclature, Symbols and Classification
 # of the Subperiodic Groups' report.
 
