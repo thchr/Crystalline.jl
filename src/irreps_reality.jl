@@ -348,7 +348,7 @@ end
 end
 
 # returns the block diagonal matrix `diag(A1, A2)` (and assumes identically sized and
-# square `A1` and `A2`).
+# square `A1` and `A2`); i.e., `A1⊕A2`
 function _blockdiag2x2(A1::AbstractMatrix{T}, A2::AbstractMatrix{T}) where T
     n = LinearAlgebra.checksquare(A1)
     LinearAlgebra.checksquare(A2) == n || throw(DimensionMismatch())
@@ -364,7 +364,7 @@ function _blockdiag2x2(A1::AbstractMatrix{T}, A2::AbstractMatrix{T}) where T
     end
     return B
 end
-# returns the block diagonal matrix `diag(A, A)` (and assumes square `A`)
+# returns the block diagonal matrix `diag(A, A)` (and assumes square `A`); i.e., A⊕A
 function _blockdiag2x2(A::AbstractMatrix{T}) where T
     n = LinearAlgebra.checksquare(A)
 

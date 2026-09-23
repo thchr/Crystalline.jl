@@ -60,7 +60,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 | `src/tqc_analysis.jl` | `calc_topology`, `iscompatible`, `symmetry_indicators`, `TopologyKind` (TRIVIAL/NONTRIVIAL/FRAGILE) |
 | `src/compatibility.jl` | `subduction_count`, `remap_to_kstar` |
 | `src/irreps_reality.jl` | `calc_reality`, `realify`, `realify!` (Herring criterion) |
-| `src/irreps_physical_reality.jl` | `physical_realify` (co-representations under time reversal) |
+| `src/irreps_physical_reality.jl` | `physical_realify`, `timereversal_unitary` (canonical form of co-representations under time reversal) |
 | `src/grouprelations/` | `maximal_subgroups`, `minimal_supergroups`, `conjugacy_relations` |
 | `src/fourierlattices.jl` | `ModulatedFourierLattice`, `levelsetlattice`, `modulate`, `filling2isoval`, etc. |
 | `src/symeigs2irrep.jl` | `find_representation` (identify irrep from symmetry eigenvalues) |
@@ -197,14 +197,14 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 
 ## Testing
 
-46 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
+47 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
 
 | Test file(s) | Coverage |
 |---|---|
 | `symops.jl`, `groups_xyzt_vs_coded.jl`, `generators_xyzt_vs_coded.jl` | Symmetry operations, group assembly from generators |
 | `parsed_vs_loaded_littlegroup_irreps.jl` | JLD2-loaded irreps vs. freshly parsed ISOTROPY data |
 | `irreps_orthogonality.jl`, `multtable.jl`, `chartable.jl` | Great orthogonality theorem, multiplication tables, character tables |
-| `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction |
+| `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction; `physical_realify` and its time-reversal convention |
 | `lgirreps_vs_pgirreps_at_Gamma.jl` | LGIrreps at Γ must match PGIrreps |
 | `compatibility.jl` | Compatibility relations between k-points |
 | `bandrep.jl`, `calc_bandreps.jl`, `classification.jl` | EBRs and topological classification |

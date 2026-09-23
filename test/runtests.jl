@@ -76,6 +76,7 @@ using Crystalline, Test
     include("double/lgirreps.jl")
     include("double/pgirreps.jl")
     include("double/siteirreps.jl")
+    include("double/irreps_physical_reality.jl")
     include("double/symmetryvectors.jl")
     include("double/show.jl")
 

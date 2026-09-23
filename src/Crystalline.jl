@@ -160,7 +160,7 @@ include("irreps_reality.jl")
 export realify, realify!, calc_reality
 
 include("irreps_physical_reality.jl")
-export physical_realify
+export physical_realify, timereversal_unitary
 
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the

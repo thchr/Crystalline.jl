@@ -100,6 +100,8 @@ The function [`physical_realify`](@ref) determines and applies the transformatio
 physical_realify(pgirs′) # equivalent also to `physical_realify(pgirs)
 ```
 
+For double-valued (spinful) irreps, time reversal squares to $-1$ and an explicitly real form does not exist in general. There, `physical_realify` instead returns a canonical form defined through the unitary part $Γ$ of time reversal $T = ΓK$, with $K$ denoting complex conjugation: the returned matrices obey $Γ D^*(g) Γ^\dagger = D(g)$. The function [`timereversal_unitary`](@ref) returns $Γ$, which is the identity matrix for spinless irreps and $\mathrm{i}σ_y ⊗ 𝟙_n$ for spinful irreps of dimension $2n$. The matrices are additionally explicitly real whenever that is possible, i.e., unless the irrep is pseudoreal. Any subsequent use of the irrep matrices alongside time reversal must adopt the same convention for $Γ$.
+
 ## Data sources
 Point group irreps are obtained from the Bilbao Crystallographic Server's [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg) and little group irreps of space groups are obtained from [ISOTROPY's 2011 ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php).
 

@@ -232,7 +232,7 @@ end
         spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
         timereversal::Bool=true,
         allpaths::Bool=false,
-        explicitly_real::Union{Bool, Nothing}=nothing
+        explicitly_real::Bool=timereversal
     ) --> Collection{NewBandRep{D}}
 
     calc_bandreps( # type-unstable convenience accessor
@@ -257,12 +257,12 @@ not.
   distinct **k**-points returned by `lgirreps` (`allpaths = false`), including high-symmetry
   **k**-lines and -plane, or only to the maximal **k**-points (`allpaths = true`), i.e.,
   just to high-symmetry points.
-- `explicitly_real` (default, `timereversal` for spinless and `false` for spinful band
-  representations): whether, if `timereversal = true`, to
+- `explicitly_real` (default, `timereversal`): whether, if `timereversal = true`, to
   ensure that the site symmetry irreps accompanying the band representations are chosen
-  to be explicitly real (or "physically" real; see [`physical_realify`](@ref)). This
-  is helpful for subsequent analysis of the action of time-reversal symmetry. Not yet
-  available for spinful band representations.
+  in the canonical form associated with time reversal (see [`physical_realify`](@ref)),
+  i.e., explicitly real for spinless irreps and `J*conj(D)*J' = D` for spinful
+  ones. This can be helpful for subsequent analysis involving the action of time-reversal
+  symmetry.
 - `include_nonmaximal` (default, `false`): whether to include band representations induced
   from site symmetry irreps of non-maximal Wyckoff positions. Passing as `true` will include
   band representations induced from all Wyckoff positions, regardless of maximality.
@@ -284,19 +284,12 @@ function calc_bandreps(
         spinful = Val(false),
         timereversal::Bool = true,
         allpaths::Bool = false,
-        explicitly_real::Union{Bool, Nothing} = nothing,
+        explicitly_real::Bool = timereversal,
         include_nonmaximal::Bool = false,
     ) where D
 
-    # spinful band representations cannot yet be made explicitly real (see `physical_realify`)
-    S = _isspinful(spinful)
-    explicitly_real = something(explicitly_real, timereversal && !S)
     if explicitly_real && !timereversal
         error("`explicitly_real = true` is only meaningful for `timereversal = true`")
-    end
-    if explicitly_real && S
-        error("`explicitly_real = true` is not yet supported for spinful band \
-               representations")
     end
 
     # get all the little group irreps that we want to subduce onto

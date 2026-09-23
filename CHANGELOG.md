@@ -50,8 +50,21 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - Double-valued site symmetry irreps: `DSiteIrrep`, via `siteirreps` of a double site
   symmetry group: `sitegroup(sg::DSpaceGroup, wp)`, `sitegroups(sgnum; spinful=Val(true))`.
 - Spinful band representations: `calc_bandreps(sgnum, Val(3); spinful=Val(true))`, induced
-  from the double-valued site symmetry irreps. Its `explicitly_real` keyword argument now
-  defaults to `nothing`, meaning `timereversal` for spinless and `false` for spinful.
+  from the double-valued site symmetry irreps.
+- `physical_realify` also accepts double-valued irreps. A real form does not generally
+  exist for them, since time reversal squares to `-1`; instead, the returned matrices obey
+  `J*conj(D)*J' = D` with `J = iσʸ ⊗ 𝟙ₙ`, and are real where that is possible
+  (i.e., unless the irrep is pseudoreal).
+- `timereversal_unitary` returns the unitary part `Γ` of time reversal `T = ΓK` in the basis
+  that `physical_realify` establishes: the identity for spinless irreps, and `J` for spinful
+  ones. Models built on these irreps must adopt the same convention.
+- **`physical_realify` returns a different (still explicitly real) basis for some spinless
+  irreps.** It now solves for the same intertwiner direction as in the spinful case — the
+  unitary part `Γ` of time reversal, mapping `conj(D)` onto `D`, rather than its inverse —
+  which flips the sign of the transform for 18 of the 42 point group coreps that are not
+  already real. Only the basis changes: the matrices remain real, equivalent to the input,
+  and of unchanged characters and reality. Code that hardcodes specific physically real
+  matrices, or a specific basis of tight-binding terms derived from them, may need updating.
 - `doublegroup`: the double group of a space, little, point, or site symmetry group.
 - SU(2) elements (`su2`) follow Bilbao and Altmann & Herzig, whose Cartesian frame differs
   from Crystalline's for hexagonal and trigonal lattices (see the `su2` docstring).
