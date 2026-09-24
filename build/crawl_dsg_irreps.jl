@@ -18,7 +18,7 @@
 #        → matrices of the little group irreps, single- *and* double-valued, plus the SU(2)
 #          spin lift and the Seitz symbol of every operation.
 # The single-valued irreps come along for free; `write_dsg_irreps.jl` stores them
-# separately, and `validate_bilbao_vs_isotropy.jl` checks them against the ISOTROPY irreps
+# separately, and `test/bilbao_vs_isotropy.jl` checks them against the ISOTROPY irreps
 # of `lgirreps`, before we trust any of the double-valued data.
 #
 # ## Request flow (point groups)

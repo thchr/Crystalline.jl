@@ -6,7 +6,8 @@
 #   `lgirreps(…, Val(true))`;
 # - `irreps_data_spinless_bilbao.jld2`: Bilbao's single-valued irreps, which are not loaded
 #   by the package, but kept for comparison with the ISOTROPY irreps in `irreps_data.jld2`
-#   (see `validate_bilbao_vs_isotropy.jl`).
+#   (see `test/bilbao_vs_isotropy.jl`). This file is not committed: it is published as a
+#   `data-v*` release asset and consumed as a lazy artifact (see `Artifacts.toml`).
 #
 # Mirrors `write_littlegroup_irreps.jl`: per space group, the file stores `matrices_list`,
 # `translations_list`, `realities_list` and `cdml_list`, each indexed first by k-manifold and

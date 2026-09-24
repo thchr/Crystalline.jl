@@ -1,0 +1,38 @@
+# Data sets that are published as assets of a `data-v*` GitHub release instead of being
+# committed to the repository, and consumed as Julia artifacts. All of them are `lazy`:
+# nothing is downloaded when the package is installed, only on first use, and the result is
+# cached in the depot (`~/.julia/artifacts`) keyed by the tree hash below — so an unchanged
+# data set is never fetched twice, whatever Crystalline version asks for it.
+#
+# Each artifact unpacks to its files directly: an artifact is already its own namespace, so
+# there is nothing to be gained by rebuilding the `data/` directories a file happens to sit
+# in. Data sets whose files need a structure of their own may of course carry one.
+#
+# `build/DATA-RELEASE.md` describes how to add to or amend a data set and publish the
+# result; `build/data_release.jl` does the packaging and prints the entries below.
+#
+# Note that `@artifact_str` cannot see this file from `test/` or `build/`, because it
+# searches upwards from the calling file and stops at the first `Project.toml` it meets.
+# Those callers use `ensure_artifact_installed(name, joinpath(pkgdir(Crystalline),
+# "Artifacts.toml"))` instead. From `src/` the macro works normally.
+
+# Bilbao's single-valued little group irreps, a by-product of the double space group crawl
+# in `build/write_dsg_irreps.jl`; compared against ISOTROPY's in `test/bilbao_vs_isotropy.jl`
+[bilbao_spinless_irreps]
+git-tree-sha1 = "91b6a3dbde1605c042c3e27319ed43c72ef54adc"
+lazy = true
+
+    [[bilbao_spinless_irreps.download]]
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.2/bilbao_spinless_irreps.tar.gz"
+    sha256 = "16258af4e7ad8bd4195f08bbdceb6e11f9053a8e0e989c35835badc067412106"
+
+# ISOTROPY's ISO-IR dataset, from which the shipped little group irreps are generated
+# (`build/write_littlegroup_irreps.jl`) and against which they are checked
+# (`test/parsed_vs_loaded_littlegroup_irreps.jl`); see `data/misc/ISOTROPY/README.md`
+[isotropy]
+git-tree-sha1 = "f8274b57c805e144daee6742cfaa38e63a900c92"
+lazy = true
+
+    [[isotropy.download]]
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.2/isotropy.tar.gz"
+    sha256 = "17c60c7d62e8ec0dec6e6b2f064a97f221fee4bf5511e76906a2cc32f0c945ac"

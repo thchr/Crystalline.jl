@@ -1,4 +1,10 @@
 # ISOTROPY ISO-IR dataset
+The data files themselves are not kept in this repository: at 55 MB they are needed
+only to regenerate or validate the irreps that Crystalline ships, never to use them.
+They are published as an asset of a [`data-v*` release](https://github.com/thchr/Crystalline.jl/releases)
+and declared as the `isotropy` artifact in `Artifacts.toml`; `ParseIsotropy.isotropy_datadir()`
+returns their location, downloading them on first use. See `build/DATA-RELEASE.md`.
+
 The files `CIR_data.txt` and `PIR_data.txt` are sourced from the
 [ISOTROPY software's ISO-IR dataset](https://stokes.byu.edu/iso/irtables.php)
 and contain data needed to generate *space group* irreps.

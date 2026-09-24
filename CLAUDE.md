@@ -151,7 +151,8 @@ data/
   operations/                             — symmetry operation tables
   spacegroup_subgroups_data.jld2          — maximal subgroup / minimal supergroup graphs
   misc/
-    ISOTROPY/                             — raw ISOTROPY text data (*.txt); README.md has format docs
+    ISOTROPY/                             — README.md has format docs; the *.txt data
+                                              itself is a lazy artifact, not in the repo
     transformation_matrices_CDML2ITA.jl  — k-point transformation matrices between CDML and ITA settings
     CDML_RepresentationDomainSpecialKPoints_*.csv
 ```
