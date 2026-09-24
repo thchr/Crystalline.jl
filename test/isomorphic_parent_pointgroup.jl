@@ -1,6 +1,12 @@
 using Crystalline
 using Test
 
+# Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
+if !isdefined(@__MODULE__, :BilbaoBandReps)
+    include("bilbao_bandreps.jl")
+end
+using .BilbaoBandReps
+
 @testset "Isomorphic parent point group identification" begin
 @testset "Site symmetry groups & parent point group identification" begin
     # here, we simply test that our identifications of the label associated with the site
@@ -8,7 +14,7 @@ using Test
     # identification of the site symmetry group labels for band representations from the
     # Bilbao Crystallographic Server
     for sgnum in 1:MAX_SGNUM[3]
-        brs = bandreps(sgnum, 3)
+        brs = bilbao_bandreps(sgnum, 3)
         sg  = spacegroup(sgnum, Val(3))
         sitegs = findmaximal(sitegroups(sg))
         for siteg in sitegs           

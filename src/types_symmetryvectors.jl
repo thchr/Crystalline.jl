@@ -431,17 +431,6 @@ Base.Vector(br::NewBandRep) = Vector(br.n)
 group(br::NewBandRep) = group(br.siteir)
 Base.position(br::NewBandRep) = position(group(br))
 
-# ::: Conversion to BandRep :::
-function Base.convert(::Type{BandRep}, br::NewBandRep)
-    wyckpos     = label(position(br.siteir))
-    sitesym     = br.siteir.pglabel
-    siteirlabel = label(br.siteir)*"↑G"
-    dim         = occupation(br)
-    spinful     = isspinful(br)
-    irvec       = collect(br)[1:end-1]
-    irlabs      = irreplabels(br)
-    return BandRep(wyckpos, sitesym, siteirlabel, dim, spinful, irvec, irlabs)
-end
 
 # ---------------------------------------------------------------------------------------- #
 # Collection{<:NewBandRep}
@@ -451,18 +440,6 @@ irreps(brs::Collection{<:NewBandRep}) = irreps(SymmetryVector(first(brs)))
 irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(SymmetryVector(first(brs)))
 klabels(brs::Collection{<:NewBandRep}) = klabels(SymmetryVector(first(brs)))
 littlegroups(brs::Collection{<:NewBandRep}) = group.(irreps(brs))
-
-# ::: Conversion to BandRepSet :::
-function Base.convert(::Type{BandRepSet}, brs::Collection{<:NewBandRep})
-    sgnum = num(brs)
-    bandreps = convert.(Ref(BandRep), brs)
-    kvs = [position(lgirs) for lgirs in irreps(brs)]
-    klabs = klabels(brs)
-    irlabs = irreplabels(brs)
-    spinful = isspinful(first(brs))
-    timereversal = first(brs).timereversal
-    return BandRepSet(sgnum, bandreps, kvs, klabs, irlabs, spinful, timereversal)
-end
 
 
 # ---------------------------------------------------------------------------------------- #

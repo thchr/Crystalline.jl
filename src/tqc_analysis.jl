@@ -16,7 +16,7 @@ symmetry within the topological quantum chemistry / symmtry indicator frameworks
 end
 
 # -----------------------------------------------------------------------------------------
-# Trivial/nontrivial solution topology via Smith/BandRepSet/Collection{<:NewBandRep}
+# Trivial/nontrivial solution topology via Smith/Collection{<:NewBandRep}
 
 @doc """
 $(TYPEDSIGNATURES)
@@ -36,7 +36,8 @@ nontrivial symmetry vector.
 
 ## Input
 
-The EBR basis can be provided as `::BandRepSet`, `::Matrix{<:Integer}`, or a `Smith`
+The EBR basis can be provided as `::Collection{<:NewBandRep}`, `::Matrix{<:Integer}`,
+or a `Smith`
 decomposition.
 The length of `n` must equal the EBR basis' number of irreps or the number of irreps plus 1
 (i.e. include the band connectivity).
@@ -98,7 +99,7 @@ end
 
 function calc_topology(
     n::AbstractVector{<:Integer},
-    brs::Union{Collection{<:NewBandRep}, BandRepSet};
+    brs::Collection{<:NewBandRep};
     kws...
 )
     B = stack(brs)
@@ -116,7 +117,7 @@ $(TYPEDSIGNATURES)
 
 Return the symmetry indicator indices of a symmetry vector `n`, in the context of a set of
 elementary band representations (EBRs) `brs`, provided as a `Collection{<:NewBandRep}`, a
-`BandRepSet`, a `Matrix{<:Integer}`, or a `Smith` decomposition thereof.
+`Collection{<:NewBandRep}`, a `Matrix{<:Integer}`, or a `Smith` decomposition thereof.
 
 In detail, the method returns the nontrivial indices ``[\\nu_1, \\ldots, \\nu_n]``
 associated with the symmetry indicator group (see, [`indicator_group`](@ref))
@@ -171,7 +172,7 @@ function symmetry_indicators(
 end
 function symmetry_indicators(
     n::AbstractVector{<:Integer},
-    brs::Union{Collection{<:NewBandRep}, BandRepSet};
+    brs::Collection{<:NewBandRep};
     kws...
 )
     B = stack(brs)
@@ -223,10 +224,27 @@ function indicator_group(B::AbstractMatrix{<:Integer})
     F = smith(B, inverse=false)
     return indicator_group(F)
 end
-function indicator_group(brs::Union{Collection{<:NewBandRep}, BandRepSet})
+function indicator_group(brs::Collection{<:NewBandRep})
     return indicator_group(stack(brs))
 end
 is_not_one_or_zero(x) = !(isone(x) || iszero(x))
+
+"""
+    basisdim(brs::Collection{<:NewBandRep})  --> Int
+    basisdim(B::AbstractMatrix{<:Integer})   --> Int
+    basisdim(F::Smith)                       --> Int
+
+Return the dimension of the (linearly independent parts) of a band representation basis.
+This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of [Po, Watanabe, & Vishwanath,
+Nature Commun. **8**, 50 (2017)](https://doi.org/10.1038/s41467-017-00133-2), or 
+equivalently, the rank of `stack(brs)` over the ring of integers.
+This is the number of linearly independent basis vectors that span the expansions of
+a band structure viewed as symmetry data.
+""" 
+basisdim(F::Smith) = count(!iszero, F.SNF) # nonzeros of the Smith normal diagonal matrix
+basisdim(B::AbstractMatrix{<:Integer}) = basisdim(smith(B, inverse=false))
+basisdim(brs::Collection{<:NewBandRep}) = basisdim(stack(brs))
+
 
 @doc """
 $(TYPEDSIGNATURES)
@@ -255,7 +273,7 @@ function indicator_group_as_string(nontriv_Λ::AbstractVector{<:Integer})
     return String(take!(io))
 end
 function indicator_group_as_string(
-    brs::Union{Collection{<:NewBandRep}, BandRepSet, AbstractMatrix{<:Integer}, Smith}
+    brs::Union{Collection{<:NewBandRep}, AbstractMatrix{<:Integer}, Smith}
 )
     return indicator_group_as_string(indicator_group(brs))
 end
@@ -334,7 +352,7 @@ function iscompatible(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}; kws...
 end
 function iscompatible(
     n::AbstractVector{<:Integer}, 
-    brs::Union{BandRepSet, Collection{<:NewBandRep}};
+    brs::Collection{<:NewBandRep};
     kws...
 )
     iscompatible(n, stack(brs); kws...)
@@ -354,7 +372,7 @@ Return whether `n` includes the connectivity as an element by comparing with siz
 """
 function includes_connectivity(
     n::AbstractVector{<:Integer},
-    brs::Union{Collection{<:NewBandRep}, BandRepSet}
+    brs::Collection{<:NewBandRep}
 )
     Nn = length(n)
     Nirr = brs isa Collection{<:NewBandRep} ? length(first(brs))-1 : length(irreplabels(brs))

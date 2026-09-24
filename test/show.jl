@@ -369,40 +369,8 @@ CharacterTable for ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2] (spinless):
 test_tp_show(characters(lgirreps(230)["P"]), str)
 
 # -------------------------------
-# BandRepSet and BandRep
+# Collection{<:NewBandRep}
 # -------------------------------
-brs = bandreps(42, 3)
-str = """
-BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spinless w/ TR)
-────┬────────────────────────
-    │ 4a  4a  4a  4a  8b  8b
-    │ A₁  A₂  B₁  B₂  A   B
-────┼────────────────────────
- Γ₁ │ 1   ·   ·   ·   1   ·
- Γ₂ │ ·   1   ·   ·   1   ·
- Γ₃ │ ·   ·   ·   1   ·   1
- Γ₄ │ ·   ·   1   ·   ·   1
- T₁ │ 1   ·   ·   ·   ·   1
- T₂ │ ·   1   ·   ·   ·   1
- T₃ │ ·   ·   ·   1   1   ·
- T₄ │ ·   ·   1   ·   1   ·
- Y₁ │ 1   ·   ·   ·   ·   1
- Y₂ │ ·   1   ·   ·   ·   1
- Y₃ │ ·   ·   ·   1   1   ·
- Y₄ │ ·   ·   1   ·   1   ·
- Z₁ │ 1   ·   ·   ·   1   ·
- Z₂ │ ·   1   ·   ·   1   ·
- Z₃ │ ·   ·   ·   1   ·   1
- Z₄ │ ·   ·   1   ·   ·   1
- L₁ │ 1   1   1   1   2   2
-────┼────────────────────────
- μ  │ 1   1   1   1   2   2
-────┴────────────────────────"""
-test_tp_show(brs, str)
-
-test_tp_show(brs[1],   "1-band BandRep (A₁↑G at 4a):\n [Γ₁, T₁, Y₁, Z₁, L₁]")
-test_tp_show(brs[end], "2-band BandRep (B↑G at 8b):\n [Γ₃+Γ₄, T₁+T₂, Y₁+Y₂, Z₃+Z₄, 2L₁]")
-
 str = "[(8b|A), (8b|B), (4a|A₁), (4a|A₂), (4a|B₂), (4a|B₁)]"
 @test repr(calc_bandreps(42, Val(3))) == str
 

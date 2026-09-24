@@ -1,4 +1,7 @@
 using Crystalline, HTTP
+
+# the BANDREP table parser lives with the tests, which are its only other user
+include(joinpath(@__DIR__, "..", "test", "bilbao_bandreps.jl"))
 import ProgressMeter: @showprogress
 
 # crawling functionality
@@ -92,11 +95,11 @@ end
 
 #=
 # utilities for conversion between different textual/array/struct representations
-html2array(body) = Crystalline.dlm2array(html2dlm(body))
+html2array(body) = BilbaoBandReps.dlm2array(html2dlm(body))
 
 function html2struct(body::String, sgnum::Integer, allpaths::Bool=false, 
                      spinful::Bool=false, timereversal::Bool=true)
-    Crystalline.array2struct(html2array(body), sgnum, allpaths, spinful, timereversal)
+    BilbaoBandReps.array2struct(html2array(body), sgnum, allpaths, spinful, timereversal)
 end
 =#
 

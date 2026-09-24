@@ -18,7 +18,6 @@
 @deprecate kvec(lgir::LGIrrep)       position(lgir)
 @deprecate wyck(g::SiteGroup)        position(g)
 @deprecate wyck(wp::WyckoffPosition) parent(wp)
-@deprecate wyck(BR::BandRep)         position(BR)
 
 @deprecate(
     kstar(g::AbstractVector{SymOperation{D}}, kv::KVec{D}, cntr::Char) where D,
@@ -40,8 +39,6 @@ Base.@deprecate_binding( # cannot use plain `@deprecate` for types
     IrrepCollection,
     Collection{T} where T<:AbstractIrrep
 )
-
-@deprecate matrix(brs::BandRepSet; kws...) stack(brs::BandRepSet)
 
 @deprecate classification indicator_group_as_string
 @deprecate nontrivial_factors indicator_group

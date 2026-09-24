@@ -1,10 +1,16 @@
 using Crystalline, Test
 
+# Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
+if !isdefined(@__MODULE__, :BilbaoBandReps)
+    include("bilbao_bandreps.jl")
+end
+using .BilbaoBandReps
+
 if !isdefined(Main, :LGIRS)
     LGIRS = lgirreps.(1:MAX_SGNUM[3], Val(3)) # loaded from our saved .jld2 files
 end
 
-@testset "k-vectors required by BandRepSet analysis" begin
+@testset "k-vectors required by Bilbao EBR analysis" begin
 allpaths = false
 spinful  = false
 debug = false
@@ -12,7 +18,7 @@ debug = false
 @testset "Complex (no TR) irreps" begin
 # --- test complex-form irreps (not assuming time-reversal symmetry) ---
 for (sgnum, lgirsd) in enumerate(LGIRS)
-    brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=false)
+    brs = bilbao_bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=false)
     irlabs_brs = irreplabels(brs)
     klabs_brs = klabels(brs)
 
@@ -42,7 +48,7 @@ end
 @testset "Physically irreducible irreps/co-reps (with TR)" begin
 # --- test physically irreducible irreps/co-reps (assuming time-reversal symmetry) ---
 for (sgnum, lgirsd) in enumerate(LGIRS)
-    brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
+    brs = bilbao_bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
     irlabs_brs = irreplabels(brs)
     klabs_brs = klabels(brs)
 
@@ -72,11 +78,11 @@ end
 end
 end
 
-@testset "BandRepSet and BandRep" begin
-    brs = bandreps(230)
+@testset "BilbaoBandRepSet and BilbaoBandRep" begin
+    brs = bilbao_bandreps(230)
     # iterated concatenation of vectors of `brs` should give `matrix`
     @test stack(brs) == stack(brs) == hcat(brs...)
-    # length of BandRep as vectors should be = number of irreps + 1 (i.e. includes filling)
+    # length of a band rep as a vector should be = number of irreps + 1 (i.e. includes filling)
     @test length(brs[1]) == length(brs[1].irvec)+1
     @test brs[1] == vcat(brs[1].irvec, dim(brs[1]))
 end
@@ -91,11 +97,11 @@ end
 #   through the stored data we retrieve from BANDREP and then fix it there - but that's 
 #   too annoying for now - so, we just don't test it at the moment.
 #=
-@testset "BandRepSet site-symmetry irreps" begin
+@testset "Bilbao EBR site-symmetry irreps" begin
     siteir_name(br) = replace(br.label, "↑G"=>"")
     for timereversal in (true)
         for sgnum in 1:230
-            brs = bandreps(sgnum, 3; timereversal)
+            brs = bilbao_bandreps(sgnum, 3; timereversal)
             wps = wyckoffs(sgnum)
             sitegd = Dict(label(wp)=>sitegroup(brs.sgnum, wp) for wp in wps)
             siteirsd = Dict(wp_str=>Crystalline.siteirreps(siteg) for (wp_str, siteg) in sitegd)
@@ -113,11 +119,11 @@ end
     # double-valued irreps are marked by an `ˢ` after the full irrep label (e.g., `Γ₅ˢ`), so
     # `klabel` recovers the k-label of every irrep, and every band representation prints
     for sgnum in 1:MAX_SGNUM[3], timereversal in (false, true)
-        brs = bandreps(sgnum; spinful=true, timereversal)
+        brs = bilbao_bandreps(sgnum; spinful=true, timereversal)
         @test all(irlab -> klabel(irlab) ∈ klabels(brs), irreplabels(brs))
         @test all(irlab -> endswith(irlab, 'ˢ'), irreplabels(brs))
     end
-    brs = bandreps(22; spinful=true)
+    brs = bilbao_bandreps(22; spinful=true)
     @test irreplabels(brs) == ["Γ₅ˢ", "T₅ˢ", "Y₅ˢ", "Z₅ˢ", "L₂ˢL₂ˢ"]
     @test contains(sprint(show, MIME"text/plain"(), brs), "(spinful w/ TR)")
 end

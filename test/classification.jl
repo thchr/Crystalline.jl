@@ -1,5 +1,11 @@
 using Crystalline, Test
 
+# Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
+if !isdefined(@__MODULE__, :BilbaoBandReps)
+    include("bilbao_bandreps.jl")
+end
+using .BilbaoBandReps
+
 @testset "Band representations" begin
 allpaths = false
 spinful  = false
@@ -25,8 +31,8 @@ spinful  = false
     table4[2]                         = "Z₂×Z₂×Z₂×Z₄"
 
     for sgnum = 1:230
-        brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-        @test indicator_group_as_string(brs) == table4[sgnum]
+        brs = bilbao_bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
+        @test indicator_group_as_string(stack(brs)) == table4[sgnum]
     end
 end
 
@@ -57,8 +63,8 @@ end
     table4[[47, 123]] .= 27
 
     for sgnum = 1:230
-        brs = bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
-        @test basisdim(brs) == table4[sgnum]
+        brs = bilbao_bandreps(sgnum, allpaths=allpaths, spinful=spinful, timereversal=true)
+        @test basisdim(stack(brs)) == table4[sgnum]
     end
 end
 end
