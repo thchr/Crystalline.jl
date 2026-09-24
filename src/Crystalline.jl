@@ -164,9 +164,11 @@ export ΦnotΩ_kvecs
 include("littlegroup_irreps.jl")
 export lgirreps, littlegroups
 
+include("tables/fourier_truncations.jl")
 include("fourierlattices.jl")
 export ModulatedFourierLattice,
        getcoefs, getorbits, levelsetlattice,
+       default_idxmax, minimal_idxmax, is_symmetry_safe,
        modulate, normscale, normscale!,
        isoval2filling, filling2isoval
 

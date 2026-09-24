@@ -38,7 +38,130 @@ struct ModulatedFourierLattice{D} <: AbstractFourierLattice{D}
 end
 
 
-## --- METHODS --- 
+## --- METHODS ---
+
+function _check_auto_idxmax(idxmax::Symbol)
+    idxmax === :auto || throw(DomainError(idxmax,
+        "the only symbolic value of `idxmax` is `:auto`; otherwise, provide an `NTuple`"))
+    return nothing
+end
+
+@doc """
+    is_symmetry_safe(sgnum::Integer, idxmax::NTuple{D,Int}, Dᵛ::Val{D}=Val(D)) --> Bool
+
+Return whether the Fourier truncation `idxmax` is *symmetry-safe* for the space group
+`sgnum` in dimension `D`: i.e., whether a generic modulation (see [`modulate`](@ref)) of
+`levelsetlattice(sgnum, Dᵛ, idxmax)` has exactly the symmetry of `sgnum` — and not the
+higher symmetry of a supergroup (or of a smaller effective unit cell), which can occur if
+the truncation is so low that too few symmetry-inequivalent orbits remain.
+
+The check is exact: symmetry-safety is preserved under increasing any component of
+`idxmax`, so the symmetry-safe truncations are exactly those that dominate (componentwise)
+at least one element of a tabulated antichain of minimal symmetry-safe truncations.
+
+See also [`default_idxmax`](@ref) for the smallest isotropic symmetry-safe truncation.
+
+## Examples
+```jldoctest
+julia> is_symmetry_safe(27, (1,1,1)) # too low: gains an inversion center
+false
+
+julia> is_symmetry_safe(27, (2,1,1)) # sufficient, despite being anisotropic
+true
+```
+"""
+function is_symmetry_safe(sgnum::Integer, idxmax::NTuple{D,Int},
+                          Dᵛ::Val{D}=Val(D)) where D
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
+    return any(safe_idxmax_antichain(sgnum, Dᵛ)) do p
+        all(i -> p[i] ≤ idxmax[i], ntuple(identity, Dᵛ))
+    end
+end
+
+@doc """
+    minimal_idxmax(sgnum::Integer, Dᵛ::Val{D})
+        --> @NamedTuple{isotropic::NTuple{D,Int}, general::Vector{NTuple{D,Int}}}
+
+Return the minimal symmetry-safe Fourier truncations `idxmax` (see
+[`is_symmetry_safe`](@ref)) of the space group `sgnum` in dimension `D`, as a named tuple
+with fields:
+
+- `isotropic`: the smallest symmetry-safe truncation whose components are all equal.
+- `general`: every symmetry-safe truncation that is minimal when the components are
+  not restricted to be equal, i.e. every truncation that is symmetry-safe but ceases to be
+  so if *any* single component is lowered.
+
+The elements of `general` are mutually incomparable: none is componentwise smaller
+than another (e.g., `(1,3,5)` and `(3,1,5)`), so there is usually no single smallest
+symmetry-safe truncation. An anisotropic choice can be markedly cheaper than the isotropic
+one — for space group 228, `(1,3,5)` retains 4 free coefficients where `(5,5,5)` retains 9
+— at the cost of a directionally biased resolution.
+
+`isotropic` is derivable from `general`, as the smallest `N` with `(N,…,N)`
+dominating some element of `general`; it is provided for convenience. See also
+[`default_idxmax`](@ref), which is `isotropic`, but floored at 2.
+
+## Examples
+```jldoctest
+julia> minimal_idxmax(216, Val(3)).general # a lone, isotropic minimum
+1-element Vector{Tuple{Int64, Int64, Int64}}:
+ (1, 1, 1)
+
+julia> m = minimal_idxmax(228, Val(3)); # Fd-3c: six anisotropic minima
+
+julia> m.isotropic
+(5, 5, 5)
+
+julia> m.general
+6-element Vector{Tuple{Int64, Int64, Int64}}:
+ (1, 3, 5)
+ (1, 5, 3)
+ (3, 1, 5)
+ (3, 5, 1)
+ (5, 1, 3)
+ (5, 3, 1)
+```
+"""
+function minimal_idxmax(sgnum::Integer, Dᵛ::Val{D}) where D
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
+    antichain = safe_idxmax_antichain(sgnum, Dᵛ)
+    isotropic = ntuple(_ -> minimum(maximum, antichain), Dᵛ)
+    # NB: copy, lest a caller mutate the tabulated data
+    return (; isotropic, general = copy(antichain))
+end
+minimal_idxmax(sgnum::Integer, D::Integer=2) = minimal_idxmax(sgnum, Val(D))
+
+@doc """
+    default_idxmax(sgnum::Integer, Dᵛ::Val{D}) --> NTuple{D,Int}
+
+Return the default Fourier truncation `idxmax` used by [`levelsetlattice`](@ref) for the
+space group `sgnum` in dimension `D`: the smallest *isotropic* truncation that is
+symmetry-safe (see [`is_symmetry_safe`](@ref)), but never below `ntuple(i->2, D)`, i.e.,
+`max.(2, minimal_idxmax(sgnum, Dᵛ).isotropic)`.
+
+The floor at 2 is the historical default: only 14 space groups (all cubic; 196, 197,
+201–204, 207, 209–211, 219, 222, 226, and 228) require a higher truncation than that.
+
+See [`minimal_idxmax`](@ref) to instead query the minimal symmetry-safe truncations
+themselves — including anisotropic ones, which can be substantially cheaper.
+
+## Examples
+```jldoctest
+julia> default_idxmax(230, Val(3))
+(2, 2, 2)
+
+julia> default_idxmax(228, Val(3)) # Fd-3c requires a much higher truncation
+(5, 5, 5)
+```
+"""
+function default_idxmax(sgnum::Integer, Dᵛ::Val{D}) where D
+    D ∉ (1,2,3) && _throw_invalid_dim(D)
+    # `(N,…,N)` dominates `p` iff `N ≥ maximum(p)`; so the smallest symmetry-safe isotropic
+    # truncation is the smallest such `N` across the antichain of minimal safe truncations
+    N = minimum(maximum, safe_idxmax_antichain(sgnum, Dᵛ))
+    return ntuple(_ -> max(2, N), Dᵛ)
+end
+default_idxmax(sgnum::Integer, D::Integer=2) = default_idxmax(sgnum, Val(D))
 
 # Group orbits of plane waves G = (G)ᵀ under a symmetry operation Ô = {W|w}, 
 # using that Ô acts as Ô⁻¹={W⁻¹|-W⁻¹w} when acting on functions, i.e.
@@ -46,19 +169,27 @@ end
 # and 
 #   exp(iG⋅W⁻¹r) = exp(iGᵀW⁻¹r) = exp{i[(W⁻¹)ᵀG]ᵀ⋅r}
 @doc """
-    levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::NTuple=ntuple(i->2,D))
+    levelsetlattice(sgnum::Integer, D::Integer=2, idxmax::Union{Symbol, NTuple}=:auto)
         --> UnityFourierLattice{D}
 
 Compute a "neutral"/uninitialized Fourier lattice basis, a [`UnityFourierLattice`](@ref),
-consistent with the symmetries of the space group `sgnum` in dimension `D`. 
+consistent with the symmetries of the space group `sgnum` in dimension `D`.
 The resulting lattice `flat` is expanded in a Fourier basis split into symmetry-derived
 orbits, with intra-orbit coefficients constrained by the symmetries of the space-group.
 The inter-orbit coefficients are, however, free and unconstrained.
 
 The Fourier resolution along each reciprocal lattice vector is controlled by `idxmax`:
-e.g., if `D = 2` and `idxmax = (2, 3)`, the resulting Fourier lattice may contain 
-reciprocal lattice vectors (k₁, k₂) with k₁∈[0,±1,±2] and k₂∈[0,±1,±2,±3], referred 
+e.g., if `D = 2` and `idxmax = (2, 3)`, the resulting Fourier lattice may contain
+reciprocal lattice vectors (k₁, k₂) with k₁∈[0,±1,±2] and k₂∈[0,±1,±2,±3], referred
 to a 𝐆-basis.
+
+With the default `idxmax = :auto`, the resolution is picked per space group as the
+smallest isotropic truncation that is *symmetry-safe* (but never below `ntuple(i->2, D)`),
+see [`default_idxmax`](@ref). This matters because a too-low truncation can leave so few
+symmetry-inequivalent orbits that even a generic modulation (see [`modulate`](@ref)) has
+strictly *higher* symmetry than `sgnum` — e.g., a supergroup's operations or a smaller
+effective unit cell. If `idxmax` is given explicitly and is not symmetry-safe, a warning is
+issued; [`is_symmetry_safe`](@ref) performs the same check without constructing a lattice.
 
 This "neutral" lattice can, and usually should, be subsequently modulated by
 [`modulate`](@ref) (which modulates the inter-orbit coefficients, which may eliminate
@@ -78,17 +209,43 @@ julia> using GLMakie
 julia> plot(flat, Rs)
 ```
 """
-function levelsetlattice(sgnum::Integer, D::Integer=2,
-                         idxmax::NTuple{D′,Int}=ntuple(i->2, D)) where D′
+levelsetlattice(sgnum::Integer, D::Integer=2) = levelsetlattice(sgnum, Val(D))
+function levelsetlattice(sgnum::Integer, D::Integer, idxmax::NTuple{D′,Int}) where D′
     D == D′ || throw(DomainError((D=D, idxmax=idxmax), "incompatible dimensions"))
     return levelsetlattice(sgnum, Val(D′), idxmax)
 end
-function levelsetlattice(sgnum::Integer, Dᵛ::Val{D}, idxmax::NTuple{D,Int}=ntuple(i->2, D)) where D
+function levelsetlattice(sgnum::Integer, D::Integer, idxmax::Symbol)
+    _check_auto_idxmax(idxmax)
+    return levelsetlattice(sgnum, Val(D))
+end
+function levelsetlattice(sgnum::Integer, Dᵛ::Val{D},
+                         idxmax::Union{Symbol, NTuple{D,Int}}=:auto) where D
     # check validity of inputs
-    (sgnum < 1)             && throw(DomainError(sgnum, "sgnum must be greater than 1"))
     D ∉ (1,2,3)             && _throw_invalid_dim(D)
-    D ≠ length(idxmax)      && throw(DomainError((D, idxmax), "D must equal length(idxmax): got (D = $D) ≠ (length(idxmax) = $(length(idxmax)))"))
-    (D == 2 && sgnum > 17)  || (D == 3 && sgnum > 230) && throw(DomainError(sgnum, "sgnum must be in range 1:17 in 2D and in 1:230 in 3D"))
+    # NB: the parenthesization is necessary; `&&` binds tighter than `||`, so an
+    # unparenthesized `a || b && throw(…)` would silently fail to throw when `a` is true
+    (sgnum < 1 || sgnum > MAX_SGNUM[D]) && throw(DomainError(sgnum,
+        "sgnum must be in the range 1:$(MAX_SGNUM[D]) in $(D)D"))
+
+    # resolve `idxmax = :auto` to a symmetry-safe default; warn if an explicitly requested
+    # `idxmax` is not symmetry-safe (i.e., would generically produce a higher symmetry)
+    idxmax = if idxmax isa Symbol
+        _check_auto_idxmax(idxmax)
+        default_idxmax(sgnum, Dᵛ)
+    else
+        if !is_symmetry_safe(sgnum, idxmax, Dᵛ)
+            # NB: `maxlog` is tallied per `_id`, so we warn once per (sgnum, D) - rather
+            # than once per session - to avoid spamming a sweep over `sgnum` while still
+            # flagging every distinct group whose truncation is unsafe
+            @warn "the requested `idxmax` is not symmetry-safe for space group $sgnum in \
+                   $(D)D: a generic modulation of the returned lattice will have higher \
+                   symmetry than $sgnum (a supergroup's operations and/or a smaller \
+                   effective unit cell). Use `idxmax = :auto` (≡ \
+                   $(default_idxmax(sgnum, Dᵛ))) to avoid this." maxlog=1 _id=Symbol(
+                   "levelsetlattice_unsafe_idxmax_", sgnum, "_", D)
+        end
+        idxmax
+    end
 
     # prepare
     sg = spacegroup(sgnum, Dᵛ)
