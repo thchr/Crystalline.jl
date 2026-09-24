@@ -4,7 +4,7 @@
 #
 #   julia --project=build build/data_release.jl <tag> [<name>...]
 #
-# e.g. `julia --project=build build/data_release.jl data-v0.0.2 isotropy`. With no names,
+# e.g. `julia --project=build build/data_release.jl data-v0.0.4 isotropy`. With no names,
 # every data set is packaged.
 
 using Tar, SHA

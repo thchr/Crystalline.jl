@@ -56,6 +56,10 @@ export MAX_SGNUM, MAX_SUBGNUM, MAX_MSGNUM, MAX_MSUBGNUM, ENANTIOMORPHIC_PAIRS
 include("utils.jl") # misc utility methods
 
 include("types.jl") # defines useful types for space group symmetry analysis
+export AbstractSpaceGroup, AbstractPointGroup,   # abstract supertypes, to dispatch on: each
+       AbstractLittleGroup, AbstractSiteGroup,   # spans a kind of group or irrep and its
+       AbstractLGIrrep, AbstractPGIrrep,         # ordinary, double, magnetic and
+       AbstractSiteIrrep                         # subperiodic variants
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,

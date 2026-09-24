@@ -30,6 +30,15 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - **`CharacterTable{D}` → `CharacterTable{O}`**, and `ClassCharacterTable{D}` →
   `ClassCharacterTable{O}`, with `O` the operation type (e.g. `SymOperation{3}`).
   Construct with `CharacterTable(ops, irlabs, table[, tag])`.
+- **`physical_realify` returns a different (still explicitly real) basis for some spinless
+  irreps.** It now solves for the same intertwiner direction as in the spinful case — the
+  unitary part `Γ` of time reversal, mapping `conj(D)` onto `D`, rather than its inverse —
+  which flips the sign of the transform for 18 of the 42 point group coreps that are not
+  already real. Only the basis changes: the matrices remain real, equivalent to the input,
+  and of unchanged characters and reality. Code that hardcodes specific physically real
+  matrices, or a specific basis of tight-binding terms derived from them, may need updating.
+- **Julia 1.12 is now the minimum supported version** (was 1.10). Bravais.jl, which is
+  versioned separately, continues to support 1.10.
 - **Printing**: band representations and symmetry vectors print with a spin tag,
   e.g. `SymmetryVector{3} (spinless)`, and the spin label in `BandRepSet` and
   `Collection{NewBandRep}` summaries is `spinless`/`spinful` rather than `spin-1`/`spin-½`.
@@ -58,25 +67,21 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - `timereversal_unitary` returns the unitary part `Γ` of time reversal `T = ΓK` in the basis
   that `physical_realify` establishes: the identity for spinless irreps, and `J` for spinful
   ones. Models built on these irreps must adopt the same convention.
-- **`physical_realify` returns a different (still explicitly real) basis for some spinless
-  irreps.** It now solves for the same intertwiner direction as in the spinful case — the
-  unitary part `Γ` of time reversal, mapping `conj(D)` onto `D`, rather than its inverse —
-  which flips the sign of the transform for 18 of the 42 point group coreps that are not
-  already real. Only the basis changes: the matrices remain real, equivalent to the input,
-  and of unchanged characters and reality. Code that hardcodes specific physically real
-  matrices, or a specific basis of tight-binding terms derived from them, may need updating.
 - `doublegroup`: the double group of a space, little, point, or site symmetry group.
 - SU(2) elements: `SU2(op, sgnum)` returns the SU(2) element of a spatial operation, and
   `SU2(dop)` the one carried by a double group operation. The tabulated elements follow
   Bilbao and Altmann & Herzig, whose Cartesian frame differs from Crystalline's for
   hexagonal and trigonal lattices (see the `SU2` docstring).
-- Abstract supertypes `AbstractLGIrrep`, `AbstractPGIrrep`, and `AbstractSiteIrrep`;
-  `realify`, `calc_reality`, `characters`, `classes`, `subduction_count`, `primitivize`,
-  `collect_compatible`, `collect_irrep_annotations` accept double-valued irreps.
-- Internal abstract supertypes `Crystalline.AbstractSpaceGroup`, `AbstractPointGroup`,
-  `AbstractLittleGroup` and `AbstractSiteGroup`, one per kind of group and spanning its
-  ordinary, double, magnetic and subperiodic variants. With them, `iuc`, `centering`,
-  `issymmorph`, `reduce_ops` and `primitivize` extend to the double groups.
+- `realify`, `calc_reality`, `characters`, `classes`, `subduction_count`, `primitivize`,
+  `collect_compatible` and `collect_irrep_annotations` accept double-valued irreps.
+- Abstract supertypes to dispatch on, all exported: `AbstractLGIrrep`, `AbstractPGIrrep`
+  and `AbstractSiteIrrep` span an irrep kind and its double-valued counterpart, while
+  `AbstractSpaceGroup`, `AbstractPointGroup`, `AbstractLittleGroup` and `AbstractSiteGroup`
+  span a kind of group and its ordinary, double, magnetic and subperiodic variants. With
+  the latter, `iuc`, `centering`, `issymmorph`, `reduce_ops` and `primitivize` extend to the
+  double groups. (The older supertypes — `Crystalline.AbstractIrrep`, `AbstractGroup`,
+  `AbstractVec`, `AbstractOperation`, `AbstractSymmetryVector` — stay unexported for now;
+  they can still be imported by name.)
 - `reduce_ops` (and so `primitivize`) works for any operation type, including
   `DSymOperation`, so a `DSpaceGroup` can now be primitivized.
 - `iuc(::SubperiodicGroup)`, which returns its subperiodic label.

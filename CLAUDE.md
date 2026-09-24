@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Crystalline.jl (v0.6.24, Julia ≥ 1.10) is a Julia package for programmatic access to and manipulation of crystalline symmetry. The author is Thomas Christensen. Core capabilities:
+Crystalline.jl (v0.6.28, Julia ≥ 1.12) is a Julia package for programmatic access to and manipulation of crystalline symmetry. The author is Thomas Christensen. Core capabilities:
 
 - Symmetry operations and groups for space groups (1D/2D/3D), point groups, site symmetry groups, subperiodic groups, and magnetic space groups
 - Irreducible representations (irreps) of little groups (`LGIrrep`), point groups (`PGIrrep`), and site symmetry groups (`SiteIrrep`), loaded from precomputed JLD2 data files
@@ -218,6 +218,6 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 
 ## CI/CD
 
-- GitHub Actions: tests across Julia 1.10+ on multiple OS
+- GitHub Actions: tests on Julia 1.12 and latest, across multiple OS
 - Documentation: Documenter.jl, auto-deployed
 - Coverage: Codecov

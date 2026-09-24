@@ -57,7 +57,7 @@ julia> tarball, tree_hash, sha256sum = package("isotropy", dir)
 or, for everything at once, from the shell:
 
 ```bash
-julia --project=build build/data_release.jl data-v0.0.2
+julia --project=build build/data_release.jl data-v0.0.4
 ```
 
 which stages, packages, prints the `Artifacts.toml` entries and the `gh` command to run.
