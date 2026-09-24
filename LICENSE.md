@@ -24,5 +24,5 @@ Crystalline.jl is licenced under the MIT License:
 
 Crystalline.jl includes data and tables sourced from the following distinct and unaffiliated projects:
 
-- [Bilbao crystallographic database](https://cryst.ehu.es/): plane and space groups, 2D and 3D crystallographic point groups, and 3D band representations.
+- [Bilbao crystallographic database](https://cryst.ehu.es/): plane and space groups, 2D and 3D crystallographic point groups, 3D band representations, and double-valued (spinful) irreps. The Bilbao Crystallographic Server licenses its data under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 - [ISOTROPY](https://stokes.byu.edu/iso/irtables.php): 3D little group irreps.

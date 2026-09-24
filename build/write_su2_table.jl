@@ -25,7 +25,7 @@ rounded(u::SU2) = (round(u.a; digits=9), round(u.b; digits=9)) # compare up to f
 function collect_su2s()
     byW = Dict{NTuple{9,Int}, Dict{String, Set{SU2}}}()
     for sgnum in 1:230
-        p = parse_page(joinpath(CRAWL_DIR, "out", "sg$sgnum-GM.html"))
+        p = parse_page(joinpath(crawl_datadir(), "out", "sg$sgnum-GM.html"))
         sys = crystalsystem(sgnum, 3)
         for i in 1:(length(p.seitz) ÷ 2)                      # the unbarred coset only
             d = get!(byW, wkey(operation_of(p, i)), Dict{String, Set{SU2}}())

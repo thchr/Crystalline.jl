@@ -48,7 +48,7 @@ using LinearAlgebra: dot, norm
 const DEFAULT_OUTDIR = joinpath(dirname(@__DIR__), "data", "irreps", "lgs", "3d")
 
 # the crawler owns the cache layout; restate just the one path we need rather than including it
-page_path(sgnum, klab) = joinpath(CRAWL_DIR, "out", "sg$(sgnum)-$(klab).html")
+page_path(sgnum, klab) = joinpath(crawl_datadir(), "out", "sg$(sgnum)-$(klab).html")
 
 """
     collect_sg(sgnum, lgs) --> (klabs, matrices_list, translations_list, realities_list, cdml_list)

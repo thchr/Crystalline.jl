@@ -30,7 +30,7 @@ using JLD2
 const DEFAULT_OUT = joinpath(dirname(@__DIR__), "data", "irreps", "pgs", "3d",
                              "irreps_data_spinful.jld2")
 
-pg_path(iuc) = joinpath(CRAWL_DIR, "pg", replace(iuc, '/' => "_") * ".html")
+pg_path(iuc) = joinpath(crawl_datadir(), "pg", replace(iuc, '/' => "_") * ".html")
 
 """
     parse_pg_page(path) --> (page::DsgPage, realities::Vector{Int8})

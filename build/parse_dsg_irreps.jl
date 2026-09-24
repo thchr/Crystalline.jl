@@ -45,9 +45,23 @@ using Gumbo
 using Crystalline
 using StaticArrays
 using LinearAlgebra: dot
+using Pkg.Artifacts: ensure_artifact_installed
 
-const CRAWL_DIR = joinpath(@__DIR__, "crawls", "dsg")
 const NOVALS = Dict{Symbol,Real}()  # for entries that carry no `t` or `αβγ` symbols
+
+"""
+    crawl_datadir() --> String
+
+The directory holding the captured Bilbao pages, downloading them first if necessary: the
+capture is not kept in the repository, but published as a release asset and declared as the
+`dsg_crawl` artifact (see `Artifacts.toml` and `build/DATA-RELEASE.md`). It also contains
+`crawl_dsg_irreps.jl`, the crawler that produced it.
+
+`@artifact_str` is not usable here — it searches upwards from this file for an
+`Artifacts.toml` and stops at `build/Project.toml` — so the declaration is named explicitly.
+"""
+crawl_datadir() = ensure_artifact_installed("dsg_crawl",
+                                            joinpath(dirname(@__DIR__), "Artifacts.toml"))
 
 # ---------------------------------------------------------------------------------------- #
 # Gumbo helpers
@@ -253,7 +267,7 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 
-pages(; dir = joinpath(CRAWL_DIR, "out")) = sort(readdir(dir; join = true))
+pages(; dir = joinpath(crawl_datadir(), "out")) = sort(readdir(dir; join = true))
 
 # ---------------------------------------------------------------------------------------- #
 # Evaluating matrix entries

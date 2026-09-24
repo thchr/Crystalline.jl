@@ -9,7 +9,8 @@
 
 using Tar, SHA
 
-const DATA_DIR  = joinpath(dirname(@__DIR__), "data")
+const REPO_DIR  = dirname(@__DIR__)
+const DATA_DIR  = joinpath(REPO_DIR, "data")
 const STAGE_DIR = joinpath(@__DIR__, "data-release")
 const REPO      = "thchr/Crystalline.jl"
 
@@ -23,7 +24,19 @@ const DATASETS = Dict(
     "bilbao_spinless_irreps" => ["irreps/lgs/3d/irreps_data_spinless_bilbao.jld2"],
     "isotropy"               => ["misc/ISOTROPY/CIR_data.txt",
                                  "misc/ISOTROPY/PIR_data.txt"],
+    "dsg_crawl"              => ["crawls/dsg/out", "crawls/dsg/pg", "crawls/dsg/sel",
+                                 "crawls/dsg/vec", "crawl_dsg_irreps.jl", "README.md"],
     )
+
+# what a data set's source paths are relative to; `data/` unless stated otherwise
+const ROOTS = Dict("dsg_crawl" => @__DIR__)
+root(name::AbstractString) = get(ROOTS, name, DATA_DIR)
+
+# `dsg_crawl` is 461 MB of near-identical HTML, where xz repays its slower packing many
+# times over (15.5 MB gzipped against 4.0 MB); `-T1` keeps the output reproducible, which
+# threaded xz is not, since it splits the input into one block per thread
+const COMPRESSION = Dict("dsg_crawl" => (`xz -9 -T1`, ".tar.xz"))
+compression(name::AbstractString) = get(COMPRESSION, name, (`gzip -9 -n`, ".tar.gz"))
 
 """
     paths(name) --> Vector{Pair{String,String}}
@@ -42,17 +55,19 @@ paths(name::AbstractString) = [p isa Pair ? p : (p => basename(p)) for p in
 Assemble the files of data set `name` in a fresh temporary directory, laid out as they will
 be inside the artifact, and return that directory.
 
-Files are taken from `from`, a `data/`-like tree — by default the local `data/` directory,
-which is where a freshly built data set lands. A data set that no longer lives in the
-repository (because it is published only as an artifact) must instead be staged from the
-currently published artifact; `stage_from_artifact` does that.
+Files are taken from `from` — by default the data set's own source root, which for most is
+the local `data/` directory, where a freshly built data set lands. A data set that no longer
+lives in the repository (because it is published only as an artifact) must instead be staged
+from the currently published artifact; `stage_from_artifact` does that.
+
+Items may name directories as well as files; a directory is copied whole.
 
 Staging happens outside the repository on purpose. A git tree hash records the executable
 bit, and a Windows drive mounted under WSL reports every file as executable and silently
 ignores `chmod` — so staging there would give a different tree hash for identical data than
 staging on a POSIX filesystem would.
 """
-stage(name::AbstractString; from::AbstractString = DATA_DIR) =
+stage(name::AbstractString; from::AbstractString = root(name)) =
     _stage(name, from, first)
 
 """
@@ -74,13 +89,18 @@ function _stage(name::AbstractString, from::AbstractString, srcof::Function)
     dir = mktempdir()
     for pair in paths(name)
         src = joinpath(from, srcof(pair))
-        isfile(src) || error("$src does not exist; stage from the published artifact instead")
+        ispath(src) || error("$src does not exist; stage from the published artifact instead")
         dst = joinpath(dir, last(pair))
         mkpath(dirname(dst))
         cp(src, dst)
-        chmod(dst, 0o644)
-        filemode(dst) & 0o777 == 0o644 ||
-            error("could not normalize permissions of $dst (got $(string(filemode(dst) & 0o777, base=8, pad=3))); \
+    end
+    # a git tree hash records the executable bit, and a Windows drive mounted under WSL
+    # reports every file as executable while ignoring `chmod`, so normalize and check
+    for (root_, _, files) in walkdir(dir), f in files
+        path = joinpath(root_, f)
+        chmod(path, 0o644)
+        filemode(path) & 0o777 == 0o644 ||
+            error("could not normalize permissions of $path (got $(string(filemode(path) & 0o777, base=8, pad=3))); \
                    stage on a POSIX filesystem, or the tree hash will not be reproducible")
     end
     return dir
@@ -95,17 +115,19 @@ tree, which Pkg verifies after unpacking, and the SHA-256 of the tarball, which 
 on download.
 
 The tarball is reproducible: `Tar.create` normalizes timestamps, ownership and permissions,
-and `gzip -n` omits its own timestamp, so identical input gives a byte-identical archive.
+and neither `gzip -n` nor `xz` records one of its own, so identical input gives a
+byte-identical archive.
 """
 function package(name::AbstractString, dir::AbstractString)
     mkpath(STAGE_DIR)
-    tarball = joinpath(STAGE_DIR, name * ".tar.gz")
+    compressor, ext = compression(name)
+    tarball = joinpath(STAGE_DIR, name * ext)
     mktemp() do tarpath, io
         close(io)
         Tar.create(dir, tarpath)
-        # `run` waits for gzip to exit; piping into an `open(…, "w", io)` process and
-        # closing it does not, and then the tarball may still be short when it is hashed
-        run(pipeline(`gzip -9 -n -c $tarpath`, tarball))
+        # `run` waits for the compressor to exit; piping into an `open(…, "w", io)` process
+        # and closing it does not, and the tarball may still be short when it is hashed
+        run(pipeline(`$compressor -c $tarpath`, tarball))
         tree_hash = open(Tar.tree_hash, tarpath)
         return tarball, tree_hash, bytes2hex(open(sha256, tarball))
     end
@@ -117,7 +139,7 @@ end
 The `Artifacts.toml` stanza for data set `name` published under release `tag`.
 """
 function artifacts_entry(name, tag, tree_hash, sha256sum)
-    url = "https://github.com/$REPO/releases/download/$tag/$name.tar.gz"
+    url = "https://github.com/$REPO/releases/download/$tag/$name$(last(compression(name)))"
     return """
     [$name]
     git-tree-sha1 = "$tree_hash"
@@ -132,8 +154,8 @@ end
 function main(tag, names = sort(collect(keys(DATASETS))))
     entries, tarballs = String[], String[]
     for name in names
-        dir = isfile(joinpath(DATA_DIR, first(first(paths(name))))) ? stage(name) :
-                                                                       stage_from_artifact(name)
+        dir = ispath(joinpath(root(name), first(first(paths(name))))) ? stage(name) :
+                                                                        stage_from_artifact(name)
         tarball, tree_hash, sha256sum = package(name, dir)
         push!(tarballs, tarball)
         push!(entries, artifacts_entry(name, tag, tree_hash, sha256sum))

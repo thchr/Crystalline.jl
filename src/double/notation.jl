@@ -4,8 +4,8 @@ const PGIRLABS_CDML2MULLIKEN_3D_SPINFUL = Dict(
     # Mulliken labels of the double-valued irreps of the crystallographic point groups, keyed
     # by their CDML labels; the spinful counterpart of `PGIRLABS_CDML2MULLIKEN_3D`. From the
     # character tables of the double point groups of the Bilbao Crystallographic Server's
-    # Representations DPG program (`representations_out.pl` with `tipogrupo=dbg`; see
-    # `build/crawl_dsg_irreps.jl`), which list both labels. Bilbao's overline, marking a
+    # Representations DPG program (`representations_out.pl` with `tipogrupo=dbg`; see the
+    # `dsg_crawl` artifact in `Artifacts.toml`), which list both labels. Bilbao's overline, marking a
     # double-valued irrep, is written as an appended `ˢ` (e.g., `²E₁gˢ`), as for the CDML
     # labels. Unlike `PGIRLABS_CDML2MULLIKEN_3D`, the labels are kept exactly as Bilbao gives
     # them (subscripts included, e.g. `E₁ˢ` in `312`), so that they agree with Bilbao's

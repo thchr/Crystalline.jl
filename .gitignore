@@ -4,13 +4,7 @@ Manifest.toml
 *.pdf
 .DS_Store
 .claude
-build/crawls/
 .devcontainer
-
-# data sets published as `data-v*` release assets and consumed as lazy artifacts rather
-# than committed (see Artifacts.toml and build/DATA-RELEASE.md)
-data/irreps/lgs/3d/irreps_data_spinless_bilbao.jld2
-data/misc/ISOTROPY/*.txt
 
 # staging directory of `build/data_release.jl`
 build/data-release/

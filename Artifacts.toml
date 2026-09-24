@@ -23,7 +23,7 @@ git-tree-sha1 = "91b6a3dbde1605c042c3e27319ed43c72ef54adc"
 lazy = true
 
     [[bilbao_spinless_irreps.download]]
-    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.2/bilbao_spinless_irreps.tar.gz"
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/bilbao_spinless_irreps.tar.gz"
     sha256 = "16258af4e7ad8bd4195f08bbdceb6e11f9053a8e0e989c35835badc067412106"
 
 # ISOTROPY's ISO-IR dataset, from which the shipped little group irreps are generated
@@ -34,5 +34,16 @@ git-tree-sha1 = "f8274b57c805e144daee6742cfaa38e63a900c92"
 lazy = true
 
     [[isotropy.download]]
-    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.2/isotropy.tar.gz"
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/isotropy.tar.gz"
     sha256 = "17c60c7d62e8ec0dec6e6b2f064a97f221fee4bf5511e76906a2cc32f0c945ac"
+
+# A capture of the HTML pages of Bilbao's REPRESENTATIONS DSG and DPG programs, from which
+# the double-valued irreps are parsed (`build/parse_dsg_irreps.jl`), with the crawler that
+# made it; kept so that the spinful data can be rebuilt without re-crawling
+[dsg_crawl]
+git-tree-sha1 = "1dfcd211ba839e46eb162e193c8ca77b9899d901"
+lazy = true
+
+    [[dsg_crawl.download]]
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/dsg_crawl.tar.xz"
+    sha256 = "b7dc6c21ff69a80e77c3eab07a70d212240949b4316430c88fb28df0e50c4858"
