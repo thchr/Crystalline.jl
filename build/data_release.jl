@@ -4,10 +4,12 @@
 #
 #   julia --project=build build/data_release.jl <tag> [<name>...]
 #
-# e.g. `julia --project=build build/data_release.jl data-v0.0.4 isotropy`. With no names,
+# e.g. `julia --project=build build/data_release.jl data-v0.0.5 isotropy`, naming the tag
+# being published. With no data set names,
 # every data set is packaged.
 
 using Tar, SHA
+using Pkg.Artifacts: ensure_artifact_installed
 
 const REPO_DIR  = dirname(@__DIR__)
 const DATA_DIR  = joinpath(REPO_DIR, "data")
@@ -21,6 +23,7 @@ const REPO      = "thchr/Crystalline.jl"
 # their own — several dimensions or space groups, say — gives `source => path-in-artifact`
 # pairs instead.
 const DATASETS = Dict(
+    "bandreps"               => ["bandreps/1d", "bandreps/2d", "bandreps/3d"],
     "bilbao_spinless_irreps" => ["irreps/lgs/3d/irreps_data_spinless_bilbao.jld2"],
     "isotropy"               => ["misc/ISOTROPY/CIR_data.txt",
                                  "misc/ISOTROPY/PIR_data.txt"],
@@ -79,9 +82,8 @@ in the repository. Its files are already laid out as the artifact wants them, so
 looked up by their destination names rather than their `data/` ones.
 """
 function stage_from_artifact(name::AbstractString)
-    @eval using Pkg.Artifacts: ensure_artifact_installed
     toml = joinpath(dirname(@__DIR__), "Artifacts.toml")
-    from = Base.invokelatest(ensure_artifact_installed, name, toml)
+    from = ensure_artifact_installed(name, toml)
     return _stage(name, from, last)
 end
 

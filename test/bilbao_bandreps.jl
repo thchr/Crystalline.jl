@@ -9,11 +9,22 @@ module BilbaoBandReps
 
 using Crystalline
 using DelimitedFiles: readdlm
+using Pkg.Artifacts: ensure_artifact_installed
 using Base: OneTo, @propagate_inbounds
 
 export BilbaoBandRep, BilbaoBandRepSet, bilbao_bandreps
 
-const BANDREPS_DATA_DIR = joinpath(Crystalline.DATA_DIR, "bandreps")
+# The CSV tables are a lazy artifact rather than part of the repository. `@artifact_str`
+# cannot resolve it from here: `find_artifacts_toml` walks up from the calling file and stops
+# at the first `Project.toml`, which is `test/Project.toml`, so name the package's own.
+const BANDREPS_DATA_DIR = Ref{String}()
+function bandreps_datadir()
+    if !isassigned(BANDREPS_DATA_DIR)
+        BANDREPS_DATA_DIR[] = ensure_artifact_installed(
+                "bandreps", joinpath(pkgdir(Crystalline), "Artifacts.toml"))
+    end
+    return BANDREPS_DATA_DIR[]
+end
 
 # ---------------------------------------------------------------------------------------- #
 # Types
@@ -229,7 +240,7 @@ function bilbao_bandreps(sgnum::Integer, D::Integer=3;
     D ∈ (1,2,3) || throw(DomainError(D, "dimension must be 1, 2, or 3"))
     paths_str = allpaths ? "allpaths" : "maxpaths"
     brtype_str = timereversal ? "elementaryTR" : "elementary"
-    filename = joinpath(BANDREPS_DATA_DIR,
+    filename = joinpath(bandreps_datadir(),
                         "$(D)d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv")
     open(filename) do io
         dlm2struct(io, sgnum, allpaths, spinful, timereversal)

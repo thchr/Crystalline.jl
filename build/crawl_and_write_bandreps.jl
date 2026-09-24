@@ -2,6 +2,11 @@ using Crystalline, HTTP
 
 # the BANDREP table parser lives with the tests, which are its only other user
 include(joinpath(@__DIR__, "..", "test", "bilbao_bandreps.jl"))
+
+# Bilbao's tables are published as an artifact rather than kept in the repository, so a
+# fresh crawl lands in the staging directory that `data_release.jl` packages from
+const OUTPUT_DIR = get(ENV, "CRYSTALLINE_BANDREPS_OUTPUT",
+                       joinpath(@__DIR__, "data-release", "bandreps"))
 import ProgressMeter: @showprogress
 
 # crawling functionality
@@ -110,7 +115,8 @@ function writebandreps(sgnum, allpaths, timereversal=true)
 
     BR_dlm = html2dlm(crawlbandreps(sgnum, allpaths, timereversal), '⊕')
 
-    filename = (@__DIR__)*"/../data/bandreps/3d/$(brtype_str)/$(paths_str)/$(string(sgnum)).csv"
+    filename = joinpath(OUTPUT_DIR, "3d", brtype_str, paths_str, string(sgnum)*".csv")
+    mkpath(dirname(filename))
     open(filename; write=true, create=true, truncate=true) do io
         write(io, BR_dlm)
     end
