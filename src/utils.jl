@@ -260,6 +260,40 @@ function compact_print_matrix(io, X::Matrix, prerow, elformat=identity)
     end
 end
 
+# === sorted `collect` of little group irreps into a vector from a dictionary ===
+
+"""
+    _collect_lgirsd_sorted(lgirsd::AbstractDict{String, <:AbstractVector})
+                                                --> Vector{<:AbstractVector}
+
+Collect the values of `lgirsd` (e.g., as returned by [`lgirreps`](@ref)) into a vector,
+sorted deterministically, i.e., independently of the iteration order of `lgirsd`:
+**k**-points with larger little groups come first; ties are broken alphabetically by
+**k**-label, with Greek letters sorted before Latin ones (e.g., Γ before M).
+"""
+function _collect_lgirsd_sorted(lgirsd::AbstractDict{String, <:AbstractVector})
+    lgirsv = collect(values(lgirsd))
+    return sort!(lgirsv; lt = _lgirs_isless)
+end
+
+function _lgirs_isless(lgirs1, lgirs2)
+    o1, o2 = order(first(lgirs1)), order(first(lgirs2))
+    o1 == o2 || return o1 > o2 # larger groups first
+    return _klabel_isless(klabel(first(lgirs1)), klabel(first(lgirs2)))
+end
+
+# alphabetical comparison of k-labels, except that Greek letters precede Latin letters
+function _klabel_isless(a::AbstractString, b::AbstractString)
+    for (ca, cb) in zip(a, b)
+        ca == cb && continue
+        isgreek_a, isgreek_b = isgreek(ca), isgreek(cb)
+        isgreek_a == isgreek_b ? (return ca < cb) : (return isgreek_a)
+    end
+    return length(a) < length(b)
+end
+# Greek letters span U+0391 (capital alpha, 'Α'; not the Latin 'A') to U+03C9 (small omega)
+isgreek(c::Char) = '\u0391' ≤ c ≤ '\u03c9'
+
 # === misc functionality ===
 
 """
