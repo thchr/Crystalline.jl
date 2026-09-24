@@ -218,7 +218,7 @@ end
                                                             --> Vector{SymmetryVector{D}}
 
 Similar to
-[`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)](@ref),
+[`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)`](@ref),
 but for a vector of distinct raw multiplicy vectors `nvs`, rather than a single vector,
 returning a `Vector{SymmetryVector{D}}`.
 
