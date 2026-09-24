@@ -117,7 +117,7 @@ $(TYPEDSIGNATURES)
 
 Return the symmetry indicator indices of a symmetry vector `n`, in the context of a set of
 elementary band representations (EBRs) `brs`, provided as a `Collection{<:BandRep}`, a
-`Collection{<:BandRep}`, a `Matrix{<:Integer}`, or a `Smith` decomposition thereof.
+`Matrix{<:Integer}`, or a `Smith` decomposition thereof.
 
 In detail, the method returns the nontrivial indices ``[\\nu_1, \\ldots, \\nu_n]``
 associated with the symmetry indicator group (see, [`indicator_group`](@ref))
@@ -288,8 +288,8 @@ compatibility relations in the Brillouin zone and is non-negative. That is, test
 `n` belong to the set of physical band structures {BS}.
 
 The test compares the symmetry vector `n` to an set of elementary band representations,
-provided either as a `BandRepSet`, a `Collection{<:BandRep}`, a `Matrix{<:Integer}`,
-or a `Smith` decomposition. The irrep sorting of `n` and this set of EBRs must be identical.
+provided either as a `Collection{<:BandRep}`, a `Matrix{<:Integer}`, or a `Smith`
+decomposition. The irrep sorting of `n` and this set of EBRs must be identical.
 
 ## Keyword arguments
 
@@ -375,7 +375,7 @@ function includes_connectivity(
     brs::Collection{<:BandRep}
 )
     Nn = length(n)
-    Nirr = brs isa Collection{<:BandRep} ? length(first(brs))-1 : length(irreplabels(brs))
+    Nirr = length(first(brs))-1
     if Nn == Nirr+1
         return true
     elseif Nn == Nirr
