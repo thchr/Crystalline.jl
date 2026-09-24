@@ -1,13 +1,6 @@
 using Crystalline, Test, LinearAlgebra
 using Crystalline: check_multtable_vs_ir
 
-datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "pgs", "3d",
-                    "irreps_data_spinful.jld2")
-if !isfile(datafile)
-    @warn "spinful point group irrep data not found; skipping spinful `physical_realify` \
-           tests" datafile
-else
-
 @testset "`physical_realify` for double-valued irreps" begin
 
 @testset "`timereversal_unitary`" begin
@@ -87,4 +80,3 @@ end
 end
 
 end # @testset "`physical_realify` for double-valued irreps"
-end # if isfile(datafile)

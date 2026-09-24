@@ -1,11 +1,5 @@
 using Crystalline, Test
 
-datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
-                    "irreps_data_spinful.jld2")
-if !isfile(datafile)
-    @warn "spinful irrep data not found; skipping spinful symmetry vector tests" datafile
-else
-
 @testset "Spinful symmetry vectors" begin
     lgirsd = lgirreps(221, Val(3); spinful=Val(true))
     lgirsv = [lgirsd[klab] for klab in ("Γ", "X", "M", "R")]
@@ -57,4 +51,3 @@ end
     @test last.(annotations) == label.(lgirs)
 end
 
-end # if isfile(datafile)

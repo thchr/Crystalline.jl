@@ -213,7 +213,7 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 | `primitivize_irreps.jl` | Irrep transformation to primitive basis |
 | `grouprelations.jl` | Sub-/supergroup data integrity |
 | `mspacegroup.jl` | Magnetic space groups |
-| `double/` | Double groups and double-valued (spinful) irreps; the tests that need the spinful irrep data files are skipped if those are absent |
+| `double/` | Double groups and double-valued (spinful) irreps |
 | `symeigs_analysis.jl` | Symmetry eigenvalue → irrep assignment |
 
 ## CI/CD

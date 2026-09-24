@@ -1,12 +1,6 @@
 using Crystalline, Test, LinearAlgebra
 using Crystalline: check_multtable_vs_ir
 
-datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "pgs", "3d",
-                    "irreps_data_spinful.jld2")
-if !isfile(datafile)
-    @warn "spinful point group irrep data not found; skipping spinful site irrep tests" datafile
-else
-
 @testset "Double site groups and their irreps" begin
     for sgnum in 1:MAX_SGNUM[3]
         sg = spacegroup(sgnum, Val(3))
@@ -48,4 +42,3 @@ end
 
 # the site irrep labels are compared with Bilbao's in test/calc_bandreps.jl (spinful EBRs)
 
-end # if isfile(datafile)

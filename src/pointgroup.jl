@@ -158,10 +158,7 @@ function _pgirrep(cdml, pg::DPointGroup{D}, P, reality) where D
 end
 
 _pgirreps_jldfile(::Val{false}) = PGIRREPS_JLDFILE[]
-function _pgirreps_jldfile(#=Val{S}=# ::Val{true})
-    isassigned(DPGIRREPS_JLDFILE) || error("spinful point group irrep data file not found")
-    return DPGIRREPS_JLDFILE[]
-end
+_pgirreps_jldfile(#=Val{S}=# ::Val{true}) = DPGIRREPS_JLDFILE[]
 # 2D
 function pgirreps(
     iuclab::String,

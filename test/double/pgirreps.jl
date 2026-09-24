@@ -1,12 +1,6 @@
 using Crystalline, Test, LinearAlgebra
 using Crystalline: check_multtable_vs_ir, matrices, PG_IUCs
 
-datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "pgs", "3d",
-                    "irreps_data_spinful.jld2")
-if !isfile(datafile)
-    @warn "spinful point group irrep data not found; skipping tests of `DPGIrrep`s" datafile
-else
-
 @testset "Double-valued point group irreps" begin
 
 @test @inferred(pointgroup("4mm", Val(3); spinful=Val(true))) isa DPointGroup{3}
@@ -59,9 +53,6 @@ end
 # space group: compare characters, matching each operation by its rotation part and SU(2)
 # element
 @testset "Little group irreps at Γ vs. point group irreps" begin
-datafile_lgs = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
-                        "irreps_data_spinful.jld2")
-if isfile(datafile_lgs)
 for sgnum in 1:MAX_SGNUM[3]
     lgirs = lgirreps(sgnum, Val(3); spinful=Val(true))["Γ"]
     lg = group(first(lgirs))
@@ -79,7 +70,6 @@ for sgnum in 1:MAX_SGNUM[3]
     end
 end
 end
-end
 
 @testset "Mulliken labels" begin
     for iuc in Crystalline.PG_IUCs[3]
@@ -93,4 +83,3 @@ end
 end
 
 end # @testset "Double-valued point group irreps"
-end # if isfile(datafile)

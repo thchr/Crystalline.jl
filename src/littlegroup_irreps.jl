@@ -149,7 +149,6 @@ _lgirrep_type(::Type{DLittleGroup{D}}) where D = DLGIrrep{D}
 _lgirreps_jldfile(::Val{D}, ::Val{false}) where D = LGIRREPS_JLDFILES[D][]
 function _lgirreps_jldfile(::Val{D}, #=Val{S}=# ::Val{true}) where D
     D == 3 || _only_3d(D)
-    isassigned(DLGIRREPS_JLDFILE) || error("spinful irrep data file not found")
     return DLGIRREPS_JLDFILE[]
 end
 

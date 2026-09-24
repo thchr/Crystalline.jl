@@ -247,22 +247,18 @@ function __init__()
     end
     global PGIRREPS_JLDFILE[] = # only has 3D data; no need for tuple over dimensions
             JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r")
-    # double-valued irreps: 3D only; the files are not yet committed, so may be absent
-    dlgirreps_path = DATA_DIR*"/irreps/lgs/3d/irreps_data_spinful.jld2"
-    if isfile(dlgirreps_path)
-        global DLGIRREPS_JLDFILE[] = JLD2.jldopen(dlgirreps_path, "r")
-    end
-    dpgirreps_path = DATA_DIR*"/irreps/pgs/3d/irreps_data_spinful.jld2"
-    if isfile(dpgirreps_path)
-        global DPGIRREPS_JLDFILE[] = JLD2.jldopen(dpgirreps_path, "r")
-    end
+    # double-valued irreps: 3D only
+    global DLGIRREPS_JLDFILE[] =
+            JLD2.jldopen(DATA_DIR*"/irreps/lgs/3d/irreps_data_spinful.jld2", "r")
+    global DPGIRREPS_JLDFILE[] =
+            JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data_spinful.jld2", "r")
 
     # ensure we close files on exit
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGIRREPS_JLDFILES))
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
-    atexit(() -> isassigned(DLGIRREPS_JLDFILE) && close(DLGIRREPS_JLDFILE[]))
-    atexit(() -> isassigned(DPGIRREPS_JLDFILE) && close(DPGIRREPS_JLDFILE[]))
+    atexit(() -> close(DLGIRREPS_JLDFILE[]))
+    atexit(() -> close(DPGIRREPS_JLDFILE[]))
 end
 
 # precompile statements

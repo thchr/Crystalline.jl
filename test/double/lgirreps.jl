@@ -2,12 +2,6 @@ using Crystalline, Test, LinearAlgebra
 using Crystalline: check_multtable_vs_ir, matrices, can_intersect, TEST_αβγs,
                    corep_orthogonality_factor
 
-datafile = joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
-                    "irreps_data_spinful.jld2")
-if !isfile(datafile)
-    @warn "spinful irrep data not found; skipping tests of `DLGIrrep`s" datafile
-else
-
 @testset "Double-valued little group irreps" begin
 
 @test @inferred(lgirreps(1, Val(3); spinful=Val(true))) isa Dict{String, Collection{DLGIrrep{3}}}
@@ -169,4 +163,3 @@ end
 end
 
 end # @testset "Double-valued little group irreps"
-end # if isfile(datafile)

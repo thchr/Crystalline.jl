@@ -42,14 +42,10 @@ end
 SPINFUL_EBR_LABEL_SWAPS = Set([(210, "16c"), (210, "16d"), (212, "4a"), (212, "4b"),
                                (213, "4a"), (213, "4b"), (227, "16c"), (227, "16d")])
 
-# the spinful irrep data files are not committed (cf. test/double/), so may be absent
-has_spinful_data = isfile(joinpath(pkgdir(Crystalline), "data", "irreps", "lgs", "3d",
-                                   "irreps_data_spinful.jld2"))
-
 @testset "3D: every reference EBR must have a match in a calculated BR" begin
     debug = false
     error_counts = Dict{String, Int}()
-    for sgnum in 1:230, spinful in (has_spinful_data ? (false, true) : (false,))
+    for sgnum in 1:230, spinful in (false, true)
         had_sg_error = false
         for timereversal in (false, true)
             had_tr_error = false
