@@ -102,10 +102,11 @@ for application to a collection of irreps.
 ## Implementation
 A symmetric, unitary transformation is found that maps the irrep matrices to a manifestly
 real form. The resulting transformed irrep matrices `Zs` have the property that
-`all(Zᵢ -> Zᵢ ≈ conj(Zᵢ), Zs)` is true.
+`all(Zᵢ -> Zᵢ ≈ conj(Zᵢ), Zs)` is true. This real form is unique only up to conjugation by
+a real orthogonal matrix.
 
 ## Examples
-```jldoctest
+```jldoctest; filter = [r"-" => "", r" +" => " "]
 julia> pgir = pgirreps(19, 3)[end]
 Γ₃┌     1: ⎡ 1  0 ⎤
   │        ⎣ 0  1 ⎦
@@ -198,7 +199,7 @@ See also [`physical_realify(::Union{<:PGIrrep, <:SiteIrrep})`](@ref) for applica
 individual irreps.
 
 ## Examples
-```jldoctest
+```jldoctest; filter = [r"-" => "", r" +" => " "]
 julia> pgirs = pgirreps(9,2);
 
 julia> physical_realify(pgirs)

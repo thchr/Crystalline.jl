@@ -6,33 +6,6 @@ using LinearAlgebra: dot, \
 # ---------------------------------------------------------------------------------------- #
 
 """
-    reduce_dict_of_vectors([f=identity,] d::Dict{_, <:Vector})  -->  Vector{T}
-
-Return the concatenated vector of all of vectors in `d` under the element-wise application
-of `f`. Effectively flattens a `Dict` of `Vector`s to a single `Vector`.
-
-Note that application of `f` to vector-elements of `d` must return a stable type `T`.
-"""
-function reduce_dict_of_vectors(f::F, d::Dict{<:Any, <:AbstractVector}) where F
-    # get element type of application of `f` to elements of vectors in `d`; assumed fixed
-    eltype = typeof(f(first(first(values(d)))))
-    # get total number of elements across vectors in `d`
-    N = sum(((_, v),) -> length(v), d)
-    # preallocate output vector
-    w     = Vector{eltype}(undef, N)
-    start = 1
-    for v in values(d)
-        stop = start + length(v) - 1
-        @inbounds for (i, j) in enumerate(start:stop)
-            w[j] = f(v[i])
-        end
-        start = stop + 1
-    end
-    return w
-end
-reduce_dict_of_vectors(d::Dict{<:Any, <:Vector}) = reduce_dict_of_vectors(identity, d)
-
-"""
     reduce_orbits_and_cosets(siteg::SiteGroup{D}))
 
 For an input site group, provided in conventional coordinates, reduce its cosets such
@@ -247,7 +220,7 @@ function calc_bandrep(
     lgirsd = lgirreps(num(siteir), Val(D))
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
-    lgirsv = [lgirs for lgirs in values(lgirsd)]
+    lgirsv = _collect_lgirsd_sorted(lgirsd)
     return calc_bandrep(siteir, lgirsv, timereversal)
 end
 
@@ -313,7 +286,7 @@ function calc_bandreps(
     lgirsd = lgirreps(sgnum, Val(D))
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
-    lgirsv = [lgirs for lgirs in values(lgirsd)]
+    lgirsv = _collect_lgirsd_sorted(lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
     sg = spacegroup(sgnum, Dᵛ)

@@ -106,13 +106,13 @@ The irrep labels of `lgirsv` and `s` must use the same convention.
 ```jldoctest
 julia> brs = calc_bandreps(220);
 
-julia> lgirsv = irreps(brs); # irreps at P, H, Γ, & PA
+julia> lgirsv = irreps(brs); # irreps at Γ, H, P, PA, & N
 
-julia> s = "[2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃]";
+julia> s = "[Γ₁+Γ₂+Γ₄+Γ₅, H₁H₂+H₄H₅, 2P₃, 2PA₃, 4N₁]";
 
 julia> parse(SymmetryVector, s, lgirsv)
 15-irrep SymmetryVector{3}:
- [2P₃, 4N₁, H₁H₂+H₄H₅, Γ₁+Γ₂+Γ₄+Γ₅, 2PA₃] (8 bands)
+ [Γ₁+Γ₂+Γ₄+Γ₅, H₁H₂+H₄H₅, 2P₃, 2PA₃, 4N₁] (8 bands)
 ```
 """
 function Base.parse(
@@ -218,7 +218,7 @@ end
                                                             --> Vector{SymmetryVector{D}}
 
 Similar to
-[`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)](@ref),
+[`SymmetryVector(::AbstractVector{<:Integer}, ::AbstractVector{<:AbstractString}, ::AbstractDict)`](@ref),
 but for a vector of distinct raw multiplicy vectors `nvs`, rather than a single vector,
 returning a `Vector{SymmetryVector{D}}`.
 
@@ -485,7 +485,7 @@ We can build the associated [`SymmetryVector`](@ref) to inspect the associated i
 content:
 ```julia
 julia> SymmetryVector(cbr)
- [2Z₁⁺, 2Y₁⁻, 2U₁⁻, 2X₁⁺, 2T₁⁺, 2Γ₁⁺, 2V₁⁺, 2R₁⁺] (2 bands)
+ [2Γ₁⁺, 2R₁⁺, 2T₁⁺, 2U₁⁻, 2V₁⁺, 2X₁⁺, 2Y₁⁻, 2Z₁⁺] (2 bands)
 ```
 Similarly, we can confirm that `cbr` is indeed a simple linear combination of the
 associated band representations:
@@ -514,7 +514,7 @@ julia> cbr = CompositeBandRep{3}(coefs, brs)
 
 julia> SymmetryVector(cbr)
 16-irrep SymmetryVector{3}:
- [Z₁⁺, Y₁⁻, U₁⁻, X₁⁻, T₁⁻, Γ₁⁻, V₁⁻, R₁⁻] (1 band)
+ [Γ₁⁻, R₁⁻, T₁⁻, U₁⁻, V₁⁻, X₁⁻, Y₁⁻, Z₁⁺] (1 band)
 ```
 """
 @struct_hash_equal struct CompositeBandRep{D} <: AbstractSymmetryVector{D}
@@ -559,7 +559,7 @@ true
 
 julia> SymmetryVector(cbr)
 16-irrep SymmetryVector{3}:
- [2Z₁⁺+2Z₁⁻, Y₁⁺+3Y₁⁻, 2U₁⁺+2U₁⁻, 2X₁⁺+2X₁⁻, 3T₁⁺+T₁⁻, 2Γ₁⁺+2Γ₁⁻, 3V₁⁺+V₁⁻, R₁⁺+3R₁⁻] (4 bands)
+ [2Γ₁⁺+2Γ₁⁻, R₁⁺+3R₁⁻, 3T₁⁺+T₁⁻, 2U₁⁺+2U₁⁻, 3V₁⁺+V₁⁻, 2X₁⁺+2X₁⁻, Y₁⁺+3Y₁⁻, 2Z₁⁺+2Z₁⁻] (4 bands)
 ```
 """
 function CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
@@ -667,7 +667,7 @@ julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3] - brs[4]
 
 julia> n = 3brs[1] + 2brs[2] - brs[3] - brs[4]
 16-irrep SymmetryVector{3}:
- [Z₁⁺+2Z₁⁻, Y₁⁺+2Y₁⁻, 2U₁⁺+U₁⁻, X₁⁺+2X₁⁻, 2T₁⁺+T₁⁻, 2Γ₁⁺+Γ₁⁻, 2V₁⁺+V₁⁻, R₁⁺+2R₁⁻] (3 bands)
+ [2Γ₁⁺+Γ₁⁻, R₁⁺+2R₁⁻, 2T₁⁺+T₁⁻, 2U₁⁺+U₁⁻, 2V₁⁺+V₁⁻, X₁⁺+2X₁⁻, Y₁⁺+2Y₁⁻, Z₁⁺+2Z₁⁻] (3 bands)
 
 julia> SymmetryVector(cbr) == n
 true
