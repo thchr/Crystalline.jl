@@ -206,8 +206,7 @@ export maximal_subgroups, minimal_supergroups, conjugacy_relations
 include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl, …]
 
 include("deprecations.jl")
-export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar,
-       classification, nontrivial_factors, calc_bandreps
+export classification, nontrivial_factors, calc_bandreps
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl

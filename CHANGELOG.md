@@ -25,6 +25,14 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   integer matrix, or a `Smith` factorization, and now lives alongside `indicator_group`.
 - **`wyckbasis`, `matching_littlegroups` and `matching_lgirreps` were removed** (unexported,
   and unused), as were the deprecations `wyck(::BandRep)` and `matrix(::BandRepSet)`.
+- **Long-standing deprecations were removed**, as befits a breaking release: `kvec`, `wyck`
+  and `kstar` (use `position`, `parent` and `orbit`), `WyckPos` (use `WyckoffPosition`),
+  `get_littlegroups`, `get_lgirreps`, `get_pgirreps` and `get_wycks` (use `littlegroups`,
+  `lgirreps`, `pgirreps` and `wyckoffs`), `CharacterTable(::AbstractVector{<:AbstractIrrep})`
+  (use `characters`), the `SiteGroup(::SpaceGroup, ::WyckoffPosition)` constructors (use
+  `sitegroup`), and `IrrepCollection` (use `Collection{<:AbstractIrrep}`). All date from
+  2021–2024. The more recent deprecations — `classification`, `nontrivial_factors` and
+  `symeigs_analysis` — are kept.
 - **The k-points of `bandreps` are sorted deterministically**, and hence so are those
   of the `SymmetryVector`s derived from them: by decreasing little group order, with ties
   broken alphabetically by k-label (Greek letters first; e.g., `[Γ, R, M, X]` for space
