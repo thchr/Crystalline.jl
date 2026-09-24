@@ -196,6 +196,7 @@ export iscompatible, calc_topology, symmetry_indicators
 export indicator_group, indicator_group_as_string
 export basisdim
 export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
+public includes_connectivity # unexported, but relied on by downstream packages
 
 include("symeigs_analysis.jl")
 export collect_compatible, collect_irrep_annotations
