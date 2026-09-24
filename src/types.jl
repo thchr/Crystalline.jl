@@ -1032,7 +1032,7 @@ Base.position(siteir::AbstractSiteIrrep) = position(group(siteir))
     Collection{T} <: AbstractVector{T}
 
 A wrapper around a `Vector{T}`, that allows custom printing and dispatch rules of custom
-`T` (e.g., `AbstractIrrep` & `NewBandRep`).
+`T` (e.g., `AbstractIrrep` & `BandRep`).
 
 In Crystalline, it is assumed that all elements of the wrapped vector are associated with
 the _same_ space, point, or little group. Accordingly, if `T` implements [`dim`](@ref) or 

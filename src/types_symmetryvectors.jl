@@ -116,7 +116,7 @@ The irrep labels of `lgirsv` and `s` must use the same convention.
 
 ## Example
 ```jldoctest
-julia> brs = calc_bandreps(220);
+julia> brs = bandreps(220);
 
 julia> lgirsv = irreps(brs); # irreps at Γ, H, P, PA, & N
 
@@ -400,16 +400,16 @@ dim(::Type{<:AbstractSymmetryVector{D}}) where D = D
 dim(::Type{<:AbstractSymmetryVector}) = nothing
 
 # ---------------------------------------------------------------------------------------- #
-# NewBandRep
+# BandRep
 
 """
-    NewBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}}
+    BandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}}
                                                         <: AbstractSymmetryVector{D, IR}
 
 A band representation in dimension `D`, induced from the site symmetry irrep `siteir` (of
 type `SIR`), with symmetry vector `n` over little group irreps of type `IR`.
 """
-@struct_hash_equal struct NewBandRep{
+@struct_hash_equal struct BandRep{
     D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}
 } <: AbstractSymmetryVector{D, IR}
     siteir       :: SIR
@@ -418,28 +418,28 @@ type `SIR`), with symmetry vector `n` over little group irreps of type `IR`.
 end
 
 # ::: AbstractSymmetryVector interface :::
-SymmetryVector(br::NewBandRep) = br.n
+SymmetryVector(br::BandRep) = br.n
 
 # ::: AbstractArray interface beyond AbstractSymmetryVector :::
-Base.setindex!(br::NewBandRep, v::Int, i::Int) = (br.n[i] = v)
-function Base.similar(br::NewBandRep)
-    NewBandRep(br.siteir, similar(br.n), br.timereversal)
+Base.setindex!(br::BandRep, v::Int, i::Int) = (br.n[i] = v)
+function Base.similar(br::BandRep)
+    BandRep(br.siteir, similar(br.n), br.timereversal)
 end
-Base.Vector(br::NewBandRep) = Vector(br.n)
+Base.Vector(br::BandRep) = Vector(br.n)
 
 # ::: Utilities :::
-group(br::NewBandRep) = group(br.siteir)
-Base.position(br::NewBandRep) = position(group(br))
+group(br::BandRep) = group(br.siteir)
+Base.position(br::BandRep) = position(group(br))
 
 
 # ---------------------------------------------------------------------------------------- #
-# Collection{<:NewBandRep}
+# Collection{<:BandRep}
 
 # ::: Utilities :::
-irreps(brs::Collection{<:NewBandRep}) = irreps(SymmetryVector(first(brs)))
-irreplabels(brs::Collection{<:NewBandRep}) = irreplabels(SymmetryVector(first(brs)))
-klabels(brs::Collection{<:NewBandRep}) = klabels(SymmetryVector(first(brs)))
-littlegroups(brs::Collection{<:NewBandRep}) = group.(irreps(brs))
+irreps(brs::Collection{<:BandRep}) = irreps(SymmetryVector(first(brs)))
+irreplabels(brs::Collection{<:BandRep}) = irreplabels(SymmetryVector(first(brs)))
+klabels(brs::Collection{<:BandRep}) = klabels(SymmetryVector(first(brs)))
+littlegroups(brs::Collection{<:BandRep}) = group.(irreps(brs))
 
 
 # ---------------------------------------------------------------------------------------- #
@@ -449,7 +449,7 @@ littlegroups(brs::Collection{<:NewBandRep}) = group.(irreps(brs))
     CompositeBandRep{D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}}
                                                         <: AbstractSymmetryVector{D, IR}
 
-A type representing a linear rational-coefficient combination of `NewBandRep{D, IR, SIR}`s.
+A type representing a linear rational-coefficient combination of `BandRep{D, IR, SIR}`s.
 
 Although the coefficients may be rational numbers in general, their superposition must
 correspond to integer-valued irrep multiplicities and band occupation numbers; in
@@ -462,7 +462,7 @@ indices into `brs`.
 - `coefs::Vector{Rational{Int}}`: a coefficient vector associated with each band
   representation in `brs`; the coefficient of the `i`th band representation `brs[i]` is
   `coefs[i]`.
-- `brs::Collection{NewBandRep{D, IR, SIR}}`: the band representations referenced by
+- `brs::Collection{BandRep{D, IR, SIR}}`: the band representations referenced by
   `coefs`.
 
 ## Example
@@ -470,7 +470,7 @@ indices into `brs`.
 As a first example, we build a `CompositeBandRep` representing a fragilely topological
 configuration (i.e., featuring negative integer coefficients):
 ```julia
-julia> brs = calc_bandreps(2);
+julia> brs = bandreps(2);
 
 julia> coefs = [0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, -1];
 
@@ -518,7 +518,7 @@ julia> SymmetryVector(cbr)
     D, IR<:AbstractLGIrrep{D}, SIR<:AbstractSiteIrrep{D}
 } <: AbstractSymmetryVector{D, IR}
     coefs :: Vector{Rational{Int}}
-    brs   :: Collection{NewBandRep{D, IR, SIR}}
+    brs   :: Collection{BandRep{D, IR, SIR}}
     function CompositeBandRep{D, IR, SIR}(coefs, brs) where {D, IR, SIR}
         if length(coefs) ≠ length(brs)
             error("length of provided coefficients do not match length of provided band \
@@ -527,19 +527,19 @@ julia> SymmetryVector(cbr)
         new{D, IR, SIR}(coefs, brs)
     end
 end
-function CompositeBandRep(coefs, brs::Collection{NewBandRep{D, IR, SIR}}) where {D, IR, SIR}
+function CompositeBandRep(coefs, brs::Collection{BandRep{D, IR, SIR}}) where {D, IR, SIR}
     return CompositeBandRep{D, IR, SIR}(coefs, brs)
 end
 function CompositeBandRep{D}(
     coefs,
-    brs::Collection{NewBandRep{D, IR, SIR}}
+    brs::Collection{BandRep{D, IR, SIR}}
 ) where {D, IR, SIR}
     return CompositeBandRep{D, IR, SIR}(coefs, brs)
 end
 
 # ::: Convenience constructor :::
 """
-    CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
+    CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:BandRep})
 
 Return a [`CompositeBandRep`](@ref) whose symmetry content is equal to the sum of the band
 representations in `brs` over `idxs`.
@@ -553,7 +553,7 @@ with what multiplicity (the multiplicity of the `i`th `brs`-element being equali
 
 ## Example
 ```julia
-julia> brs = calc_bandreps(2);
+julia> brs = bandreps(2);
 
 julia> cbr = CompositeBandRep_from_indices([1, 1, 2, 6], brs)
 16-irrep CompositeBandRep{3} (spinless):
@@ -567,7 +567,7 @@ julia> SymmetryVector(cbr)
  [2Γ₁⁺+2Γ₁⁻, R₁⁺+3R₁⁻, 3T₁⁺+T₁⁻, 2U₁⁺+2U₁⁻, 3V₁⁺+V₁⁻, 2X₁⁺+2X₁⁻, Y₁⁺+3Y₁⁻, 2Z₁⁺+2Z₁⁻] (4 bands)
 ```
 """
-function CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:NewBandRep})
+function CompositeBandRep_from_indices(idxs::Vector{Int}, brs::Collection{<:BandRep})
     coefs = zeros(Rational{Int}, length(brs))
     for i in idxs
         @boundscheck checkbounds(brs, i)
@@ -637,12 +637,12 @@ Base.:-(cbr1::T, cbr2::T) where T<:CompositeBandRep = cbr1 + (-cbr2)
 Base.:*(cbr::CompositeBandRep, n::Integer) = CompositeBandRep(cbr.coefs .* n, cbr.brs)
 Base.zero(cbr::CompositeBandRep) = CompositeBandRep(zero(cbr.coefs), cbr.brs)
 
-# ::: Macro for building `CompositeBandRep` from Collection{<:NewBandRep}` :::
+# ::: Macro for building `CompositeBandRep` from Collection{<:BandRep}` :::
 
-# Aim: Starting with `brs = calc_bandreps(sgnums, Val(D))` we often want to create a
+# Aim: Starting with `brs = bandreps(sgnums, Val(D))` we often want to create a
 # `CompositeBandRep` from a linear combination of `brs[i]`. However, we can't merely
-# overload `+(::NewBandRep, ::NewBandRep)`, since `CompositeBandRep` must contain a
-# reference to an overall "store" of a full set of `NewBandRep`, i.e., `brs[i]` doesn't
+# overload `+(::BandRep, ::BandRep)`, since `CompositeBandRep` must contain a
+# reference to an overall "store" of a full set of `BandRep`, i.e., `brs[i]` doesn't
 # contain a reference to `brs`. Instead, we use a macro to first identify `brs` and then
 # populate the coefficient vector of `CompositeBandRep.coefs`
 
@@ -651,7 +651,7 @@ Base.zero(cbr::CompositeBandRep) = CompositeBandRep(zero(cbr.coefs), cbr.brs)
 
 A convenience macro for creating an integer-coefficient `CompositeBandRep` from an
 expression involving a single band representation variable, say `brs` of type
-`Collection{<:NewBandRep}` via references to its elements `brs[i]` and associated literal
+`Collection{<:BandRep}` via references to its elements `brs[i]` and associated literal
 integer-coefficients `cᵢ`.
 
 More explicitly, `@composite cᵢ*brs[i] + cⱼ*brs[j] + … + cₖ*brs[k]` creates a
@@ -662,7 +662,7 @@ See also [`CompositeBandRep`](@ref) and [`Crystalline.CompositeBandRep_from_indi
 
 ## Examples
 ```jldoctest composite
-julia> brs = calc_bandreps(2, Val(3));
+julia> brs = bandreps(2, Val(3));
 
 julia> cbr = @composite 3brs[1] + 2brs[2] - brs[3] - brs[4]
 16-irrep CompositeBandRep{3} (spinless):

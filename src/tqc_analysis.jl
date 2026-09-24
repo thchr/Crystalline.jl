@@ -16,7 +16,7 @@ symmetry within the topological quantum chemistry / symmtry indicator frameworks
 end
 
 # -----------------------------------------------------------------------------------------
-# Trivial/nontrivial solution topology via Smith/Collection{<:NewBandRep}
+# Trivial/nontrivial solution topology via Smith/Collection{<:BandRep}
 
 @doc """
 $(TYPEDSIGNATURES)
@@ -36,7 +36,7 @@ nontrivial symmetry vector.
 
 ## Input
 
-The EBR basis can be provided as `::Collection{<:NewBandRep}`, `::Matrix{<:Integer}`,
+The EBR basis can be provided as `::Collection{<:BandRep}`, `::Matrix{<:Integer}`,
 or a `Smith`
 decomposition.
 The length of `n` must equal the EBR basis' number of irreps or the number of irreps plus 1
@@ -99,7 +99,7 @@ end
 
 function calc_topology(
     n::AbstractVector{<:Integer},
-    brs::Collection{<:NewBandRep};
+    brs::Collection{<:BandRep};
     kws...
 )
     B = stack(brs)
@@ -116,8 +116,8 @@ end
 $(TYPEDSIGNATURES)
 
 Return the symmetry indicator indices of a symmetry vector `n`, in the context of a set of
-elementary band representations (EBRs) `brs`, provided as a `Collection{<:NewBandRep}`, a
-`Collection{<:NewBandRep}`, a `Matrix{<:Integer}`, or a `Smith` decomposition thereof.
+elementary band representations (EBRs) `brs`, provided as a `Collection{<:BandRep}`, a
+`Collection{<:BandRep}`, a `Matrix{<:Integer}`, or a `Smith` decomposition thereof.
 
 In detail, the method returns the nontrivial indices ``[\\nu_1, \\ldots, \\nu_n]``
 associated with the symmetry indicator group (see, [`indicator_group`](@ref))
@@ -172,7 +172,7 @@ function symmetry_indicators(
 end
 function symmetry_indicators(
     n::AbstractVector{<:Integer},
-    brs::Collection{<:NewBandRep};
+    brs::Collection{<:BandRep};
     kws...
 )
     B = stack(brs)
@@ -205,7 +205,7 @@ for more information).
 
 ## Example
 ```jldoctest
-julia> brs = calc_bandreps(2, Val(3));
+julia> brs = bandreps(2, Val(3));
 
 julia> indicator_group(brs)
 4-element Vector{Int64}:
@@ -224,13 +224,13 @@ function indicator_group(B::AbstractMatrix{<:Integer})
     F = smith(B, inverse=false)
     return indicator_group(F)
 end
-function indicator_group(brs::Collection{<:NewBandRep})
+function indicator_group(brs::Collection{<:BandRep})
     return indicator_group(stack(brs))
 end
 is_not_one_or_zero(x) = !(isone(x) || iszero(x))
 
 """
-    basisdim(brs::Collection{<:NewBandRep})  --> Int
+    basisdim(brs::Collection{<:BandRep})  --> Int
     basisdim(B::AbstractMatrix{<:Integer})   --> Int
     basisdim(F::Smith)                       --> Int
 
@@ -243,7 +243,7 @@ a band structure viewed as symmetry data.
 """ 
 basisdim(F::Smith) = count(!iszero, F.SNF) # nonzeros of the Smith normal diagonal matrix
 basisdim(B::AbstractMatrix{<:Integer}) = basisdim(smith(B, inverse=false))
-basisdim(brs::Collection{<:NewBandRep}) = basisdim(stack(brs))
+basisdim(brs::Collection{<:BandRep}) = basisdim(stack(brs))
 
 
 @doc """
@@ -254,7 +254,7 @@ as `"Zᵢ×Zⱼ×…"`). See also [`indicator_group`](@ref) for a vector represe
 
 ## Example
 ```jldoctest
-julia> brs = calc_bandreps(2, Val(3));
+julia> brs = bandreps(2, Val(3));
 
 julia> indicator_group_as_string(brs)
 "Z₂×Z₂×Z₂×Z₄"
@@ -273,7 +273,7 @@ function indicator_group_as_string(nontriv_Λ::AbstractVector{<:Integer})
     return String(take!(io))
 end
 function indicator_group_as_string(
-    brs::Union{Collection{<:NewBandRep}, AbstractMatrix{<:Integer}, Smith}
+    brs::Union{Collection{<:BandRep}, AbstractMatrix{<:Integer}, Smith}
 )
     return indicator_group_as_string(indicator_group(brs))
 end
@@ -288,7 +288,7 @@ compatibility relations in the Brillouin zone and is non-negative. That is, test
 `n` belong to the set of physical band structures {BS}.
 
 The test compares the symmetry vector `n` to an set of elementary band representations,
-provided either as a `BandRepSet`, a `Collection{<:NewBandRep}`, a `Matrix{<:Integer}`,
+provided either as a `BandRepSet`, a `Collection{<:BandRep}`, a `Matrix{<:Integer}`,
 or a `Smith` decomposition. The irrep sorting of `n` and this set of EBRs must be identical.
 
 ## Keyword arguments
@@ -313,7 +313,7 @@ of the EBR matrix ``\\mathbf{A} = \\mathbf{S}\\boldsymbol{\\Lambda}\\mathbf{T}``
 ## Examples
 
 ```julia-repl
-julia> brs = calc_bandreps(22, Val(3)); # from Crystalline.jl
+julia> brs = bandreps(22, Val(3)); # from Crystalline.jl
 julia> n = parse(SymmetryVector, "Z₃, T₃, L₁, Y₃, Γ₃", irreps(brs)) # a compatible vector
 
 # test a compatible symmetry vector
@@ -352,7 +352,7 @@ function iscompatible(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}; kws...
 end
 function iscompatible(
     n::AbstractVector{<:Integer}, 
-    brs::Collection{<:NewBandRep};
+    brs::Collection{<:BandRep};
     kws...
 )
     iscompatible(n, stack(brs); kws...)
@@ -372,10 +372,10 @@ Return whether `n` includes the connectivity as an element by comparing with siz
 """
 function includes_connectivity(
     n::AbstractVector{<:Integer},
-    brs::Collection{<:NewBandRep}
+    brs::Collection{<:BandRep}
 )
     Nn = length(n)
-    Nirr = brs isa Collection{<:NewBandRep} ? length(first(brs))-1 : length(irreplabels(brs))
+    Nirr = brs isa Collection{<:BandRep} ? length(first(brs))-1 : length(irreplabels(brs))
     if Nn == Nirr+1
         return true
     elseif Nn == Nirr

@@ -210,7 +210,7 @@ function calc_bandrep(
     end
     n = SymmetryVector(lgirsv, multsv, occupation)
 
-    return NewBandRep(siteir, n, timereversal)
+    return BandRep(siteir, n, timereversal)
 end
 function calc_bandrep(
         siteir :: AbstractSiteIrrep{D};
@@ -226,20 +226,20 @@ end
 
 # ---------------------------------------------------------------------------------------- #
 """
-    calc_bandreps(
+    bandreps(
         sgnum::Integer,
         ::Val{D}=Val(3);
         spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
         timereversal::Bool=true,
         allpaths::Bool=false,
         explicitly_real::Bool=timereversal
-    ) --> Collection{NewBandRep{D}}
+    ) --> Collection{BandRep{D}}
 
-    calc_bandreps( # type-unstable convenience accessor
+    bandreps( # type-unstable convenience accessor
         sgnum::Integer,
         D::Integer;
         kws...
-    ) --> Collection{NewBandRep{D}}
+    ) --> Collection{BandRep{D}}
 
 Compute the band representations of space group `sgnum` in dimension `D`.
 
@@ -278,7 +278,7 @@ band representations).
 The implementation is based on Cano, Bradlyn, Wang, Elcoro, et al., [Phys. Rev. B **97**,
 035139 (2018)](https://doi.org/10.1103/PhysRevB.97.035139), Sections II.C-D.
 """
-function calc_bandreps(
+function bandreps(
         sgnum::Integer,
         Dᵛ::Val{D} = Val(3);
         spinful = Val(false),
@@ -316,18 +316,18 @@ function calc_bandreps(
 
     return Collection(brs)
 end
-calc_bandreps(sgnum::Integer, D::Integer; kws...) = calc_bandreps(sgnum, Val(D); kws...)
+bandreps(sgnum::Integer, D::Integer; kws...) = bandreps(sgnum, Val(D); kws...)
 
 # the band representation type induced by spinless or by spinful site symmetry irreps; keyed
 # on `Val`s so that the type is fixed by dispatch, and so is propagated even if the
 # dimension is not a compile-time constant
-_bandrep_type(#=Val{S}=#::Val{false}, ::Val{D}) where D = NewBandRep{D, LGIrrep{D}, SiteIrrep{D}}
-_bandrep_type(#=Val{S}=#::Val{true}, ::Val{D}) where D = NewBandRep{D, DLGIrrep{D}, DSiteIrrep{D}}
+_bandrep_type(#=Val{S}=#::Val{false}, ::Val{D}) where D = BandRep{D, LGIrrep{D}, SiteIrrep{D}}
+_bandrep_type(#=Val{S}=#::Val{true}, ::Val{D}) where D = BandRep{D, DLGIrrep{D}, DSiteIrrep{D}}
 
 # ---------------------------------------------------------------------------------------- #
 
 # performance optimization
-function Base.stack(brs::Collection{<:NewBandRep})
+function Base.stack(brs::Collection{<:BandRep})
     B = Matrix{Int}(undef, length(first(brs)), length(brs))
     @inbounds for (j, br) in enumerate(brs)
         i = 1

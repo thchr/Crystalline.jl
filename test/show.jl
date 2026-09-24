@@ -369,10 +369,10 @@ CharacterTable for ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2] (spinless):
 test_tp_show(characters(lgirreps(230)["P"]), str)
 
 # -------------------------------
-# Collection{<:NewBandRep}
+# Collection{<:BandRep}
 # -------------------------------
 str = "[(8b|A), (8b|B), (4a|A₁), (4a|A₂), (4a|B₂), (4a|B₁)]"
-@test repr(calc_bandreps(42, Val(3))) == str
+@test repr(bandreps(42, Val(3))) == str
 
 # -------------------------------
 # AbstractFourierLattice

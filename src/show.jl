@@ -557,9 +557,9 @@ function Base.show(io :: IO, n :: SymmetryVector)
 end
 
 # ---------------------------------------------------------------------------------------- #
-# NewBandRep
+# BandRep
 
-function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
+function Base.show(io :: IO, ::MIME"text/plain", br :: BandRep)
     print(io, length(br.n)-1, "-irrep ", _typename_with_dim(br),
               " (", _spin_tag(br), "):\n ")
     print(io, "(", )
@@ -570,14 +570,14 @@ function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
     show(io, br.n)
 end
 
-function Base.show(io :: IO, br :: NewBandRep)
+function Base.show(io :: IO, br :: BandRep)
     print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
 end
 
 # ---------------------------------------------------------------------------------------- #
-# Collection{<:NewBandRep}
+# Collection{<:BandRep}
 
-function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
+function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:BandRep})
     irlabs = irreplabels(brs)
     Nⁱʳʳ = length(irlabs)
 
@@ -623,7 +623,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
     )
 end
 
-function Base.show(io :: IO, brs :: Collection{<:NewBandRep})
+function Base.show(io :: IO, brs :: Collection{<:BandRep})
     Base.show_delim_array(io, brs.vs, '[', ',', ']', false)
 end
 

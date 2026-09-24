@@ -36,7 +36,7 @@ using .BilbaoBandReps
     end
 end # @testset "Site symmetry groups & parent point group identification"
 
-function Γ_littlegroup(brs::Collection{<:NewBandRep})
+function Γ_littlegroup(brs::Collection{<:BandRep})
     lgirsv = irreps(brs)
     idx = something(findfirst(lgirs -> klabel(lgirs) == "Γ", lgirsv))
     return group(lgirsv[idx])
@@ -52,7 +52,7 @@ end
             continue
         end
 
-        brs = calc_bandreps(sgnum, Val(3))
+        brs = bandreps(sgnum, Val(3))
         lg = Γ_littlegroup(brs) # little group at Γ
         plg, _, _ = find_isomorphic_parent_pointgroup(lg)
 

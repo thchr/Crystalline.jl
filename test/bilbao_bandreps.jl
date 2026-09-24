@@ -79,7 +79,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 # Conversion from Crystalline's own band representations, for comparison
 
-function Base.convert(::Type{BilbaoBandRep}, br::Crystalline.NewBandRep)
+function Base.convert(::Type{BilbaoBandRep}, br::Crystalline.BandRep)
     return BilbaoBandRep(label(position(br.siteir)),
                          br.siteir.pglabel,
                          label(br.siteir)*"↑G",
@@ -90,7 +90,7 @@ function Base.convert(::Type{BilbaoBandRep}, br::Crystalline.NewBandRep)
 end
 
 function Base.convert(::Type{BilbaoBandRepSet},
-                      brs::Collection{<:Crystalline.NewBandRep})
+                      brs::Collection{<:Crystalline.BandRep})
     return BilbaoBandRepSet(num(brs),
                             convert.(Ref(BilbaoBandRep), brs),
                             [position(lgirs) for lgirs in irreps(brs)],

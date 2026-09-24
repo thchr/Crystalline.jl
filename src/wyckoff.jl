@@ -459,7 +459,7 @@ function primitivize(siteg::SiteGroup{D}) where D
     N_cosets′ = multiplicity(wp) ÷ Bravais.centering_volume_fraction(cntr, Val(D))
     if N_cosets′ == length(cosets(siteg))
         # the cosets may have already been reduced only span the primitive unit cell, e.g.,
-        # for site groups that associate to a `NewBandRep`; for those cases, it's enough to
+        # for site groups that associate to a `BandRep`; for those cases, it's enough to
         # just primitivize these coset operations directly
         cosets′ = primitivize.(cosets(siteg), cntr, #= modw =# false)
     else
@@ -483,7 +483,7 @@ function primitivize(siteg::SiteGroup{D}) where D
         #       elements have coordinates in [0,1), in the same way that we ensure for the
         #       coordinates of the orbit for the conventional setting (but then in the
         #       conventional unit cell); we already go through the necessary hoops to ensure
-        #       this for the site groups of used in `calc_bandreps`; in particular, see
+        #       this for the site groups of used in `bandreps`; in particular, see
         #       `reduce_orbits_and_cosets` (but it returns coordinates in the conventional
         #        unit cell and is not very optimized)
     end

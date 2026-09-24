@@ -6,27 +6,46 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 
 ### Breaking changes, and how to update
 
-- **The k-points of `calc_bandreps` are sorted deterministically**, and hence so are those
+- **`bandreps` now returns the band representations that Crystalline computes itself**,
+  i.e. what `calc_bandreps` previously returned (`calc_bandreps` is deprecated to it). It
+  no longer returns the Bilbao Crystallographic Server's tabulated EBRs: the `BandRep` and
+  `BandRepSet` types that represented those, and the machinery that parsed them, are no
+  longer part of the package, and the `data/bandreps/` tables they read are now a lazy
+  artifact used only to validate `bandreps` in Crystalline's own test suite.
+  This is the one change here that does **not** announce itself: a call to
+  `bandreps(sgnum, D; ...)` still works, but returns a `Collection{<:BandRep}` in place of a
+  `BandRepSet`, over a possibly larger set of band representations (`bandreps` may return
+  non-elementary "exceptional" band representations, so its result is a superset of
+  Bilbao's; this makes no difference for band connectivity or topology analysis). Code that
+  merely consumes the result as a vector of symmetry vectors is unaffected; code that
+  reaches for `BandRepSet` fields, or that depends on the set being strictly elementary,
+  needs review.
+- **`NewBandRep` is now named `BandRep`**, taking over the name of the removed type.
+- **`basisdim` no longer accepts a `BandRepSet`**; it takes a `Collection{<:BandRep}`, an
+  integer matrix, or a `Smith` factorization, and now lives alongside `indicator_group`.
+- **`wyckbasis`, `matching_littlegroups` and `matching_lgirreps` were removed** (unexported,
+  and unused), as were the deprecations `wyck(::BandRep)` and `matrix(::BandRepSet)`.
+- **The k-points of `bandreps` are sorted deterministically**, and hence so are those
   of the `SymmetryVector`s derived from them: by decreasing little group order, with ties
   broken alphabetically by k-label (Greek letters first; e.g., `[Γ, R, M, X]` for space
   group 221). Previously, the sorting followed the iteration order of the `Dict` returned by
   `lgirreps`, and so could change between Julia versions (as it did in Julia 1.13). Code
   that assumes a specific k-point sorting — e.g., by indexing into `irreps(brs)`, or via
   string comparisons against printed `SymmetryVector`s — may need updating.
-- **`SymmetryVector{D}` → `SymmetryVector{D, IR}`**, `NewBandRep{D}` →
-  `NewBandRep{D, IR, SIR}`, `CompositeBandRep{D}` → `CompositeBandRep{D, IR, SIR}` (`IR`:
+- **`SymmetryVector{D}` → `SymmetryVector{D, IR}`**, `BandRep{D}` →
+  `BandRep{D, IR, SIR}`, `CompositeBandRep{D}` → `CompositeBandRep{D, IR, SIR}` (`IR`:
   little group irrep type, `SIR`: site irrep type), and `AbstractSymmetryVector{D}` →
   `AbstractSymmetryVector{D, IR}`.
   - Signatures: `Vector{SymmetryVector{D}}` → `Vector{<:SymmetryVector{D}}` (and likewise
-    for `Collection{NewBandRep{D}}` etc.). Scalar `::SymmetryVector{D}` args are unaffected.
+    for `Collection{BandRep{D}}` etc.). Scalar `::SymmetryVector{D}` args are unaffected.
   - Struct fields: `::SymmetryVector{D}` is now abstract; make the struct parametric, or use
     `SymmetryVector{D, LGIrrep{D}}` for spinless-only code.
   - Construction: `SymmetryVector{D}(lgirsv, multsv, μ)` →
-    `SymmetryVector(lgirsv, multsv, μ)` (same for `NewBandRep`, `CompositeBandRep`).
+    `SymmetryVector(lgirsv, multsv, μ)` (same for `BandRep`, `CompositeBandRep`).
   - Serialized (JLD2) instances of these types do not load directly; convert them, e.g. by
     loading into a stand-in struct of the old layout and rebuilding.
-- **`NewBandRep` has no `spinful` field**: use `isspinful(br)`, and construct with
-  `NewBandRep(siteir, n, timereversal)`.
+- **`BandRep` has no `spinful` field**: use `isspinful(br)`, and construct with
+  `BandRep(siteir, n, timereversal)`.
 - **`CharacterTable{D}` → `CharacterTable{O}`**, and `ClassCharacterTable{D}` →
   `ClassCharacterTable{O}`, with `O` the operation type (e.g. `SymOperation{3}`).
   Construct with `CharacterTable(ops, irlabs, table[, tag])`.
@@ -40,8 +59,8 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - **Julia 1.12 is now the minimum supported version** (was 1.10). Bravais.jl, which is
   versioned separately, continues to support 1.10.
 - **Printing**: band representations and symmetry vectors print with a spin tag,
-  e.g. `SymmetryVector{3} (spinless)`, and the spin label in `BandRepSet` and
-  `Collection{NewBandRep}` summaries is `spinless`/`spinful` rather than `spin-1`/`spin-½`.
+  e.g. `SymmetryVector{3} (spinless)`, and the spin label in
+  `Collection{BandRep}` summaries is `spinless`/`spinful` rather than `spin-1`/`spin-½`.
   Character tables print as `CharacterTable for ⋕9 (4) (spinless):`, dropping the type
   parameter. Update string comparisons against printed output.
 
@@ -50,7 +69,7 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - Double groups: `SU2`, `DSymOperation`, `DSpaceGroup`, `DLittleGroup`, `DPointGroup`,
   `DSiteGroup`, `isbarred`.
 - A `spinful` keyword argument on `spacegroup`, `pointgroup`, `littlegroups`, `lgirreps`,
-  `pgirreps`, `sitegroups` and `calc_bandreps` selects the double group or its
+  `pgirreps`, `sitegroups` and `bandreps` selects the double group or its
   double-valued irreps. As for the dimension, `spinful = Val(true)` keeps the return type
   inferrable, while `spinful = true` is a convenience that does not.
 - Double-valued irreps: `DLGIrrep`, `DPGIrrep`, via `lgirreps(sgnum, Val(3);
@@ -58,7 +77,7 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   site symmetry irreps also have Mulliken labels (`mulliken=true`), as in Bilbao.
 - Double-valued site symmetry irreps: `DSiteIrrep`, via `siteirreps` of a double site
   symmetry group: `sitegroup(sg::DSpaceGroup, wp)`, `sitegroups(sgnum; spinful=Val(true))`.
-- Spinful band representations: `calc_bandreps(sgnum, Val(3); spinful=Val(true))`, induced
+- Spinful band representations: `bandreps(sgnum, Val(3); spinful=Val(true))`, induced
   from the double-valued site symmetry irreps.
 - `physical_realify` also accepts double-valued irreps. A real form does not generally
   exist for them, since time reversal squares to `-1`; instead, the returned matrices obey

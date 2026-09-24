@@ -50,14 +50,13 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 |------|----------|
 | `src/Crystalline.jl` | Module entry point, imports, `__init__` (opens JLD2 files), exports |
 | `src/types.jl` | All core types (see below) |
-| `src/types_symmetryvectors.jl` | `SymmetryVector`, `SymmetryVectors`, `NewBandRep`, `CompositeBandRep`, `@composite` |
+| `src/types_symmetryvectors.jl` | `SymmetryVector`, `SymmetryVectors`, `BandRep`, `CompositeBandRep`, `@composite` |
 | `src/symops.jl` | String↔matrix (`@S_str`, `xyzt2components`), `compose`, `littlegroup`, `orbit`, `reduce_ops`, `issubgroup`, `cosets` |
 | `src/littlegroup_irreps.jl` | `lgirreps`, `littlegroups` (load from JLD2); `(lgir::LGIrrep)(αβγ)` evaluator with phase factors; `israyrep` |
 | `src/pointgroup.jl` | `pgirreps`, `find_isomorphic_parent_pointgroup` |
 | `src/wyckoff.jl` | `wyckoffs`, `WyckoffPosition`, `SiteGroup`, `sitegroups`, `siteirreps`, `findmaximal` |
-| `src/bandrep.jl` | `bandreps`, `basisdim` (load EBRs from CSV data) |
-| `src/calc_bandreps.jl` | `calc_bandreps` (compute EBRs from site irreps; Cano et al. PRB 97, 035139 (2018)) |
-| `src/tqc_analysis.jl` | `calc_topology`, `iscompatible`, `symmetry_indicators`, `TopologyKind` (TRIVIAL/NONTRIVIAL/FRAGILE) |
+| `src/bandreps.jl` | `bandreps` (compute EBRs from site irreps; Cano et al. PRB 97, 035139 (2018)) |
+| `src/tqc_analysis.jl` | `calc_topology`, `iscompatible`, `symmetry_indicators`, `indicator_group`, `basisdim`, `TopologyKind` (TRIVIAL/NONTRIVIAL/FRAGILE) |
 | `src/compatibility.jl` | `subduction_count`, `remap_to_kstar` |
 | `src/irreps_reality.jl` | `calc_reality`, `realify`, `realify!` (Herring criterion) |
 | `src/irreps_physical_reality.jl` | `physical_realify`, `timereversal_unitary` (canonical form of co-representations under time reversal) |
@@ -116,10 +115,8 @@ AbstractIrrep{D}           — the `D`-prefixed types below are the double-value
 Collection{T} <: AbstractVector{T}    — thin wrapper around Vector{T}; same group for all T
 CharacterTable{O} / ClassCharacterTable{O}  — characters vs operations/classes, over
                                               operations of type O
-BandRep <: AbstractVector{Int}        — a single EBR (Wyckoff + site-irrep label + irvec)
-BandRepSet <: AbstractVector{BandRep} — all EBRs for a space group
 SymmetryVector{D,IR} <: AbstractSymmetryVector{D,IR} <: AbstractVector{Int}
-NewBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
+BandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
 CompositeBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
                            — IR: little group irrep type; SIR: site symmetry irrep type
 ```
@@ -146,7 +143,8 @@ data/
     lgs/{1,2,3}d/irreps_data.jld2         — LGIrrep matrices, translations, realities
     lgs/{1,2,3}d/littlegroups_data.jld2   — LittleGroup operations and k-vectors
     pgs/3d/irreps_data.jld2               — PGIrrep data
-  bandreps/                               — EBR CSV tables (Bilbao)
+  bandreps/                               — Bilbao's tabulated EBRs, as CSV; a lazy
+                                            artifact, used only to validate `bandreps`
   wyckpos/                                — Wyckoff position data
   operations/                             — symmetry operation tables
   spacegroup_subgroups_data.jld2          — maximal subgroup / minimal supergroup graphs
@@ -208,7 +206,7 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 | `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction; `physical_realify` and its time-reversal convention |
 | `lgirreps_vs_pgirreps_at_Gamma.jl` | LGIrreps at Γ must match PGIrreps |
 | `compatibility.jl` | Compatibility relations between k-points |
-| `bandrep.jl`, `calc_bandreps.jl`, `classification.jl` | EBRs and topological classification |
+| `bandreps.jl`, `bilbao_bandrep_tables.jl`, `classification.jl` | EBRs (computed, and vs. Bilbao's tables) and topological classification |
 | `wyckoff.jl`, `isomorphic_parent_pointgroup.jl` | Wyckoff positions, site groups, isomorphic point groups |
 | `primitivize_irreps.jl` | Irrep transformation to primitive basis |
 | `grouprelations.jl` | Sub-/supergroup data integrity |

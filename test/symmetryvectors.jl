@@ -2,7 +2,7 @@ using Test
 using Crystalline
 
 @testset "(Abstract)SymmetryVectors" begin
-    brs = calc_bandreps(221) # ::Collection{NewBandRep{3}}
+    brs = bandreps(221) # ::Collection{BandRep{3}}
 
     # addition of symmetry vectors
     @test brs[1] + brs[2] == SymmetryVector(brs[1]) + SymmetryVector(brs[2])
@@ -26,7 +26,7 @@ end # @testset "(Abstract)SymmetryVectors"
 
 @testset "CompositeBandRep & @composite" begin
     # basic example with `@composite`: agree with `SymmetryVector`
-    brs = calc_bandreps(2, Val(3))
+    brs = bandreps(2, Val(3))
 
     cbr = @composite brs[1] - brs[2] + 2brs[5] - brs[3]*7 - brs[4]*(-8)
     n = brs[1] - brs[2] + 2brs[5] - brs[3]*7 - brs[4]*(-8)

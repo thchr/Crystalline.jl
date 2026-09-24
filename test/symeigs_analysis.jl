@@ -10,7 +10,7 @@ using Test
     ]
 
     D, sgnum = 2, 10 # p4, with Z₂ indicator group
-    brs = primitivize(calc_bandreps(sgnum, Val(D)))
+    brs = primitivize(bandreps(sgnum, Val(D)))
     lgirsv = irreps(brs)
 
     ns_reference = parse.(SymmetryVector{2},

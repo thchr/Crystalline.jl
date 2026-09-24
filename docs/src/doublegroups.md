@@ -140,9 +140,9 @@ all(D -> Γ′ * conj(D) * Γ′' ≈ D, pir′(nothing))
 Any subsequent use of the irrep matrices alongside time reversal — e.g., in constructing symmetry-constrained tight-binding models — must adopt the same convention for $\Gamma$ (as returned by [`timereversal_unitary`](@ref)).
 
 ## Band representations
-[`calc_bandreps`](@ref) takes the same `spinful` keyword argument, and returns the band representations induced from the double-valued site symmetry irreps:
+[`bandreps`](@ref) takes the same `spinful` keyword argument, and returns the band representations induced from the double-valued site symmetry irreps:
 ```@example doublegroups
-calc_bandreps(183, Val(3); spinful=Val(true))
+bandreps(183, Val(3); spinful=Val(true))
 ```
 In the presence of time-reversal symmetry, every such band representation has even filling since Kramers' theorem pairs the states of a spinful system.
 

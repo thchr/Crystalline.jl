@@ -44,3 +44,5 @@ Base.@deprecate_binding( # cannot use plain `@deprecate` for types
 @deprecate nontrivial_factors indicator_group
 
 @deprecate symeigs_analysis collect_compatible
+
+@deprecate calc_bandreps bandreps
