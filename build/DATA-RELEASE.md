@@ -14,14 +14,12 @@ Material that is not ours to relicense belongs here too: the `dsg_crawl` pages a
 redistributed unmodified under the Bilbao Crystallographic Server's CC BY-NC-SA 4.0 terms,
 rather than sitting inside an MIT-licensed repository (see `LICENSE.md`).
 
-The current release is [`data-v0.0.4`](https://github.com/thchr/Crystalline.jl/releases/tag/data-v0.0.4).
-
 | artifact | contents | used by |
 |---|---|---|
 | `isotropy` | ISOTROPY's `CIR_data.txt`, `PIR_data.txt` (55 MB → 1.8 MB) | `build/write_littlegroup_irreps.jl`, `test/parsed_vs_loaded_littlegroup_irreps.jl` |
 | `bilbao_spinless_irreps` | Bilbao's single-valued little group irreps (16 MB → 1.8 MB) | `test/bilbao_vs_isotropy.jl` |
 | `dsg_crawl` | the captured Bilbao pages the double-valued irreps are parsed from, and the crawler that fetched them (461 MB → 3.9 MB) | `build/parse_dsg_irreps.jl` and the `write_dsg_*.jl` scripts |
-| `bandreps` | Bilbao's tabulated elementary band representations, as CSV, for 1D, 2D and 3D (6.5 MB → 0.33 MB) | `test/bandreps.jl`, via `test/bilbao_bandreps.jl` |
+| `bandreps` | Bilbao's tabulated elementary band representations, as CSV, for 1D, 2D and 3D (6.5 MB → 0.33 MB) | `test/bandreps.jl`, via `test/bilbao_bandreps_implementation.jl` |
 
 Every artifact is `lazy`: nothing is downloaded when Crystalline is installed, only on first
 use, and the result is cached in the depot (`~/.julia/artifacts`) under its tree hash. An
@@ -33,7 +31,8 @@ already its own namespace, so rebuilding the `data/` directories a file happens 
 would only add structure that nothing reads. A data set whose files do need a hierarchy of
 their own declares it by giving `source => path-in-artifact` pairs in `DATASETS`, or by
 naming directories, which are copied whole: `bandreps` does the latter, since its loader
-addresses tables by dimension, time-reversal and path set (`3d/elementaryTR/maxpaths/42.csv`).
+addresses tables by dimension, time-reversal and path set
+(`<D>d/elementary[TR]/<max|all>paths/<sgnum>.csv`).
 
 ## Amending a data set
 
@@ -68,7 +67,8 @@ Tarballs land in `build/data-release/` (gitignored). The two hashes are of diffe
 and both are needed: `git-tree-sha1` is the git hash of the *unpacked tree*, which Pkg
 verifies after unpacking, and `sha256` is of the *tarball bytes*, verified on download.
 
-**4. Upload, to a new tag.**
+**4. Upload, to a new tag** — one past the tag that the URLs in `Artifacts.toml` name,
+which is always the tag currently in use.
 
 ```bash
 gh release create data-vX.Y.Z --title "..." --notes "..."

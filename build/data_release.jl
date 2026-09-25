@@ -4,9 +4,8 @@
 #
 #   julia --project=build build/data_release.jl <tag> [<name>...]
 #
-# e.g. `julia --project=build build/data_release.jl data-v0.0.5 isotropy`, naming the tag
-# being published. With no data set names,
-# every data set is packaged.
+# e.g. `julia --project=build build/data_release.jl data-vX.Y.Z isotropy`, naming the tag
+# being published. With no data set names, every data set is packaged.
 
 using Tar, SHA
 using Pkg.Artifacts: ensure_artifact_installed

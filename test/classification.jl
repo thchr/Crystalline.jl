@@ -2,9 +2,9 @@ using Crystalline, Test
 
 # Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
 if !isdefined(@__MODULE__, :BilbaoBandReps)
-    include("bilbao_bandreps.jl")
+    include("bilbao_bandreps_implementation.jl")
 end
-using .BilbaoBandReps
+using .BilbaoBandReps: bilbao_bandreps
 
 @testset "Band representations" begin
 allpaths = false

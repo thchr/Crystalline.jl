@@ -17,8 +17,7 @@
 # "Artifacts.toml"))` instead. From `src/` the macro works normally.
 
 # The elementary band representations tabulated by Bilbao's BANDREP program, against which
-# the band representations computed by `bandreps` are checked (`test/bandreps.jl`); crawled
-# by `build/crawl_and_write_bandreps.jl`
+# the band representations computed by `bandreps` are checked (`test/bandreps.jl`)
 [bandreps]
 git-tree-sha1 = "21f57d626ea312aabb49b1414263088d2c6757bd"
 lazy = true

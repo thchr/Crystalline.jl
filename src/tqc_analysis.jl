@@ -75,19 +75,17 @@ function calc_topology(
         _throw_incompatible_or_negative(n)
     end
     
-    S⁻¹, Λ = F.Sinv, F.SNF # Λ = [λ₁, …, λ_{dᵇˢ}, 0, …, 0]
-    dᵇˢ = count(!iszero, Λ)
+    (; Λ, S̃⁻¹) = smith_column_bases(F) # Λ = [λ₁, …, λ_{dᵇˢ}], S̃⁻¹ = S⁻¹[1:dᵇˢ, :]
 
     # n is trivial if (S⁻¹n)ⱼ = 0 mod λⱼ for j = 1, …, dᵇˢ. This is equivalent to checking
     # whether there exists an integer coefficient expansion for `n` in the EBR basis that
     # `F` represents (i.e., whether `Nemo.cansolve(B, n) == true`) but faster.
-    # We do the matrix-vector product row-wise to check `mod(S⁻¹[1:dᵇˢ]*n)[i], Λ[i]) = 0`
-    # for `i ∈ 1:dᵇˢ` without allocating unnecessarily
-    is_trivial = all(1:dᵇˢ) do i
+    # We do the matrix-vector product row-wise to check `mod((S̃⁻¹*n)[i], Λ[i]) = 0` for
+    # `i ∈ 1:dᵇˢ` without allocating unnecessarily
+    is_trivial = all(eachindex(Λ)) do i
         Λᵢ = Λ[i]
         Λᵢ == 1 && return true # fast path: `mod(x, 1) = 0` for all integer `x`.
-        S⁻¹ᵢ = @view S⁻¹[i,:]
-        mod(dot(S⁻¹ᵢ, n), Λᵢ) == 0
+        mod(dot(@view(S̃⁻¹[i,:]), n), Λᵢ) == 0
     end
     return is_trivial ? TRIVIAL : NONTRIVIAL
 end
@@ -224,15 +222,15 @@ function indicator_group(B::AbstractMatrix{<:Integer})
     F = smith(B, inverse=false)
     return indicator_group(F)
 end
-function indicator_group(brs::Collection{<:BandRep})
+function indicator_group(brs::AbstractVector{<:AbstractVector{<:Integer}})
     return indicator_group(stack(brs))
 end
 is_not_one_or_zero(x) = !(isone(x) || iszero(x))
 
 """
-    basisdim(brs::Collection{<:BandRep})  --> Int
-    basisdim(B::AbstractMatrix{<:Integer})   --> Int
-    basisdim(F::Smith)                       --> Int
+    basisdim(brs::Collection{<:BandRep})   --> Int
+    basisdim(B::AbstractMatrix{<:Integer}) --> Int
+    basisdim(F::Smith)                     --> Int
 
 Return the dimension of the (linearly independent parts) of a band representation basis.
 This is ``d^{\\text{bs}} = d^{\\text{ai}}`` in the notation of [Po, Watanabe, & Vishwanath,
@@ -243,7 +241,60 @@ a band structure viewed as symmetry data.
 """ 
 basisdim(F::Smith) = count(!iszero, F.SNF) # nonzeros of the Smith normal diagonal matrix
 basisdim(B::AbstractMatrix{<:Integer}) = basisdim(smith(B, inverse=false))
-basisdim(brs::Collection{<:BandRep}) = basisdim(stack(brs))
+basisdim(brs::AbstractVector{<:AbstractVector{<:Integer}}) = basisdim(stack(brs))
+
+"""
+    smith_column_bases(brs::Collection{<:BandRep})   --> @NamedTuple{S̃, Λ, S̃⁻¹}
+    smith_column_bases(B::AbstractMatrix{<:Integer}) --> @NamedTuple{S̃, Λ, S̃⁻¹}
+    smith_column_bases(F::Smith)                     --> @NamedTuple{S̃, Λ, S̃⁻¹}
+
+Return the parts of the Smith normal decomposition of a set of band representations `brs`
+(or of its matrix `B`, or of a `Smith` decomposition `F` thereof) that pertain to the column
+space of the band representation matrix, i.e. the parts associated with the ``d^{\\text{bs}}
+= `` [`basisdim`](@ref)`(brs)` nonzero elementary factors of ``\\boldsymbol{\\Lambda}``:
+
+- `S̃`: the first ``d^{\\text{bs}}`` **columns** of ``\\mathbf{S}``; an integer-coefficient
+  basis for all gapped band structures {BS}.
+- `Λ`: the first ``d^{\\text{bs}}`` elements of ``\\boldsymbol{\\Lambda}``, i.e. its nonzero
+  elementary factors ``\\lambda_1, \\ldots, \\lambda_{d^{\\text{bs}}}``.
+- `S̃⁻¹`: the first ``d^{\\text{bs}}`` **rows** of ``\\mathbf{S}^{-1}``; these take a
+  symmetry vector `n` to its coefficients in `S̃`, i.e. `S̃⁻¹*n`.
+
+Note that `S̃⁻¹` is a slice of ``\\mathbf{S}^{-1}``, *not* the inverse of the (generally
+nonsquare) `S̃`; the two nevertheless satisfy `S̃⁻¹*S̃ == I`. All three returned quantities
+are views into `F`, so nothing is allocated.
+
+A basis for the atomic insulators {AI} — the bands induced by localized orbitals at the
+Wyckoff positions — is `S̃*Diagonal(Λ)`. A symmetry vector that can be expanded on that
+basis with positive integer coefficients is a trivial insulator (i.e., deformable to an
+atomic limit); one that cannot is topological, either fragilely (some negative coefficients)
+or strongly (fractional coefficients). [`calc_topology`](@ref) distinguishes the strong case
+from `Λ` and `S̃⁻¹` alone.
+
+## Implementation
+
+For an n×m integer matrix ``\\mathbf{B}``, the Smith normal form gives integer matrices
+``\\mathbf{S}``, ``\\mathrm{diagm}(\\boldsymbol{\\Lambda})`` and ``\\mathbf{T}`` (of size
+n×n, n×m and m×m, respectively) with ``\\mathbf{B} =
+\\mathbf{S}\\mathrm{diagm}(\\boldsymbol{\\Lambda})\\mathbf{T}``, where
+``\\boldsymbol{\\Lambda} = [\\lambda_1, \\ldots, \\lambda_r, 0, \\ldots, 0]`` with
+``\\lambda_{j+1}`` divisible by ``\\lambda_j`` and ``r = d^{\\text{bs}} \\leq \\min(n,m)``;
+``\\mathbf{S}`` and ``\\mathbf{T}`` have integer-valued inverses.
+
+Applying `S̃⁻¹` to integer symmetry data ``\\mathbf{n}`` gives the integer factors
+``q_i C_i`` (``C_i = \\lambda_i`` here) of [Tang, Po, Vishwanath, & Wan, Nature Physics
+**15**, 470 (2019)](https://doi.org/10.1038/s41567-019-0418-7).
+"""
+function smith_column_bases(F::Smith)
+    nzidxs = OneTo(basisdim(F))
+    return (; S̃   = @view(F.S[:, nzidxs]),     # relevant columns of S only
+              Λ   = @view(F.SNF[nzidxs]),      # nonzero elementary factors only
+              S̃⁻¹ = @view(F.Sinv[nzidxs, :]))  # relevant rows of S⁻¹ only
+end
+smith_column_bases(B::AbstractMatrix{<:Integer}) = smith_column_bases(smith(B))
+function smith_column_bases(brs::AbstractVector{<:AbstractVector{<:Integer}})
+    return smith_column_bases(stack(brs))
+end
 
 
 @doc """
@@ -273,7 +324,8 @@ function indicator_group_as_string(nontriv_Λ::AbstractVector{<:Integer})
     return String(take!(io))
 end
 function indicator_group_as_string(
-    brs::Union{Collection{<:BandRep}, AbstractMatrix{<:Integer}, Smith}
+    brs::Union{AbstractVector{<:AbstractVector{<:Integer}},
+               AbstractMatrix{<:Integer}, Smith}
 )
     return indicator_group_as_string(indicator_group(brs))
 end
@@ -342,9 +394,7 @@ function iscompatible(
     allow_negative || all(≥(0), n) || return false # check non-negativity
 
     # check compatibility relations
-    dᵇˢ = count(!iszero, F.SNF)
-    S̃   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
-    S̃⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
+    (; S̃, S̃⁻¹) = smith_column_bases(F)
     return S̃*(S̃⁻¹*n) == n
 end
 function iscompatible(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}; kws...)

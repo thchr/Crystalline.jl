@@ -4,12 +4,9 @@ using Crystalline: constant
 
 # Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
 if !isdefined(@__MODULE__, :BilbaoBandReps)
-    include("bilbao_bandreps.jl")
+    include("bilbao_bandreps_implementation.jl")
 end
-using .BilbaoBandReps
-
-_bandreps_int_dim(sgnum::Int, D::Int, spinful::Val) =
-            bandreps(sgnum, D; spinful) # dimension not a compile-time constant
+using .BilbaoBandReps: BilbaoBandRep, BilbaoBandRepSet, bilbao_bandreps
 
 @testset "bandreps" begin
 
@@ -159,8 +156,7 @@ end
             @test sort!(dim.(brs²ᴰ)) == sort!(dim.(brs³ᴰ))
 
             # topological classification
-            @test indicator_group_as_string(stack(brs²ᴰ)) ==
-                  indicator_group_as_string(stack(brs³ᴰ))
+            @test indicator_group_as_string(brs²ᴰ) == indicator_group_as_string(brs³ᴰ)
         end
     end
 end
@@ -239,13 +235,19 @@ end
 end
 
 @testset "Inferred irrep types" begin
-    # a `Val` dimension infers concretely; a plain `Integer` dimension cannot, but `spinful`
-    # must still fix the irrep types on its own (it is only kept across an unknown dimension
-    # because `Crystalline._bandrep_type` picks them by dispatch rather than by a value)
+    # with a `Val` dimension, the irrep type parameters of the returned `BandRep`s are fixed
+    # at compile time, and the return type is fully concrete. With a plain `Integer`
+    # dimension it cannot be: the dimension is only known at run time. But `spinful` is a
+    # `Val` either way, and `Crystalline._bandrep_type` picks single- vs. double-valued
+    # irreps by dispatching on it, so inference must still separate the two cases even then.
+    # The helper below simply denies inference a literal dimension, which it would otherwise
+    # constant-propagate.
+    bandreps_int_dim(sgnum::Int, D::Int, spinful::Val) = bandreps(sgnum, D; spinful)
+
     @test @inferred(bandreps(2, Val(3))) isa
                 Collection{BandRep{3, LGIrrep{3}, SiteIrrep{3}}}
-    T  = only(Base.return_types(_bandreps_int_dim, (Int, Int, Val{false})))
-    Tᵈ = only(Base.return_types(_bandreps_int_dim, (Int, Int, Val{true})))
+    T  = only(Base.return_types(bandreps_int_dim, (Int, Int, Val{false})))
+    Tᵈ = only(Base.return_types(bandreps_int_dim, (Int, Int, Val{true})))
     @test T  <: Collection{<:BandRep{<:Any, <:LGIrrep,  <:SiteIrrep}}
     @test Tᵈ <: Collection{<:BandRep{<:Any, <:DLGIrrep, <:DSiteIrrep}}
 end

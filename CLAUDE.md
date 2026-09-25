@@ -206,7 +206,7 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 | `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction; `physical_realify` and its time-reversal convention |
 | `lgirreps_vs_pgirreps_at_Gamma.jl` | LGIrreps at Γ must match PGIrreps |
 | `compatibility.jl` | Compatibility relations between k-points |
-| `bandreps.jl`, `bilbao_bandrep_tables.jl`, `classification.jl` | EBRs (computed, and vs. Bilbao's tables) and topological classification |
+| `bandreps.jl`, `bilbao_bandreps.jl`, `classification.jl` | EBRs (computed, and vs. Bilbao's tables) and topological classification |
 | `wyckoff.jl`, `isomorphic_parent_pointgroup.jl` | Wyckoff positions, site groups, isomorphic point groups |
 | `primitivize_irreps.jl` | Irrep transformation to primitive basis |
 | `grouprelations.jl` | Sub-/supergroup data integrity |

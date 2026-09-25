@@ -6,33 +6,34 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 
 ### Breaking changes, and how to update
 
-- **`bandreps` now returns the band representations that Crystalline computes itself**,
-  i.e. what `calc_bandreps` previously returned (`calc_bandreps` is deprecated to it). It
-  no longer returns the Bilbao Crystallographic Server's tabulated EBRs: the `BandRep` and
-  `BandRepSet` types that represented those, and the machinery that parsed them, are no
-  longer part of the package, and the `data/bandreps/` tables they read are now a lazy
-  artifact used only to validate `bandreps` in Crystalline's own test suite.
-  This is the one change here that does **not** announce itself: a call to
-  `bandreps(sgnum, D; ...)` still works, but returns a `Collection{<:BandRep}` in place of a
-  `BandRepSet`, over a possibly larger set of band representations (`bandreps` may return
-  non-elementary "exceptional" band representations, so its result is a superset of
-  Bilbao's; this makes no difference for band connectivity or topology analysis). Code that
-  merely consumes the result as a vector of symmetry vectors is unaffected; code that
-  reaches for `BandRepSet` fields, or that depends on the set being strictly elementary,
-  needs review.
-- **`NewBandRep` is now named `BandRep`**, taking over the name of the removed type.
-- **`basisdim` no longer accepts a `BandRepSet`**; it takes a `Collection{<:BandRep}`, an
-  integer matrix, or a `Smith` factorization, and now lives alongside `indicator_group`.
-- **`wyckbasis`, `matching_littlegroups` and `matching_lgirreps` were removed** (unexported,
-  and unused), as were the deprecations `wyck(::BandRep)` and `matrix(::BandRepSet)`.
-- **Long-standing deprecations were removed**, as befits a breaking release: `kvec`, `wyck`
-  and `kstar` (use `position`, `parent` and `orbit`), `WyckPos` (use `WyckoffPosition`),
-  `get_littlegroups`, `get_lgirreps`, `get_pgirreps` and `get_wycks` (use `littlegroups`,
-  `lgirreps`, `pgirreps` and `wyckoffs`), `CharacterTable(::AbstractVector{<:AbstractIrrep})`
-  (use `characters`), the `SiteGroup(::SpaceGroup, ::WyckoffPosition)` constructors (use
-  `sitegroup`), and `IrrepCollection` (use `Collection{<:AbstractIrrep}`). All date from
-  2021–2024. The more recent deprecations — `classification`, `nontrivial_factors` and
-  `symeigs_analysis` — are kept.
+- **`bandreps` now returns the band representations that Crystalline computes itself** —
+  what `calc_bandreps` returned (`calc_bandreps` is deprecated to it) — rather than the
+  Bilbao Crystallographic Server's tabulated EBRs.
+  - This is the one change here that does **not** announce itself: `bandreps(sgnum, D; …)`
+    still works, but returns a `Collection{<:BandRep}` in place of a `BandRepSet`.
+  - The returned set may be larger: `bandreps` can include non-elementary "exceptional"
+    band representations. This makes no difference for band connectivity or topology.
+  - Code that reaches for `BandRepSet` fields, or that relies on the set being strictly
+    elementary, needs review.
+- **The `BandRep` and `BandRepSet` types that held Bilbao's tables were removed**, together
+  with their parser; `NewBandRep` takes over the name `BandRep`. The `data/bandreps/` tables
+  are now a lazy artifact, used only to validate `bandreps` in Crystalline's test suite.
+- **`basisdim` no longer accepts a `BandRepSet`**; it takes a collection of band
+  representations, an integer matrix, or a `Smith` factorization, and now lives alongside
+  `indicator_group`.
+- **`matching_littlegroups` and `matching_lgirreps` were removed** (unexported and unused),
+  as were the deprecations `wyck(::BandRep)` and `matrix(::BandRepSet)`. `wyckbasis` is
+  superseded by `Crystalline.smith_column_bases` (private API).
+- **Long-standing deprecations (2021–2024) were removed**:
+  - `kvec`, `wyck`, `kstar` → `position`, `parent`, `orbit`
+  - `WyckPos` → `WyckoffPosition`
+  - `get_littlegroups`, `get_lgirreps`, `get_pgirreps`, `get_wycks` → `littlegroups`,
+    `lgirreps`, `pgirreps`, `wyckoffs`
+  - `CharacterTable(::AbstractVector{<:AbstractIrrep})` → `characters`
+  - `SiteGroup(::SpaceGroup, ::WyckoffPosition)` → `sitegroup`
+  - `IrrepCollection` → `Collection{<:AbstractIrrep}`
+
+  The more recent `classification`, `nontrivial_factors` and `symeigs_analysis` are kept.
 - **The k-points of `bandreps` are sorted deterministically**, and hence so are those
   of the `SymmetryVector`s derived from them: by decreasing little group order, with ties
   broken alphabetically by k-label (Greek letters first; e.g., `[Γ, R, M, X]` for space
