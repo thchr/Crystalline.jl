@@ -28,9 +28,9 @@ function crawl_pg_generators_html(pgnum::Integer, D::Integer=3,
                                   include_pgiuc::Union{Nothing, String}=nothing)
     baseurl = begin
         if D == 3
-            "https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-point_genpos?w2do=gens&num="
+            "https://cryst.ehu.es/cgi-bin/cryst/programs/nph-point_genpos?w2do=gens&num="
         elseif D == 2
-            "https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-point_plane-genpos?w2do=gens&num="
+            "https://cryst.ehu.es/cgi-bin/plane/programs/nph-point_plane-genpos?w2do=gens&num="
             include_pgiuc === nothing || error(DomainError(setting, "setting requests cannot be made separately in 2D"))
         else
             error(DomainError(D, "only 2D and 3D point group generators are crawlable"))

@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'    # lts release
+          - '1.12'    # minimum supported release
           - '1'       # latest release
           # - 'nightly' # latest master
         os:

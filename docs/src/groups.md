@@ -46,3 +46,6 @@ generate(ops)
 
 ## Magnetic space groups
 Magnetic space groups are accessible via [`mspacegroup`](@ref).
+
+## Double groups
+The double group of a space, point, little, or site symmetry group is accessible via [`doublegroup`](@ref), or by passing `spinful = Val(true)` to the associated group constructor; see [Double groups & spinful irreps](doublegroups.md).

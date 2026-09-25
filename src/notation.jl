@@ -33,7 +33,9 @@ The notation is sometimes also known as the
         _throw_invalid_dim(D)
     end
 end
-@inline iuc(sg::Union{SpaceGroup{D},LittleGroup{D}}) where D = iuc(num(sg), D)
+@inline function iuc(sg::Union{AbstractSpaceGroup{D},AbstractLittleGroup{D}}) where D
+    return iuc(num(sg), D)
+end
 
 """ 
     centering(g::AbstractGroup) --> Char
@@ -42,7 +44,9 @@ Return the conventional centering type of a group.
 
 For groups without lattice structure (e.g., point groups), return `nothing`.
 """
-centering(sg_or_lg::Union{SpaceGroup{D},LittleGroup{D}}) where D = centering(num(sg_or_lg), D)
+function centering(sg_or_lg::Union{AbstractSpaceGroup{D},AbstractLittleGroup{D}}) where D
+    return centering(num(sg_or_lg), D)
+end
 
 # Schoenflies notation, ordered relative to space group number
 # [from https://bruceravel.github.io/demeter/artug/atoms/space.html]
@@ -106,7 +110,7 @@ const SG_IUCs = (
 ("p1", "p1m"),
 # ------------------------------------------------------------------------------------------
 # plane-group notation (two dimensions) [see e.g. Table 19 of Cracknell, Adv. Phys. 1974, or
-# https://www.cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
+# https://cryst.ehu.es/cgi-bin/plane/programs/nph-plane_getgen?from=getwp]
 # ------------------------------------------------------------------------------------------
 (
 # oblique
@@ -120,7 +124,7 @@ const SG_IUCs = (
 ),
 # ------------------------------------------------------------------------------------------
 # space-group notation (three dimensions) following the conventions of ITA and Bilbao:
-# https://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
+# https://cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen
 # ------------------------------------------------------------------------------------------
 (
 # triclinic
@@ -420,13 +424,13 @@ _throw_seitzerror(trW, detW) = throw(DomainError((trW, detW), "trW = $(trW) for 
 # -----------------------------------------------------------------------------------------
 # MULLIKEN NOTATION FOR POINT GROUP IRREPS
 
-const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
+const PGIRLABS_CDML2MULLIKEN_3D = Dict(
     # sorted in ascending order wrt. Γᵢ CDML sorting; i.e. as 
     #       Γ₁, Γ₂, ... 
     #   or  Γ₁⁺, Γ₁⁻, Γ₂⁺, Γ₂⁻, ...
     # the association between CDMl and Mulliken labels are obtained obtained from
-    # https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg
-    # note that e.g., https://www.cryst.ehu.es/rep/point.html cannot be used, because the 
+    # https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg
+    # note that e.g., https://cryst.ehu.es/rep/point.html cannot be used, because the 
     # Γ-labels there do not always refer to the CDML convention; more likely, the B&C 
     # convention. For "setting = 2" cases, we used the `bilbao_pgs_url(..)` from the 
     # point group irrep crawl script
@@ -486,7 +490,7 @@ const PGIRLABS_CDML2MULLIKEN_3D = ImmutableDict(
     "m-3m"  => ImmutableDict("Γ₁⁺"=>"A₁g", "Γ₁⁻"=>"A₁ᵤ", "Γ₂⁺"=>"A₂g", "Γ₂⁻"=>"A₂ᵤ", "Γ₃⁺"=>"Eg", "Γ₃⁻"=>"Eᵤ", "Γ₄⁺"=>"T₁g", "Γ₄⁻"=>"T₁ᵤ", "Γ₅⁺"=>"T₂g", "Γ₅⁻"=>"T₂ᵤ")
 )
 
-const PGIRLABS_CDML2MULLIKEN_3D_COREP = ImmutableDict(
+const PGIRLABS_CDML2MULLIKEN_3D_COREP = Dict(
     # Same as `PGIRLABS_CDML2MULLIKEN_3D` but with labels for physically real irreps 
     # (coreps); the label for real irreps are unchanged, but the labels for complex irreps
     # differ (e.g. ¹E and ²E becomes E). Point groups 1, -1, 2, m, 2/m, 222, mm2, mmm, 422,
@@ -534,19 +538,21 @@ Ignoring subscript, the rough rules associated with assignment of Mulliken label
 [^1]: Mulliken, Report on Notation for the Spectra of Polyatomic Molecules, 
       [J. Chem. Phys. *23*, 1997 (1955)](https://doi.org/10.1063/1.1740655).
 [^2]: Bilbao Crystallographic Database's
-      [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+      [Representations PG program](https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 """
-function mulliken(pgir::PGIrrep{D}) where D
+function mulliken(pgir::AbstractPGIrrep)
     pglab   = label(group(pgir))
     pgirlab = label(pgir)
     return _mulliken(pglab, pgirlab, iscorep(pgir))
 end
 function _mulliken(pglab, pgirlab, iscorep) # split up to let `SiteIrrep` overload `mulliken`
-    if iscorep
-        return PGIRLABS_CDML2MULLIKEN_3D_COREP[pglab][pgirlab]
+    if endswith(pgirlab, 'ˢ') # double-valued irrep (see `src/double/notation.jl`)
+        tbl = iscorep ? PGIRLABS_CDML2MULLIKEN_3D_SPINFUL_COREP :
+                        PGIRLABS_CDML2MULLIKEN_3D_SPINFUL
     else
-        return PGIRLABS_CDML2MULLIKEN_3D[pglab][pgirlab]
+        tbl = iscorep ? PGIRLABS_CDML2MULLIKEN_3D_COREP : PGIRLABS_CDML2MULLIKEN_3D
     end
+    return tbl[pglab][pgirlab]
 end
 
 #=

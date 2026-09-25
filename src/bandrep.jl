@@ -109,7 +109,7 @@ and dimension `D`.
 
 ## References
 3D EBRs are obtained from the Bilbao Crystallographic Server's 
-[BANDREP program](http://www.cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl);
+[BANDREP program](https://cryst.ehu.es/cgi-bin/cryst/programs/bandrep.pl);
 please reference the original research papers noted there if used in published work.
 """
 function bandreps(sgnum::Integer, D::Integer=3;

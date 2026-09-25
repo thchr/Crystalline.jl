@@ -31,7 +31,7 @@ function crawl_sgops_html(sgnum::Integer, D::Integer=3)
     D != 3 && error("only 3D space group operations are crawlable")
     (sgnum < 1 || sgnum > 230) && error(DomainError(sgnum))
 
-    baseurl = "http://www.cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
+    baseurl = "https://cryst.ehu.es/cgi-bin/cryst/programs/nph-getgen?what=text&gnum="
     contents = HTTP.request("GET", baseurl * string(sgnum))
     return parsehtml(String(contents.body))
 end

@@ -21,6 +21,7 @@ makedocs(
         "Symmetry operations"   => "operations.md",
         "Groups"                => "groups.md",
         "Irreps"                => "irreps.md",
+        "Double groups"         => "doublegroups.md",
         "Bravais types & bases" => "bravais.md",
         "Band representations"  => "bandreps.md",
         "Lattices"              => "lattices.md",

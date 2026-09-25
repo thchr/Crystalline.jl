@@ -1,6 +1,6 @@
 using Crystalline, HTTP, Gumbo, JLD2, ProgressMeter, StaticArrays
 
-const BILBAO_PG_URL_BASE = "https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl?tipogrupo=spg&pointspace=point&"
+const BILBAO_PG_URL_BASE = "https://cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl?tipogrupo=spg&pointspace=point&"
 
 function bilbao_pgs_specifier(parent_sgnum::Integer, pgnum::Integer, pgiuc::String)
     # in principle, it is sufficient to only supply the appropraite parent space group

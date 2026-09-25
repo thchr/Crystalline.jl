@@ -119,5 +119,5 @@ end
     end
     brs = bandreps(22; spinful=true)
     @test irreplabels(brs) == ["Γ₅ˢ", "T₅ˢ", "Y₅ˢ", "Z₅ˢ", "L₂ˢL₂ˢ"]
-    @test contains(sprint(show, MIME"text/plain"(), brs), "(spin-½ w/ TR)")
+    @test contains(sprint(show, MIME"text/plain"(), brs), "(spinful w/ TR)")
 end

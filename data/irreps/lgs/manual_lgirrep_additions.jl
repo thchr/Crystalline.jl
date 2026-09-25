@@ -42,7 +42,7 @@
 using Crystalline
 
 # manually converting
-#    https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl
+#    https://cryst.ehu.es/cgi-bin/cryst/programs/representations_out.pl
 # to our own data format for the missing k-points listed in 
 #   src/special_representation_domain_kpoints.jl
 

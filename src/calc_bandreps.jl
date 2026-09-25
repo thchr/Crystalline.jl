@@ -6,7 +6,7 @@ using LinearAlgebra: dot, \
 # ---------------------------------------------------------------------------------------- #
 
 """
-    reduce_orbits_and_cosets(siteg::SiteGroup{D}))
+    reduce_orbits_and_cosets(siteg::AbstractSiteGroup{D})
 
 For an input site group, provided in conventional coordinates, reduce its cosets such
 that the resulting orbit only contains Wyckoff positions that are not equivalent when
@@ -23,8 +23,8 @@ The reduced site group is returned in a conventional basis, along with the reduc
 also in a conventional basis.
 """
 function reduce_orbits_and_cosets(
-        siteg::SiteGroup{D}
-    ) where D
+    siteg::AbstractSiteGroup{D}
+) where D
 
     orbits = parent.(orbit(siteg))
     gαs    = copy(cosets(siteg))
@@ -53,9 +53,13 @@ function reduce_orbits_and_cosets(
             # we also need to update the coset operation, cf. the additional translation
             # of `wp′_r` relative to `wp′`
             Δ′ = constant(wp′_r) - constant(wp′)
-            g′ = primitivize(gαs[i], cntr, #=modw=# false) # original coset operation (primitive basis)
-            g′_r = SymOperation(g′.rotation, g′.translation + Δ′) # "reduced" coset operation (primitive basis)
-            g_r = conventionalize(g′_r, cntr, #=modw=# false) # "reduced" coset operation (conventional basis)
+            g′ = primitivize(gαs[i], cntr, #=modw=# false)     # original coset operation (primitive basis)
+            g′_r = compose(typeof(g′)(Δ′), g′, #=modτ=# false) # "reduced" coset operation (primitive basis)
+            # NB: ↑ For `g′ = (W′|w′|U′)` (`U′` absent in spinless case), this simply gives
+            #     `g′_r = (W′|w′+Δ′|U′)`; i.e. `g′` translated by `Δ′`; `compose` is used
+            #     only because it lets us pass on `U′` in the spinful case (`DSymOperation`)
+            #     without passing anything in the spinless case (`SymOperation`)
+            g_r = conventionalize(g′_r, cntr, #=modw=# false)  # "reduced" coset operation (conventional basis)
             gαs[i] = g_r
         end
         i += 1 # process next element
@@ -90,39 +94,37 @@ function reduce_orbits_and_cosets(
         # (4) combine: s*g⁻¹*wp_r = g⁻¹*wp_r ⇔ (g*s*g⁻¹)*wp_r = wp_r ⇒ s_r = g*s*g⁻¹
         ops_r = compose.(compose.(Ref(g), operations(siteg), false), Ref(g⁻¹), false)
         wp_r = WyckoffPosition{D}(siteg.wp.mult, siteg.wp.letter, wp_r)
-        siteg_r = SiteGroup{D}(num(siteg), wp_r, ops_r, gαs)
+        siteg_r = typeof(siteg)(num(siteg), wp_r, ops_r, gαs)
     else
-        siteg_r = SiteGroup{D}(num(siteg), position(siteg), operations(siteg), gαs)
+        siteg_r = typeof(siteg)(num(siteg), position(siteg), operations(siteg), gαs)
     end
 
     return siteg_r, orbits
 end
 
-function reduce_orbits_and_cosets(siteir::SiteIrrep{D}) where D
+function reduce_orbits_and_cosets(siteir::AbstractSiteIrrep)
     siteg_r, _ = reduce_orbits_and_cosets(group(siteir))
-    siteir_r = SiteIrrep{D}(siteir.cdml, siteg_r, siteir.matrices, siteir.reality,
-                           siteir.iscorep, siteir.pglabel)
-    return siteir_r
+    return _rebuild_irrep_with_modified_group(siteir, siteg_r)
 end
 
 # ---------------------------------------------------------------------------------------- #
 # Bandrep related functions: induction/subduction
 
 """
-    induce_bandrep(siteir::SiteIrrep, h::SymOperation, kv::KVec)
+    induce_bandrep(siteir::AbstractSiteIrrep, h::AbstractOperation, kv::KVec)
 
-Return the band representation induced by the provided `SiteIrrep` evaluated at `kv` and for
-a `SymOperation` `h`.
+Return the band representation induced by the provided site symmetry irrep evaluated at `kv`
+and for an operation `h` (a `DSymOperation` for a double-valued `DSiteIrrep`).
 
 It is assumed that `group(siteir)` is not centering-reduced: i.e., a centering-reduction
 attempt is always made; if the group cosets are already reduced in the sense of
 [`reduce_orbits_and_cosets`](@ref), this makes no difference.
 """
 function induce_bandrep(
-    siteir::SiteIrrep{D},
-    h::SymOperation{D},
+    siteir::AbstractSiteIrrep{D},
+    h::AbstractOperation{D},
     kv::KVec{D},
-    ) where D   
+) where D
     
     siteg, orbits = reduce_orbits_and_cosets(group(siteir))
     return _induce_bandrep(characters(siteir), h, kv, siteg, orbits) # FIXME: `orbits` isa not right type
@@ -130,9 +132,9 @@ end
 
 function _induce_bandrep(
         χs::Vector{ComplexF64},  # characters of site irrep
-        h::SymOperation{D},
+        h::AbstractOperation{D},
         kv::KVec{D},
-        siteg::SiteGroup{D},     # (centering-reduced) site group
+        siteg::AbstractSiteGroup{D},               # (centering-reduced) site group
         orbits::Vector{RVec{D}}, # (centering-reduced) orbit of `siteg``
     ) where D
     kv′ = constant(h*kv) # <-- TODO: Why only constant part?
@@ -142,7 +144,7 @@ function _induce_bandrep(
     for (wpα′, gα′) in zip(orbits, gαs)
         wpα′ = parent(wpα′)
         tα′α′ = constant(h*wpα′ - wpα′) # TODO: <-- explain why we only need constant part here?
-        opᵗ   = SymOperation(-tα′α′)
+        opᵗ   = typeof(h)(-tα′α′)
 
         gα′⁻¹     = inv(gα′)
         gα′⁻¹ggα′ = compose(gα′⁻¹, compose(opᵗ, compose(h, gα′, false), false ), false)
@@ -163,8 +165,8 @@ end
 
 function subduce_onto_lgirreps(
         siteir_χs::AbstractVector{<:Number},
-        siteg::SiteGroup{D},
-        lgirs::AbstractVector{LGIrrep{D}}
+        siteg::AbstractSiteGroup{D},
+        lgirs::AbstractVector{<:AbstractLGIrrep{D}}
     ) where D
     lg = group(first(lgirs))
     kv = position(lg)
@@ -183,7 +185,7 @@ function subduce_onto_lgirreps(
     return m′
 end
 function subduce_onto_lgirreps(
-    siteir::SiteIrrep{D}, lgirs::AbstractVector{LGIrrep{D}}
+    siteir::AbstractSiteIrrep{D}, lgirs::AbstractVector{<:AbstractLGIrrep{D}}
 ) where D
     return subduce_onto_lgirreps(characters(siteir), group(siteir), lgirs)
 end
@@ -191,8 +193,8 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 function calc_bandrep(
-        siteir :: SiteIrrep{D}, 
-        lgirsv :: AbstractVector{<:AbstractVector{LGIrrep{D}}},
+        siteir :: AbstractSiteIrrep{D},
+        lgirsv :: AbstractVector{<:AbstractVector{<:AbstractLGIrrep{D}}},
         timereversal :: Bool
     ) where D
 
@@ -207,17 +209,15 @@ function calc_bandrep(
         m * irdim(lgir)
     end
     n = SymmetryVector(lgirsv, multsv, occupation)
-    
-    spinful = false # NB: default; Crystalline currently doesn't have spinful irreps
 
-    return NewBandRep(siteir, n, timereversal, spinful)
+    return NewBandRep(siteir, n, timereversal)
 end
 function calc_bandrep(
-        siteir :: SiteIrrep{D}; 
+        siteir :: AbstractSiteIrrep{D};
         timereversal :: Bool=true, 
         allpaths :: Bool=false
     ) where D
-    lgirsd = lgirreps(num(siteir), Val(D))
+    lgirsd = lgirreps(num(siteir), Val(D); spinful=Val(isspinful(siteir)))
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
     lgirsv = _collect_lgirsd_sorted(lgirsd)
@@ -229,6 +229,7 @@ end
     calc_bandreps(
         sgnum::Integer,
         ::Val{D}=Val(3);
+        spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
         timereversal::Bool=true,
         allpaths::Bool=false,
         explicitly_real::Bool=timereversal
@@ -242,6 +243,12 @@ end
 
 Compute the band representations of space group `sgnum` in dimension `D`.
 
+If `spinful` is `Val(true)` (or `true`), the spinful band representations are computed
+instead, induced from the double-valued site symmetry irreps (see [`siteirreps`](@ref)) and
+subduced onto the double-valued little group irreps (currently available in 3D only). As
+for `D`, the `Val` spelling keeps the return type inferrable and the `Bool` spelling does
+not.
+
 ## Keyword arguments
 - `timereversal` (default, `true`): whether the irreps used to induce the band
   representations are assumed to be time-reversal invariant (i.e., are coreps, see 
@@ -252,8 +259,10 @@ Compute the band representations of space group `sgnum` in dimension `D`.
   just to high-symmetry points.
 - `explicitly_real` (default, `timereversal`): whether, if `timereversal = true`, to
   ensure that the site symmetry irreps accompanying the band representations are chosen
-  to be explicitly real (or "physically" real; see [`physical_realify`](@ref)). This
-  is helpful for subsequent analysis of the action of time-reversal symmetry.
+  in the canonical form associated with time reversal (see [`physical_realify`](@ref)),
+  i.e., explicitly real for spinless irreps and `J*conj(D)*J' = D` for spinful
+  ones. This can be helpful for subsequent analysis involving the action of time-reversal
+  symmetry.
 - `include_nonmaximal` (default, `false`): whether to include band representations induced
   from site symmetry irreps of non-maximal Wyckoff positions. Passing as `true` will include
   band representations induced from all Wyckoff positions, regardless of maximality.
@@ -272,6 +281,7 @@ The implementation is based on Cano, Bradlyn, Wang, Elcoro, et al., [Phys. Rev. 
 function calc_bandreps(
         sgnum::Integer,
         Dᵛ::Val{D} = Val(3);
+        spinful = Val(false),
         timereversal::Bool = true,
         allpaths::Bool = false,
         explicitly_real::Bool = timereversal,
@@ -283,18 +293,18 @@ function calc_bandreps(
     end
 
     # get all the little group irreps that we want to subduce onto
-    lgirsd = lgirreps(sgnum, Val(D))
+    lgirsd = lgirreps(sgnum, Dᵛ; spinful)
     allpaths || filter!(((_, lgirs),) -> isspecial(first(lgirs)), lgirsd)
     timereversal && realify!(lgirsd)
     lgirsv = _collect_lgirsd_sorted(lgirsd)
 
     # get the bandreps induced by every maximal site symmetry irrep
-    sg = spacegroup(sgnum, Dᵛ)
+    sg = spacegroup(sgnum, Dᵛ; spinful)
     sitegs = sitegroups(sg)
     if !include_nonmaximal
         sitegs = findmaximal(sitegs)
     end
-    brs = NewBandRep{D}[]
+    brs = _bandrep_type(_spinfulval(spinful), Dᵛ)[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal
@@ -308,10 +318,16 @@ function calc_bandreps(
 end
 calc_bandreps(sgnum::Integer, D::Integer; kws...) = calc_bandreps(sgnum, Val(D); kws...)
 
+# the band representation type induced by spinless or by spinful site symmetry irreps; keyed
+# on `Val`s so that the type is fixed by dispatch, and so is propagated even if the
+# dimension is not a compile-time constant
+_bandrep_type(#=Val{S}=#::Val{false}, ::Val{D}) where D = NewBandRep{D, LGIrrep{D}, SiteIrrep{D}}
+_bandrep_type(#=Val{S}=#::Val{true}, ::Val{D}) where D = NewBandRep{D, DLGIrrep{D}, DSiteIrrep{D}}
+
 # ---------------------------------------------------------------------------------------- #
 
 # performance optimization
-function Base.stack(brs::Collection{NewBandRep{D}}) where D
+function Base.stack(brs::Collection{<:NewBandRep})
     B = Matrix{Int}(undef, length(first(brs)), length(brs))
     @inbounds for (j, br) in enumerate(brs)
         i = 1

@@ -3,6 +3,9 @@ using Crystalline
 using Crystalline: dlm2struct
 using Crystalline: constant
 
+_calc_bandreps_int_dim(sgnum::Int, D::Int, spinful::Val) =
+            calc_bandreps(sgnum, D; spinful) # dimension not a compile-time constant
+
 @testset "calc_bandreps" begin
 
 # defines `is_exceptional_br` to check if a BR induced by a maximal Wyckoff position is an
@@ -24,21 +27,38 @@ using Crystalline: constant
     end
 end
 
+# a co-rep label up to the order of its parts (e.g., "Γ₁₂ˢΓ₉ˢ" ~ "Γ₉ˢΓ₁₂ˢ"): Bilbao usually,
+# but not always, lists the parts of a double-valued co-rep in ascending order, as `realify`
+# does
+function _unordered_label(l)
+    return join(sort([m.match for m in eachmatch(r"[^₀-₉⁺⁻ˢ]+[₀-₉]+[⁺⁻]?ˢ?", l)]))
+end
+
+# Wyckoff positions where our labels of the 1D double-valued site irreps ¹Xˢ and ²Xˢ are
+# swapped relative to Bilbao's (without time-reversal): as for the 222, mmm, and mm2 site
+# symmetries below, the assignment is ambiguous, here because matching a site group to its
+# isomorphic point group involves a choice of sign for each operation
+# (see `Crystalline._lift_signs`)
+SPINFUL_EBR_LABEL_SWAPS = Set([(210, "16c"), (210, "16d"), (212, "4a"), (212, "4b"),
+                               (213, "4a"), (213, "4b"), (227, "16c"), (227, "16d")])
+
 @testset "3D: every reference EBR must have a match in a calculated BR" begin
     debug = false
     error_counts = Dict{String, Int}()
-    for sgnum in 1:230
+    for sgnum in 1:230, spinful in (false, true)
         had_sg_error = false
         for timereversal in (false, true)
             had_tr_error = false
 
-            _brsᶜ = calc_bandreps(sgnum, Val(3); timereversal, allpaths = false)
+            _brsᶜ = calc_bandreps(sgnum, Val(3); spinful, timereversal, allpaths = false)
             brsᶜ = convert(BandRepSet, _brsᶜ)
-            brsʳ = bandreps(sgnum, 3; timereversal, allpaths = false)
+            brsʳ = bandreps(sgnum, 3; spinful, timereversal, allpaths = false)
                       
             # find a permutation of the irreps in `brsʳ` that matches `brsᶜ`'s sorting, s.t.
             # `brsʳ.irlabs[irʳ²ᶜ_perm] == brsᶜ.irlabs`
-            irʳ²ᶜ_perm = [something(findfirst(==(irᶜ), brsʳ.irlabs)) for irᶜ in brsᶜ.irlabs]
+            irlabsʳ = _unordered_label.(brsʳ.irlabs)
+            irʳ²ᶜ_perm = [something(findfirst(==(_unordered_label(irᶜ)), irlabsʳ))
+                          for irᶜ in brsᶜ.irlabs]
             append!(irʳ²ᶜ_perm, length(brsᶜ.irlabs)+1) # append occupation number
 
             seen_wp = Dict{String, Bool}()
@@ -58,13 +78,10 @@ end
                         labʳ = replace(brʳ.label, "↑G"=>"") 
                         labᶜ = replace(brᶜ.label, "↑G"=>"")
                         length(labᶜ) == 1 && only(labᶜ) == first(labʳ) && return true # e.g., A ~ A₁
-                        labʳ′ = replace(labʳ, "¹"=>"", "²"=>"")    # e.g., ¹E²E ~ E
-                        labʳ′ = replace(labʳ′, "EE" => "E", 
-                                               "EgEg" => "Eg", "EᵤEᵤ" => "Eᵤ",
-                                               "E₁E₁" => "E₁", "E₂E₂" => "E₂",
-                                               "E′′E′′" => "E′′", "E′E′" => "E′",
-                                               "E₁gE₁g" => "E₁g", "E₂gE₂g" => "E₂g",
-                                               "E₁ᵤE₁ᵤ" => "E₁ᵤ", "E₂ᵤE₂ᵤ" => "E₂ᵤ")
+                        cs = collect(replace(labʳ, "¹"=>"", "²"=>"")) # e.g., ¹E²E ~ E and
+                        n = length(cs)                                # ¹E₂ˢ²E₂ˢ ~ E₂ˢ
+                        labʳ′ = iseven(n) && cs[1:n÷2] == cs[n÷2+1:end] ?
+                                    String(cs[1:n÷2]) : String(cs)
                         labʳ′ == labᶜ && return true
                     end
                 end
@@ -80,7 +97,13 @@ end
                 # so, for these cases, we cannot do a one-to-one comparison (but we can at
                 # least test whether the reference Bilbao vector occurs in the set of
                 # computed band representation vectors)
-                if brʳ.sitesym ∉ ("222", "mmm", "mm2")
+                ambiguous = if spinful
+                    !timereversal && (sgnum, wpʳ) ∈ SPINFUL_EBR_LABEL_SWAPS &&
+                        first(brʳ.label) ∈ ('¹', '²')
+                else
+                    brʳ.sitesym ∈ ("222", "mmm", "mm2")
+                end
+                if !ambiguous
                     brᶜ = brsᶜ[idx]
                     @test Vector(brᶜ) == brʳ[irʳ²ᶜ_perm]
                     @test dim(brᶜ) == dim(brʳ)
@@ -207,5 +230,17 @@ end
     @test length(brs_incl_nonmax) == 17
     @test "2i: [α, β, γ]" ∉ string.(unique(position.(brs_max)))
     @test "2i: [α, β, γ]" ∈ string.(unique(position.(brs_incl_nonmax)))
+end
+
+@testset "Inferred irrep types" begin
+    # a `Val` dimension infers concretely; a plain `Integer` dimension cannot, but `spinful`
+    # must still fix the irrep types on its own (it is only kept across an unknown dimension
+    # because `Crystalline._bandrep_type` picks them by dispatch rather than by a value)
+    @test @inferred(calc_bandreps(2, Val(3))) isa
+                Collection{NewBandRep{3, LGIrrep{3}, SiteIrrep{3}}}
+    T  = only(Base.return_types(_calc_bandreps_int_dim, (Int, Int, Val{false})))
+    Tᵈ = only(Base.return_types(_calc_bandreps_int_dim, (Int, Int, Val{true})))
+    @test T  <: Collection{<:NewBandRep{<:Any, <:LGIrrep,  <:SiteIrrep}}
+    @test Tᵈ <: Collection{<:NewBandRep{<:Any, <:DLGIrrep, <:DSiteIrrep}}
 end
 end # @testset "calc_bandreps"

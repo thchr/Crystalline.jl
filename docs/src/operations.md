@@ -55,5 +55,8 @@ inv(op1) # inv(3₁₁₁⁺)
 A `SymOperation` can act on vectors in direct ([`RVec`](@ref)) or reciprocal ([`KVec`](@ref)) space.
 When acting in reciprocal space, translation parts of a `SymOperation` have no effect.
 
-# Magnetic symmetry operations
+## Magnetic symmetry operations
 Magnetic symmetry operations that may incorporate composition with an anti-unitary time-reversal operation can be created via [`MSymOperation`](@ref) (see also [`mspacegroup`](@ref)).
+
+## Double group operations
+Operations of double groups, which additionally carry the SU(2) element by which they act on spin-½ degrees of freedom, are represented by [`DSymOperation`](@ref); see [Double groups & spinful irreps](doublegroups.md).

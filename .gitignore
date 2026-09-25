@@ -4,3 +4,7 @@ Manifest.toml
 *.pdf
 .DS_Store
 .claude
+.devcontainer
+
+# staging directory of `build/data_release.jl`
+build/data-release/

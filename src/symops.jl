@@ -150,14 +150,14 @@ part is zero or a lattice vector in the associated primitive basis.
 end
 
 """
-    issymmorph(sg::Union{SpaceGroup, LittleGroup}) --> Bool
+    issymmorph(sg::Union{AbstractSpaceGroup, AbstractLittleGroup}) --> Bool
 
 Return whether a given space group `sg` is symmorphic (`true`) or nonsymmorphic (`false`).
 """
 function issymmorph(g::AbstractGroup)
     all(op->issymmorph(op, centering(g)), operations(g))
 end
-issymmorph(::PointGroup) = true
+issymmorph(::AbstractPointGroup) = true
 
 """
     issymmorph(sgnum::Integer, D::Integer=3) --> Bool
@@ -332,7 +332,7 @@ function MultTable(ops; modτ::Bool=true)
 end
 
 
-function check_multtable_vs_ir(lgir::LGIrrep{D}, αβγ=nothing) where D
+function check_multtable_vs_ir(lgir::AbstractLGIrrep{D}, αβγ=nothing) where D
     ops = operations(lgir)
     sgnum = num(lgir); cntr = centering(sgnum, D)
     primitive_ops = primitivize.(ops, cntr) # must do multiplication table in primitive basis, cf. choices in `compose`
@@ -343,7 +343,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
     havewarned = false
     Ds = ir(αβγ)
     ops = operations(ir)
-    if ir isa LGIrrep
+    if ir isa AbstractLGIrrep
         k = position(ir)(αβγ)
     end
     N = length(ops)
@@ -369,7 +369,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
             # but consistent with that used in Stokes' paper (see `(lgir::LGIrrep)(αβγ)`).
             # It is still a puzzle to me why I cannot successfully flip the sign 
             # of `ϕ` here and in `(lgir::LGIrrep)(αβγ)`.
-            if ir isa LGIrrep
+            if ir isa AbstractLGIrrep
                 t₀ = translation(ops[i]) .+ rotation(ops[i])*translation(ops[j]) .- 
                      translation(ops[mtidx])
                 ϕ =  2π*dot(k, t₀) # accumulated ray-phase
@@ -384,7 +384,7 @@ function check_multtable_vs_ir(mt::MultTable, ir::AbstractIrrep, αβγ=nothing;
                                 First failure at (row,col) = ($(i),$(j));
                                 Expected idx $(mtidx), got idx $(findall(≈(Dⁱʲ), Ds))""")
                     print("Expected irrep = ")
-                    if ir isa LGIrrep
+                    if ir isa AbstractLGIrrep
                         println(cis(ϕ)*Ds[mtidx])
                     else
                         println(Dⁱʲ)
@@ -498,7 +498,7 @@ assumed.
   rather than of parametrizations.
 """
 function orbit(
-    g::AbstractVector{SymOperation{D}},
+    g::AbstractVector{<:AbstractOperation{D}},
     v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
     P::Union{Nothing, AbstractMatrix{<:Real}} = nothing;
     modrev::Bool = false
@@ -515,7 +515,7 @@ function orbit(
     return vs
 end
 function orbit(
-    g::AbstractVector{SymOperation{D}},
+    g::AbstractVector{<:AbstractOperation{D}},
     v::Union{AbstractVec{D}, Bravais.AbstractPoint{D}},
     cntr::Char;
     kws...
@@ -806,17 +806,24 @@ lattice vectors; otherwise not.
 A final argument of type `::Val{P}` can be specified to indicate a subperiodic group of
 periodicity dimension `P`, different from the spatial embedding dimension `D`.
 """
-function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char, 
-                    conv_or_prim::Bool=true, modw::Bool=true,
-                    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#) where {D,Pdim}
+function reduce_ops(
+    ops::AbstractVector{O},
+    cntr::Char, 
+    conv_or_prim::Bool=true,
+    modw::Bool=true,
+    ::Val{Pdim}=Val(D) #= to allow subperiodic groups =#
+) where {D, O<:AbstractOperation{D}, Pdim}
     
     P = primitivebasismatrix(cntr, Val(D), Val(Pdim))
     # transform ops (equiv. to `primitivize.(ops, cntr, modw)` but avoids loading `P` anew
     # for each SymOperation
     ops′ = transform.(ops, Ref(P), nothing, modw)
 
-    # remove equivalent operations
-    ops′_reduced = SymOperation{D}.(uniquetol(matrix.(ops′), atol=Crystalline.DEFAULT_ATOL))
+    # remove equivalent operations; the comparison is of the operations themselves, rather
+    # than of their matrices, since a double group operation is not determined by its matrix
+    # (`u` and `-u` share one). Translations are compared as-is (`modw = false`), `ops′`
+    # being already reduced to whatever extent was asked for
+    ops′_reduced = uniquetol(ops′, nothing, #=modw=# false)
 
     if conv_or_prim # `true`: return in conventional basis
         return transform.(ops′_reduced, Ref(inv(P)), nothing, modw)
@@ -824,14 +831,14 @@ function reduce_ops(ops::AbstractVector{SymOperation{D}}, cntr::Char,
         return ops′_reduced
     end
 end
-@inline function reduce_ops(slg::Union{SpaceGroup, LittleGroup}, 
+@inline function reduce_ops(slg::Union{AbstractSpaceGroup, AbstractLittleGroup},
                             conv_or_prim::Bool=true, modw::Bool=true)
     return reduce_ops(operations(slg), centering(slg), conv_or_prim, modw)
 end
-function primitivize(sg::SpaceGroup, modw::Bool=true)
+function primitivize(sg::AbstractSpaceGroup, modw::Bool=true)
     return typeof(sg)(num(sg), reduce_ops(sg, false, modw))
 end
-function primitivize(lg::LittleGroup, modw::Bool=true)
+function primitivize(lg::AbstractLittleGroup, modw::Bool=true)
     cntr = centering(lg)
     # transform both k-point and operations
     kv′  = primitivize(position(lg), cntr)
@@ -882,8 +889,11 @@ returns `nothing`.
 The small irreps of `op` at wavevector k, Dⱼᵏ[`op`], can be computed from 
 the small irreps of `op′`, Dⱼᵏ[`op′`], via Dⱼᵏ[`op`] = exp(2πik⋅`Δw`)Dⱼᵏ[`op′`]
 """
-function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
-            cntr::Char) where D
+function findequiv(
+    op::O,
+    ops::AbstractVector{O},
+    cntr::Char
+) where {D, O<:AbstractOperation{D}}
     W = rotation(op)
     w = translation(op)
 
@@ -895,7 +905,7 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
         wⱼ = translation(opⱼ)
         wⱼ′ = P\wⱼ
 
-        if W == Wⱼ # rotation-part of op and opⱼ is identical
+        if W == Wⱼ && _same_su2(op, opⱼ) # rotation-part of op and opⱼ is identical
             # check if translation-part of op and opⱼ is equivalent, modulo a primitive lattice translation
             if all(el -> isapprox(el, round(el), atol=DEFAULT_ATOL), w′.-wⱼ′)
                 return j, w.-wⱼ
@@ -904,6 +914,9 @@ function findequiv(op::SymOperation{D}, ops::AbstractVector{SymOperation{D}},
     end
     return nothing # didn't find any match
 end
+# for double group operations, the SU(2) parts must agree as well
+_same_su2(::AbstractOperation, ::AbstractOperation) = true
+_same_su2(dop₁::DSymOperation, dop₂::DSymOperation) = isapprox(dop₁.su2, dop₂.su2)
 
 
 """
@@ -921,9 +934,9 @@ If `cntr` is provided, comparison of operations in ``G`` and ``H`` is done in th
 primitive basis (i.e., `cntr` is passed to `isapprox` which compares operations in ``G`` and
 ``H``).
 """
-function _findsubgroup(opsᴳ::AbstractVector{SymOperation{D}},
-                       opsᴴ::AbstractVector{SymOperation{D}},
-                       cntr::Union{Char, Nothing}=nothing) where D
+function _findsubgroup(opsᴳ::AbstractVector{O},
+                       opsᴴ::AbstractVector{O},
+                       cntr::Union{Char, Nothing}=nothing) where O<:AbstractOperation
     idxsᴳ²ᴴ = Vector{Int}(undef, length(opsᴴ))
     @inbounds for (idxᴴ, opᴴ) in enumerate(opsᴴ)
         idxᴳ = findfirst(opᴳ -> isapprox(opᴳ, opᴴ, cntr), opsᴳ)

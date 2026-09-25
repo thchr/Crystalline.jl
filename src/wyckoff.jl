@@ -52,15 +52,28 @@ Return all site symmetry groups associated with a space group, specified either 
 `sg :: SpaceGroup{D}` or by its conventional number `sgnum` and dimension `D` (if omitted,
 `D` defaults to 3).
 
+For a double space group `sg :: DSpaceGroup{D}`, or with `spinful = Val(true)` (or `true`),
+the double site symmetry groups are returned; as for `D`, the `Val` spelling keeps the
+return type inferrable and the `Bool` spelling does not.
+
 See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
 Wyckoff position.
 """
-function sitegroups(sg::SpaceGroup{D}) where D
+function sitegroups(sg::SubperiodicGroup)
+    error("`sitegroups` is not implemented for subperiodic groups")
+end
+function sitegroups(sg::AbstractSpaceGroup{D}) where D
     wps = wyckoffs(num(sg), Val(D))
     return sitegroup.(Ref(sg), wps)
 end
-sitegroups(sgnum::Integer, Dᵛ::Val{D}=Val(3)) where D = sitegroups(spacegroup(sgnum, Dᵛ))
-sitegroups(sgnum::Integer, D::Integer) = sitegroups(spacegroup(sgnum, D))
+function sitegroups(
+    sgnum::Integer,
+    Dᵛ::Val{D}=Val(3);
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
+) where D
+    return sitegroups(spacegroup(sgnum, Dᵛ; spinful))
+end
+sitegroups(sgnum::Integer, D::Integer; kws...) = sitegroups(sgnum, Val(D); kws...)
 
 """
 $(TYPEDSIGNATURES)
@@ -68,6 +81,10 @@ $(TYPEDSIGNATURES)
 Return the site symmetry group `g::SiteGroup` for a Wyckoff position `wp` in space group
 `sg` (or with space group number `sgnum`; in this case, the dimensionality is inferred from
 `wp`).
+
+For a double space group `sg :: DSpaceGroup{D}`, the double site symmetry group
+`g :: DSiteGroup{D}` is returned: its operations, and its coset representatives, carry the
+SU(2) elements of the operations of `sg` with the same rotation parts.
 
 `g` is a group of operations that are isomorphic to the those listed in `sg` (in the sense
 that they might differ by lattice vectors) and that leave the Wyckoff position `wp`
@@ -201,9 +218,23 @@ function sitegroup(sgnum::Integer, wp::WyckoffPosition{D}) where D
     sg = spacegroup(sgnum, Val(D))
     return sitegroup(sg, wp)
 end
+function sitegroup(sg::DSpaceGroup{D}, wp::WyckoffPosition{D}) where D
+    # find the site group of the spatial operations, then attach the SU(2) elements of `sg`:
+    # a site operation has the SU(2) element of the space group operation with the same
+    # rotation part (the unbarred operations of `sg` come first)
+    dops = @view operations(sg)[1:length(sg)÷2]
+    siteg = sitegroup(SpaceGroup{D}(num(sg), [dop.op for dop in dops]), wp)
+    function lift(op)
+        u = dops[something(findfirst(dop -> rotation(dop) ≈ rotation(op), dops))].su2
+        return DSymOperation{D}(op, u)
+    end
+    siteops = lift.(operations(siteg))
+    siteops_barred = [DSymOperation{D}(dop.op, -dop.su2) for dop in siteops]
+    return DSiteGroup{D}(num(siteg), wp, [siteops; siteops_barred], lift.(cosets(siteg)))
+end
 
 # `MulTable`s of `SiteGroup`s should be calculated with `modτ = false` always
-function MultTable(g::SiteGroup)
+function MultTable(g::AbstractSiteGroup)
     MultTable(operations(g); modτ=false)
 end
 
@@ -221,7 +252,7 @@ Equivalently, every element of the orbit of ``\\mathbf{r}`` can be written as th
 composition of a coset representative of the Wyckoff position's site group in ``G`` with
 ``\\mathbf{r}``.
 """
-function orbit(g::SiteGroup)
+function orbit(g::AbstractSiteGroup)
     rv′s = cosets(g) .* Ref(position(g))
 end
 
@@ -260,7 +291,7 @@ SiteGroup{2} ⋕5 (c1m1) at 2a = [0, β] with 2 operations:
  m₁₀
 ```
 """
-function findmaximal(sitegs::AbstractVector{SiteGroup{D}}) where D
+function findmaximal(sitegs::AbstractVector{<:AbstractSiteGroup{D}}) where D
     maximal = Int[]
     for (idx, g) in enumerate(sitegs)
         wp = position(g)
@@ -301,11 +332,18 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-    siteirreps(sitegroup::SiteGroup; mulliken::Bool=false]) --> Vector{PGIrrep}
+    siteirreps(sitegroup::AbstractSiteGroup; mulliken::Bool=false])
+                                                    --> Collection{<:AbstractSiteIrrep}
 
 Return the site symmetry irreps associated with the provided `SiteGroup`, obtained from a
 search over isomorphic point groups. The `SiteIrrep`s are in general a permutation of the
 irreps of the associated isomorphic point group.
+
+For a double site symmetry group (e.g., from [`sitegroup`](@ref) of a double space group,
+or from [`doublegroup`](@ref)), the double-valued irreps are returned, as `DSiteIrrep`s.
+Matching the site group to its isomorphic point group then also requires a choice, for each
+operation, between the unbarred and barred point group operation; we choose so as to map
+unbarred to unbarred operations as often as possible (see `Crystalline._lift_signs`).
 
 By default, the labels of the site symmetry irreps are given in the CDML notation; to
 use the Mulliken notation, set the keyword argument `mulliken` to `true` (default, `false`).
@@ -340,21 +378,47 @@ julia> siteirs = siteirreps(siteg)
   └ {3⁻|0,1}: exp(0.6667iπ)
 ```
 """
-function siteirreps(siteg::SiteGroup{D}; mulliken::Bool=false) where D
-    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
-    pglabel = label(parent_pg)
-    pgirs = pgirreps(pglabel, Val(D); mulliken)
-    
+function siteirreps(siteg::AbstractSiteGroup{D}; mulliken::Bool=false) where D
+    pglabel, Iᵖ²ᵍ = _isomorphic_parent_pointgroup_permutation(siteg)
+    pgirs = pgirreps(pglabel, Val(D); spinful=Val(siteg isa DSiteGroup), mulliken)
+    IR = _siteirrep_type(typeof(siteg))
+
     # note that we _have to_ make a copy when re-indexing `pgir.matrices` here, since
     # .jld files apparently cache accessed content; so if we modify it, we mess with the
     # underlying data (see https://github.com/JuliaIO/JLD2.jl/issues/277)
     siteirs = map(pgirs) do pgir
-        SiteIrrep{D}(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep,
-                     pglabel)
+        IR(label(pgir), siteg, pgir.matrices[Iᵖ²ᵍ], reality(pgir), pgir.iscorep, pglabel)
     end
     return Collection(siteirs)
 end
-mulliken(siteir::SiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))
+
+# the label of a point group isomorphic to `siteg`, and the permutation `Iᵖ²ᵍ` that brings
+# its operations into correspondence with those of `siteg` (`siteg[i] ~ pg[Iᵖ²ᵍ[i]]`)
+function _isomorphic_parent_pointgroup_permutation(siteg::SiteGroup)
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
+    return label(parent_pg), Iᵖ²ᵍ
+end
+function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{3})
+    # match the spatial parts of the unbarred operations, then choose, for each, whether it
+    # corresponds to the unbarred or barred point group operation (see `_lift_signs`)
+    n = length(siteg) ÷ 2
+    ops = @view operations(siteg)[1:n]
+    parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup([op.op for op in ops])
+    pglabel = label(parent_pg)
+    # unbarred operations first, then barred
+    pgops = operations(pointgroup(pglabel, Val(3); spinful=Val(true)))
+    s = _lift_signs(ops, @view pgops[Iᵖ²ᵍ])
+    Iᵖ²ᵍ′ = Vector{Int}(undef, 2n)
+    for (i, j) in enumerate(Iᵖ²ᵍ)
+        Iᵖ²ᵍ′[i]   = s[i] == 1 ? j : j + n
+        Iᵖ²ᵍ′[i+n] = s[i] == 1 ? j + n : j
+    end
+    return pglabel, Iᵖ²ᵍ′
+end
+_siteirrep_type(::Type{SiteGroup{D}}) where D = SiteIrrep{D}
+_siteirrep_type(::Type{DSiteGroup{D}}) where D = DSiteIrrep{D}
+
+mulliken(siteir::AbstractSiteIrrep) = _mulliken(siteir.pglabel, label(siteir), iscorep(siteir))
 
 # ---------------------------------------------------------------------------------------- #
 

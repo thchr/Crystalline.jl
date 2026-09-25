@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Crystalline.jl (v0.6.24, Julia ≥ 1.10) is a Julia package for programmatic access to and manipulation of crystalline symmetry. The author is Thomas Christensen. Core capabilities:
+Crystalline.jl (v0.6.28, Julia ≥ 1.12) is a Julia package for programmatic access to and manipulation of crystalline symmetry. The author is Thomas Christensen. Core capabilities:
 
 - Symmetry operations and groups for space groups (1D/2D/3D), point groups, site symmetry groups, subperiodic groups, and magnetic space groups
 - Irreducible representations (irreps) of little groups (`LGIrrep`), point groups (`PGIrrep`), and site symmetry groups (`SiteIrrep`), loaded from precomputed JLD2 data files
@@ -60,7 +60,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 | `src/tqc_analysis.jl` | `calc_topology`, `iscompatible`, `symmetry_indicators`, `TopologyKind` (TRIVIAL/NONTRIVIAL/FRAGILE) |
 | `src/compatibility.jl` | `subduction_count`, `remap_to_kstar` |
 | `src/irreps_reality.jl` | `calc_reality`, `realify`, `realify!` (Herring criterion) |
-| `src/irreps_physical_reality.jl` | `physical_realify` (co-representations under time reversal) |
+| `src/irreps_physical_reality.jl` | `physical_realify`, `timereversal_unitary` (canonical form of co-representations under time reversal) |
 | `src/grouprelations/` | `maximal_subgroups`, `minimal_supergroups`, `conjugacy_relations` |
 | `src/fourierlattices.jl` | `ModulatedFourierLattice`, `levelsetlattice`, `modulate`, `filling2isoval`, etc. |
 | `src/symeigs2irrep.jl` | `find_representation` (identify irrep from symmetry eigenvalues) |
@@ -69,6 +69,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 | `src/notation.jl` | `schoenflies`, `iuc`, `seitz`, `mulliken` |
 | `src/subperiodic.jl` | `SubperiodicGroup` (layer, rod, frieze groups) |
 | `src/magnetic/` | `MSymOperation`, `MSpaceGroup` (type-IV magnetic space groups) |
+| `src/double/` | `SU2`, `DSymOperation`, the `D`-prefixed groups and irreps, `su2`, `isbarred`, `doublegroup`, `isspinful` (double groups and double-valued/spinful irreps) |
 | `src/assembly/` | `spacegroup`, `pointgroup`, `subperiodicgroup`, `mspacegroup`, `generate`, `generators` |
 | `src/tables/` | Tabulated generator strings and rotation/translation tables for all group types |
 | `src/collection_extensions.jl` | Additional methods on `Collection{T}` for specific `T` |
@@ -86,6 +87,7 @@ julia --project=. -e "using Pkg; Pkg.develop(PackageSpec(path=\"Bravais\"))"
 AbstractOperation{D} <: AbstractMatrix{Float64}
   SymOperation{D}          — D×D rotation (SqSMatrix) + D-vector translation (SVector)
   MSymOperation{D}         — wraps SymOperation + time-reversal flag
+  DSymOperation{D}         — wraps SymOperation + SU2 (a double group operation)
 
 AbstractVec{D}
   KVec{D}                  — k₀ + kabc·(α,β,γ) in reciprocal coords (cnst + free·αβγ)
@@ -100,18 +102,26 @@ AbstractGroup{D,O} <: AbstractVector{O}
   SubperiodicGroup{D,P}
   MSpaceGroup{D}
   GenericGroup{D}          — group from arbitrary operations; num = 0
+  DSpaceGroup{D}, DPointGroup{D}, DLittleGroup{D}, DSiteGroup{D}
+                           — double group counterparts, over DSymOperation{D}
 
-AbstractIrrep{D}
-  PGIrrep{D}               — point group irrep
-  LGIrrep{D}               — little group irrep; has `translations` field for phase factors
-  SiteIrrep{D}             — site symmetry irrep; carries a `pglabel` field
+AbstractIrrep{D}           — the `D`-prefixed types below are the double-valued (spinful)
+                             irreps; they carry a `D`-prefixed group
+  AbstractPGIrrep{D}       — PGIrrep{D}, DPGIrrep{D}: point group irreps
+  AbstractLGIrrep{D}       — LGIrrep{D}, DLGIrrep{D}: little group irreps; have a
+                             `translations` field for phase factors
+  AbstractSiteIrrep{D}     — SiteIrrep{D}, DSiteIrrep{D}: site symmetry irreps; carry a
+                             `pglabel` field
 
 Collection{T} <: AbstractVector{T}    — thin wrapper around Vector{T}; same group for all T
-CharacterTable{D} / ClassCharacterTable{D}  — matrices of characters vs operations/classes
+CharacterTable{O} / ClassCharacterTable{O}  — characters vs operations/classes, over
+                                              operations of type O
 BandRep <: AbstractVector{Int}        — a single EBR (Wyckoff + site-irrep label + irvec)
 BandRepSet <: AbstractVector{BandRep} — all EBRs for a space group
-SymmetryVector{D} <: AbstractSymmetryVector{D} <: AbstractVector{Int}
-NewBandRep{D} <: AbstractSymmetryVector{D}
+SymmetryVector{D,IR} <: AbstractSymmetryVector{D,IR} <: AbstractVector{Int}
+NewBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
+CompositeBandRep{D,IR,SIR} <: AbstractSymmetryVector{D,IR}
+                           — IR: little group irrep type; SIR: site symmetry irrep type
 ```
 
 ### Internal submodules
@@ -141,7 +151,8 @@ data/
   operations/                             — symmetry operation tables
   spacegroup_subgroups_data.jld2          — maximal subgroup / minimal supergroup graphs
   misc/
-    ISOTROPY/                             — raw ISOTROPY text data (*.txt); README.md has format docs
+    ISOTROPY/                             — README.md has format docs; the *.txt data
+                                              itself is a lazy artifact, not in the repo
     transformation_matrices_CDML2ITA.jl  — k-point transformation matrices between CDML and ITA settings
     CDML_RepresentationDomainSpecialKPoints_*.csv
 ```
@@ -187,14 +198,14 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 
 ## Testing
 
-38 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
+47 test files in `test/`, all run via `test/runtests.jl`. Selected highlights:
 
 | Test file(s) | Coverage |
 |---|---|
 | `symops.jl`, `groups_xyzt_vs_coded.jl`, `generators_xyzt_vs_coded.jl` | Symmetry operations, group assembly from generators |
 | `parsed_vs_loaded_littlegroup_irreps.jl` | JLD2-loaded irreps vs. freshly parsed ISOTROPY data |
 | `irreps_orthogonality.jl`, `multtable.jl`, `chartable.jl` | Great orthogonality theorem, multiplication tables, character tables |
-| `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction |
+| `irreps_reality.jl`, `irreps_physical_reality.jl` | Herring criterion and co-rep construction; `physical_realify` and its time-reversal convention |
 | `lgirreps_vs_pgirreps_at_Gamma.jl` | LGIrreps at Γ must match PGIrreps |
 | `compatibility.jl` | Compatibility relations between k-points |
 | `bandrep.jl`, `calc_bandreps.jl`, `classification.jl` | EBRs and topological classification |
@@ -202,10 +213,11 @@ Most APIs accept dimension `D` either as `Val{D}()` (preferred internally) or as
 | `primitivize_irreps.jl` | Irrep transformation to primitive basis |
 | `grouprelations.jl` | Sub-/supergroup data integrity |
 | `mspacegroup.jl` | Magnetic space groups |
+| `double/` | Double groups and double-valued (spinful) irreps |
 | `symeigs_analysis.jl` | Symmetry eigenvalue → irrep assignment |
 
 ## CI/CD
 
-- GitHub Actions: tests across Julia 1.10+ on multiple OS
+- GitHub Actions: tests on Julia 1.12 and latest, across multiple OS
 - Documentation: Documenter.jl, auto-deployed
 - Coverage: Codecov

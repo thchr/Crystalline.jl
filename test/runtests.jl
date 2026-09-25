@@ -34,6 +34,9 @@ using Crystalline, Test
     # loading irreps from .jld files vs parsing of ISOTROPY
     include("parsed_vs_loaded_littlegroup_irreps.jl")
 
+    # our ISOTROPY irreps vs Bilbao's (from a lazy artifact; see `Artifacts.toml`)
+    include("bilbao_vs_isotropy.jl")
+
     # multiplication tables and irreps
     include("irreps_orthogonality.jl")
     include("chartable.jl")
@@ -70,6 +73,15 @@ using Crystalline, Test
     
     # magnetic space groups
     include("mspacegroup.jl")
+
+    # double (spinful) groups
+    include("double/groups.jl")
+    include("double/lgirreps.jl")
+    include("double/pgirreps.jl")
+    include("double/siteirreps.jl")
+    include("double/irreps_physical_reality.jl")
+    include("double/symmetryvectors.jl")
+    include("double/show.jl")
 
     # group relations (sub- & supergroups)
     include("grouprelations.jl")

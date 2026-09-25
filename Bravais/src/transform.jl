@@ -148,7 +148,7 @@ frequently and more ambiguously, as the crystallographic primitive setting.
 
 [^CDML]: Cracknell, Davies, Miller, & Love, Kroenecker Product Tables, Vol. 1 (1979).
 
-[^BCS]: Bilbao Crystallographic Server, [KVEC](https://www.cryst.ehu.es/cryst/get_kvec.html).
+[^BCS]: Bilbao Crystallographic Server, [KVEC](https://cryst.ehu.es/cryst/get_kvec.html).
 
 [^Aroyo]: Aroyo *et al.*, [Acta Cryst. A70, 126 (2014)]
           (https://doi.org/10.1107/S205327331303091X): Table 2 gives

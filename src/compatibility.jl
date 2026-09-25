@@ -72,7 +72,7 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     # check that the k-points agree for the two sets of irreps - modulo a (primitive)
     # reciprocal lattice vector, which is a legitimate difference, as it corresponds to the
     # *monodromy* setting, where `Dᴴⱼ` reaches `Dᴳᵢ`'s k-point in a neighboring cell.
-    if T <: LGIrrep # `position` is nothing in non-`LGIrrep` cases; nothing to check there
+    if T <: AbstractLGIrrep # `position` is nothing for other irreps; nothing to check there
         kᴳ, kᴴ = position(Dᴳᵢ)(), position(Dᴴⱼ)(αβγᴴⱼ)
         isapprox(KVec(kᴳ), KVec(kᴴ), cntr, #=modw=#true) ||
             error(lazy"incompatible k-points for provided irreps: kᴳ = $kᴳ vs. kᴴ = $kᴴ")
@@ -111,17 +111,17 @@ end
 # Specifically, in the current phase-convention `Dᵏ({1|𝐭}) = exp(i𝐤⋅𝐭)` (Inui Eq. (11.37); 
 # also ISOTROPY, cf. the note in `(lgir::LGIrrep)(αβγ)`), we have
 # `χᴳ(h) = exp(2πi 𝐤⋅Δ𝛕) χᴳ(g)`, and it is `χᴳ(h)` that we require in the orthogonality sum.
-function _matched_translation_phase(Dᴳᵢ::LGIrrep{D}, Dᴴⱼ::LGIrrep{D},
+function _matched_translation_phase(Dᴳᵢ::T, Dᴴⱼ::T,
     idxᴳ::Integer, idxᴴ::Integer,
     αβγᴴⱼ::Union{<:AbstractVector{<:Real},Nothing}
-) where D
+) where T <: AbstractLGIrrep
     Δτ = translation(operations(Dᴴⱼ)[idxᴴ]) - translation(operations(Dᴳᵢ)[idxᴳ])
     # Whenever the matched operations are equal, the phase is 1.
     all(x -> abs(x) < DEFAULT_ATOL, Δτ) && return one(ComplexF64)
     k = position(Dᴴⱼ)(αβγᴴⱼ)
     return cispi(2*dot(k, Δτ))
 end
-_matched_translation_phase(::T, ::T, _, _, _) where T <: AbstractIrrep = one(ComplexF64) # for non-`LGIrrep`s
+_matched_translation_phase(::T, ::T, _, _, _) where T <: AbstractIrrep = one(ComplexF64) # for other irreps
 
 """
 $(TYPEDSIGNATURES)

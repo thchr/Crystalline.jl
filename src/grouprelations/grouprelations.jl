@@ -58,7 +58,7 @@ for (f, rel_shorthand, rel_kind, doctxt) in
         ## Data sources
 
         The group relationships returned by this function were retrieved from the Bilbao
-        Crystallographic Server's [MAXSUB](https://www.cryst.ehu.es/cryst/maxsub.html)
+        Crystallographic Server's [MAXSUB](https://cryst.ehu.es/cryst/maxsub.html)
         program. Please cite the original reference work associated with MAXSUB:
 
         - Aroyo et al., [Z. Kristallogr. Cryst. Mater. **221**, 15 (2006)](https://doi.org/10.1524/zkri.2006.221.1.15).
@@ -163,6 +163,16 @@ julia> issubgroup(sg168′, sg3) # settings now agree, and subgroup relationship
 true
 ```
 Here, there is only one possible transformation: in general, however, there may be many.
+
+## Double groups
+A double group is fixed by its spatial operations, so a subgroup relation between two space
+groups holds also between their double groups, and the above suffices to establish it. To
+obtain the double group operations in the setting of the target group, transform the
+spatial operations as above and attach the SU(2) elements tabulated for the target setting
+(see [`SU2`](@ref)), e.g. `DSymOperation{3}(op′, SU2(op′, 3))` for an operation `op′` of
+`sg168′` that belongs to ⋕3 (with `-SU2(op′, 3)` for its barred partner). Transforming the
+operations of a `DSpaceGroup` directly does not give the tabulated SU(2) elements, since
+`transform` keeps each SU(2) element with its physical operation.
 """
 function conjugacy_relations(
             gr::GroupRelationGraph{D},

@@ -323,7 +323,7 @@ test_tp_show(pgirs′[end], str)
 # CharacterTable
 # -------------------------------
 str = """
-CharacterTable{3} for ⋕21 (6):
+CharacterTable for ⋕21 (6) (spinless):
 ───────┬────────────────────
        │ Γ₁  Γ₂  Γ₃Γ₅  Γ₄Γ₆
 ───────┼────────────────────
@@ -337,7 +337,7 @@ CharacterTable{3} for ⋕21 (6):
 test_tp_show(characters(pgirs′), str)
 
 str = """
-CharacterTable{3} for ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2]:
+CharacterTable for ⋕230 (Ia-3d) at P = [1/2, 1/2, 1/2] (spinless):
 ────────────────┬──────────────────────
                 │     P₁      P₂    P₃
 ────────────────┼──────────────────────
@@ -373,7 +373,7 @@ test_tp_show(characters(lgirreps(230)["P"]), str)
 # -------------------------------
 brs = bandreps(42, 3)
 str = """
-BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spin-1 w/ TR)
+BandRepSet (⋕42): 6 BandReps, sampling 17 LGIrreps (spinless w/ TR)
 ────┬────────────────────────
     │ 4a  4a  4a  4a  8b  8b
     │ A₁  A₂  B₁  B₂  A   B

@@ -58,9 +58,9 @@ Please cite the original data sources if used in published work:
   [Aroyo et al., Z. Kristallogr. Cryst. Mater. **221**, 15
   (2006)](https://doi.org/10.1524/zkri.2006.221.1.15);
 - Point group: Bilbao Crystallographic Server's
-  [2D and 3D GENPOS](https://www.cryst.ehu.es/cryst/get_point_genpos.html);
+  [2D and 3D GENPOS](https://cryst.ehu.es/cryst/get_point_genpos.html);
 - Subperiodic groups: Bilbao Crystallographic Server's
-  [SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
+  [SUBPERIODIC GENPOS](https://cryst.ehu.es/subperiodic/get_sub_gen.html).
 
 ## Extended help
 

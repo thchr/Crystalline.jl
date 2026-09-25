@@ -56,6 +56,10 @@ export MAX_SGNUM, MAX_SUBGNUM, MAX_MSGNUM, MAX_MSUBGNUM, ENANTIOMORPHIC_PAIRS
 include("utils.jl") # misc utility methods
 
 include("types.jl") # defines useful types for space group symmetry analysis
+export AbstractSpaceGroup, AbstractPointGroup,   # abstract supertypes, to dispatch on: each
+       AbstractLittleGroup, AbstractSiteGroup,   # spans a kind of group or irrep and its
+       AbstractLGIrrep, AbstractPGIrrep,         # ordinary, double, magnetic and
+       AbstractSiteIrrep                         # subperiodic variants
 export SymOperation,                        # types
        DirectBasis, ReciprocalBasis,
        Reality, REAL, PSEUDOREAL, COMPLEX,
@@ -97,6 +101,18 @@ export SubperiodicGroup
 include("magnetic/notation-data.jl")
 include("magnetic/types.jl")
 export MSymOperation, MSpaceGroup
+
+include("double/types.jl")
+include("double/su2_table.jl")
+include("double/su2.jl")
+include("double/groups.jl")
+include("double/irreps.jl")
+include("double/notation.jl")
+include("double/show.jl")
+export SU2, DSymOperation, isbarred
+export DSpaceGroup, DPointGroup, DLittleGroup, DSiteGroup
+export doublegroup
+export DLGIrrep, DPGIrrep, DSiteIrrep
 
 include("tables/rotation_translation.jl")
 include("tables/groups/pointgroup.jl")
@@ -148,7 +164,7 @@ include("irreps_reality.jl")
 export realify, realify!, calc_reality
 
 include("irreps_physical_reality.jl")
-export physical_realify
+export physical_realify, timereversal_unitary
 
 # Large parts of the functionality in special_representation_domain_kpoints.jl should not be
 # in the core module, but belongs in a build file or similar. For now, the main goal of the
@@ -218,6 +234,8 @@ function isocaps_3d_levelsetlattice end
 const LGIRREPS_JLDFILES = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
 const LGS_JLDFILES      = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
 const PGIRREPS_JLDFILE  = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
+const DLGIRREPS_JLDFILE = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
+const DPGIRREPS_JLDFILE = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
 
 const DATA_DIR = joinpath(dirname(@__DIR__), "data")
 
@@ -233,11 +251,18 @@ function __init__()
     end
     global PGIRREPS_JLDFILE[] = # only has 3D data; no need for tuple over dimensions
             JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r")
+    # double-valued irreps: 3D only
+    global DLGIRREPS_JLDFILE[] =
+            JLD2.jldopen(DATA_DIR*"/irreps/lgs/3d/irreps_data_spinful.jld2", "r")
+    global DPGIRREPS_JLDFILE[] =
+            JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data_spinful.jld2", "r")
 
     # ensure we close files on exit
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGIRREPS_JLDFILES))
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
+    atexit(() -> close(DLGIRREPS_JLDFILE[]))
+    atexit(() -> close(DPGIRREPS_JLDFILE[]))
 end
 
 # precompile statements

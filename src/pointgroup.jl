@@ -88,9 +88,9 @@ end
 # --- POINT GROUP IRREPS ---
 _unmangle_pgiuclab(iuclab) = replace(iuclab, "/"=>"_slash_")
 
-# loads 3D point group data from the .jld2 file opened in `PGIRREPS_JLDFILE`
-function _load_pgirreps_data(iuclab::String)
-    jldgroup = PGIRREPS_JLDFILE[][_unmangle_pgiuclab(iuclab)] 
+# loads 3D point group data from a .jld2 file (by default, the one in `PGIRREPS_JLDFILE`)
+function _load_pgirreps_data(iuclab::String, jldfile::JLD2.JLDFile=PGIRREPS_JLDFILE[])
+    jldgroup = jldfile[_unmangle_pgiuclab(iuclab)]
     matrices::Vector{Vector{Matrix{ComplexF64}}} = jldgroup["matrices"]
     realities::Vector{Int8}                      = jldgroup["realities"]
     cdmls::Vector{String}                        = jldgroup["cdmls"]
@@ -100,11 +100,18 @@ end
 
 # 3D
 """
-    pgirreps(iuclab::String, ::Val{D}=Val(3); mulliken::Bool=false) where D ∈ (1,2,3)
-    pgirreps(iuclab::String, D; mulliken::Bool=false)
+    pgirreps(iuclab::String, ::Val{D}=Val(3); spinful=Val(false), mulliken::Bool=false)
+    pgirreps(iuclab::String, D::Integer; spinful=Val(false), mulliken::Bool=false)
 
 Return the (crystallographic) point group irreps of the IUC label `iuclab` of dimension `D`
 as a `Vector{PGIrrep{D}}`.
+
+If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double point group
+are returned instead, as `DPGIrrep{D}`s (currently available in 3D only), with the `Val`
+spelling keeping the return type inferrable. Their labels are the
+CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
+`"¹E₁ˢ"`). The single-valued irreps of a double group coincide with those of the ordinary
+group and are not included.
 
 See `Crystalline.PG_IUC2NUM[D]` for possible IUC labels in dimension `D`.
 
@@ -126,21 +133,40 @@ functionality in an explicit fashion, please cite the original reference [^3].
 [^1]: Cracknell, Davies, Miller, & Love, Kronecher Product Tables 1 (1979).
 
 [^2]: Bilbao Crystallographic Database's
-      [Representations PG program](https://www.cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
+      [Representations PG program](https://cryst.ehu.es/cgi-bin/cryst/programs/representations_point.pl?tipogrupo=spg).
 
 [^3]: Elcoro et al., 
       [J. of Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712)
 """
-function pgirreps(iuclab::String, ::Val{3}=Val(3); mulliken::Bool=false)
-    pg = pointgroup(iuclab, Val(3)) # operations
+function pgirreps(
+    iuclab::String,
+    Dᵛ::Val{3}=Val(3);
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
+    mulliken::Bool=false
+)
+    spinfulᵛ = _spinfulval(spinful)
+    pg = pointgroup(iuclab, Dᵛ; spinful=spinfulᵛ) # operations
 
-    matrices, realities, cdmls = _load_pgirreps_data(iuclab)
+    matrices, realities, cdmls = _load_pgirreps_data(iuclab, _pgirreps_jldfile(spinfulᵛ))
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return Collection(PGIrrep{3}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(_pgirrep.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
+_pgirrep(cdml, pg::PointGroup{D}, P, reality) where D = PGIrrep{D}(cdml, pg, P, reality)
+function _pgirrep(cdml, pg::DPointGroup{D}, P, reality) where D
+    return DPGIrrep{D}(cdml, pg, _doubled_matrices(P), reality)
+end
+
+_pgirreps_jldfile(::Val{false}) = PGIRREPS_JLDFILE[]
+_pgirreps_jldfile(#=Val{S}=# ::Val{true}) = DPGIRREPS_JLDFILE[]
 # 2D
-function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
+function pgirreps(
+    iuclab::String,
+    ::Val{2};
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
+    mulliken::Bool=false
+)
+    _isspinful(spinful) && _only_3d(2)
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -155,7 +181,13 @@ function pgirreps(iuclab::String, ::Val{2}; mulliken::Bool=false)
     return Collection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
-function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
+function pgirreps(
+    iuclab::String,
+    ::Val{1};
+    spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
+    mulliken::Bool=false
+)
+    _isspinful(spinful) && _only_3d(1)
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
@@ -175,13 +207,17 @@ function pgirreps(iuclab::String, ::Val{1}; mulliken::Bool=false)
 end
 pgirreps(iuclab::String, ::Val{D}; kws...) where D = _throw_invalid_dim(D) # if D ∉ (1,2,3)
 pgirreps(iuclab::String, D::Integer; kws...) = pgirreps(iuclab, Val(D); kws...)
-function pgirreps(pgnum::Integer, Dᵛ::Val{D}=Val(3);
-                  setting::Integer=1, kws...) where D
+function pgirreps(
+    pgnum::Integer,
+    Dᵛ::Val{D}=Val(3);
+    setting::Integer=1,
+    kws...
+) where D
     iuc = pointgroup_num2iuc(pgnum, Dᵛ, setting)
     return pgirreps(iuc, Dᵛ; kws...)
 end
 function pgirreps(pgnum::Integer, D::Integer; kws...)
-    return pgirreps(pgnum, Val(D); kws...) :: Collection{<:PGIrrep}
+    return pgirreps(pgnum, Val(D); kws...) :: Collection{<:AbstractPGIrrep}
 end
 
 function ⊕(pgir1::PGIrrep{D}, pgir2::PGIrrep{D}) where D

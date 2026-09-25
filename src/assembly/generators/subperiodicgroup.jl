@@ -18,7 +18,7 @@ julia> generators(7, SubperiodicGroup{2, 1})
 ## Data sources
 
 The generators returned by this function were originally retrieved from the [Bilbao
-Crystallographic Database, SUBPERIODIC GENPOS](https://www.cryst.ehu.es/subperiodic/get_sub_gen.html).
+Crystallographic Database, SUBPERIODIC GENPOS](https://cryst.ehu.es/subperiodic/get_sub_gen.html).
 """
 function generators(num::Integer, ::Type{SubperiodicGroup{D,P}}) where {D,P}
     @boundscheck _check_valid_subperiodic_num_and_dim(num, D, P)

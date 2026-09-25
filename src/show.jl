@@ -1,20 +1,24 @@
 # ---------------------------------------------------------------------------------------- #
 # SymOperation
 function show(io::IO, ::MIME"text/plain", op::AbstractOperation{D}) where D
+    _print_operation_header(io, op)
+    get(io, :compact, false) && return nothing
+    println(io)
+    _print_operation_matrix(io, op)
+end
+
+# print the Seitz symbol and, unless the IOContext is `:compact=>true`, the triplet
+# expression
+function _print_operation_header(io::IO, op::AbstractOperation)
     opseitz, opxyzt = seitz(op), xyzt(op)
     print(io, opseitz)
-    
-    # don't print triplet & matrix format if the IOContext is :compact=>true
-    if get(io, :compact, false)
-        return nothing
-    end
-
-    # --- print triplet expression ---
+    get(io, :compact, false) && return nothing
     printstyled(io, " ", repeat('─',max(38-length(opseitz)-length(opxyzt), 1)),
                     " (", opxyzt, ")"; color=:light_black)
-    println(io)
+    return nothing
+end
 
-    # --- print matrix ---
+function _print_operation_matrix(io::IO, op::AbstractOperation{D}) where D
     # info that is needed before we start writing by column
     τstrs = fractionify.(translation(op), false)
     Nsepτ = maximum(length, τstrs)
@@ -158,7 +162,7 @@ function show(io::IO, g::AbstractGroup)
     join(io, g, ", ")
     print(io, ']')
 end
-function show(io::IO, g::Union{LittleGroup, SiteGroup})
+function show(io::IO, g::Union{AbstractLittleGroup, AbstractSiteGroup})
     print(io, '[')
     join(io, g, ", ")
     print(io, ']')
@@ -263,10 +267,10 @@ function prettyprint_irrep_scalars(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, lgir::LGIrrep, i::Integer; digits::Int=4
+        io::IO, lgir::AbstractLGIrrep, i::Integer; digits::Int=4
     )
     # unpack
-    k₀, kabc = parts(position(group(lgir)))
+    k₀, kabc = parts(position(lgir))
     P = lgir.matrices[i]
     τ = lgir.translations[i]
 
@@ -317,7 +321,7 @@ function prettyprint_irrep_matrix(
 end
 
 function prettyprint_irrep_matrix(
-        io::IO, ir::Union{<:PGIrrep, <:SiteIrrep}, i::Integer
+        io::IO, ir::Union{<:AbstractPGIrrep, <:AbstractSiteIrrep}, i::Integer
     )
     P = ir.matrices[i]
     prettyprint_scalar_or_matrix(io, P, false)
@@ -325,7 +329,7 @@ end
 
 function prettyprint_irrep_matrices(
         io::IO,
-        ir::Union{<:LGIrrep, <:PGIrrep, <:SiteIrrep},
+        ir::Union{<:AbstractLGIrrep, <:AbstractPGIrrep, <:AbstractSiteIrrep},
         nindent::Integer
     )
     indent = repeat(' ', nindent)
@@ -388,6 +392,13 @@ function show(io::IO, c::Collection{T}) where T <: AbstractIrrep
 end
 
 # ---------------------------------------------------------------------------------------- #
+# Spin tag for character tables, band representations, and symmetry vectors: single-valued
+# irreps apply to any integer (total) angular momentum, double-valued irreps to any
+# half-integer one
+
+_spin_tag(x) = isspinful(x) ? "spinful" : "spinless"
+
+# ---------------------------------------------------------------------------------------- #
 # CharacterTable
 
 function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
@@ -395,7 +406,9 @@ function show(io::IO, ::MIME"text/plain", ct::AbstractCharacterTable)
     chars_formatted = _stringify_characters.(chars; digits=4)
 
     ops = operations(ct)
-    println(io, typeof(ct), " for ", tag(ct), ":") # type name and space group/k-point tags
+    # the operation type parameter is not informative to a user, beyond whether the table is
+    # over a double group, which `_spin_tag` states instead
+    println(io, nameof(typeof(ct)), " for ", tag(ct), " (", _spin_tag(ct), "):")
     pretty_table(io,
         chars_formatted;
         # row/column names
@@ -536,7 +549,7 @@ function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
     println(io, "BandRepSet (⋕", num(brs), "): ",
                 length(brs), " BandReps, ",
                 "sampling ", Nⁱʳʳ, " LGIrreps ",
-                "(spin-", isspinful(brs) ? "½" : "1", " ",
+                "(", _spin_tag(brs), " ",
                 brs.timereversal ? "w/" : "w/o", " TR)")
 
     # print band representations as table
@@ -578,8 +591,13 @@ end
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
 
+# the type name with only its dimension, e.g. `SymmetryVector{3}`: the irrep type parameters
+# are not relevant to a user, beyond whether the irreps are spinful (see `_spin_tag`)
+_typename_with_dim(::T) where T<:AbstractSymmetryVector = _typename_with_dim(T)
+_typename_with_dim(T::Type{<:AbstractSymmetryVector}) = string(nameof(T), "{", dim(T), "}")
+
 function Base.show(io :: IO, ::MIME"text/plain", n :: SymmetryVector)
-    print(io, length(n)-1, "-irrep ", typeof(n), ":\n ")
+    print(io, length(n)-1, "-irrep ", _typename_with_dim(n), " (", _spin_tag(n), "):\n ")
     show(io, n)
 end
 function Base.show(io :: IO, n :: SymmetryVector)
@@ -602,7 +620,8 @@ end
 # NewBandRep
 
 function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
-    print(io, length(br.n)-1, "-irrep ", typeof(br), ":\n ")
+    print(io, length(br.n)-1, "-irrep ", _typename_with_dim(br),
+              " (", _spin_tag(br), "):\n ")
     print(io, "(", )
     printstyled(io, label(position(br.siteir)); bold=true)
     print(io, "|")
@@ -623,10 +642,11 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
     Nⁱʳʳ = length(irlabs)
 
     # print a "summary" line
-    print(io, length(brs), "-element ", typeof(brs), " for ⋕", num(brs))
+    print(io, length(brs), "-element Collection{", _typename_with_dim(eltype(brs)), "}")
+    print(io, " for ⋕", num(brs))
     print(io, " (", iuc(num(brs), dim(brs)), ") ")
     print(io, "over ", Nⁱʳʳ, " irreps")
-    print(io, " (spin-", first(brs).spinful ? "½" : "1", 
+    print(io, " (", _spin_tag(first(brs)), 
               " w/", first(brs).timereversal ? "" : "o", "TR):")
     println(io)
 
@@ -670,7 +690,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 # CompositeBandRep
 
-function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
+function Base.show(io::IO, cbr::CompositeBandRep)
     first = true
     for (j, c) in enumerate(cbr.coefs)
         iszero(c) && continue
@@ -693,8 +713,9 @@ function Base.show(io::IO, cbr::CompositeBandRep{D}) where D
     first && print(io, "0")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep{D}) where D
-    println(io, length(irreplabels(cbr)), "-irrep ", typeof(cbr), ":")
+function Base.show(io::IO, ::MIME"text/plain", cbr::CompositeBandRep)
+    println(io, length(irreplabels(cbr)), "-irrep ", _typename_with_dim(cbr),
+                " (", _spin_tag(cbr), "):")
     print(io, " ")
     show(io, cbr)
     μ = occupation(cbr)

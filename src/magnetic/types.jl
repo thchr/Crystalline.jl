@@ -39,7 +39,7 @@ end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct MSpaceGroup{D} <: AbstractGroup{D, MSymOperation{D}}
+struct MSpaceGroup{D} <: AbstractSpaceGroup{D, MSymOperation{D}}
     num :: Tuple{Int, Int}
     operations :: Vector{MSymOperation{D}}
 end

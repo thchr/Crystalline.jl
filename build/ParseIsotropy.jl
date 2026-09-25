@@ -2,8 +2,24 @@ module ParseIsotropy
 
 using Crystalline
 using Crystalline: AbstractIrrep
+using Pkg.Artifacts: ensure_artifact_installed
 
-export parselittlegroupirreps
+export parselittlegroupirreps, isotropy_datadir
+
+"""
+    isotropy_datadir() --> String
+
+The directory holding ISOTROPY's `CIR_data.txt` and `PIR_data.txt`, downloading them first
+if necessary: they are not kept in the repository, but published as a release asset and
+declared as the `isotropy` artifact (see `Artifacts.toml` and `build/DATA-RELEASE.md`).
+
+`@artifact_str` is not usable here — it searches upwards from this file for an
+`Artifacts.toml` and stops at `build/Project.toml` — so the declaration is named explicitly.
+"""
+function isotropy_datadir()
+    toml = joinpath(dirname(@__DIR__), "Artifacts.toml")
+    return ensure_artifact_installed("isotropy", toml)
+end
 
 # --- Magic numbers ---
 const BYTES_PER_KCHAR = 3
@@ -39,12 +55,12 @@ dim(sgir::SGIrrep3D) = 3
 
 # --- Parsing ---
 
-parseisoir(T::Type{Real}) = parseisoir(Float64)         # just for being able to call it with Real or Complex
-parseisoir(T::Type{Complex}) = parseisoir(ComplexF64)   # as input rather than Float64 and ComplexF64
+parseisoir(T::Type{Real}; kws...) = parseisoir(Float64; kws...)         # just for being able to call it with Real or Complex
+parseisoir(T::Type{Complex}; kws...) = parseisoir(ComplexF64; kws...)   # as input rather than Float64 and ComplexF64
 
-function parseisoir(::Type{T}) where T<:Union{Float64,ComplexF64}
+function parseisoir(::Type{T}; datadir = isotropy_datadir()) where T<:Union{Float64,ComplexF64}
     datatag = if T <: Real; "PIR"; elseif T <: Complex; "CIR"; end   
-    io = open((@__DIR__)*"/../data/misc/ISOTROPY/"*datatag*"_data.txt","r")
+    io = open(joinpath(datadir, datatag*"_data.txt"), "r")
 
     irreps = Vector{Vector{SGIrrep3D{T}}}()
     while !eof(io)
@@ -262,7 +278,7 @@ function littlegroupirrep(ir::SGIrrep3D{<:Complex})
     return LGIrrep{3}(label(ir), LittleGroup(num(ir), kv, klabel(ir), collect(lgops)), lgirmatrices, lgirtrans, reality(ir), false)
 end
 
-parselittlegroupirreps() = parselittlegroupirreps.(parseisoir(Complex))
+parselittlegroupirreps(; kws...) = parselittlegroupirreps.(parseisoir(Complex; kws...))
 function parselittlegroupirreps(irvec::Vector{SGIrrep3D{ComplexF64}})
     lgirsd = Dict{String, Collection{LGIrrep{3}}}()
     curklab = nothing; accidx = Int[]

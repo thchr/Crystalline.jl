@@ -1,6 +1,5 @@
 """
-    classes(ops::AbstractVector{SymOperation{D}}, [cntr::Union{Char, Nothing}])
-                                                    -->  Vector{Vector{SymOperation{D}}}
+    classes(ops::AbstractVector{O}, [cntr::Union{Char, Nothing}])  -->  Vector{Vector{O}}
 
 Return the conjugacy classes of a group ``G`` defined by symmetry operations `ops`.
 
@@ -26,19 +25,19 @@ reduced to a primitive setting prior to calling `classes`), `cntr` should be pro
 explicitly as `nothing`.
 """
 function classes(
-            ops::AbstractVector{SymOperation{D}},
+            ops::AbstractVector{O},
             cntr::Union{Char, Nothing}=nothing,
-            _modτ::Bool=!(ops isa SiteGroup) # `SiteGroup` elements compose w/ `modτ=false`
-            ) where D
+            _modτ::Bool=!(ops isa AbstractSiteGroup) # `SiteGroup`s compose w/ `modτ=false`
+            ) where {D, O<:AbstractOperation{D}}
 
     ops⁻¹ = inv.(ops)
     cntr_ops = if cntr === nothing
         nothing
     else
-        SymOperation{D}.(all_centeringtranslations(cntr, Val(D)))
+        O.(all_centeringtranslations(cntr, Val(D)))
     end
 
-    conj_classes = Vector{Vector{SymOperation{D}}}()
+    conj_classes = Vector{Vector{O}}()
     classified = sizehint!(BitSet(), length(ops))
     i = 0
     while length(classified) < length(ops)
@@ -81,7 +80,6 @@ function classes(
     return conj_classes
 end
 classes(g::AbstractGroup) = classes(g, centering(g))
-
 # adds `b` to `class` and index of `b` in `ops` to `classified`
 function add_to_class!(classified, class, b, ops)
     i′ = findfirst(op -> isapprox(op, b, nothing, false), ops)
