@@ -20,9 +20,9 @@ lowest-lying bands are returned first.
    operations must correspond to those in `group(irreps(brs)[kidx])`. For spinful band
    representations, the required little group operations are those of the doubled little
    group, including "barred" operations.
-- `brs :: Collection{NewBandRep{D}}`: a collection of band representations, iterating a set
-   of `NewBandRep{D}` objects, obtained from [`calc_bandreps`](@ref), and is expected to be
-   provided in `primitivized` form (see [`primitivize(::Collection{<:NewBandRep})`](@ref)).
+- `brs :: Collection{BandRep{D}}`: a collection of band representations, iterating a set
+   of `BandRep{D}` objects, obtained from [`bandreps`](@ref), and is expected to be
+   provided in `primitivized` form (see [`primitivize(::Collection{<:BandRep})`](@ref)).
    The little group irreps are implicitly specified via `brs` as well (via `irreps(brs)`),
    as are the corresponding little groups and their associated operator sorting (via
    `group.(irreps(brs))`). It assumed that the sorting of symmetry eigenvalues in `symeigsv`
@@ -43,7 +43,7 @@ used by [`find_multiplicities`](@ref).
 """
 function collect_compatible(
     symeigsv::AbstractVector{<:AbstractVector{<:AbstractVector{<:Number}}},
-    brs::Collection{<:NewBandRep{D, IR}},
+    brs::Collection{<:BandRep{D, IR}},
     F::Smith{<:Integer} = smith(stack(brs));
     kws...
 ) where {D, IR}

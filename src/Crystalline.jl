@@ -66,7 +66,6 @@ export SymOperation,                        # types
        Collection,
        MultTable, LGIrrep, PGIrrep, SiteIrrep,
        KVec, RVec,
-       BandRep, BandRepSet,
        SpaceGroup, PointGroup, LittleGroup,
        CharacterTable,
        # operations on ...
@@ -82,11 +81,11 @@ export SymOperation,                        # types
        isspecial,
        irdim,
        dim, parts,                          # ::KVec & RVec
-       irreplabels, klabels,                # ::BandRep & ::BandRepSet
+       irreplabels, klabels,                # ::BandRep & ::SymmetryVector
        isspinful
 
 include("types_symmetryvectors.jl")
-export SymmetryVector, SymmetryVectors, NewBandRep, CompositeBandRep
+export SymmetryVector, SymmetryVectors, BandRep, CompositeBandRep
 export irreps, multiplicities, occupation
 export @composite
 
@@ -189,16 +188,15 @@ export ModulatedFourierLattice,
 include("compatibility.jl")
 export subduction_count, remap_to_kstar
 
-include("bandrep.jl")
-export bandreps, basisdim
-
-include("calc_bandreps.jl")
-export calc_bandreps
+include("bandreps.jl")
+export bandreps
 
 include("tqc_analysis.jl")
 export iscompatible, calc_topology, symmetry_indicators
 export indicator_group, indicator_group_as_string
+export basisdim
 export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
+public includes_connectivity # unexported, but relied on by downstream packages
 
 include("symeigs_analysis.jl")
 export collect_compatible, collect_irrep_annotations
@@ -209,8 +207,7 @@ export maximal_subgroups, minimal_supergroups, conjugacy_relations
 include("show.jl") # printing of structs from src/[types.jl, types_symmetry_vectors.jl, …]
 
 include("deprecations.jl")
-export get_littlegroups, get_lgirreps, get_pgirreps, WyckPos, kvec, wyck, kstar,
-       classification, nontrivial_factors
+export classification, nontrivial_factors, calc_bandreps
 
 # some functions are extensions of base-owned names; we need to (re)export them in order to 
 # get the associated docstrings listed by Documeter.jl

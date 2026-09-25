@@ -74,7 +74,7 @@ function _rebuild_irrep_with_modified_group(ir::IR, g′) where IR<:AbstractSite
 end
 
 """
-    primitivize(brs::Collection{<:NewBandRep}, [cntr::Char]) -> Collection{<:NewBandRep}
+    primitivize(brs::Collection{<:BandRep}, [cntr::Char]) -> Collection{<:BandRep}
 
 Analogous to `primitivize(::Collection{<:Union{LGIrrep, SiteIrrep}}, ::Char)` but for
 band representations.
@@ -83,7 +83,7 @@ Primitivizes the groups associated with both the underlying little group irreps 
 site irreps.
 """
 function primitivize(
-    brs::Collection{NewBandRep{D, IR, SIR}},
+    brs::Collection{BandRep{D, IR, SIR}},
     cntr::Char = centering(num(brs), D)
 ) where {D, IR, SIR}
     # --- early termination; don't need to do anything if already primitive ---
@@ -98,13 +98,13 @@ function primitivize(
     end
 
     # --- primitivize siteirreps & update each band rep ---
-    vs′ = Vector{NewBandRep{D, IR, SIR}}(undef, length(brs))
+    vs′ = Vector{BandRep{D, IR, SIR}}(undef, length(brs))
     for (i, br) in enumerate(brs)
         siteg′ = primitivize(group(br))
         siteir′ = _rebuild_irrep_with_modified_group(br.siteir, siteg′)
         n = br.n
         n′ = SymmetryVector(lgirsv′, multiplicities(n), occupation(n))
-        br′ = NewBandRep(siteir′, n′, br.timereversal)
+        br′ = BandRep(siteir′, n′, br.timereversal)
         vs′[i] = br′
     end
     brs′ = Collection(vs′)

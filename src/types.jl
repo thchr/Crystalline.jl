@@ -1032,7 +1032,7 @@ Base.position(siteir::AbstractSiteIrrep) = position(group(siteir))
     Collection{T} <: AbstractVector{T}
 
 A wrapper around a `Vector{T}`, that allows custom printing and dispatch rules of custom
-`T` (e.g., `AbstractIrrep` & `NewBandRep`).
+`T` (e.g., `AbstractIrrep` & `BandRep`).
 
 In Crystalline, it is assumed that all elements of the wrapped vector are associated with
 the _same_ space, point, or little group. Accordingly, if `T` implements [`dim`](@ref) or 
@@ -1184,72 +1184,3 @@ function classcharacters(irs::AbstractVector{<:AbstractIrrep{D}},
     end
     return ClassCharacterTable(classes_ops, label.(irs), table, _group_descriptor(g))
 end
-
-# ---------------------------------------------------------------------------------------- #
-# BandRep & BandRepSet (band representations)
-# ---------------------------------------------------------------------------------------- #
-
-# --- BandRep ---
-"""
-$(TYPEDEF)$(TYPEDFIELDS)
-"""
-struct BandRep <: AbstractVector{Int}
-    wyckpos::String  # Wyckoff position that induces the BR
-    sitesym::String  # Site-symmetry point group of Wyckoff pos (IUC notation)
-    label::String    # Symbol ρ↑G, with ρ denoting the irrep of the site-symmetry group
-    dim::Int         # Dimension (i.e. # of bands) in band rep
-    spinful::Bool       # Whether a given bandrep involves spinful irreps ("\bar"'ed irreps)
-    irvec::Vector{Int}  # Vector that references irlabs of a parent BandRepSet; nonzero
-                           # entries correspond to an element in the band representation
-    irlabs::Vector{String} # A reference to the labels; same as in the parent BandRepSet
-end
-Base.position(BR::BandRep) = BR.wyckpos
-sitesym(BR::BandRep) = BR.sitesym
-label(BR::BandRep) = BR.label
-irreplabels(BR::BandRep) = BR.irlabs
-
-"""
-    dim(BR::BandRep) --> Int
-
-Return the number of bands included in the provided `BandRep`.
-"""
-dim(BR::BandRep) = BR.dim # TODO: Deprecate to `occupation` instead
-
-# define the AbstractArray interface for BandRep
-size(BR::BandRep) = (size(BR.irvec)[1] + 1,) # number of irreps sampled by BandRep + 1 (filling)
-@propagate_inbounds function getindex(BR::BandRep, i::Int)
-    return i == length(BR.irvec)+1 ? dim(BR) : BR.irvec[i]
-end
-IndexStyle(::Type{<:BandRep}) = IndexLinear()
-function iterate(BR::BandRep, i=1)
-    # work-around performance issue noted in https://discourse.julialang.org/t/iteration-getindex-performance-of-abstractarray-wrapper-types/53729
-    if i == length(BR)
-        return dim(BR), i+1
-    else
-        return iterate(BR.irvec, i) # also handles `nothing` when iteration is done
-    end
-end
-
-# --- BandRepSet ---
-"""
-$(TYPEDEF)$(TYPEDFIELDS)
-"""
-struct BandRepSet <: AbstractVector{BandRep}
-    sgnum::Int              # space group number, sequential
-    bandreps::Vector{BandRep}
-    kvs::Vector{<:KVec}     # Vector of 𝐤-points # TODO: Make parametric
-    klabs::Vector{String}   # Vector of associated 𝐤-labels (in CDML notation)
-    irlabs::Vector{String}  # Vector of (sorted) CDML irrep labels at _all_ 𝐤-points
-    spinful::Bool           # Whether the band rep set includes (true) or excludes (false) spinful irreps
-    timereversal::Bool      # Whether the band rep set assumes time-reversal symmetry (true) or not (false) 
-end
-num(brs::BandRepSet)         = brs.sgnum
-klabels(brs::BandRepSet)     = brs.klabs
-irreplabels(brs::BandRepSet) = brs.irlabs
-isspinful(brs::BandRepSet)   = brs.spinful
-reps(brs::BandRepSet)        = brs.bandreps
-
-# define the AbstractArray interface for BandRepSet
-size(brs::BandRepSet) = (length(reps(brs)),) # number of distinct band representations
-@propagate_inbounds getindex(brs::BandRepSet, i::Int) = reps(brs)[i]
-IndexStyle(::Type{<:BandRepSet}) = IndexLinear()

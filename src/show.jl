@@ -471,7 +471,7 @@ function _complex_as_compact_string(c::Complex) # usual string(::Complex) has sp
 end
 
 # ---------------------------------------------------------------------------------------- #
-# BandRep
+# symmetry vector printing helpers
 
 function prettyprint_symmetryvector(
             io::IO, 
@@ -528,66 +528,6 @@ function symvec2string(irvec::AbstractVector{<:Real}, irlabs::Vector{String};
     return String(take!(io))
 end
 
-summary(io::IO, BR::BandRep) = print(io, dim(BR), "-band BandRep (", label(BR), " at ", position(BR), ")")
-function show(io::IO, ::MIME"text/plain", BR::BandRep)
-    summary(io, BR)
-    print(io, ":\n ")
-    prettyprint_symmetryvector(io, BR, irreplabels(BR))
-end
-function show(io::IO, BR::BandRep)
-    prettyprint_symmetryvector(io, BR, irreplabels(BR))
-end
-
-# ---------------------------------------------------------------------------------------- #
-# BandRepSet
-
-function show(io::IO, ::MIME"text/plain", brs::BandRepSet)
-    Nⁱʳʳ = length(irreplabels(brs))
-    Nᵉᵇʳ = length(brs)
-
-    # print a "title" line and the irrep labels
-    println(io, "BandRepSet (⋕", num(brs), "): ",
-                length(brs), " BandReps, ",
-                "sampling ", Nⁱʳʳ, " LGIrreps ",
-                "(", _spin_tag(brs), " ",
-                brs.timereversal ? "w/" : "w/o", " TR)")
-
-    # print band representations as table
-    k_idx = (i) -> findfirst(==(klabel(irreplabels(brs)[i])), klabels(brs)) # highlighters
-    h_odd = TextHighlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
-    h_μ   = TextHighlighter((data,i,j) -> i==Nⁱʳʳ+1,                 crayon"light_yellow")
-    pretty_table(io, 
-        # table contents
-        stack(brs);
-        # row/column names
-        row_labels = vcat(irreplabels(brs), "μ"),
-        column_labels = [
-            position.(brs),
-            chop.(label.(brs), tail=2)  # remove repetitive "↑G" postfix
-        ],
-        # options/formatting/styling
-        formatters = [(v,i,j) -> iszero(v) ? "·" : string(v)],
-        row_label_column_alignment = :l,
-        alignment = :c, 
-        highlighters = [h_odd, h_μ],
-        style = TextTableStyle(column_label = crayon"bold"),
-        table_format = TextTableFormat(;
-            horizontal_line_at_beginning = true,
-            horizontal_line_after_column_labels = true,
-            horizontal_lines_at_data_rows = [Nⁱʳʳ],
-            horizontal_line_after_data_rows = true,
-            vertical_line_at_beginning = false,
-            vertical_lines_at_data_columns = :none,
-            vertical_line_after_data_columns = false,
-        ),
-        new_line_at_end = false
-        # TODO: Would be nice to highlight the `row_labels` in a style matching the contents,
-        #       but not possible atm (https://github.com/ronisbr/PrettyTables.jl/issues/122)
-        )
-
-    # print k-vec labels
-end
-
 # ---------------------------------------------------------------------------------------- #
 # SymmetryVector
 
@@ -617,9 +557,9 @@ function Base.show(io :: IO, n :: SymmetryVector)
 end
 
 # ---------------------------------------------------------------------------------------- #
-# NewBandRep
+# BandRep
 
-function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
+function Base.show(io :: IO, ::MIME"text/plain", br :: BandRep)
     print(io, length(br.n)-1, "-irrep ", _typename_with_dim(br),
               " (", _spin_tag(br), "):\n ")
     print(io, "(", )
@@ -630,14 +570,14 @@ function Base.show(io :: IO, ::MIME"text/plain", br :: NewBandRep)
     show(io, br.n)
 end
 
-function Base.show(io :: IO, br :: NewBandRep)
+function Base.show(io :: IO, br :: BandRep)
     print(io, "(", label(position(br.siteir)), "|", label(br.siteir), ")")
 end
 
 # ---------------------------------------------------------------------------------------- #
-# Collection{<:NewBandRep}
+# Collection{<:BandRep}
 
-function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep})
+function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:BandRep})
     irlabs = irreplabels(brs)
     Nⁱʳʳ = length(irlabs)
 
@@ -683,7 +623,7 @@ function Base.show(io :: IO, ::MIME"text/plain", brs :: Collection{<:NewBandRep}
     )
 end
 
-function Base.show(io :: IO, brs :: Collection{<:NewBandRep})
+function Base.show(io :: IO, brs :: Collection{<:BandRep})
     Base.show_delim_array(io, brs.vs, '[', ',', ']', false)
 end
 

@@ -1,6 +1,12 @@
 using Test, Crystalline
 using Crystalline: constant, free
 
+# Bilbao's tabulated EBRs, used here as an independent reference (see the file for details)
+if !isdefined(@__MODULE__, :BilbaoBandReps)
+    include("bilbao_bandreps_implementation.jl")
+end
+using .BilbaoBandReps: bilbao_bandreps
+
 @testset "SiteGroup" begin
     neg_error_tol = 1e-15
     for D in 1:3
@@ -50,7 +56,7 @@ end
 
         # the band representations should include all maximal wyckoff positions; 
         # check consistency against that
-        brs = bandreps(sgnum, 3)
+        brs = bilbao_bandreps(sgnum, 3)
         max_wps_brs_str = map(_br -> _br.wyckpos, brs.bandreps)
         @test sort(unique(max_wps_brs_str)) == sort(label.(max_wps))
     end
