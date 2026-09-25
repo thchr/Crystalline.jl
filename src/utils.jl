@@ -108,8 +108,6 @@ const SUPSCRIPT_MAP = Dict('1'=>'¹', '2'=>'²', '3'=>'³', '4'=>'⁴', '5'=>'�
                            'α'=>'ᵅ', 'β'=>'ᵝ', 'γ'=>'ᵞ', 'δ'=>'ᵟ', 'ε'=>'ᵋ',  # greek
                            'θ'=>'ᶿ', 'ι'=>'ᶥ', 'φ'=>'ᶲ', 'ψ'=>'ᵠ', 'χ'=>'ᵡ',
                            )                                          
-const SUBSCRIPT_MAP_REVERSE = Dict(v=>k for (k,v) in SUBSCRIPT_MAP)
-const SUPSCRIPT_MAP_REVERSE = Dict(v=>k for (k,v) in SUPSCRIPT_MAP)
 
 subscriptify(str::AbstractString) = map(subscriptify, str)
 function subscriptify(c::Char)
@@ -141,18 +139,6 @@ function formatirreplabel(str::AbstractString)
         end
     end
     return String(take!(buf))
-end
-
-
-normalizesubsup(str::AbstractString) = map(normalizesubsup, str)
-function normalizesubsup(c::Char)
-    if c ∈ keys(SUBSCRIPT_MAP_REVERSE)
-        return SUBSCRIPT_MAP_REVERSE[c]
-    elseif c ∈ keys(SUPSCRIPT_MAP_REVERSE)
-        return SUPSCRIPT_MAP_REVERSE[c]
-    else 
-        return c
-    end
 end
 
 issubdigit(c::AbstractChar) = (c >= '₀') & (c <= '₉')

@@ -53,7 +53,7 @@ end # @testset "Subduction"
     @test lgirs_map_to_self[1] !== lgirs[1]
     
     # smoke-test: test it works/runs without error for non-trivial (different) `kv` input
-    kv′ = kstar(first(lgirs))[2]
+    kv′ = orbit(first(lgirs))[2]
     @test kv ≠ kv′
     @test remap_to_kstar(lgirs, kv′) isa Collection{LGIrrep{3}}
 

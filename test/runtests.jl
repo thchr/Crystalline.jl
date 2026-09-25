@@ -60,8 +60,8 @@ using Crystalline, Test
 
     # band representations & site symmetry groups
     include("classification.jl")  # => does topo classification agree w/ Adrian?
-    include("bandrep.jl")         # => do k-vectors match (Bilbao's bandreps vs ISOTROPY)?
-    include("calc_bandreps.jl")   # => tests of /src/calc_bandreps.jl
+    include("bilbao_bandreps.jl") # => do Bilbao's tabulated k-vectors match ISOTROPY?
+    include("bandreps.jl")        # => tests of /src/bandreps.jl
     include("isomorphic_parent_pointgroup.jl") # => do we find the same "parent" point
                                                #    groups as Bilbao?
 

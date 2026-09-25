@@ -40,5 +40,5 @@ using Crystalline: check_multtable_vs_ir
     end
 end
 
-# the site irrep labels are compared with Bilbao's in test/calc_bandreps.jl (spinful EBRs)
+# the site irrep labels are compared with Bilbao's in test/bandreps.jl (spinful EBRs)
 

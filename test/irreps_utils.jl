@@ -12,14 +12,14 @@ using Crystalline, Test, LinearAlgebra
     @test lgirsdA !== lgirsdB # not `===`
     @test hash(lgirsdA) == hash(lgirsdB)
 
-    # NewBandRep
-    brsA = calc_bandreps(16, Val(3))
-    brsB = calc_bandreps(16, Val(3))
+    # BandRep
+    brsA = bandreps(16, Val(3))
+    brsB = bandreps(16, Val(3))
     @test brsA == brsB
     @test brsA !== brsB # not `===`
     @test hash(brsA) == hash(brsB)
 
-    # LGIrrep vectors from NewBandRep
+    # LGIrrep vectors from BandRep
     brsA_lgirsvA = irreps(brsA)
     brsB_lgirsvB = irreps(brsB)
     @test brsA_lgirsvA == brsB_lgirsvB

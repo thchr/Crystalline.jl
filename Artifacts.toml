@@ -16,6 +16,16 @@
 # Those callers use `ensure_artifact_installed(name, joinpath(pkgdir(Crystalline),
 # "Artifacts.toml"))` instead. From `src/` the macro works normally.
 
+# The elementary band representations tabulated by Bilbao's BANDREP program, against which
+# the band representations computed by `bandreps` are checked (`test/bandreps.jl`)
+[bandreps]
+git-tree-sha1 = "21f57d626ea312aabb49b1414263088d2c6757bd"
+lazy = true
+
+    [[bandreps.download]]
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.4/bandreps.tar.gz"
+    sha256 = "72700f6952cc37660bb21bd29fcca0af673485dcb19f5684e6e568ef8a595e95"
+
 # Bilbao's single-valued little group irreps, a by-product of the double space group crawl
 # in `build/write_dsg_irreps.jl`; compared against ISOTROPY's in `test/bilbao_vs_isotropy.jl`
 [bilbao_spinless_irreps]
@@ -23,7 +33,7 @@ git-tree-sha1 = "91b6a3dbde1605c042c3e27319ed43c72ef54adc"
 lazy = true
 
     [[bilbao_spinless_irreps.download]]
-    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/bilbao_spinless_irreps.tar.gz"
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.4/bilbao_spinless_irreps.tar.gz"
     sha256 = "16258af4e7ad8bd4195f08bbdceb6e11f9053a8e0e989c35835badc067412106"
 
 # ISOTROPY's ISO-IR dataset, from which the shipped little group irreps are generated
@@ -34,7 +44,7 @@ git-tree-sha1 = "f8274b57c805e144daee6742cfaa38e63a900c92"
 lazy = true
 
     [[isotropy.download]]
-    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/isotropy.tar.gz"
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.4/isotropy.tar.gz"
     sha256 = "17c60c7d62e8ec0dec6e6b2f064a97f221fee4bf5511e76906a2cc32f0c945ac"
 
 # A capture of the HTML pages of Bilbao's REPRESENTATIONS DSG and DPG programs, from which
@@ -45,5 +55,5 @@ git-tree-sha1 = "1dfcd211ba839e46eb162e193c8ca77b9899d901"
 lazy = true
 
     [[dsg_crawl.download]]
-    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.3/dsg_crawl.tar.xz"
+    url = "https://github.com/thchr/Crystalline.jl/releases/download/data-v0.0.4/dsg_crawl.tar.xz"
     sha256 = "b7dc6c21ff69a80e77c3eab07a70d212240949b4316430c88fb28df0e50c4858"

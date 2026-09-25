@@ -24,12 +24,12 @@ using Crystalline, Test
                      "20-irrep SymmetryVector{3} (spinful):")
 
     # spinless and spinful symmetry vectors are distinct types
-    br = first(calc_bandreps(221))
+    br = first(bandreps(221))
     @test !(SymmetryVector(br) isa SymmetryVector{3, DLGIrrep{3}})
     @test isspinful(n) && !isspinful(br) && !isspinful(SymmetryVector(br))
     @test isspinful(first(lgirsv[1])) && !isspinful(first(lgirreps(221)["Γ"]))
     @test startswith(sprint(show, MIME"text/plain"(), br),
-                     "40-irrep NewBandRep{3} (spinless):")
+                     "40-irrep BandRep{3} (spinless):")
 end
 
 @testset "Spinful irreps in symmetry eigenvalue analysis and primitivization" begin

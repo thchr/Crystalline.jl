@@ -589,9 +589,9 @@ The modifier letter `ˢ` (`U+02E2`), appended to mark a double-valued irrep: `Γ
 CDML and Bilbao instead overline the k-label symbol (`<font overline>WA</font><sub>5</sub>`),
 but an overbar is awkward here: it is a combining mark that must follow the *complete* letter
 run rather than each letter, it collides with the overbar of a roto-inversion, and it renders
-unreliably. The `ˢ` spelling already exists in Crystalline for the spinful EBR labels
-(`build/crawl_and_write_bandreps.jl`), which append it in the same position, so that
-`klabel` needs no special casing.
+unreliably. The `ˢ` spelling already exists in Crystalline for the spinful EBR labels of Bilbao's
+tabulated band representations, which append it in the same position, so that `klabel` needs
+no special casing.
 """
 const SPINFUL_MARK = 'ˢ'
 
