@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.7.0 (unreleased)
+## v0.7.0
 
 Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 
@@ -18,6 +18,8 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
 - **The `BandRep` and `BandRepSet` types that held Bilbao's tables were removed**, together
   with their parser; `NewBandRep` takes over the name `BandRep`. The `data/bandreps/` tables
   are now a lazy artifact, used only to validate `bandreps` in Crystalline's test suite.
+  `NewBandRep` is not deprecated to `BandRep`, since a deprecated binding would not accept
+  the parametrized spelling `NewBandRep{D}`; it is simply removed.
 - **`basisdim` no longer accepts a `BandRepSet`**; it takes a collection of band
   representations, an integer matrix, or a `Smith` factorization, and now lives alongside
   `indicator_group`.
@@ -48,7 +50,9 @@ Adds spinful (double-group) irreps. Breaking, hence the minor version bump.
   - Signatures: `Vector{SymmetryVector{D}}` → `Vector{<:SymmetryVector{D}}` (and likewise
     for `Collection{BandRep{D}}` etc.). Scalar `::SymmetryVector{D}` args are unaffected.
   - Struct fields: `::SymmetryVector{D}` is now abstract; make the struct parametric, or use
-    `SymmetryVector{D, LGIrrep{D}}` for spinless-only code.
+    `SymmetryVector{D, LGIrrep{D}}` for spinless-only code. The same applies to containers
+    created with an explicit element type, such as `Vector{BandRep{D}}(undef, n)` or
+    `BandRep{D}[]`, which are now abstractly typed.
   - Construction: `SymmetryVector{D}(lgirsv, multsv, μ)` →
     `SymmetryVector(lgirsv, multsv, μ)` (same for `BandRep`, `CompositeBandRep`).
   - Serialized (JLD2) instances of these types do not load directly; convert them, e.g. by
