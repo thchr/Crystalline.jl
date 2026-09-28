@@ -84,13 +84,18 @@ function subduction_count(Dᴳᵢ::T, Dᴴⱼ::T,
     χᴳᵢ = characters(Dᴳᵢ)
     χᴴⱼ = characters(Dᴴⱼ, αβγᴴⱼ)
 
-    # compute number of times that Dᴴⱼ occurs in the reducible 
-    # subduced irrep Dᴳᵢ↓H
+    # compute number of times that Dᴴⱼ occurs in the reducible subduced irrep Dᴳᵢ↓H
     s = zero(ComplexF64)
     @inbounds for (idxᴴ, χᴴⱼ′) in enumerate(χᴴⱼ)
         idxᴳ = idxsᴳ²ᴴ[idxᴴ]
         s += χᴳᵢ[idxᴳ]*_matched_translation_phase(Dᴳᵢ, Dᴴⱼ, idxᴳ, idxᴴ, αβγᴴⱼ)*conj(χᴴⱼ′)
     end
+
+    # divide `s` by `order(Dᴴⱼ)` and possibly a corep-factor & convert to integer (+check)
+    return _checked_subduction_sum_to_count(s, Dᴴⱼ)
+end
+
+function _checked_subduction_sum_to_count(s::Number, Dᴴⱼ::AbstractIrrep)
     (abs(imag(s)) > DEFAULT_ATOL) && error(lazy"unexpected finite imaginary part $(abs(imag(s)))")
     nᴳᴴᵢⱼ_float = real(s)/order(Dᴴⱼ)
     # account for the fact that the orthogonality relations are changed for coreps; seems
@@ -220,13 +225,14 @@ end
 
 """
     remap_to_kstar(
-        lgirs::AbstractVector{LGIrrep{D}},
+        lgirs::AbstractVector{IR},
         kv′::KVec{D},
-        coset_representatives::AbstractVector{SymOperation{D}}
-        ) --> Collection{LGIrrep{D}}
+        coset_representatives::AbstractVector{<:AbstractOperation{D}}
+        ) --> Collection{IR}
 
-Given an set of `LGIrrep`s `lgirs` defined at a **k**-vector `kv`, remap the irrep data to
-a different **k**-vector `kv′` in the star of `kv`.
+Given an set of little group irreps `lgirs` defined at a **k**-vector `kv`, remap the irrep
+data to a different **k**-vector `kv′` in the star of `kv`. The irreps may be single-valued
+(`LGIrrep{D}`) or double-valued (`DLGIrrep{D}`); the returned irreps are of the same type.
 
 The remapping is done by identifying an operation `g` s.t. `kv′ = g * kv` with `g` in the
 space group of `lgirs` (more precisely, from among the coset representatives of the little
@@ -239,22 +245,23 @@ recomputation and simplify the associated computation of `g`. The coset represen
 generate the star of `kv`.
 """
 function remap_to_kstar(
-            lgirs::AbstractVector{LGIrrep{D}},
+            lgirs::AbstractVector{IR},
             kv′::KVec{D},
-            coset_representatives::AbstractVector{SymOperation{D}} = 
-                        cosets(reduce_ops(spacegroup(num(first(lgirs)), Val{D}()),
+            coset_representatives::AbstractVector{<:AbstractOperation{D}} = 
+                        cosets(reduce_ops(spacegroup(num(first(lgirs)), Val{D}();
+                                                     spinful=Val(isspinful(IR))),
                                           centering(num(first(lgirs)))),
                                group(first(lgirs)))
-            ) where D
+            ) where {D, IR<:AbstractLGIrrep{D}}
     
     kv = position(first(lgirs))
     if kv′ == kv
         # return input directly but copy all contents, so we don't alias the input (this
         # ensures we *always* return non-aliased input/output, not only for `kv ≠ kv′`)
         lg = group(lgirs)
-        lg′ = LittleGroup{D}(num(lgirs), kv′, klabel(lgirs), copy.(operations(lg)))
+        lg′ = typeof(lg)(num(lgirs), kv′, klabel(lgirs), copy.(operations(lg)))
         lgirs′ = map(lgirs) do lgir
-            LGIrrep{D}(lgir.cdml, lg′, copy.(lgir.matrices), copy(lgir.translations), lgir.reality, lgir.iscorep)
+            IR(lgir.cdml, lg′, copy.(lgir.matrices), copy(lgir.translations), lgir.reality, lgir.iscorep)
         end
         return Collection(lgirs′)
     end
@@ -303,7 +310,7 @@ function remap_to_kstar(
         h′ = compose(g, compose(h, inv(g), #=modτ=#false), #=modτ=#false)
         ops′[i] = h′
     end
-    lg′ = LittleGroup{D}(num(lg), kv′, klabel(lg), ops′)
+    lg′ = typeof(lg)(num(lg), kv′, klabel(lg), ops′)
 
     # build provisional `LGIrrep`s with above operator-sorting
     lgirs′ = map(lgirs) do lgir
@@ -315,7 +322,7 @@ function remap_to_kstar(
         #     phase for every free parameter, i.e., we need exp(ik⋅τ)=exp(ik′⋅τ′). Since
         #     k′(G) = g(R)⁻¹ᵀk(G), this translates to the requirement that 
         #     τ′(R) = rotation(g)(R)τ(R).
-        LGIrrep{D}(lgir.cdml, lg′, matrices, translations, lgir.reality, lgir.iscorep)
+        IR(lgir.cdml, lg′, matrices, translations, lgir.reality, lgir.iscorep)
     end
 
     # if the equivalence between kv and kv′ involves a nonzero G-vector, _AND_ if the 
