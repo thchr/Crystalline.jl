@@ -92,7 +92,7 @@ function generators(
     S && (D == 3 || _only_3d(D))
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
     codes = SG_GENS_CODES_Vs[D][sgnum]
-    hexagonal = S ? _ishexagonal(sgnum) : false # only relevant for spinful
+    hexagonal = S ? _ishexagonal(sgnum, Val(D)) : false # only relevant for spinful
 
     # convert `codes` to `SymOperation`s and add to `operations`
     operations = Vector{eltype(T)}(undef, length(codes) + S) # extra slot for Ē if spinful

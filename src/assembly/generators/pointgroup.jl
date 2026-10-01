@@ -6,7 +6,8 @@ function generators(
     S && (D == 3 || _only_3d(D))
     @boundscheck _check_valid_pointgroup_label(iuclab, D)
     codes = PG_GENS_CODES_Ds[D][iuclab]
-    hexagonal = S ? _ishexagonal_pg(pointgroup_iuc2num(iuclab, D), Val(D)) : false # only relevant for spinful
+    # `hexagonal` is only relevant for spinful
+    hexagonal = S ? _ishexagonal_pg(pointgroup_iuc2num(iuclab, D), Val(D)) : false
 
     # convert `codes` to `SymOperation`s and add to `operations`
     operations = Vector{eltype(T)}(undef, length(codes) + S) # extra slot for Ē if spinful
