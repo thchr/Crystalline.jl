@@ -37,6 +37,8 @@ Return the `D`×`D+1` matrix representation of `op`.
 """
 matrix(op::AbstractOperation) = matrix(SymOperation(op))
 
+isspinful(op::AbstractOperation) = isspinful(typeof(op))
+isspinful(::Type{<:AbstractOperation{D}}) where D = false # default to spinless
 
 """
 $(TYPEDEF)$(TYPEDFIELDS)
@@ -640,6 +642,10 @@ function (==)(g1::AbstractGroup, g2::AbstractGroup)
     return true
 end
 
+# --- `isspinful`, using operation eltype to decide ---
+isspinful(::Type{<:AbstractGroup{D, O}}) where {D, O} = isspinful(O)
+isspinful(ag::AbstractGroup) = isspinful(typeof(ag))
+
 # --- Kinds of group ---
 # Supertypes for the kinds of group that Crystalline distinguishes. They let a method
 # dispatch on the kind of group rather than enumerate its variants, of which each kind has
@@ -691,10 +697,9 @@ abstract type AbstractSiteGroup{D,O} <: AbstractGroup{D,O} end
 """
 $(TYPEDEF)$(TYPEDFIELDS)
 """
-struct GenericGroup{D} <: AbstractGroup{D, SymOperation{D}}
-    operations::Vector{SymOperation{D}}
+struct GenericGroup{D, O <: AbstractOperation{D}} <: AbstractGroup{D, O}
+    operations::Vector{O}
 end
-num(::GenericGroup) = 0
 label(::GenericGroup) = ""
 
 # --- Space group ---
@@ -767,8 +772,7 @@ cosets(g::SiteGroup) = g.cosets
 
 Base.position(g::SiteGroup) = g.wp
 
-
-# --- "position labels" of LittleGroup and SiteGroups ---
+# --- "position labels" of LittleGroup & SiteGroups ---
 positionlabel(g::LittleGroup)   = klabel(g)
 positionlabel(g::SiteGroup)     = label(position(g))
 positionlabel(g::AbstractGroup) = ""

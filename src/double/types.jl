@@ -84,6 +84,7 @@ function DSymOperation{D}(t::AbstractVector{<:Real}) where D
     return DSymOperation{D}(SymOperation{D}(t), one(SU2))
 end
 SymOperation(dop::DSymOperation) = dop.op
+isspinful(::Type{DSymOperation{D}}) where D = true
 
 """
     SU2(dop::DSymOperation) --> SU2

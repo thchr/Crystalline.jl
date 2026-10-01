@@ -62,7 +62,8 @@ SU2(op::SymOperation{3}, sgnum::Integer) = SU2(op, _ishexagonal(sgnum))
 # `SU2_BY_ROTATION_HEX`); point groups 16-27 are the trigonal and hexagonal ones
 _ishexagonal(sgnum::Integer) = crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal")
 _ishexagonal(g::Union{SpaceGroup{3}, LittleGroup{3}, SiteGroup{3}}) = _ishexagonal(num(g))
-_ishexagonal(pg::PointGroup{3}) = 16 ≤ num(pg) ≤ 27
+_ishexagonal(pg::PointGroup{D}) where D = _ishexagonal_pg(num(pg), Val(D))
+_ishexagonal_pg(pgnum::Integer, ::Val{3}) = 16 ≤ pgnum ≤ 27
 function SU2(op::SymOperation{3}, hexagonal::Bool)
     k = _rotation_key(op)
     if hexagonal
@@ -75,6 +76,17 @@ function SU2(op::SymOperation{3}, hexagonal::Bool)
         "in a conventional setting of a crystallographic group"))
     return u
 end
+
+# attach the SU(2) element to a spatial operation
+DSymOperation(op::SymOperation{3}, hexagonal::Bool) = DSymOperation{3}(op, SU2(op, hexagonal))
+
+# `_maybe_attach_su2` only attaches SU(2) element if type-arg is `<:DSymOperation`
+@inline function _maybe_attach_su2(
+    ::Type{DSymOperation{D}}, op::SymOperation{D}, hexagonal::Bool
+) where D
+    return DSymOperation(op, hexagonal)
+end
+@inline _maybe_attach_su2(::Type{SymOperation{D}}, op::SymOperation{D}, ::Bool) where D = op
 
 function _rotation_key(op::SymOperation{3})
     W = rotation(op)

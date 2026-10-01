@@ -147,4 +147,38 @@ end
               for i in eachindex(dsg), j in eachindex(dsg))
 end
 
+@testset "Generators" begin
+    # the generators (with Ē) generate exactly the double group; includes trigonal (143) and
+    # hexagonal (186, 6/mmm) groups, whose SU(2) elements follow a different Cartesian frame
+    generates(gens, dg) = sort!(generate(gens); by=seitz) ≈ sort!(copy(dg); by=seitz)
+    @test all(isbarred(last(generators(sgnum, DSpaceGroup{3}))) for sgnum in (1, 225))
+    for sgnum in (1, 143, 186, 225)
+        @test generates(generators(sgnum, DSpaceGroup{3}),
+                        spacegroup(sgnum, Val(3); spinful=Val(true)))
+    end
+    for iuc in ("1", "-3m1", "6/mmm", "m-3m")
+        @test generates(generators(iuc, DPointGroup{3}),
+                        pointgroup(iuc, Val(3); spinful=Val(true)))
+    end
+    @test_throws DomainError generators(1, DSpaceGroup{2})
+    @test_throws "overflow" generate(generators(225, DSpaceGroup{3}); Nmax=100)
+end
+
+@testset "`isspinful` for operations and groups" begin
+    sg = spacegroup(2, Val(3))
+    lg = first(values(littlegroups(2, Val(3))))
+    siteg = sitegroup(2, first(wyckoffs(2, Val(3))))
+    spinless = [sg[1], first(mspacegroup(1, 1)), sg, pointgroup("mmm"), lg, siteg,
+                subperiodicgroup(7, Val(2), Val(1)), mspacegroup(1, 1),
+                generate(generators(2))]
+    spinful  = [doublegroup(sg)[1], doublegroup(sg), doublegroup(pointgroup("mmm")),
+                doublegroup(lg), doublegroup(siteg), generate(generators(2, DSpaceGroup{3}))]
+    for x in spinless
+        @test !isspinful(x) && !isspinful(typeof(x))
+    end
+    for x in spinful
+        @test isspinful(x) && isspinful(typeof(x))
+    end
+end
+
 end # @testset "Double groups"

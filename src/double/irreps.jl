@@ -86,12 +86,12 @@ operations of `g`.
 end
 
 """
-    isspinful(x) -> Bool
+    isspinful(x_or_T) -> Bool
 
-Return whether `x` (an irrep, an irrep type, a character table, a symmetry vector, or a band
-representation) is spinful, i.e., double-valued, as appropriate for half-integer angular
-momentum. Otherwise, `x` is spinless, i.e., single-valued, as appropriate for integer
-angular momentum.
+Return whether `x_or_T` (an operation, group, irrep, character table, symmetry vector,
+or band representation; or their type) is spinful, i.e., double-valued, corresponding to
+half-integer angular momentum. Otherwise, `x_or_T` is spinless, i.e., single-valued,
+corresponding to integer angular momentum.
 """
 isspinful(ir::AbstractIrrep) = isspinful(typeof(ir))
 isspinful(::Type{<:AbstractIrrep}) = false
