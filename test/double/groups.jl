@@ -162,6 +162,7 @@ end
     end
     @test_throws DomainError generators(1, DSpaceGroup{2})
     @test_throws "overflow" generate(generators(225, DSpaceGroup{3}); Nmax=100)
+    @test_throws ErrorException generators(1, MSpaceGroup{3}) # not implemented
 end
 
 @testset "`isspinful` for operations and groups" begin

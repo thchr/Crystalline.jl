@@ -1,6 +1,6 @@
 """
-    generators(num::Integer, T::Type{AbstractGroup{D}}[, optargs])
-    generators(pgiuc::String, T::AbstractPointGroup{D}}) -->  Vector{<:AbstractOperation{D}}
+    generators(num::Integer, T::Type{<:AbstractGroup{D}}[, optargs])
+    generators(pgiuc::String, T::Type{<:AbstractPointGroup{D}}) -->  Vector{<:AbstractOperation{D}}
 
 Return the generators of the group type `T` which may be an `AbstractSpaceGroup{D}` or
 `AbstractPointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group
@@ -8,9 +8,9 @@ is determined by inputting as the first argument:
 
 - `SpaceGroup{D}` or `DSpaceGroup{D}`: the space group number `num::Integer`.
 - `PointGroup{D}` or `DPointGroup{D}`: the point group IUC label `pgiuc::String` (see also
-  [`pointgroup(::String)`) or the canonical point group number `num::Integer`, which can
+  [`pointgroup(::String)`](@ref)) or the canonical point group number `num::Integer`, which can
   optionally be supplemented by an integer-valued setting choice `setting::Integer` (see
-  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
+  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)).
 - `SubperiodicGroup{D}`: the subperiodic group number `num::Integer`.
 
 For double groups, `DSpaceGroup{3}` and `DPointGroup{3}`, the returned generators are
@@ -106,3 +106,6 @@ end
 #     the signature above, because Julia otherwise warns about an unused `D` parameter in
 #     the method signature, due to the automatically generated `generators(sgnum)` method.
 generators(sgnum::Integer) = generators(sgnum, SpaceGroup{3})
+
+# TODO: remove once `generators(::Integer, ::Type{<:MSpaceGroup})` is implemented
+generators(::Integer, ::Type{<:MSpaceGroup}) = error("`generators` is not yet implemented for magnetic space groups")
