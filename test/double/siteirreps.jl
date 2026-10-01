@@ -42,3 +42,25 @@ end
 
 # the site irrep labels are compared with Bilbao's in test/bandreps.jl (spinful EBRs)
 
+@testset "`primitivize(::DSiteGroup)`" begin
+    # mirrors the spinless test in test/bandreps.jl: the primitivized site group has the
+    # primitive orbit, and its operations (SU(2) elements included) conventionalize back
+    sgnum = 225
+    cntr = centering(sgnum, 3)
+    for br in bandreps(sgnum, Val(3); spinful = Val(true), timereversal = true)
+        dsiteg = group(br)
+        dsiteg′ = primitivize(dsiteg)
+        @test dsiteg′ isa DSiteGroup{3}
+        @test all(((r′′, r′),) -> r′′ ≈ r′,
+                  zip(orbit(dsiteg′), primitivize.(orbit(dsiteg), cntr)))
+        ops_c = conventionalize.(operations(dsiteg′), cntr, #= modw =# false)
+        @test all(splat(isapprox), zip(operations(dsiteg), ops_c))
+    end
+
+    # a site group with unreduced cosets: the cosets are pruned to the primitive cell
+    dsg = spacegroup(sgnum, Val(3); spinful = Val(true))
+    dsiteg = sitegroup(dsg, first(wyckoffs(sgnum, Val(3))))
+    dsiteg′ = primitivize(dsiteg)
+    @test length(cosets(dsiteg′)) == length(cosets(dsiteg)) ÷ 4
+    @test dsiteg′ isa DSiteGroup{3}
+end

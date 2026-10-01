@@ -423,7 +423,7 @@ mulliken(siteir::AbstractSiteIrrep) = _mulliken(siteir.pglabel, label(siteir), i
 # ---------------------------------------------------------------------------------------- #
 
 """
-    primitivize(siteg::SiteGroup{D}) where D
+    primitivize(siteg::AbstractSiteGroup{D}) where D
 
 Transform the operations, cosets, and Wyckoff position associated with `siteg` to a
 primitive setting. 
@@ -439,7 +439,7 @@ The number of coset operations returned will be pruned, however, if this count i
 to the number of positions in the primitive-cell orbit.
 Note that this is different from the behavior of e.g., `primitivize(::LittleGroup)`.
 """
-function primitivize(siteg::SiteGroup{D}) where D
+function primitivize(siteg::SIR) where {D, SIR<:AbstractSiteGroup{D}}
     # NB: modw only applies to operations, not the associated Wyckoff position
     sgnum = num(siteg)
     cntr = centering(sgnum, D)
@@ -465,7 +465,7 @@ function primitivize(siteg::SiteGroup{D}) where D
     else
         # the cosets are not reduced - we go ahead and do it
         rvs′ = Vector{RVec{D}}(undef, N_cosets′)
-        cosets′ = Vector{SymOperation{D}}(undef, N_cosets′)
+        cosets′ = Vector{eltype(ops)}(undef, N_cosets′)
         i = 0
         for op in cosets(siteg)
             op′ = primitivize(op, cntr, #= modw =# false)
@@ -488,5 +488,5 @@ function primitivize(siteg::SiteGroup{D}) where D
         #        unit cell and is not very optimized)
     end
             
-    return SiteGroup{D}(sgnum, wp′, ops′, cosets′)
+    return SIR(sgnum, wp′, ops′, cosets′)
 end

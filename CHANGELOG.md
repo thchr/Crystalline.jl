@@ -3,6 +3,7 @@
 ## v0.7.2
 
 - `generators` and `generate` now support double groups (`DSpaceGroup{3}`, `DPointGroup{3}`, and `DSymOperation`s).
+- `primitivize` now supports `DSiteGroup`s.
 
 ## v0.7.1
 
