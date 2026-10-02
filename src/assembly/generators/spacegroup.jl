@@ -1,17 +1,20 @@
 """
-    generators(num::Integer, T::Type{AbstractGroup{D}}[, optargs])
-    generators(pgiuc::String, T::PointGroup{D}})              -->  Vector{SymOperation{D}}
+    generators(num::Integer, T::Type{<:AbstractGroup{D}}[, optargs])
+    generators(pgiuc::String, T::Type{<:AbstractPointGroup{D}}) -->  Vector{<:AbstractOperation{D}}
 
-Return the generators of the group type `T` which may be a `SpaceGroup{D}` or a 
-`PointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group is
-determined by inputting as the first argument:
+Return the generators of the group type `T` which may be an `AbstractSpaceGroup{D}` or
+`AbstractPointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group
+is determined by inputting as the first argument:
 
-- `SpaceGroup{D}`: the space group number `num::Integer`.
-- `PointGroup{D}`: the point group IUC label `pgiuc::String` (see also
-  [`pointgroup(::String)`) or the canonical point group number `num::Integer`, which can
+- `SpaceGroup{D}` or `DSpaceGroup{D}`: the space group number `num::Integer`.
+- `PointGroup{D}` or `DPointGroup{D}`: the point group IUC label `pgiuc::String` (see also
+  [`pointgroup(::String)`](@ref)) or the canonical point group number `num::Integer`, which can
   optionally be supplemented by an integer-valued setting choice `setting::Integer` (see
-  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)]).
+  also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)).
 - `SubperiodicGroup{D}`: the subperiodic group number `num::Integer`.
+
+For double groups, `DSpaceGroup{3}` and `DPointGroup{3}`, the returned generators are
+`DSymOperation`s, with the barred identity ``\\bar{E}`` as a final generator.
 
 Setting choices match those in [`spacegroup`](@ref), [`pointgroup`](@ref), and
 [`subperiodicgroup`](@ref).
@@ -81,13 +84,28 @@ Note also that, contrary to conventions in ITA, the identity operation is exclud
 returned generators (except in space group 1) since it composes trivially and adds no
 additional context.
 """
-function generators(sgnum::Integer, ::Type{SpaceGroup{D}}=SpaceGroup{3}) where D
+function generators(
+    sgnum::Integer,
+    ::Type{T}
+) where {D, T <: AbstractSpaceGroup{D}}
+    S = isspinful(T)
+    S && (D == 3 || _only_3d(D))
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
     codes = SG_GENS_CODES_Vs[D][sgnum]
+    hexagonal = S ? _ishexagonal(sgnum, Val(D)) : false # only relevant for spinful
 
     # convert `codes` to `SymOperation`s and add to `operations`
-    operations = Vector{SymOperation{D}}(undef, length(codes))
-    _include_symops_from_codes!(operations, codes; add_identity=false)
+    operations = Vector{eltype(T)}(undef, length(codes) + S) # extra slot for Ē if spinful
+    _include_symops_from_codes!(operations, codes; add_identity=false, hexagonal)
+    S && (operations[end] = DSymOperation{D}(one(SymOperation{D}), -one(SU2))) # add on Ē
 
     return operations
 end
+
+# NB: The method below exists separately, rather than putting `::Type{T} = SpaceGroup{3}` in
+#     the signature above, because Julia otherwise warns about an unused `D` parameter in
+#     the method signature, due to the automatically generated `generators(sgnum)` method.
+generators(sgnum::Integer) = generators(sgnum, SpaceGroup{3})
+
+# TODO: remove once `generators(::Integer, ::Type{<:MSpaceGroup})` is implemented
+generators(::Integer, ::Type{<:MSpaceGroup}) = error("`generators` is not yet implemented for magnetic space groups")

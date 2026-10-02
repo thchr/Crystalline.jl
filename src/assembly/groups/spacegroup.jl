@@ -62,21 +62,24 @@ end
 spacegroup(sgnum::Integer, D::Integer; kws...) = spacegroup(sgnum, Val(D); kws...)
 
 function _include_symops_from_codes!(
-            operations::Vector{SymOperation{D}}, codes;
-            add_identity::Bool = true) where D
+    operations::Vector{O}, codes;
+    add_identity::Bool = true,
+    hexagonal::Bool = false # only for `O = DSymOperation`; selects SU(2) frame
+) where {D, O<:AbstractOperation{D}}
     if add_identity # add trivial identity operation separately and manually
-        operations[1] = one(SymOperation{D})
+        operations[1] = one(O)
     end
     for (n, code) in enumerate(codes)
         op = SymOperation{D}(get_indexed_rotation(code[1], Val{D}()), 
                              get_indexed_translation(code[2], Val{D}()))
-        operations[n+add_identity] = op
+        operations[n+add_identity] = _maybe_attach_su2(O, op, hexagonal)
     end
     return operations
 end
 
 function _include_symops_centering_related!(
-            operations::Vector{SymOperation{D}}, cntr_translations, Nop) where D
+    operations::Vector{SymOperation{D}}, cntr_translations, Nop
+) where D
     for (i, t) in enumerate(cntr_translations)
         for n in 1:Nop
             op = operations[n]

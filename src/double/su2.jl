@@ -57,12 +57,19 @@ above, and the SU(2) elements need not equal those tabulated for the new setting
 double group operations of the new setting, transform the spatial operations and attach
 the SU(2) elements tabulated for that setting, i.e., `SU2(op′, sgnum′)`.
 """
-SU2(op::SymOperation{3}, sgnum::Integer) = SU2(op, _ishexagonal(sgnum))
+SU2(op::SymOperation{3}, sgnum::Integer) = SU2(op, _ishexagonal(sgnum, Val(3)))
 # whether space group `sgnum`, or group `g`, uses the hexagonal Cartesian frame (see
 # `SU2_BY_ROTATION_HEX`); point groups 16-27 are the trigonal and hexagonal ones
-_ishexagonal(sgnum::Integer) = crystalsystem(sgnum, 3) ∈ ("hexagonal", "trigonal")
-_ishexagonal(g::Union{SpaceGroup{3}, LittleGroup{3}, SiteGroup{3}}) = _ishexagonal(num(g))
-_ishexagonal(pg::PointGroup{3}) = 16 ≤ num(pg) ≤ 27
+function _ishexagonal(g::T) where {D, T<:Union{AbstractSpaceGroup{D}, AbstractLittleGroup{D}, AbstractSiteGroup{D}}}
+    return _ishexagonal(num(g), Val(D))
+end
+_ishexagonal(sgnum::Integer, ::Val{3}) = 143 ≤ sgnum ≤ 194 # trigonal or hexagonal
+_ishexagonal(sgnum::Integer, ::Val{2}) = 13 ≤ sgnum ≤ 17   # hexagonal
+_ishexagonal(::Integer, ::Val{1}) = false
+_ishexagonal(pg::PointGroup{D}) where D = _ishexagonal_pg(num(pg), Val(D))
+_ishexagonal_pg(pgnum::Integer, ::Val{3}) = 16 ≤ pgnum ≤ 27
+_ishexagonal_pg(pgnum::Integer, ::Val{2}) = 7 ≤ pgnum ≤ 10
+_ishexagonal_pg(::Integer, ::Val{1}) = false
 function SU2(op::SymOperation{3}, hexagonal::Bool)
     k = _rotation_key(op)
     if hexagonal
@@ -75,6 +82,17 @@ function SU2(op::SymOperation{3}, hexagonal::Bool)
         "in a conventional setting of a crystallographic group"))
     return u
 end
+
+# attach the SU(2) element to a spatial operation
+DSymOperation(op::SymOperation{3}, hexagonal::Bool) = DSymOperation{3}(op, SU2(op, hexagonal))
+
+# `_maybe_attach_su2` only attaches SU(2) element if type-arg is `<:DSymOperation`
+@inline function _maybe_attach_su2(
+    ::Type{DSymOperation{D}}, op::SymOperation{D}, hexagonal::Bool
+) where D
+    return DSymOperation(op, hexagonal)
+end
+@inline _maybe_attach_su2(::Type{SymOperation{D}}, op::SymOperation{D}, ::Bool) where D = op
 
 function _rotation_key(op::SymOperation{3})
     W = rotation(op)

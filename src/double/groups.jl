@@ -101,7 +101,7 @@ end
 doublegroup(pg::PointGroup{3}) = DPointGroup{3}(num(pg), label(pg), doubled_operations(pg))
 function doublegroup(siteg::SiteGroup{3})
     hexagonal = _ishexagonal(siteg)
-    cosets′ = [DSymOperation{3}(op, SU2(op, hexagonal)) for op in cosets(siteg)]
+    cosets′ = [DSymOperation(op, hexagonal) for op in cosets(siteg)]
     return DSiteGroup{3}(num(siteg), position(siteg), doubled_operations(siteg), cosets′)
 end
 

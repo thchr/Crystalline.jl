@@ -124,7 +124,7 @@ using Crystalline, Test
         @test sort!(generate(gens)) ≈ sort!(sg)
 
         # generators do not specify a finite group under "non-modulo" composition
-        @test_throws OverflowError generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50)
+        @test_throws "overflow" generate(SymOperation.(["x,y+1,z"]); modτ=false, Nmax=50)
     end
 
     @testset "Generators" begin

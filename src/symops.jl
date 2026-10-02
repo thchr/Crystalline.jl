@@ -1049,18 +1049,19 @@ Return the group generated from a finite set of generators `gens`.
 - `modτ` (default, `true`): the group composition operation can either be taken modulo
   lattice vectors (`true`) or not (`false`, useful e.g. for site symmetry groups). In this
   case, the provided generators will also be taken modulo integer lattice translations.
-- `Nmax` (default, `256`): the maximum size of the generated group. This is essentially
-  a cutoff set to ensure halting of execution in case the provided set of generators do not
-  define a *finite* group (especially relevant if `modτ=false`). If more operations than
-  `Nmax` are generated, the method throws an overflow error.
+- `Nmax` (default, `256`/`512` for spinless/spinful operations): maximum size of the
+  generated group. This is a cutoff set to ensure halting of execution in case the provided
+  set of generators do not define a *finite* group (especially relevant if `modτ=false`).
+  If more operations than `Nmax` are generated, an error is thrown.
 """
-function generate(gens::AbstractVector{SymOperation{D}};
-                  cntr::Union{Nothing,Char}=nothing,
-                  modτ::Bool = true,
-                  Nmax::Integer = 256) where D
+function generate(
+    gens::AbstractVector{O};
+    cntr::Union{Nothing,Char}=nothing,
+    modτ::Bool = true,
+    Nmax::Integer = 256 * (1 + isspinful(O))
+) where {D, O<:AbstractOperation{D}}
     ops = if modτ
-        [SymOperation{D}(op.rotation,
-                         reduce_translation_to_unitrange(translation(op))) for op in gens]
+        [reduce_translation(op) for op in gens]
     else
         collect(gens)
     end
@@ -1079,15 +1080,22 @@ function generate(gens::AbstractVector{SymOperation{D}};
                 if !isapproxin(opᵢⱼ, ops, cntr, modτ)
                     push!(ops, opᵢⱼ)
                     # early out if generators don't seem to form a closed group ...
-                    length(ops) > Nmax && _throw_overflowed_generation()
+                    length(ops) > Nmax && _throw_overflowed_generation(Nmax)
                 end
             end
         end
-        Nₒₚ == length(ops) && return GenericGroup{D}(ops)
+        Nₒₚ == length(ops) && return GenericGroup(ops)
     end
 end
 
-_throw_overflowed_generation() = 
-    throw(OverflowError("The provided set of generators overflowed Nmax distinct "*
-                        "operations: generators may not form a finite group; "*
-                        "otherwise, try increasing Nmax"))
+function reduce_translation(op::SymOperation{D}) where D
+    return SymOperation{D}(rotation(op), reduce_translation_to_unitrange(translation(op)))
+end
+function reduce_translation(dop::DSymOperation{D}) where D
+    return DSymOperation{D}(reduce_translation(dop.op), dop.su2)
+end
+
+@noinline function _throw_overflowed_generation(Nmax)
+    error("The provided set of generators overflowed `Nmax` = $Nmax distinct operations: " *
+          "generators may not form a finite group; alternatively, try increasing `Nmax`")
+end

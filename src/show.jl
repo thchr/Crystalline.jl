@@ -170,8 +170,8 @@ function show(io::IO, g::Union{AbstractLittleGroup, AbstractSiteGroup})
 end
 
 function _print_group_descriptor(io::IO, g::AbstractGroup; prefix::AbstractString="")
-    print(io, prefix)
     g isa GenericGroup && return nothing
+    print(io, prefix)
     print(io, "⋕")
     join(io, num(g), '.') # this slightly odd approach to treat magnetic groups also
     print(io, " (", label(g), ")")
