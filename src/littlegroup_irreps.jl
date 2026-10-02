@@ -283,3 +283,25 @@ function ⊕(lgir1::LGIrrep{D}, lgir2::LGIrrep{D}) where D
 
     return LGIrrep{D}(cdml, g, matrices, translations, reality, iscorep)
 end
+
+# ---------------------------------------------------------------------------------------- #
+# Cosets of a little group in its space group
+
+"""
+    cosets(lg::AbstractLittleGroup{D, O<:AbstractOperation{D}}) --> Vector{O}
+
+Return the left coset representatives of the little group `lg` relative to its associated
+space group (reduced by centering translations), i.e., a set of operations ``\\{g\\}`` such
+that the set of **k**-vectors `\\{g\\mathbf{k}\\}` equals the star of ``\\mathbf{k} =``
+`position(lg)`.
+
+Note that `lg` *must* be given in a conventional setting (as returned by
+[`littlegroups`](@ref) and [`lgirreps`](@ref)), since it is compared to the conventional
+setting space-group operations.
+"""
+function cosets(lg::AbstractLittleGroup{D}) where D
+    sgnum = num(lg)
+    sg = spacegroup(sgnum, Val(D); spinful = Val(isspinful(lg)))
+    sg_reduced = reduce_ops(sg, centering(sgnum, D))
+    return cosets(sg_reduced, lg)
+end

@@ -37,9 +37,9 @@ using Test, Crystalline, StaticArrays
 end # @testset "Subduction"
 
 @testset "`remap_to_kstar`" begin
-    # TODO: very limited, incomplete testing - testing only a single bug encountered. This
-    #       needs actual testing of the implementation in cases where it does something
-    #       nontrivial
+    # TODO: very limited, incomplete testing - testing only a few specific bugs that have
+    #       been encountered historically. This needs more thorough testing of the
+    #       implementation in cases where it does something nontrivial
 
     # trivial case: input k-point is the same as the actual k-point of the `lgirs` - nothing
     # needs to be done, and the same exact set of irreps should just be returned (deepcopy,
@@ -78,5 +78,33 @@ end # @testset "Subduction"
     for (lgir, lgir′) in zip(lgirs⁴⁶, lgirs′⁴⁶)
         @test characters(lgir′, αβγ)[i₂] ≈ -characters(lgir, αβγ)[i₂]
     end
+
+    # 2D, with default coset representatives (previously errored: centering assumed 3D);
+    # K → -K in p6, which are related by the two-fold rotation
+    lgirs¹⁶ = lgirreps(16, Val(2))["K"]
+    kv¹⁶ = position(group(lgirs¹⁶))
+    lgirs′¹⁶ = remap_to_kstar(lgirs¹⁶, -kv¹⁶)
+    @test position(group(lgirs′¹⁶)) == -kv¹⁶
+    @test all(zip(lgirs¹⁶, lgirs′¹⁶)) do (lgir, lgir′) # p6 is abelian: `g⁻¹hg = h`
+        characters(lgir′) ≈ characters(lgir)
+    end
+end
+
+@testset "`cosets(::AbstractLittleGroup)`" begin
+    # the coset representatives generate the star of k: |star| = |G|/|Gₖ| distinct k-vectors
+    for (sgnum, D, klab, starsize) in [(221, 3, "X", 3), (221, 3, "R", 1), (16, 2, "K", 2),
+                                       (13, 2, "K", 1), (225, 3, "L", 4)]
+        lg = littlegroups(sgnum, Val(D))[klab]
+        gs = cosets(lg)
+        kstar = orbit(lg)
+        @test length(gs) == length(kstar) == starsize
+        @test isone(first(gs))
+        kv = position(lg)
+        kstar_from_cosets = [g * kv for g in gs]
+        @test allunique(kstar_from_cosets)
+        @test all(xs-> ≈(xs...), zip(sort!(kstar_from_cosets, by=string), sort!(kstar, by=string)))
+    end
+    # double little groups give double group coset representatives
+    @test eltype(cosets(littlegroups(221, Val(3); spinful=Val(true))["X"])) == DSymOperation{3}
 end
 end # @testset "Compatibility"

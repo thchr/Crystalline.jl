@@ -242,20 +242,16 @@ little group of `kv'`.
 
 The coset representatives can be specified as an optional argument, to avoid repeated
 recomputation and simplify the associated computation of `g`. The coset representatives
-generate the star of `kv`.
+generate the star of `kv`: see [`cosets(::AbstractLittleGroup)`](@ref).
 """
 function remap_to_kstar(
-            lgirs::AbstractVector{IR},
-            kv′::KVec{D},
-            coset_representatives::AbstractVector{<:AbstractOperation{D}} = 
-                        cosets(reduce_ops(spacegroup(num(first(lgirs)), Val{D}();
-                                                     spinful=Val(isspinful(IR))),
-                                          centering(num(first(lgirs)))),
-                               group(first(lgirs)))
-            ) where {D, IR<:AbstractLGIrrep{D}}
+    lgirs::AbstractVector{IR},
+    kv′::KVec{D},
+    coset_representatives::AbstractVector{<:AbstractOperation{D}} = cosets(group(lgirs))
+) where {D, IR<:AbstractLGIrrep{D}}
     
     kv = position(first(lgirs))
-    if kv′ == kv
+    if isapprox(kv′, kv, nothing, #=modw=# false) # equal w/ tolerance (i.e., `kv == kv′`)
         # return input directly but copy all contents, so we don't alias the input (this
         # ensures we *always* return non-aliased input/output, not only for `kv ≠ kv′`)
         lg = group(lgirs)
