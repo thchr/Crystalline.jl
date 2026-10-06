@@ -129,6 +129,7 @@ end
 """
     isbarred(u::SU2)            --> Bool
     isbarred(op::DSymOperation) --> Bool
+    isbarred(op::SymOperation)  --> false
 
 Return whether `u` is the barred one of the two SU(2) elements that share a spatial
 operation.
@@ -154,7 +155,7 @@ function isbarred(u::SU2)
     r = real(u.a)
     abs(r) > DEFAULT_ATOL && return r < 0
     n = _binary_axis(u)
-    for m in SU2_BINARY_AXES                    # unit vectors, along distinct axes
+    for m in SU2_BINARY_AXES # unit vectors, along distinct axes
         d = dot(n, m)
         d >  1 - 1e-8 && return false
         d < -1 + 1e-8 && return true
@@ -162,3 +163,7 @@ function isbarred(u::SU2)
     return n[findlast(x -> abs(x) > DEFAULT_ATOL, n)] < 0   # an untabulated direction
 end
 isbarred(op::DSymOperation) = isbarred(op.su2)
+isbarred(::SymOperation) = false # NB: while "barness" is not strictly applicable for plain
+                                 #     `SymOperation`, it is nice to have it defined, so
+                                 #     callers of `isbarred` do not need to guard their call
+                                 #     on `isspinful(op)` first

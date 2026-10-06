@@ -130,6 +130,13 @@ end
         uₙ = SU2(-im*n[3], -(n[2] + im*n[1]))
         @test isbarred(uₙ) != isbarred(-uₙ)
     end
+
+    # A plain `SymOperation` is never barred (effectively Ē=E); we have this, so that a
+    # caller doesn't need to worry about whether `isbarred(op)` is a `DSymOperation` or
+    # a `SymOperation`; otherwise the caller would have to first check `isspinful(op)`
+    # before calling `isbarred(op)`
+    op = S"x,y,z"
+    @test isbarred(op) == false
 end
 
 @testset "Composition is independent of the setting" begin
