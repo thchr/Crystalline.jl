@@ -104,8 +104,6 @@ klabels(n::SymmetryVector) = [klabel(first(irs)) for irs in irreps(n)]
 num(n::SymmetryVector) = num(first(first(irreps(n))))
 
 # ::: Parsing from string :::
-
-
 """ 
     parse(::Type{<:SymmetryVector},
           s::AbstractString,
@@ -334,10 +332,17 @@ Return the occupation of (i.e., number of bands contained within) `n`.
 """
 occupation(n::AbstractSymmetryVector) = occupation(SymmetryVector(n))
 
-# misc convenience accessors
+# ::: misc convenience accessors :::
 irreplabels(n::AbstractSymmetryVector) = irreplabels(SymmetryVector(n))
 klabels(n::AbstractSymmetryVector) = klabels(SymmetryVector(n))
 num(n::AbstractSymmetryVector) = num(SymmetryVector(n))
+
+
+# ::: `isspinful` (types & instances and collections thereof) :::
+isspinful(::Type{<:AbstractSymmetryVector{D, IR}}) where {D, IR} = isspinful(IR)
+isspinful(n::AbstractSymmetryVector) = isspinful(typeof(n))
+isspinful(T::Type{<:Collection{<:AbstractSymmetryVector}}) = isspinful(eltype(T))
+isspinful(n::Collection{<:AbstractSymmetryVector}) = isspinful(typeof(n))
 
 # ::: AbstractArray interface :::
 Base.size(n::AbstractSymmetryVector) = (mapreduce(length, +, multiplicities(n)) + 1,)

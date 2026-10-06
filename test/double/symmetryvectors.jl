@@ -51,3 +51,16 @@ end
     @test last.(annotations) == label.(lgirs)
 end
 
+@testset "`isspinful` of various abstract symmetry vector subtypes" begin
+    for spinful in (Val(false), Val(true))
+        S = spinful == Val(true) ? true : false
+        brs = bandreps(2, Val(3); timereversal=false, spinful)
+        br = brs[1]
+        cbr = @composite brs[1]+brs[2]
+        n = SymmetryVector(br)
+        for x in (brs, br, cbr, n)
+            @test isspinful(typeof(x)) == S  # type
+            @test isspinful(x) == S          # instance
+        end
+    end
+end
