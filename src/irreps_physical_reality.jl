@@ -147,7 +147,7 @@ function timereversal_unitary(ir::Union{AbstractPGIrrep, AbstractSiteIrrep})
         # `J = iσʸ ⊗ 𝟙ₙ = [0 𝟙ₙ; -𝟙ₙ 0]`; equivalent to `kron([0 1; -1 0], I(n))`, but
         # written out, since the Kronecker product only places these ±1s
         n = N ÷ 2
-        J = zeros(Float64, N, N)
+        J = zeros(Int, N, N)
         @inbounds for i in OneTo(n)
             J[i, n+i] = 1
             J[n+i, i] = -1
