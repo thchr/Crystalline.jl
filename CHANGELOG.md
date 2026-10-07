@@ -4,6 +4,16 @@
 
 - `generators` and `generate` now support double groups (`DSpaceGroup{3}`, `DPointGroup{3}`, and `DSymOperation`s).
 - `primitivize` now supports `DSiteGroup`s.
+- `isspinful` now covers more kinds of objects: this includes operations, groups, and subtypes of `AbstractSymmetryVector` (both instances and types).
+- `GenericGroup{D}` is now `GenericGroup{D, O}`, parametrized by its operation type, so
+  that it can hold `DSymOperation`s. Its (placeholder) `num` method was removed.
+- Added `cosets(::AbstractLittleGroup)`, returning the coset representatives of a little
+  group relative to its (centering-reduced) space group, i.e., generators of the star of
+  **k**.
+- Fixed `remap_to_kstar` for `D ≠ 3`: its default coset representatives assumed a 3D
+  centering and so would error or silently give wrong results in 1D and 2D. They are now
+  obtained from `cosets(::AbstractLittleGroup)`. Equality of the input and target
+  **k**-vector is now also checked with tolerance.
 
 ## v0.7.1
 
