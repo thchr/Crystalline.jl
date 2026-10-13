@@ -2,6 +2,19 @@
 
 ## v0.7.3
 
+- **The labels of some single-valued irreps in 2D and 1D have changed.** The irreps of plane
+  and line groups are now derived from those of a parent space group, and take their labels
+  from it (previously, they took them from an isomorphic point group). The irreps themselves
+  are unchanged, up to a change of basis, but some of their labels are swapped:
+  - p2mm (6): Γ₃ ↔ Γ₄, X₃ ↔ X₄, Y₃ ↔ Y₄, and S₃ ↔ S₄
+  - p2mg (7): Δ₁ ↔ Δ₂ (previously swapped by mistake)
+  - c2mm (9): Γ₃ ↔ Γ₄ and Y₃ ↔ Y₄
+  - p4mm (11): X₃ ↔ X₄
+  - p3 (13): KA₂ ↔ KA₃
+  - p1m (line group 2): Γ₁⁺, Γ₁⁻, X₁⁺, X₁⁻ are now Γ₁, Γ₂, X₁, X₂
+
+  The irreps remain sorted by label, so, e.g., `lgirreps(6, 2)["Γ"][3]` is now the irrep
+  that was previously labelled Γ₄. Band representations and symmetry vectors follow suit.
 - Double groups and double-valued irreps are now available in 2D and 1D (plane and line
   groups), via the same `spinful` keyword argument as in 3D. The irreps are derived from
   those of a parent space group, and so follow its labels.

@@ -140,21 +140,23 @@ Do not attempt to read binary files (`.jld2`). Directory structure:
 ```
 data/
   irreps/
-    lgs/{1,2,3}d/irreps_data.jld2         — LGIrrep matrices, translations, realities
-    lgs/{1,2,3}d/littlegroups_data.jld2   — LittleGroup operations and k-vectors
-    lgs/{1,2,3}d/irreps_data_spinful.jld2 — DLGIrrep data (3D: from Bilbao; 2D/1D: derived
-                                            from parent space groups, see
-                                            build/line_plane_irreps.jl)
-    pgs/3d/irreps_data{_spinful}.jld2     — PGIrrep/DPGIrrep data (also used in 2D and 1D)
-  bandreps/                               — Bilbao's tabulated EBRs, as CSV; a lazy
-                                            artifact, used only to validate `bandreps`
-  wyckpos/                                — Wyckoff position data
-  operations/                             — symmetry operation tables
-  spacegroup_subgroups_data.jld2          — maximal subgroup / minimal supergroup graphs
+    lgs/{1,2,3}d/littlegroups_data.jld2     — LittleGroup operations and k-vectors
+    lgs/{1,2,3}d/irreps_data[_spinful].jld2 — LGIrrep and DLGIrrep data
+                                              matrices, translations, realities
+                                              (3D irreps: from ISOTROPY and Bilbao; 2D/1D
+                                              irreps: derived from parent space groups, see
+                                              build/line_plane_irreps.jl)
+    pgs/3d/irreps_data{_spinful}.jld2       — PGIrrep/DPGIrrep data (also used in 2D and 1D)
+  bandreps/                                 — EBRs as CSV (3D: Bilbao's; 1D/2D: from
+                                              `bandreps` itself); a lazy artifact, used
+                                              only to validate `bandreps`
+  wyckpos/                                  — Wyckoff position data
+  operations/                               — symmetry operation tables
+  spacegroup_subgroups_data.jld2            — maximal subgroup / minimal supergroup graphs
   misc/
-    ISOTROPY/                             — README.md has format docs; the *.txt data
-                                              itself is a lazy artifact, not in the repo
-    transformation_matrices_CDML2ITA.jl  — k-point transformation matrices between CDML and ITA settings
+    ISOTROPY/                               — README.md has format docs; the *.txt data
+                                                itself is a lazy artifact, not in the repo
+    transformation_matrices_CDML2ITA.jl     — k-point transformation matrices between CDML and ITA settings
     CDML_RepresentationDomainSpecialKPoints_*.csv
 ```
 

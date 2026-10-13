@@ -108,6 +108,7 @@ function write_lgirreps(::Val{D}; spinful::Val) where D
             f["$(sgnum)/cdml_list"]         = [label.(lgirs) for lgirs in lgirsv]
         end
     end
+    jldfile[] = JLD2.jldopen(outpath, "r") # reopen, for subsequent use of `lgirreps`
     println("wrote $(outpath)  ($(round(filesize(outpath)/2^10; digits=1)) KiB)")
     return outpath
 end

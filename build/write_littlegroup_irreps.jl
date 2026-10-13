@@ -77,45 +77,13 @@ end
 
 
 # ---------------------------------------------------------------------------------------- #
-# 1D line groups: little groups irreps written down manually
-
-LGIRS_1D = [Dict{String, Vector{LGIrrep{1}}}() for _ in 1:2]
-function make_1d_lgirrep(sgnum::Integer, klab::String, cdml_suffix::String,
-                         kx, ops::Vector{SymOperation{1}}, scalars::Vector{<:Number}=[1.0,],
-                         reality_type::Reality=REAL)
-    cdml = klab*cdml_suffix
-    lg   = LittleGroup{1}(sgnum, KVec{1}(string(kx)), klab, ops)
-    matrices = [fill(ComplexF64(v), 1,1) for v in scalars]
-    translations = [zeros(1) for _ in scalars]
-    return LGIrrep{1}(cdml, lg, matrices, translations, reality_type, false)
-end
-
-# Line group 1
-LGIRS_1D[1]["Γ"] = [make_1d_lgirrep(1, "Γ", "₁", 0,    [S"x"],        [1.0])]
-LGIRS_1D[1]["X"] = [make_1d_lgirrep(1, "X", "₁", 0.5,  [S"x"],        [1.0])]
-LGIRS_1D[1]["Ω"] = [make_1d_lgirrep(1, "Ω", "₁", "u",  [S"x"],        [1.0], COMPLEX)]
-
-# Line group 2
-LGIRS_1D[2]["Γ"] = [make_1d_lgirrep(2, "Γ", "₁⁺", 0,   [S"x", S"-x"], [1.0, 1.0]),   # even
-                    make_1d_lgirrep(2, "Γ", "₁⁻", 0,   [S"x", S"-x"], [1.0, -1.0])]  # odd
-LGIRS_1D[2]["X"] = [make_1d_lgirrep(2, "X", "₁⁺", 0.5, [S"x", S"-x"], [1.0, 1.0]),   # even
-                    make_1d_lgirrep(2, "X", "₁⁻", 0.5, [S"x", S"-x"], [1.0, -1.0])]  # odd
-LGIRS_1D[2]["Ω"] = [make_1d_lgirrep(2, "Ω", "₁", "u",  [S"x"],        [1.0])]
-
-# ---------------------------------------------------------------------------------------- #
-# 2D plane groups: little groups irreps extracted for symmorphic groups via point groups
-
-include("setup_2d_littlegroup_irreps.jl") # defines the variable LGIRS_2D′
-
-# ---------------------------------------------------------------------------------------- #
-# ---------------------------------------------------------------------------------------- #
-# actually write .jld files for 1D and 3D
+# actually write .jld files for 3D, then 2D and 1D
 # (to do this, we must close `LGIRREPS_JLDFILES` and `LGS_JLDFILES` - which are opened upon
 # initialization of Crystalline - before writing new content to them; to that end, we simply
 # close the files below (make sure you don't have Crystalline loaded in another session
 # though..!))
-foreach(jldfile -> close(jldfile[]), Crystalline.LGIRREPS_JLDFILES)
-foreach(jldfile -> close(jldfile[]), Crystalline.LGS_JLDFILES)
+close(Crystalline.LGIRREPS_JLDFILES[3][])
+close(Crystalline.LGS_JLDFILES[3][])
 
 # 3D (from ISOTROPY)
 include(joinpath((@__DIR__), "ParseIsotropy.jl")) # load the ParseIsotropy module
@@ -128,10 +96,18 @@ include(joinpath((@__DIR__), "..", "data/irreps/lgs/manual_lgirrep_additions.jl"
 for (sgnum, lgirsd_add) in LGIRS_add # merge Bilbao additions with ISOTROPY irreps
     merge!(LGIRS_3D[sgnum], lgirsd_add)
 end
-__write_littlegroupirreps(LGIRS_3D)
+filename_lgs, filename_irreps = __write_littlegroupirreps(LGIRS_3D)
+# reopen the 3D files, from which the 2D and 1D irreps are derived below
+Crystalline.LGS_JLDFILES[3][] = JLD2.jldopen(filename_lgs, "r")
+Crystalline.LGIRREPS_JLDFILES[3][] = JLD2.jldopen(filename_irreps, "r")
 
-# 2D (from point group matching)
-__write_littlegroupirreps(LGIRS_2D′)
-
-# 1D (manual)
-__write_littlegroupirreps(LGIRS_1D)
+# 2D and 1D (little groups from tabulated k-points; irreps derived from parent space groups,
+# single- and double-valued)
+include(joinpath(@__DIR__, "line_plane_littlegroups.jl"))
+include(joinpath(@__DIR__, "line_plane_irreps.jl"))
+using .LinePlaneLittleGroups, .LinePlaneIrreps
+for D in (2, 1)
+    write_littlegroups(Val(D))
+    write_lgirreps(Val(D); spinful=Val(false))
+    write_lgirreps(Val(D); spinful=Val(true))
+end
