@@ -104,7 +104,7 @@ function write_dsg_irreps(outdir::AbstractString = DEFAULT_OUTDIR; sgnums = 1:23
     path_double = joinpath(outdir, "irreps_data_spinful.jld2")
     path_single = joinpath(outdir, "irreps_data_spinless_bilbao.jld2")
     # Crystalline keeps the spinful data file open for reading, which blocks overwriting it
-    isassigned(Crystalline.DLGIRREPS_JLDFILE) && close(Crystalline.DLGIRREPS_JLDFILE[])
+    isassigned(Crystalline.DLGIRREPS_JLDFILES[3]) && close(Crystalline.DLGIRREPS_JLDFILES[3][])
     f_double = JLD2.jldopen(path_double, "w")
     f_single = JLD2.jldopen(path_single, "w")
     try

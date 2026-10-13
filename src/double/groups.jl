@@ -61,32 +61,30 @@ positionlabel(g::DSiteGroup) = label(position(g))
 
 # --- construction ---
 """
-    doubled_operations(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}, SiteGroup{3}})
-                                                            --> Vector{DSymOperation{3}}
+    doubled_operations(g::Union{SpaceGroup{D}, LittleGroup{D}, PointGroup{D}, SiteGroup{D}})
+                                                            --> Vector{DSymOperation{D}}
 
 Attach the SU(2) element (see [`SU2`](@ref)) to each operation of `g`, returning the `2|G|`
 operations of the associated double group: the operations themselves first, then their
 ``\\bar{E}``-barred partners, in the same order.
 """
 function doubled_operations(
-    g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}, SiteGroup{3}}
-)
+    g::Union{SpaceGroup{D}, LittleGroup{D}, PointGroup{D}, SiteGroup{D}}
+) where D
     hexagonal = _ishexagonal(g)
     n = length(g)
-    dops = Vector{DSymOperation{3}}(undef, 2n)
+    dops = Vector{DSymOperation{D}}(undef, 2n)
     for (i, op) in enumerate(g)
         u = SU2(op, hexagonal)
-        dops[i]   = DSymOperation{3}(op,  u)
-        dops[i+n] = DSymOperation{3}(op, -u)
+        dops[i]   = DSymOperation{D}(op,  u)
+        dops[i+n] = DSymOperation{D}(op, -u)
     end
     return dops
 end
 
-@noinline _only_3d(D) = throw(DomainError(D, "double groups are currently only supported in 3D"))
-
 """
-    doublegroup(g::Union{SpaceGroup{3}, LittleGroup{3}, PointGroup{3}, SiteGroup{3}})
-                    --> DSpaceGroup{3}, DLittleGroup{3}, DPointGroup{3}, or DSiteGroup{3}
+    doublegroup(g::Union{SpaceGroup{D}, LittleGroup{D}, PointGroup{D}, SiteGroup{D}})
+                    --> DSpaceGroup{D}, DLittleGroup{D}, DPointGroup{D}, or DSiteGroup{D}
 
 Return the double group of the space, little, point, or site symmetry group `g` (see
 [`doubled_operations`](@ref)).
@@ -94,26 +92,32 @@ Return the double group of the space, little, point, or site symmetry group `g` 
 The coset representatives of a site symmetry group are lifted to the double group with
 their unbarred SU(2) elements.
 """
-doublegroup(sg::SpaceGroup{3}) = DSpaceGroup{3}(num(sg), doubled_operations(sg))
-function doublegroup(lg::LittleGroup{3})
-    return DLittleGroup{3}(num(lg), position(lg), klabel(lg), doubled_operations(lg))
+doublegroup(sg::SpaceGroup{D}) where D = DSpaceGroup{D}(num(sg), doubled_operations(sg))
+function doublegroup(lg::LittleGroup{D}) where D
+    return DLittleGroup{D}(num(lg), position(lg), klabel(lg), doubled_operations(lg))
 end
-doublegroup(pg::PointGroup{3}) = DPointGroup{3}(num(pg), label(pg), doubled_operations(pg))
-function doublegroup(siteg::SiteGroup{3})
+function doublegroup(pg::PointGroup{D}) where D
+    return DPointGroup{D}(num(pg), label(pg), doubled_operations(pg))
+end
+function doublegroup(siteg::SiteGroup{D}) where D
     hexagonal = _ishexagonal(siteg)
     cosets′ = [DSymOperation(op, hexagonal) for op in cosets(siteg)]
-    return DSiteGroup{3}(num(siteg), position(siteg), doubled_operations(siteg), cosets′)
+    return DSiteGroup{D}(num(siteg), position(siteg), doubled_operations(siteg), cosets′)
 end
 
 # --- matching two double groups ---
 """
-    _lift_signs(ops::AbstractVector{DSymOperation{3}},
-                ops′::AbstractVector{DSymOperation{3}})  -->  Vector{Int}
+    _lift_signs(
+        ops::AbstractVector{<:DSymOperation},
+        ops′::AbstractVector{<:DSymOperation}
+    ) -->  Vector{Int}
 
 Given the unbarred operations `ops` and `ops′` of two double groups whose spatial parts
 correspond one-to-one (`ops[i] ↔ ops′[i]`, as a group isomorphism), return signs `s` such
 that mapping `ops[i]` to `ops′[i]` if `s[i] = 1`, or to its barred partner if `s[i] = -1`,
 is an isomorphism of the double groups.
+The two sets of operations may refer to different `DSymOperation`s of different dimension,
+e.g., a plane group and the space group it is embedded in.
 
 Matching the spatial parts does not settle the signs: for two-fold rotations and mirrors,
 which of the two SU(2) elements is unbarred is a convention (see [`isbarred`](@ref)), and a
@@ -126,8 +130,8 @@ For all site symmetry groups of the 230 space groups, the tied choices give the 
 irrep characters.
 """
 function _lift_signs(
-    ops::AbstractVector{DSymOperation{3}},
-    ops′::AbstractVector{DSymOperation{3}}
+    ops::AbstractVector{<:DSymOperation},
+    ops′::AbstractVector{<:DSymOperation}
 )
     n = length(ops)
     # products: `ops[i]*ops[j]` is `c[i,j]` times `ops[k[i,j]]` (unbarred), and likewise
@@ -171,7 +175,7 @@ function _lift_signs(
     return best
 end
 
-function _unbarred_products(ops::AbstractVector{DSymOperation{3}})
+function _unbarred_products(ops::AbstractVector{<:DSymOperation})
     n = length(ops)
     k = Matrix{Int}(undef, n, n)
     c = Matrix{Int}(undef, n, n)

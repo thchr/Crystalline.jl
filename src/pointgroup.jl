@@ -107,9 +107,8 @@ Return the (crystallographic) point group irreps of the IUC label `iuclab` of di
 as a `Vector{PGIrrep{D}}`.
 
 If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double point group
-are returned instead, as `DPGIrrep{D}`s (currently available in 3D only). Their labels are
-the CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
-`"¹E₁ˢ"`).
+are returned instead, as `DPGIrrep{D}`s. Their labels are the CDML labels with an appended
+`ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g., `"¹E₁ˢ"`).
 
 See `Crystalline.PG_IUC2NUM[D]` for possible IUC labels in dimension `D`.
 
@@ -164,8 +163,8 @@ function pgirreps(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
 )
-    _to_value(spinful) && _only_3d(2)
-    pg = pointgroup(iuclab, Val(2)) # operations
+    spinfulᵛ = _to_val(spinful)
+    pg = pointgroup(iuclab, Val(2); spinful=spinfulᵛ) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
     # of 2D and 3D, we can just do a whole-sale transfer of shared irreps from 3D to 2D.
@@ -173,10 +172,13 @@ function pgirreps(
     #     operators and irreps each, so the setting difference doesn't matter.
     #     That the settings and sorting indeed agree between 2D and 3D is tested in 
     #     scripts/compare_pgops_3dvs2d.jl
-    matrices, realities, cdmls = _load_pgirreps_data(iuclab)
+    # The same holds for the double-valued irreps: in all 2D point groups, the SU(2) element
+    # of each 2D operation (see `SU2`) equals that of the corresponding 3D operation, up to
+    # the setting difference in "2" and "m", where both are unbarred (see `_lift_signs`)
+    matrices, realities, cdmls = _load_pgirreps_data(iuclab, _pgirreps_jldfile(spinfulᵛ))
     pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
     
-    return Collection(PGIrrep{2}.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    return Collection(_pgirrep.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
 end
 # 1D
 function pgirreps(
@@ -185,7 +187,14 @@ function pgirreps(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
 )
-    _to_value(spinful) && _only_3d(1)
+    if _to_value(spinful)
+        # as for 2D, the 1D point groups "1" and "m" transfer from 3D; for "m", the
+        # operations in 1D and 3D are mirrors with different normals, but both are unbarred
+        pg = pointgroup(iuclab, Val(1); spinful=Val(true))
+        matrices, realities, cdmls = _load_pgirreps_data(iuclab, DPGIRREPS_JLDFILE[])
+        pgirlabs = !mulliken ? cdmls : _mulliken.(Ref(iuclab), cdmls, false)
+        return Collection(_pgirrep.(pgirlabs, Ref(pg), matrices, Reality.(realities)))
+    end
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities

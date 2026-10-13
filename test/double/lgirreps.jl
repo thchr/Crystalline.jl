@@ -10,13 +10,13 @@ using Crystalline: check_multtable_vs_ir, matrices, can_intersect, TEST_αβγs,
 @test lgirreps(1, 3) == lgirreps(1, 3; spinful=false)
 @test @inferred(littlegroups(1, Val(3); spinful=Val(true))) isa Dict{String, DLittleGroup{3}}
 @test littlegroups(1, 3; spinful=true) == littlegroups(1, Val(3); spinful=Val(true))
-@test_throws DomainError littlegroups(1, Val(2); spinful=Val(true))
-@test_throws DomainError lgirreps(1, Val(2); spinful=Val(true))
+@test @inferred(lgirreps(1, Val(2); spinful=Val(true))) isa Dict{String, Collection{DLGIrrep{2}}}
+@test @inferred(lgirreps(1, Val(1); spinful=Val(true))) isa Dict{String, Collection{DLGIrrep{1}}}
 
-αβγ = TEST_αβγs[3]
-for sgnum in 1:MAX_SGNUM[3]
-    dlgirsd = lgirreps(sgnum, Val(3); spinful=Val(true))
-    lgirsd  = lgirreps(sgnum, Val(3))
+for D in (1, 2, 3), sgnum in 1:MAX_SGNUM[D]
+    αβγ = TEST_αβγs[D]
+    dlgirsd = lgirreps(sgnum, Val(D); spinful=Val(true))
+    lgirsd  = lgirreps(sgnum, Val(D))
     @test Set(keys(dlgirsd)) == Set(keys(lgirsd))
     dsgops = operations(group(first(dlgirsd["Γ"]))) # double space group, mod translations
     for (klab, dlgirs) in dlgirsd
@@ -74,7 +74,7 @@ for sgnum in 1:MAX_SGNUM[3]
         # with the adjusted normalization
         coreps = realify(dlgirs)
         kv = position(dlg)
-        if isapprox(-kv, kv, centering(sgnum, 3))
+        if isapprox(-kv, kv, centering(sgnum, D))
             @test all(iseven ∘ irdim, coreps)
         end
         @test all(coreps) do corep

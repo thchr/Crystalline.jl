@@ -15,7 +15,7 @@ Returns a `Dict` with little group **k**-point labels as keys and vectors of
 `LittleGroup{D}`s as values.
 
 If `spinful` is `Val(true)` (or `true`), the double little groups are returned instead, as
-`DLittleGroup{D}`s (currently supported in 3D only).
+`DLittleGroup{D}`s.
 
 ## Notes
 A conventional crystallographic setting is assumed (as in [`spacegroup`](@ref)).
@@ -38,7 +38,6 @@ function littlegroups(
 ) where D
     D ∉ (1,2,3) && _throw_invalid_dim(D)
     S = _to_value(spinful)
-    S && D ≠ 3 && _only_3d(D)
 
     sgops_str, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, jldfile)
 
@@ -72,8 +71,8 @@ Returns a `Dict` with little group **k**-point labels as keys and vectors of `LG
 as values.
 
 If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double little
-groups are returned instead, as `DLGIrrep{D}`s (currently available in 3D only). Their
-labels are the CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`).
+groups are returned instead, as `DLGIrrep{D}`s. Their labels are the CDML labels with an
+appended `ˢ` (e.g., `"Γ₆ˢ"`).
 
 ## Notes
 - The returned irreps are complex in general. Real irreps (as needed in time-reversal
@@ -104,9 +103,13 @@ tool:
 
 3. Elcoro, Bradlyn, Wang, Vergniory, Cano, Felser, Bernevig, Orobengoa, de la Flor, &
    Aroyo, [J. Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712).
+
+The double-valued irreps in 2D and 1D are derived from those of a parent space group (e.g.,
+P6mm for p6mm), with the same operations when the plane or line is embedded in 3D (see
+[`SU2`](@ref)), and take their labels from it.
 """
-function lgirreps(
-    sgnum::Integer,
+function lgirreps(    # TODO: Update single-valued irreps in 1D/2D to also inherit labels
+    sgnum::Integer,   #       strictly from 3D space groups, not from point groups
     Dᵛ::Val{D}=Val(3),
     lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D][],
     # NB: a positional default cannot see the `spinful` keyword argument, so the default
@@ -144,10 +147,7 @@ _lgirrep_type(::Type{LittleGroup{D}}) where D = LGIrrep{D}
 _lgirrep_type(::Type{DLittleGroup{D}}) where D = DLGIrrep{D}
 
 _lgirreps_jldfile(::Val{D}, ::Val{false}) where D = LGIRREPS_JLDFILES[D][]
-function _lgirreps_jldfile(::Val{D}, #=Val{S}=# ::Val{true}) where D
-    D == 3 || _only_3d(D)
-    return DLGIRREPS_JLDFILE[]
-end
+_lgirreps_jldfile(::Val{D}, #=Val{S}=# ::Val{true}) where D = DLGIRREPS_JLDFILES[D][]
 
 
 # ===== utility functions (loads raw data from the harddisk) =====

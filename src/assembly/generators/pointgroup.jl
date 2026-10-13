@@ -3,7 +3,6 @@ function generators(
     ::Type{T}
 ) where {D, T <: AbstractPointGroup{D}}
     S = isspinful(T)
-    S && (D == 3 || _only_3d(D))
     @boundscheck _check_valid_pointgroup_label(iuclab, D)
     codes = PG_GENS_CODES_Ds[D][iuclab]
     # `hexagonal` is only relevant for spinful

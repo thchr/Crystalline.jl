@@ -6,7 +6,7 @@ Return the symmetry operations associated with the point group identified with l
 `iuclab` in dimension `D` as a `PointGroup{D}`.
 
 If `spinful` is `Val(true)` (or `true`), the double group is returned instead, as a
-`DPointGroup{D}` (currently supported in 3D only).
+`DPointGroup{D}`.
 """
 function pointgroup(
     iuclab::AbstractString,
@@ -35,7 +35,7 @@ correspond to `pgnum = 18` and correspond to the same group structure expressed 
 different settings. The `setting` argument allows choosing between these setting variations.
 
 If `spinful` is `Val(true)` (or `true`), the double group is returned instead, as a
-`DPointGroup{D}` (currently supported in 3D only).
+`DPointGroup{D}`.
 """
 function pointgroup(
     pgnum::Integer,
@@ -51,7 +51,6 @@ end
 end
 
 function _pointgroup(iuclab::String, pgnum::Integer, Dᵛ::Val{D}, ::Val{S}) where {D, S}
-    S && D ≠ 3 && _only_3d(D)
     codes = PG_CODES_Ds[D][iuclab]
 
     Nop = (length(codes)+1) # number of operations

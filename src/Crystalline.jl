@@ -231,7 +231,7 @@ function isocaps_3d_levelsetlattice end
 const LGIRREPS_JLDFILES = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
 const LGS_JLDFILES      = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
 const PGIRREPS_JLDFILE  = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
-const DLGIRREPS_JLDFILE = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
+const DLGIRREPS_JLDFILES = ntuple(_ -> Ref{JLD2.JLDFile{JLD2.MmapIO}}(), Val(3))
 const DPGIRREPS_JLDFILE = Ref{JLD2.JLDFile{JLD2.MmapIO}}()
 
 const DATA_DIR = joinpath(dirname(@__DIR__), "data")
@@ -245,20 +245,19 @@ function __init__()
             JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/irreps_data.jld2", "r")
         global LGS_JLDFILES[D][] =
             JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/littlegroups_data.jld2", "r")
+        global DLGIRREPS_JLDFILES[D][] =
+            JLD2.jldopen(DATA_DIR*"/irreps/lgs/$(D)d/irreps_data_spinful.jld2", "r")
     end
     global PGIRREPS_JLDFILE[] = # only has 3D data; no need for tuple over dimensions
             JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data.jld2", "r")
-    # double-valued irreps: 3D only
-    global DLGIRREPS_JLDFILE[] =
-            JLD2.jldopen(DATA_DIR*"/irreps/lgs/3d/irreps_data_spinful.jld2", "r")
-    global DPGIRREPS_JLDFILE[] =
+    global DPGIRREPS_JLDFILE[] = # only has 3D data, as for `PGIRREPS_JLDFILE`
             JLD2.jldopen(DATA_DIR*"/irreps/pgs/3d/irreps_data_spinful.jld2", "r")
 
     # ensure we close files on exit
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGIRREPS_JLDFILES))
     atexit(() -> foreach(jldfile -> close(jldfile[]), LGS_JLDFILES))
     atexit(() -> close(PGIRREPS_JLDFILE[]))
-    atexit(() -> close(DLGIRREPS_JLDFILE[]))
+    atexit(() -> foreach(jldfile -> close(jldfile[]), DLGIRREPS_JLDFILES))
     atexit(() -> close(DPGIRREPS_JLDFILE[]))
 end
 

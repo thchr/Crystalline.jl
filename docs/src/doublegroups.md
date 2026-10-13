@@ -14,8 +14,8 @@ Those representing it by $-1$ are the _double-valued_ (spinful) irreps, and are 
 Crystalline.jl provides an interface to [Bilbao Crystallographic Server](https://cryst.ehu.es/cgi-bin/cryst/programs/representations.pl?tipogrupo=dbg)'s tables of the double groups of space, point, and little groups and their double-valued irreps, as well as constructors to build the associated site symmetry groups, irreps, and the associated band representations.
 Throughout, the word "spinful" refers to the double-valued (odd-integer multiples of spin-½) case and "spinless" to the single-valued (integer spin) one; [`isspinful`](@ref) distinguishes them.
 
-!!! note
-    Double groups are currently implemented in 3D only.
+!!! note "Plane and line groups"
+    In 2D and 1D, operations act as in the corresponding layer and rod groups with no out-of-plane or out-of-line symmetry, i.e., they leave the remaining directions fixed (see [`SU2`](@ref)).
 
 ## Double group operations
 A double group operation is a [`DSymOperation{D}`](@ref): a spatial [`SymOperation{D}`](@ref) together with the [`SU2`](@ref) element by which it acts on spin-½ degrees of freedom.

@@ -397,7 +397,7 @@ function _isomorphic_parent_pointgroup_permutation(siteg::SiteGroup)
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup(siteg)
     return label(parent_pg), Iᵖ²ᵍ
 end
-function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{3})
+function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{D}) where D
     # match the spatial parts of the unbarred operations, then choose, for each, whether it
     # corresponds to the unbarred or barred point group operation (see `_lift_signs`)
     n = length(siteg) ÷ 2
@@ -405,7 +405,7 @@ function _isomorphic_parent_pointgroup_permutation(siteg::DSiteGroup{3})
     parent_pg, Iᵖ²ᵍ, _ = find_isomorphic_parent_pointgroup([op.op for op in ops])
     pglabel = label(parent_pg)
     # unbarred operations first, then barred
-    pgops = operations(pointgroup(pglabel, Val(3); spinful=Val(true)))
+    pgops = operations(pointgroup(pglabel, Val(D); spinful=Val(true)))
     s = _lift_signs(ops, @view pgops[Iᵖ²ᵍ])
     Iᵖ²ᵍ′ = Vector{Int}(undef, 2n)
     for (i, j) in enumerate(Iᵖ²ᵍ)

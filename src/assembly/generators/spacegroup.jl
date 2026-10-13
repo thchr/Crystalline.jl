@@ -1,6 +1,6 @@
 """
     generators(num::Integer, T::Type{<:AbstractGroup{D}}[, optargs])
-    generators(pgiuc::String, T::Type{<:AbstractPointGroup{D}}) -->  Vector{<:AbstractOperation{D}}
+    generators(pgiuc::String, T::Type{<:AbstractPointGroup{D}}) -->  Vector{eltype(T)}
 
 Return the generators of the group type `T` which may be an `AbstractSpaceGroup{D}` or
 `AbstractPointGroup{D}` parameterized by its dimensionality `D`. Depending on `T`, the group
@@ -13,7 +13,7 @@ is determined by inputting as the first argument:
   also [`pointgroup(::Integer, ::Integer, ::Integer)`](@ref)).
 - `SubperiodicGroup{D}`: the subperiodic group number `num::Integer`.
 
-For double groups, `DSpaceGroup{3}` and `DPointGroup{3}`, the returned generators are
+For double groups, `DSpaceGroup` and `DPointGroup`, the returned generators are
 `DSymOperation`s, with the barred identity ``\\bar{E}`` as a final generator.
 
 Setting choices match those in [`spacegroup`](@ref), [`pointgroup`](@ref), and
@@ -25,9 +25,9 @@ As an example, `generate(generators(num, `SpaceGroup{D}))` and `spacegroup(num, 
 identical operations (with different sorting typically); and similarly so for point and
 subperiodic groups.
 
-## Example
+## Examples
 
-Generators of space group 200:
+Generators of space group ⋕200 (Pm-3m):
 ```jldoctest
 julia> generators(200, SpaceGroup{3})
 4-element Vector{SymOperation{3}}:
@@ -37,15 +37,16 @@ julia> generators(200, SpaceGroup{3})
  -1
 ```
 
-Generators of point group m-3m:
+Generators of the double-valued point group 2/m (⋕5):
 ```jldoctest
-julia> generators("2/m", PointGroup{3})
-2-element Vector{SymOperation{3}}:
+julia> generators("2/m", DPointGroup{3})
+3-element Vector{DSymOperation{3}}:
  2₀₁₀
  -1
+ ᵈ1
 ```
 
-Generators of the Frieze group 𝓅2mg:
+Generators of the Frieze group ⋕7 (𝓅2mg):
 ```jldoctest
 julia> generators(7, SubperiodicGroup{2, 1})
 2-element Vector{SymOperation{2}}:
@@ -89,7 +90,6 @@ function generators(
     ::Type{T}
 ) where {D, T <: AbstractSpaceGroup{D}}
     S = isspinful(T)
-    S && (D == 3 || _only_3d(D))
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
     codes = SG_GENS_CODES_Vs[D][sgnum]
     hexagonal = S ? _ishexagonal(sgnum, Val(D)) : false # only relevant for spinful
