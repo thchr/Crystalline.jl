@@ -15,7 +15,7 @@ function pointgroup(
 ) where D
     @boundscheck _check_valid_pointgroup_label(iuclab, D)
     pgnum = pointgroup_iuc2num(iuclab, D) # this is not generally a particularly well-established numbering
-    return _pointgroup(iuclab, pgnum, Dᵛ, _spinfulval(spinful))
+    return _pointgroup(iuclab, pgnum, Dᵛ, _to_val(spinful))
 end
 @inline function pointgroup(iuclab::String, D::Integer; kws...)
     return pointgroup(iuclab, Val(D); kws...)
@@ -44,7 +44,7 @@ function pointgroup(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
 ) where D
     iuclab = pointgroup_num2iuc(pgnum, Dᵛ, setting) # also checks validity of `(pgnum, D)`
-    return _pointgroup(iuclab, pgnum, Dᵛ, _spinfulval(spinful))
+    return _pointgroup(iuclab, pgnum, Dᵛ, _to_val(spinful))
 end
 @inline function pointgroup(pgnum::Integer, D::Integer, setting::Integer=1; kws...)
     return pointgroup(pgnum, Val(D), setting; kws...)

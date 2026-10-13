@@ -302,7 +302,7 @@ function bandreps(
     if !include_nonmaximal
         sitegs = findmaximal(sitegs)
     end
-    brs = _bandrep_type(_spinfulval(spinful), Dᵛ)[]
+    brs = _bandrep_type(_to_val(spinful), Dᵛ)[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal

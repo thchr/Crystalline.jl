@@ -38,7 +38,7 @@ function spacegroup(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
 ) where D
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
-    S = _isspinful(spinful)
+    S = _to_value(spinful)
     S && D ≠ 3 && _only_3d(D)
     codes = SG_CODES_Vs[D][sgnum]
 

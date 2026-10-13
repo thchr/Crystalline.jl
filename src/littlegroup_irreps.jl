@@ -37,7 +37,7 @@ function littlegroups(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
 ) where D
     D ∉ (1,2,3) && _throw_invalid_dim(D)
-    S = _isspinful(spinful)
+    S = _to_value(spinful)
     S && D ≠ 3 && _only_3d(D)
 
     sgops_str, klabs, kstrs, opsidxs = _load_littlegroups_data(sgnum, jldfile)
@@ -117,7 +117,7 @@ function lgirreps(
     D ∉ (1,2,3) && _throw_invalid_dim(D)
 
     lgs = littlegroups(sgnum, Dᵛ, lgs_jldfile; spinful)
-    irs_jldfile′ = something(irs_jldfile, _lgirreps_jldfile(Dᵛ, _spinfulval(spinful)))
+    irs_jldfile′ = something(irs_jldfile, _lgirreps_jldfile(Dᵛ, _to_val(spinful)))
 
     Ps_list, τs_list, realities_list, cdmls_list = _load_lgirreps_data(sgnum, irs_jldfile′)
 

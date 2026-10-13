@@ -155,14 +155,3 @@ end
 function conventionalize(dop::DSymOperation{D}, cntr::Char, modw::Bool=true) where D
     return DSymOperation{D}(conventionalize(dop.op, cntr, modw), dop.su2)
 end
-
-# --- the `spinful` keyword argument ---
-# Declared as `spinful::Union{Bool, Val{true}, Val{false}}`: given as a `Val`, it keeps the
-# caller's return type inferrable; given as a plain `Bool`, it does not — exactly as for a
-# dimension given as `Val(D)` or as a plain `Integer`. `_isspinful` reads it as a `Bool`,
-# constant-folded in the `Val` case; `_spinfulval` normalizes it to a `Val`, for passing on
-# to another such keyword argument.
-_isspinful(spinful::Val{S}) where S = S::Bool
-_isspinful(spinful::Bool) = spinful
-_spinfulval(spinful::Val{S}) where S = (S::Bool; spinful)
-_spinfulval(spinful::Bool) = Val(spinful)

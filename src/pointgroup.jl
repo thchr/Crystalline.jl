@@ -142,7 +142,7 @@ function pgirreps(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
 )
-    spinfulᵛ = _spinfulval(spinful)
+    spinfulᵛ = _to_val(spinful)
     pg = pointgroup(iuclab, Dᵛ; spinful=spinfulᵛ) # operations
 
     matrices, realities, cdmls = _load_pgirreps_data(iuclab, _pgirreps_jldfile(spinfulᵛ))
@@ -164,7 +164,7 @@ function pgirreps(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
 )
-    _isspinful(spinful) && _only_3d(2)
+    _to_value(spinful) && _only_3d(2)
     pg = pointgroup(iuclab, Val(2)) # operations
 
     # Because the operator sorting and setting is identical* between the shared point groups
@@ -185,7 +185,7 @@ function pgirreps(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false),
     mulliken::Bool=false
 )
-    _isspinful(spinful) && _only_3d(1)
+    _to_value(spinful) && _only_3d(1)
     pg = pointgroup(iuclab, Val(1))
     # Situation in 1D is sufficiently simple that we don't need to bother with loading from 
     # a disk; just branch on one of the two possibilities
