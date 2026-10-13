@@ -19,7 +19,7 @@ end
 # --- MANUAL TABULATION OF IRREPS OF NONSYMMORPHIC PLANE GROUPS (4, 7, 8, & 12) -----------
 # In all cases, the irreps (and associated labels) were obtained simply by comparison with
 # their parent space group. The settings are identical between these plane groups and their
-# parent space group, except for plane group 4, which corresponds to an yz-plane instead of
+# parent space group, except for plane group 4, which corresponds to a yz-plane instead of
 # an xy-plane of its parent.
 
 LGIRSD_2D = Dict{Int, Dict{String, Vector{LGIrrep{2}}}}()
@@ -136,8 +136,8 @@ LGIRSD_2D[7]["C"] = [
 kv = KVec("0,u")
 lg = LittleGroup(7, kv, "Δ", [S"x,y", S"-x+1/2,y"])
 LGIRSD_2D[7]["Δ"] = [
-    make_lgirrep("₁", lg, [1, -1], REAL)
-    make_lgirrep("₂", lg, [1, +1], REAL)
+    make_lgirrep("₁", lg, [1, +1], REAL)
+    make_lgirrep("₂", lg, [1, -1], REAL)
     ]
 # D
 kv = KVec("1/2,u")
