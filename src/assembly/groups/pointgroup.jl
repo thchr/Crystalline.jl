@@ -6,8 +6,7 @@ Return the symmetry operations associated with the point group identified with l
 `iuclab` in dimension `D` as a `PointGroup{D}`.
 
 If `spinful` is `Val(true)` (or `true`), the double group is returned instead, as a
-`DPointGroup{D}` (currently supported in 3D only). As for `D`, the `Val` spelling keeps the
-return type inferrable and the `Bool` spelling does not.
+`DPointGroup{D}` (currently supported in 3D only).
 """
 function pointgroup(
     iuclab::AbstractString,

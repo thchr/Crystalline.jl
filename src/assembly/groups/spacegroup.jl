@@ -6,8 +6,8 @@
 Return the space group symmetry operations for a given space group number `sgnum` and 
 dimensionality `D` as a `SpaceGroup{D}`.
 If `spinful` is `Val(true)` (or `true`), the double group is returned instead, as a
-`DSpaceGroup{D}` (currently supported in 3D only). As for `D`, the `Val` spelling keeps the
-return type inferrable and the `Bool` spelling does not.
+`DSpaceGroup{D}` (currently supported in 3D only).
+
 The returned symmetry operations are specified relative to the conventional basis vectors,
 i.e. are not necessarily primitive (see [`centering`](@ref)).
 If desired, operations for the primitive unit cell can subsequently be generated using 

@@ -107,11 +107,9 @@ Return the (crystallographic) point group irreps of the IUC label `iuclab` of di
 as a `Vector{PGIrrep{D}}`.
 
 If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double point group
-are returned instead, as `DPGIrrep{D}`s (currently available in 3D only), with the `Val`
-spelling keeping the return type inferrable. Their labels are the
-CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
-`"¹E₁ˢ"`). The single-valued irreps of a double group coincide with those of the ordinary
-group and are not included.
+are returned instead, as `DPGIrrep{D}`s (currently available in 3D only). Their labels are
+the CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`), as are their Mulliken labels (e.g.,
+`"¹E₁ˢ"`).
 
 See `Crystalline.PG_IUC2NUM[D]` for possible IUC labels in dimension `D`.
 

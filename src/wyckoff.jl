@@ -53,8 +53,7 @@ Return all site symmetry groups associated with a space group, specified either 
 `D` defaults to 3).
 
 For a double space group `sg :: DSpaceGroup{D}`, or with `spinful = Val(true)` (or `true`),
-the double site symmetry groups are returned; as for `D`, the `Val` spelling keeps the
-return type inferrable and the `Bool` spelling does not.
+the double site symmetry groups are returned.
 
 See also [`sitegroup`](@ref) for calculation of the site symmetry group of a specific
 Wyckoff position.

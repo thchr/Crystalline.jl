@@ -3,8 +3,8 @@
 """
     littlegroups(
         sgnum::Integer,
-        D::Union{Val{Int}, Integer}=Val(3);
-        spinful = Val(false)
+        D::Union{Val{1}, …, Val{3}, Integer} = Val(3);
+        spinful::Union{Val{true}, Val{false}, Bool} = Val(false)
     ) -> Dict{String, LittleGroup{D}} or Dict{String, DLittleGroup{D}}
 
 For given space group number `sgnum` and dimension `D`, return the associated little groups
@@ -15,8 +15,7 @@ Returns a `Dict` with little group **k**-point labels as keys and vectors of
 `LittleGroup{D}`s as values.
 
 If `spinful` is `Val(true)` (or `true`), the double little groups are returned instead, as
-`DLittleGroup{D}`s (currently supported in 3D only). As for `D`, the `Val` spelling keeps
-the return type inferrable and the `Bool` spelling does not.
+`DLittleGroup{D}`s (currently supported in 3D only).
 
 ## Notes
 A conventional crystallographic setting is assumed (as in [`spacegroup`](@ref)).
@@ -62,7 +61,7 @@ littlegroups(sgnum::Integer, D::Integer; kws...) = littlegroups(sgnum, Val(D); k
 """
     lgirreps(
         sgnum::Integer,
-        D::Union{Val{Int}, Integer}=Val(3);
+        D::Union{Val{1}, …, Val{3}, Integer} = Val(3);
         spinful = Val(false)
     ) -> Dict{String, Collection{LGIrrep{D}}} or Dict{String, Collection{DLGIrrep{D}}}
 
@@ -73,10 +72,8 @@ Returns a `Dict` with little group **k**-point labels as keys and vectors of `LG
 as values.
 
 If `spinful` is `Val(true)` (or `true`), the double-valued irreps of the double little
-groups are returned instead, as `DLGIrrep{D}`s (currently available in 3D only), with the
-`Val` spelling keeping the return type inferrable. Their labels are the CDML
-labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`). The single-valued irreps of a double group
-coincide with those of the ordinary group and are not included.
+groups are returned instead, as `DLGIrrep{D}`s (currently available in 3D only). Their
+labels are the CDML labels with an appended `ˢ` (e.g., `"Γ₆ˢ"`).
 
 ## Notes
 - The returned irreps are complex in general. Real irreps (as needed in time-reversal
