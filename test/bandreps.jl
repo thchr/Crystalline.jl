@@ -161,6 +161,21 @@ end
     end
 end
 
+@testset "Spinful plane and line groups vs. parent space groups" begin
+    # the spinful irreps of plane and line groups are derived from those of their parent
+    # space groups, so their band representations must agree
+    parents = [[(1, n, Crystalline.FRIEZE2SPACE_NUMS[Crystalline.LINE2FRIEZE_NUMS[n]])
+                for n in 1:MAX_SGNUM[1]];
+               [(2, n, Crystalline.PLANE2SPACE_NUMS[n]) for n in 1:MAX_SGNUM[2]]]
+    for (D, sgnum, sgnum³ᴰ) in parents, timereversal in (false, true)
+        brs    = bandreps(sgnum, Val(D); spinful = Val(true), timereversal)
+        brs³ᴰ  = bandreps(sgnum³ᴰ, Val(3); spinful = Val(true), timereversal)
+        @test all(isspinful, brs)
+        @test sort!(occupation.(brs)) == sort!(occupation.(brs³ᴰ))
+        @test indicator_group_as_string(brs) == indicator_group_as_string(brs³ᴰ)
+    end
+end
+
 @testset "Orbits of bandrep site groups are all in parallelepid primitive unit cell" begin
     # check that the constant part of every orbit position of a bandrep site group lies
     # in the primitive unit cell parallelepiped, in i.e., [0, 1)ᴰ
