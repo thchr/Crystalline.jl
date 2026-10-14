@@ -305,3 +305,23 @@ function uniquetol(A::AbstractArray{T}, optargs...; kwargs...) where T
     return S
 end
 
+# ---------------------------------------------------------------------------------------- #
+# Tooling to treating `Val{x}` and `x` interchangeably; e.g., needed for the `spinful`
+# keyword argument, which can be passed as `Val` for constant folding and `Bool` for
+# (non-inferred) convenience.
+
+"""
+    _to_value(x)
+
+If `x` is a `Val{T}` type, returns `T`; otherwise returns `x` itself.
+"""
+_to_value(#=xᵛ=#::Val{x}) where x = x
+_to_value(x) = x
+
+"""
+    _to_val(x)
+
+If `x` is a `Val{T}` type, returns `x`; otherwise returns `Val(x)`.
+"""
+_to_val(xᵛ::Val) = xᵛ
+_to_val(x) = Val(x)

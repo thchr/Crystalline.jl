@@ -142,7 +142,10 @@ data/
   irreps/
     lgs/{1,2,3}d/irreps_data.jld2         — LGIrrep matrices, translations, realities
     lgs/{1,2,3}d/littlegroups_data.jld2   — LittleGroup operations and k-vectors
-    pgs/3d/irreps_data.jld2               — PGIrrep data
+    lgs/{1,2,3}d/irreps_data_spinful.jld2 — DLGIrrep data (3D: from Bilbao; 2D/1D: derived
+                                            from parent space groups, see
+                                            build/line_plane_irreps.jl)
+    pgs/3d/irreps_data{_spinful}.jld2     — PGIrrep/DPGIrrep data (also used in 2D and 1D)
   bandreps/                               — Bilbao's tabulated EBRs, as CSV; a lazy
                                             artifact, used only to validate `bandreps`
   wyckpos/                                — Wyckoff position data

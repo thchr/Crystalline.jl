@@ -245,7 +245,7 @@ Compute the band representations of space group `sgnum` in dimension `D`.
 
 If `spinful` is `Val(true)` (or `true`), the spinful band representations are computed
 instead, induced from the double-valued site symmetry irreps (see [`siteirreps`](@ref)) and
-subduced onto the double-valued little group irreps (currently available in 3D only).
+subduced onto the double-valued little group irreps.
 
 ## Keyword arguments
 - `timereversal` (default, `true`): whether the irreps used to induce the band
@@ -302,7 +302,7 @@ function bandreps(
     if !include_nonmaximal
         sitegs = findmaximal(sitegs)
     end
-    brs = _bandrep_type(_spinfulval(spinful), Dᵛ)[]
+    brs = _bandrep_type(_to_val(spinful), Dᵛ)[]
     for siteg in sitegs
         siteirs = siteirreps(siteg; mulliken=true)
         if timereversal

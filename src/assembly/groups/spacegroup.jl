@@ -6,7 +6,7 @@
 Return the space group symmetry operations for a given space group number `sgnum` and 
 dimensionality `D` as a `SpaceGroup{D}`.
 If `spinful` is `Val(true)` (or `true`), the double group is returned instead, as a
-`DSpaceGroup{D}` (currently supported in 3D only).
+`DSpaceGroup{D}`.
 
 The returned symmetry operations are specified relative to the conventional basis vectors,
 i.e. are not necessarily primitive (see [`centering`](@ref)).
@@ -38,8 +38,7 @@ function spacegroup(
     spinful::Union{Bool, Val{true}, Val{false}}=Val(false)
 ) where D
     @boundscheck _check_valid_sgnum_and_dim(sgnum, D)
-    S = _isspinful(spinful)
-    S && D ≠ 3 && _only_3d(D)
+    S = _to_value(spinful)
     codes = SG_CODES_Vs[D][sgnum]
 
     cntr = centering(sgnum, D)

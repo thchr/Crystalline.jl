@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.3
+
+- Double groups and double-valued irreps are now available in 2D and 1D (plane and line
+  groups), via the same `spinful` keyword argument as in 3D. The irreps are derived from
+  those of a parent space group, and so follow its labels.
+
 ## v0.7.2
 
 - `generators` and `generate` now support double groups (`DSpaceGroup{3}`, `DPointGroup{3}`, and `DSymOperation`s).

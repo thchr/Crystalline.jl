@@ -1,8 +1,8 @@
 # --- SU(2) elements of spatial operations ---
 
 """
-    SU2(op::SymOperation{3}, sgnum::Integer)   --> SU2
-    SU2(op::SymOperation{3}, hexagonal::Bool)  --> SU2
+    SU2(op::SymOperation{D}, sgnum::Integer)   --> SU2
+    SU2(op::SymOperation{D}, hexagonal::Bool)  --> SU2
 
 Return the SU(2) element of the spatial operation `op`: the 2×2 matrix by which `op` acts
 on spin-½ degrees of freedom.
@@ -47,6 +47,13 @@ SU(2) elements are combined with quantities that refer to Cartesian axes (e.g., 
 operators taken as physical directions, orbitals that transform under Cartesian rotations,
 or external fields), which must then use the same frame.
 
+## Plane and line groups
+In 2D and 1D, `op` acts as in the corresponding layer or rod group with no out-of-plane or
+out-of-line symmetry, i.e., as the 3D operation with rotation part `rotation(op) ⊕ I(3-D)`,
+which leaves the out-of-plane (or out-of-line) directions fixed. E.g., a two-fold rotation
+in 2D is a rotation about the plane's normal, and a mirror in 1D is a mirror plane normal to
+the line.
+
 ## Changes of basis and of setting
 The element stays with the physical operation under [`transform`](@ref) (and so
 [`primitivize`](@ref) and [`conventionalize`](@ref)): the operation is rewritten in another
@@ -57,7 +64,10 @@ above, and the SU(2) elements need not equal those tabulated for the new setting
 double group operations of the new setting, transform the spatial operations and attach
 the SU(2) elements tabulated for that setting, i.e., `SU2(op′, sgnum′)`.
 """
-SU2(op::SymOperation{3}, sgnum::Integer) = SU2(op, _ishexagonal(sgnum, Val(3)))
+function SU2(op::SymOperation{D}, sgnum::Integer) where D
+    _check_valid_sgnum_and_dim(sgnum, D)
+    return SU2(op, _ishexagonal(sgnum, Val(D)))
+end
 # whether space group `sgnum`, or group `g`, uses the hexagonal Cartesian frame (see
 # `SU2_BY_ROTATION_HEX`); point groups 16-27 are the trigonal and hexagonal ones
 function _ishexagonal(g::T) where {D, T<:Union{AbstractSpaceGroup{D}, AbstractLittleGroup{D}, AbstractSiteGroup{D}}}
@@ -70,7 +80,7 @@ _ishexagonal(pg::PointGroup{D}) where D = _ishexagonal_pg(num(pg), Val(D))
 _ishexagonal_pg(pgnum::Integer, ::Val{3}) = 16 ≤ pgnum ≤ 27
 _ishexagonal_pg(pgnum::Integer, ::Val{2}) = 7 ≤ pgnum ≤ 10
 _ishexagonal_pg(::Integer, ::Val{1}) = false
-function SU2(op::SymOperation{3}, hexagonal::Bool)
+function SU2(op::SymOperation, hexagonal::Bool)
     k = _rotation_key(op)
     if hexagonal
         u = get(SU2_BY_ROTATION_HEX, k, nothing)
@@ -84,7 +94,9 @@ function SU2(op::SymOperation{3}, hexagonal::Bool)
 end
 
 # attach the SU(2) element to a spatial operation
-DSymOperation(op::SymOperation{3}, hexagonal::Bool) = DSymOperation{3}(op, SU2(op, hexagonal))
+function DSymOperation(op::SymOperation{D}, hexagonal::Bool) where D
+    return DSymOperation{D}(op, SU2(op, hexagonal))
+end
 
 # `_maybe_attach_su2` only attaches SU(2) element if type-arg is `<:DSymOperation`
 @inline function _maybe_attach_su2(
@@ -94,12 +106,22 @@ DSymOperation(op::SymOperation{3}, hexagonal::Bool) = DSymOperation{3}(op, SU2(o
 end
 @inline _maybe_attach_su2(::Type{SymOperation{D}}, op::SymOperation{D}, ::Bool) where D = op
 
-function _rotation_key(op::SymOperation{3})
+function _rotation_key(op::SymOperation{D}) where D
     W = rotation(op)
     all(w -> abs(w - round(w)) ≤ DEFAULT_ATOL, W) || throw(DomainError(W,
         "rotation part is not integer-valued; SU(2) elements are tabulated only for " *
         "operations in a conventional (fractional-coordinate) setting"))
-    return NTuple{9,Int}(round.(Int, W))
+    # in 2D & 1D, the rotation part is embedded in 3D as `W ⊕ I(3-D)` (see `SU2` docstring)
+    w = round.(Int, W)
+    if D == 3
+        return NTuple{9,Int}(w)
+    elseif D == 2
+        return (w[1,1], w[2,1], 0, w[1,2], w[2,2], 0, 0, 0, 1)
+    elseif D == 1
+        return (w[1,1], 0, 0, 0, 1, 0, 0, 0, 1)
+    else
+        error("unsupported dimension D = $D")
+    end
 end
 
 """

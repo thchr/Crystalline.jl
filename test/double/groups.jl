@@ -87,9 +87,12 @@ end
 end
 
 @testset "Double group structure" begin
-    for sgnum in (1, 2, 75, 143, 186, 221, 225)
-        sg, dsg = spacegroup(sgnum, Val(3)), spacegroup(sgnum, Val(3); spinful=Val(true))
-        @test dsg isa DSpaceGroup{3}
+    sgnums = (#= D=1 =# [1, 2], 
+              #= D=2 =# [2, 9, 11, 13, 17], 
+              #= D=3 =# [1, 2, 75, 143, 186, 221, 225])
+    for D in (1, 2, 3), sgnum in sgnums[D]
+        sg, dsg = spacegroup(sgnum, Val(D)), spacegroup(sgnum, Val(D); spinful=Val(true))
+        @test dsg isa DSpaceGroup{D}
         @test length(dsg) == 2*length(sg)             # a double group holds both cosets
         @test count(isbarred, dsg) == length(sg)
         @test all(d -> findfirst(q -> isapprox(q, d), dsg) !== nothing,
@@ -103,6 +106,19 @@ end
     # the spinless path must be untouched by the `Val(false)` route
     @test spacegroup(221, Val(3); spinful=Val(false)) == spacegroup(221, Val(3))
     @test spacegroup(221, 3; spinful=true) == spacegroup(221, Val(3); spinful=Val(true))  # unstable form
+end
+
+@testset "SU(2) elements in 2D and 1D" begin
+    # a 2D or 1D operation acts as the 3D operation that leaves the remaining directions fixed
+    @test SU2(S"-x,-y", 2) == SU2(S"-x,-y,z", 3)       # 2₀₀₁
+    @test SU2(S"-x,y", 3) == SU2(S"-x,y,z", 6)         # mirror normal to 𝐚 (not 2₀₁₀)
+    @test SU2(S"-y,x-y", 13) == SU2(S"-y,x-y,z", 143)  # 3₀₀₁⁺, in the hexagonal frame
+    @test SU2(S"-x", 2) == SU2(S"-x,y,z", 6)           # mirror normal to the line
+
+    # the group number must be valid in the operation's dimension
+    @test_throws DomainError SU2(S"-x", 500000)
+    @test_throws DomainError SU2(S"-x,-y", 18)
+    @test_throws DomainError SU2(S"-x,-y,z", 231)
 end
 
 @testset "Barring" begin
@@ -167,7 +183,11 @@ end
         @test generates(generators(iuc, DPointGroup{3}),
                         pointgroup(iuc, Val(3); spinful=Val(true)))
     end
-    @test_throws DomainError generators(1, DSpaceGroup{2})
+    for (D, sgnum) in ((2, 9), (2, 17), (1, 2))
+        @test generates(generators(sgnum, DSpaceGroup{D}),
+                        spacegroup(sgnum, Val(D); spinful=Val(true)))
+    end
+    @test generates(generators("6mm", DPointGroup{2}), pointgroup("6mm", Val(2); spinful=Val(true)))
     @test_throws "overflow" generate(generators(225, DSpaceGroup{3}); Nmax=100)
     @test_throws ErrorException generators(1, MSpaceGroup{3}) # not implemented
 end

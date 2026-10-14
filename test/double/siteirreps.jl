@@ -2,10 +2,10 @@ using Crystalline, Test, LinearAlgebra
 using Crystalline: check_multtable_vs_ir
 
 @testset "Double site groups and their irreps" begin
-    for sgnum in 1:MAX_SGNUM[3]
-        sg = spacegroup(sgnum, Val(3))
-        dsg = spacegroup(sgnum, Val(3); spinful=Val(true))
-        for wp in wyckoffs(sgnum, Val(3))
+    for D in (1, 2, 3), sgnum in 1:MAX_SGNUM[D]
+        sg = spacegroup(sgnum, Val(D))
+        dsg = spacegroup(sgnum, Val(D); spinful=Val(true))
+        for wp in wyckoffs(sgnum, Val(D))
             siteg = sitegroup(sg, wp)
             dsiteg = doublegroup(siteg)
             dsiteg′ = sitegroup(dsg, wp)
@@ -17,7 +17,7 @@ using Crystalline: check_multtable_vs_ir
             @test length(cosets(dsiteg)) == length(cosets(siteg))
 
             siteirs = siteirreps(dsiteg)
-            @test siteirs isa Collection{DSiteIrrep{3}}
+            @test siteirs isa Collection{DSiteIrrep{D}}
             @test all(isspinful, siteirs)
             @test sum(ir -> irdim(ir)^2, siteirs) == n # double-valued irreps only
 

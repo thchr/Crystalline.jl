@@ -6,18 +6,19 @@ using Crystalline: check_multtable_vs_ir, matrices, PG_IUCs
 @test @inferred(pointgroup("4mm", Val(3); spinful=Val(true))) isa DPointGroup{3}
 @test pointgroup("4mm", 3; spinful=true) == pointgroup(13, Val(3), 1; spinful=Val(true))
 @test pointgroup("4mm", Val(3); spinful=Val(false)) == pointgroup("4mm", Val(3))
-@test_throws DomainError pointgroup("4mm", Val(2); spinful=Val(true))
+@test @inferred(pointgroup("4mm", Val(2); spinful=Val(true))) isa DPointGroup{2}
 
 @test @inferred(pgirreps("4mm", Val(3); spinful=Val(true))) isa Collection{DPGIrrep{3}}
 @test pgirreps("4mm", 3; spinful=true) == pgirreps(13, Val(3); spinful=Val(true))
 @test pgirreps("4mm", Val(3); spinful=Val(false)) == pgirreps("4mm", Val(3))
-@test_throws DomainError pgirreps("4mm", Val(2); spinful=Val(true))
+@test @inferred(pgirreps("4mm", Val(2); spinful=Val(true))) isa Collection{DPGIrrep{2}}
+@test @inferred(pgirreps("m", Val(1); spinful=Val(true))) isa Collection{DPGIrrep{1}}
 
-for iuc in PG_IUCs[3]
-    pgirs = pgirreps(iuc, Val(3); spinful=Val(true))
+for D in (1, 2, 3), iuc in PG_IUCs[D]
+    pgirs = pgirreps(iuc, Val(D); spinful=Val(true))
     pg = group(first(pgirs))
     n = order(pg) ÷ 2
-    @test n == order(pointgroup(iuc, Val(3)))
+    @test n == order(pointgroup(iuc, Val(D)))
     @test all(pgir -> endswith(label(pgir), 'ˢ'), pgirs)
 
     # the barred half of the double group is represented by `D(Ēg) = -D(g)`
@@ -31,7 +32,7 @@ for iuc in PG_IUCs[3]
               Iterators.product(eachindex(χs), eachindex(χs)))
 
     # character tables, per operation and per conjugacy class (class-weighted orthogonality)
-    @test characters(pgirs) isa CharacterTable{DSymOperation{3}}
+    @test characters(pgirs) isa CharacterTable{DSymOperation{D}}
     ct = classcharacters(pgirs)
     ws, X = length.(classes(ct)), matrix(ct)
     @test sum(ws) == 2n
@@ -53,11 +54,11 @@ end
 # space group: compare characters, matching each operation by its rotation part and SU(2)
 # element
 @testset "Little group irreps at Γ vs. point group irreps" begin
-for sgnum in 1:MAX_SGNUM[3]
-    lgirs = lgirreps(sgnum, Val(3); spinful=Val(true))["Γ"]
+for D in (1, 2, 3), sgnum in 1:MAX_SGNUM[D]
+    lgirs = lgirreps(sgnum, Val(D); spinful=Val(true))["Γ"]
     lg = group(first(lgirs))
-    iuc = label(Crystalline.find_parent_pointgroup(littlegroups(sgnum)["Γ"]))
-    pgirs = pgirreps(iuc, Val(3); spinful=Val(true))
+    iuc = label(Crystalline.find_parent_pointgroup(littlegroups(sgnum, Val(D))["Γ"]))
+    pgirs = pgirreps(iuc, Val(D); spinful=Val(true))
     pg = group(first(pgirs))
     idxs = map(operations(lg)) do op
         findfirst(pgop -> rotation(pgop) ≈ rotation(op) && SU2(pgop) ≈ SU2(op), pg)
@@ -72,9 +73,9 @@ end
 end
 
 @testset "Mulliken labels" begin
-    for iuc in Crystalline.PG_IUCs[3]
-        pgirs  = pgirreps(iuc, Val(3); spinful=Val(true))
-        pgirsₘ = pgirreps(iuc, Val(3); spinful=Val(true), mulliken=true)
+    for D in (1, 2, 3), iuc in Crystalline.PG_IUCs[D]
+        pgirs  = pgirreps(iuc, Val(D); spinful=Val(true))
+        pgirsₘ = pgirreps(iuc, Val(D); spinful=Val(true), mulliken=true)
         @test label.(pgirsₘ) == mulliken.(pgirs)
         @test allunique(label.(pgirsₘ)) && all(l -> endswith(l, 'ˢ'), label.(pgirsₘ))
         # co-reps: `mulliken` of a co-rep agrees with `realify` of Mulliken-labelled irreps
