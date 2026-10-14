@@ -19,7 +19,7 @@ rather than sitting inside an MIT-licensed repository (see `LICENSE.md`).
 | `isotropy` | ISOTROPY's `CIR_data.txt`, `PIR_data.txt` (55 MB → 1.8 MB) | `build/write_littlegroup_irreps.jl`, `test/parsed_vs_loaded_littlegroup_irreps.jl` |
 | `bilbao_spinless_irreps` | Bilbao's single-valued little group irreps (16 MB → 1.8 MB) | `test/bilbao_vs_isotropy.jl` |
 | `dsg_crawl` | the captured Bilbao pages the double-valued irreps are parsed from, and the crawler that fetched them (461 MB → 3.9 MB) | `build/parse_dsg_irreps.jl` and the `write_dsg_*.jl` scripts |
-| `bandreps` | Bilbao's tabulated elementary band representations, as CSV, for 1D, 2D and 3D (6.5 MB → 0.33 MB) | `test/bandreps.jl`, via `test/bilbao_bandreps_implementation.jl` |
+| `bandreps` | elementary band representations, as CSV: Bilbao's in 3D, and computed by `bandreps` in 1D and 2D (6.5 MB → 0.33 MB) | `test/bandreps.jl`, via `test/bilbao_bandreps_implementation.jl` |
 
 Every artifact is `lazy`: nothing is downloaded when Crystalline is installed, only on first
 use, and the result is cached in the depot (`~/.julia/artifacts`) under its tree hash. An

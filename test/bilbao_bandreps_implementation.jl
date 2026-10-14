@@ -4,7 +4,9 @@
 #
 # Crystalline computes its own EBRs with `bandreps`; these tables exist only to validate
 # that computation against an independent reference, and so live with the tests rather than
-# in the package. The underlying CSV files are a lazy artifact (see `Artifacts.toml`).
+# in the package. The 1D and 2D tables, however, are not Bilbao's, but were computed by
+# `bandreps` itself, and serve as a regression test. The underlying CSV files are a lazy
+# artifact (see `Artifacts.toml`).
 module BilbaoBandReps
 
 using Crystalline
@@ -230,7 +232,8 @@ group `sgnum` and dimension `D`.
 - `allpaths`: include a minimal sufficient set (`false`, default) or all (`true`)
               **k**-vectors.
 - `spinful`: single- (`false`, default) or double-valued (`true`) irreps, as appropriate for
-             spinless and spinful particles, respectively. Only available for `D=3`.
+             spinless and spinful particles, respectively. Only available for `D=1` and
+             `D=3`.
 - `timereversal`: assume presence (`true`, default) or absence (`false`) of time-reversal
                   symmetry.
 """

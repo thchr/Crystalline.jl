@@ -84,7 +84,7 @@ appended `ˢ` (e.g., `"Γ₆ˢ"`).
   the matrices associated with `lgir` will be evaluated assuming `αβγ = [0,0,...]`.
 
 ## References
-The underlying data is sourced from the ISOTROPY ISO-IR dataset. Please cite the original
+The underlying 3D data is sourced from the ISOTROPY ISO-IR dataset. Please cite the original
 reference material associated with ISO-IR:
 
 1. Stokes, Hatch, & Campbell, 
@@ -104,12 +104,13 @@ tool:
 3. Elcoro, Bradlyn, Wang, Vergniory, Cano, Felser, Bernevig, Orobengoa, de la Flor, &
    Aroyo, [J. Appl. Cryst. **50**, 1457 (2017)](https://doi.org/10.1107/S1600576717011712).
 
-The double-valued irreps in 2D and 1D are derived from those of a parent space group (e.g.,
-P6mm for p6mm), with the same operations when the plane or line is embedded in 3D (see
-[`SU2`](@ref)), and take their labels from it.
+The irreps in 2D and 1D are derived from those of a parent space group (e.g., P6mm for
+p6mm), and take their labels from the parent. For double groups, the SU(2) operations are
+picked as if the operations of the plane or line group were embedded in 3D (see
+[`SU2`](@ref)).
 """
-function lgirreps(    # TODO: Update single-valued irreps in 1D/2D to also inherit labels
-    sgnum::Integer,   #       strictly from 3D space groups, not from point groups
+function lgirreps(
+    sgnum::Integer,
     Dᵛ::Val{D}=Val(3),
     lgs_jldfile::JLD2.JLDFile=LGS_JLDFILES[D][],
     # NB: a positional default cannot see the `spinful` keyword argument, so the default
