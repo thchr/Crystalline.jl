@@ -287,7 +287,13 @@ isgreek(c::Char) = '\u0391' ≤ c ≤ '\u03c9'
 
 Determine whether `x` ∈ `itr` with approximate equality.
 """
-isapproxin(x, itr, optargs...; kwargs...) = any(y -> isapprox(y, x, optargs...; kwargs...), itr)
+function isapproxin(x, itr, optargs::Vararg{Any, N}; kwargs...) where N
+    # NB: `Vararg{Any, N}` (rather than `optargs...`) forces specialization on `optargs`:
+    #     Julia doesn't otherwise specialize on varargs that are only passed on to another
+    #     function, making each `isapprox` call a dynamic dispatch (& allocating); see
+    #     https://docs.julialang.org/en/v1/manual/performance-tips/#Be-aware-of-when-Julia-avoids-specializing
+    return any(y -> isapprox(y, x, optargs...; kwargs...), itr)
+end
 
 """
     uniquetol(A, optargs...; kwargs...)
@@ -297,7 +303,8 @@ Computes approximate-equality unique in O(n²) runtime, with any positional argu
 
 Originally based on https://github.com/JuliaLang/julia/issues/19147#issuecomment-256981994
 """
-function uniquetol(A::AbstractArray{T}, optargs...; kwargs...) where T
+function uniquetol(A::AbstractArray{T}, optargs::Vararg{Any, N}; kwargs...) where {T, N}
+    # NB: `Vararg{Any, N}` forces specialization on `optargs` (see `isapproxin`)
     S = Vector{T}()
     for a in A
         isapproxin(a, S, optargs...; kwargs...) || push!(S, a)

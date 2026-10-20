@@ -15,4 +15,15 @@
         @test lgirs_vs_subset == Collection(lgirs_view) # collect the `view`
         @test lgirs_vs_subset === Collection(lgirs_vs_subset) # returned as-is (egal, ===)
     end
+
+    @testset "`uniquetol`: specialized on positional arguments" begin
+        # positional arguments forwarded to `isapprox` (here, `cntr` & `modw`) must not make
+        # each comparison a dynamic dispatch (previously, ~2 allocations per comparison)
+        ops = operations(spacegroup(230, Val(3)))
+        count_allocs(ops) = @allocations Crystalline.uniquetol(ops, nothing, false)
+        count_allocs(ops) # compile
+        @test count_allocs(ops) < length(ops) # only growth of the returned vector
+        @test Crystalline.uniquetol(ops, nothing, false) == ops # ops are distinct
+        @test Crystalline.isapproxin(ops[end], ops[1:end-1], nothing, false) == false
+    end
 end
