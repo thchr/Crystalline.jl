@@ -751,14 +751,16 @@ function transform_rotation(op::SymOperation{D}, P::AbstractMatrix{<:Real}) wher
     W′_cleanup = ntuple(Val(D*D)) do i
         @inbounds W′ᵢ = W′[i]
         rW′ᵢ = round(W′ᵢ)
-        if !isapprox(W′ᵢ, rW′ᵢ, atol=DEFAULT_ATOL)
-            rW′ᵢ = W′ᵢ # non-standard lattice transformation; fractional elements 
-                       # (this is why we need Float64 in SymOperation{D})
+        if isapprox(W′ᵢ, rW′ᵢ, atol=DEFAULT_ATOL)
+            W′ᵢ = rW′ᵢ # clean up rounding error
+            
+            # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative values
+            # x∈[-0.5,-0.0] to -0.0 - and since it is bad for us to have both 0.0 & -0.0 -
+            # we convert -0.0 to 0.0 here
+            W′ᵢ === -zero(typeof(W′ᵢ)) && (W′ᵢ = zero(typeof(W′ᵢ)))
         end
-        # since round(x) takes positive values x∈[0,0.5] to 0.0 and negative
-        # values x∈[-0.5,-0.0] to -0.0 -- and since it is bad for us to have
-        # both 0.0 and -0.0 -- we convert -0.0 to 0.0 here
-        rW′ᵢ === -zero(Float64) && (rW′ᵢ = zero(Float64))
+        # if not `isapprox(…)`: we then have a non-standard lattice transformation with
+        # fractional elements (this is why we need Float64 in SymOperation{D})
 
         return W′ᵢ
     end

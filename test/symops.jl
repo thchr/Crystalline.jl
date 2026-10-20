@@ -105,6 +105,19 @@ using Crystalline, Test
         @test isapprox(op, op′, 'I', true)
     end
 
+    @testset "`transform`: clean-up of rotation part" begin
+        # the change of basis `P = -I` leaves rotations unchanged (`P⁻¹WP = W`), but its
+        # floating-point evaluation produces `-0.0` entries; these must be cleaned up to
+        # `0.0` (`-0.0 == 0.0`, but `hash(-0.0) ≠ hash(0.0)`), so we compare via `isequal`
+        P = -rotation(one(SymOperation{3}))     # as an `SMatrix`
+        for P in (P, Matrix(P))                 # as an `SMatrix` & a `Matrix`
+            for op in spacegroup(221, Val(3))
+                op′ = Crystalline.transform(op, P, nothing, false)
+                @test isequal(rotation(op′), rotation(op))
+            end
+        end
+    end
+
     @testset "Groups created from generators" begin # (`generate` default sorts by `seitz`)
         # generate plane group (17) p6mm from 6⁺ and m₁₀
         gens = SymOperation.(["x-y,x", "-x+y,y"]) 
