@@ -158,30 +158,16 @@ function surface_basis(
 	# if `cartesian=true` (default), we assume `n` has been given in Cartesian coordinates;
 	# otherwise, if `cartesian=false`, `n` is assumed to be given in the basis of 
 	# `dualbasis(Rs)`, i.e., to be a set of Miller indices for the surface
-	local n_cartesian
-	if cartesian
-		n_cartesian = n
-		n = latticize(n, dualbasis(Rs))
-	else
-		n_cartesian = cartesianize(float.(n), dualbasis(Rs))
-	end
+	Gs = dualbasis(Rs)
+	n_cartesian = cartesian ? SVector{3, Float64}(n) : cartesianize(SVector{3,Float64}(n), Gs)
 
-	# cast `n` as the smallest integer vector proportional to `n`, so we can do integer math
-	# from here on out
-	local n_int
-	if !(eltype(n) <: Integer)
-		d = float_gcd(n...; atol=1e-9)
-		_n = n ./ d
-		n_int = round.(Int, _n)
-		if norm(_n - n_int) > 1e-9
-			error(LazyString(
-					"failed to convert `n` to an integer vector with precision 1e-9; ",
-					" got n=", _n, " vs. n_int=", n_int, 
-					"; if possible, try to give `n` as integer Miller indices"))
-		end
+	# cast `n` as the smallest integer vector proportional to `n` (in the basis of `Gs`), so
+	# we can do integer math from here on out
+	n_int = if cartesian
+		tmp_float_n = SVector{3,Float64}(latticize(n_cartesian, Gs))
+		_cast_to_smallest_proportional_int_vector(tmp_float_n; atol=1e-9)
 	else
-		d = gcd(n)
-		n_int = isone(d) ? convert.(Int, n) : convert.(Int, div.(n, d))
+		_cast_to_smallest_proportional_int_vector(n; atol=1e-9)
 	end
 
     # find a basis for the surface lattice, using the constraint n ⋅ rⱼ = 0 for each surface
@@ -240,8 +226,8 @@ function surface_basis(
 	# that n specified in the basis of the reciprocal lattice vectors, and r₃ is specified
 	# in the direct basis); we denote this matrix C, s.t. C*r₃ = n×r₃ = 0; we seek a basis
 	# for the null-space of C and we will use the smith normal form to get it again
-	_Gs = dualbasis(Rs) ./ (2π) # factors of 2π are irrelevant & troublesome; remove
-	C = reduce(hcat, (sum(cross(n_int[k]*_Gs[k], Rs[j]) for k in 1:3) for j in 1:3)) # (n×r₃)ᵢ = Cᵢⱼ(r₃)ⱼ
+	_Gs = Gs ./ (2π) # factors of 2π are irrelevant & troublesome; remove
+	C = reduce(hcat, ntuple(j -> sum(k -> cross(n_int[k]*_Gs[k], Rs[j]), 1:3), Val(3))) # (n×r₃)ᵢ = Cᵢⱼ(r₃)ⱼ
 	d = float_gcd(C...; atol=1e-9) # convert to nearest integer matrix
 	norm(d) ≈ 1 || (C = C ./ d)
 	C_int = round.(Int, C)
@@ -271,9 +257,29 @@ function surface_basis(
     return rs³ᴰ, rs′²ᴰ, P
 end
 
-float_gcd(x,y; atol=1e-9) = abs(y) < atol ? x : float_gcd(y, x % y; atol)
+float_gcd(x, y; atol=1e-9) = abs(y) < atol ? x : float_gcd(y, x % y; atol)
 float_gcd(x, y, z...; kws...) = float_gcd(x, float_gcd(y, z...);  kws...)
 
+function _cast_to_smallest_proportional_int_vector(n::AbstractVector{<:Real}; atol=1e-9)
+	d = float_gcd(n[1], n[2], n[3]; atol)
+	_n = SVector{3, Float64}(n) ./ d
+	n_int = round.(Int, _n)
+	if norm(_n - n_int) > atol
+		error(LazyString(
+				"failed to convert `n` to an integer vector with precision ", atol, "; ",
+				" got n=", _n, " vs. n_int=", n_int, 
+				"; if possible, try to give `n` as integer Miller indices"))
+	end
+	return n_int
+end
+function _cast_to_smallest_proportional_int_vector(n::AbstractVector{<:Integer}; kws...)
+	d = gcd(n)
+	if isone(d)
+		return SVector{3, Int}(n)
+	else
+		return SVector{3, Int}(div.(n, d))
+	end
+end
 ##
 # Example for visualizing the surface Brillouin zone, and a surface BZ path, together
 # with the bulk BZ and the bulk path

@@ -470,8 +470,9 @@ function _spinful_canonical_matrices(ir::Union{AbstractPGIrrep, AbstractSiteIrre
         # form; bring `Γ` to `J` in a basis of Kramers pairs, leaving the matrices complex
         Γ = mapto_canonical_unitary(find_intertwiner(conj.(Xs), Xs; transpose_symmetry=-1))
         Γ ≈ -transpose(Γ) || error("obtained intertwiner is not antisymmetric")
-        V = _kramers_basis(Γ)
-        return map(X -> V'*X*V, Xs)
+        return let V = _kramers_basis(Γ) # `let` to avoid closure box
+            map(X -> V'*X*V, Xs)
+        end
     end
 
     D₀ = [X[1:n, 1:n] for X in Xs] # the irrep that `realify` doubled or glued to a partner

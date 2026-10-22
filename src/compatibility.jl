@@ -255,9 +255,11 @@ function remap_to_kstar(
         # return input directly but copy all contents, so we don't alias the input (this
         # ensures we *always* return non-aliased input/output, not only for `kv ≠ kv′`)
         lg = group(lgirs)
-        lg′ = typeof(lg)(num(lgirs), kv′, klabel(lgirs), copy.(operations(lg)))
-        lgirs′ = map(lgirs) do lgir
-            IR(lgir.cdml, lg′, copy.(lgir.matrices), copy(lgir.translations), lgir.reality, lgir.iscorep)
+        lgirs′ = let lg′ = typeof(lg)(num(lgirs), kv′, klabel(lgirs), copy.(operations(lg)))
+            # `let` to avoid closure boxing due to using `lg′` variable name below also
+            map(lgirs) do lgir
+                IR(lgir.cdml, lg′, copy.(lgir.matrices), copy(lgir.translations), lgir.reality, lgir.iscorep)
+            end
         end
         return Collection(lgirs′)
     end
