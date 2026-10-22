@@ -29,6 +29,7 @@ using Crystalline, Test
 
     # group checks
     include("littlegroup_orders.jl")
+    include("littlegroups_trim.jl")
     include("pointgroup.jl")
 
     # loading irreps from .jld files vs parsing of ISOTROPY

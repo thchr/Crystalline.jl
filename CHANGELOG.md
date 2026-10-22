@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.4
+
+- **New k-points in three plane groups.** The 2D little groups and irreps now include every
+  time-reversal invariant momentum (TRIM), also those whose little group is trivial. With
+  time reversal these points are still special: spinful bands are doubly degenerate there.
+  The new points, labelled as in Bilbao's tables, are:
+  - p1 (1): Y = (0,½), B = (½,0), and A = (½,½), as in p2 (2)
+  - c1m1 (5): S = (½,½), as in c2mm (9)
+  - p3 (13): M = (½,0), as in p6 (16)
+
+  The irreps at the previously listed k-points are unchanged.
+
 ## v0.7.3
 
 - **The labels of some single-valued irreps in 2D and 1D have changed.** The irreps of plane
