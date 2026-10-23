@@ -187,7 +187,7 @@ const SG_IUCs = (
 Computes the correponding Seitz notation for a symmetry operation in triplet/xyzt form.
 
 Implementation based on ITA5 Table 11.2.1.1, with 3D point group parts inferred from
-the trace and determinant of the matrix ``\mathb{W}`` in the triplet
+the trace and determinant of the matrix ``\mathbf{W}`` in the triplet
 ``\{\mathbf{W}|\mathbf{w}\}``.
 
 | detW/trW | -3 | -2 | -1 | 0  | 1 | 2 | 3 |

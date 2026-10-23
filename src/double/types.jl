@@ -7,7 +7,7 @@ An element of SU(2), stored by the two complex parameters `a` and `b` of
 ``U = \\begin{pmatrix} a & b \\\\ -b^* & a^* \\end{pmatrix}``
 
 with ``|a|^2 + |b|^2 = 1``. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
-``U = \\exp[-i(φ/2)\\,𝐧⋅𝛔] = \\cos(φ/2)𝟙 - i\\sin(φ/2)\\,(𝐧⋅𝛔)``, i.e.
+``U = \\exp[-i(φ/2)\\,\\mathbf{n}⋅\\boldsymbol{σ}] = \\cos(φ/2)\\mathbb{1} - i\\sin(φ/2)\\,(\\mathbf{n}⋅\\boldsymbol{σ})``, i.e.
 ``a = \\cos(φ/2) - i n_z\\sin(φ/2)`` and ``b = -(n_y + i n_x)\\sin(φ/2)`` (see
 [`SU2`](@ref)).
 

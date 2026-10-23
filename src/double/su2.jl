@@ -16,9 +16,9 @@ and trigonal settings than elsewhere.
 The assignment follows Altmann & Herzig, *Point-Group Theory Tables* (1994), as used by the
 Bilbao Crystallographic Server. For a rotation by `φ` about the Cartesian unit axis `𝐧`,
 
-``U = \\exp[-i(φ/2)\\,𝐧⋅𝛔] = \\cos(φ/2)𝟙 - i\\sin(φ/2)\\,(𝐧⋅𝛔)``
+``U = \\exp[-i(φ/2)\\,\\mathbf{n}⋅\\boldsymbol{σ}] = \\cos(φ/2)\\mathbb{1} - i\\sin(φ/2)\\,(\\mathbf{n}⋅\\boldsymbol{σ})``
 
-with ``𝛔 = (σ_x, σ_y, σ_z)`` the Pauli matrices.
+with ``\\boldsymbol{σ} = (σ_x, σ_y, σ_z)`` the Pauli matrices.
 
 An improper operation acts through its proper part alone, spin being axial; inversion
 therefore maps to the identity.
