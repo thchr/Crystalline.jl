@@ -11,6 +11,11 @@
   - p3 (13): M = (½,0), as in p6 (16)
 
   The irreps at the previously listed k-points are unchanged.
+- **Adding spin without spin–orbit coupling.** The new `spinify` answers: if spinless
+  states were in fact doubly degenerate but uncoupled spin-½ states, how would they
+  transform under the double group? It takes a spinless irrep (point, site, or little
+  group), symmetry vector, or (composite) band representation, and returns its spinful
+  counterpart in terms of double-valued irreps or spinful band representations.
 
 ## v0.7.3
 

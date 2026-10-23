@@ -83,6 +83,7 @@ using Crystalline, Test
     include("double/irreps_physical_reality.jl")
     include("double/symmetryvectors.jl")
     include("double/show.jl")
+    include("double/spinify.jl")
 
     # group relations (sub- & supergroups)
     include("grouprelations.jl")

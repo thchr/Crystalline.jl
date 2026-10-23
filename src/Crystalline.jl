@@ -108,10 +108,12 @@ include("double/groups.jl")
 include("double/irreps.jl")
 include("double/notation.jl")
 include("double/show.jl")
+include("double/spinify.jl")
 export SU2, DSymOperation, isbarred
 export DSpaceGroup, DPointGroup, DLittleGroup, DSiteGroup
 export doublegroup
 export DLGIrrep, DPGIrrep, DSiteIrrep
+export spinify
 
 include("tables/rotation_translation.jl")
 include("tables/groups/pointgroup.jl")
