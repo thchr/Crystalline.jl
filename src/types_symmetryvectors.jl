@@ -51,11 +51,13 @@ and `DLGIrrep{D}` for spinful symmetry vectors.
     occupation   :: Int
 end
 function SymmetryVector(
-    lgirsv::Vector{Collection{IR}},
+    lgirsv::AbstractVector{Collection{IR}},
     multsv::AbstractVector{<:AbstractVector{<:Integer}},
     occupation::Int
 ) where {D, IR<:AbstractLGIrrep{D}}
-    return SymmetryVector{D, IR}(lgirsv, JaggedVector{Int}(multsv), occupation)
+    # `convert` is a no-op if `lgirsv` is already a `Vector{Collection{IR}}`
+    lgirsv′ = convert(Vector{Collection{IR}}, lgirsv)
+    return SymmetryVector{D, IR}(lgirsv′, JaggedVector{Int}(multsv), occupation)
 end
 
 # ::: AbstractSymmetryVector interface :::

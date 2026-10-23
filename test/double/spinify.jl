@@ -49,6 +49,16 @@ using Crystalline: MAX_SGNUM
         @test spinify(siteir, siteirreps(sitegsˢ[i1a])) isa Vector{DSiteIrrep{3}}
     end
 
+    @testset "Free parameters on k-lines are passed on (αβγ)" begin
+        # P4₁ (76) on Λ: the screw's translation phase depends on the free parameter, so the
+        # spinless characters must be evaluated at the same `αβγ` as the spinful irreps
+        lgirs, lgirsˢ = lgirreps(76, Val(3))["Λ"], lgirreps(76, Val(3); spinful=Val(true))["Λ"]
+        αβγ = [0.31, 0.17, 0.23]
+        for lgir in lgirs
+            @test sum(irdim, spinify(lgir, lgirsˢ; αβγ)) == 2irdim(lgir)
+        end
+    end
+
     @testset "Inconsistent inputs are rejected" begin
         # time reversal applied to `irsˢ` but not to `ir`: a complex irrep's spinification
         # cannot be decomposed into co-reps
@@ -58,6 +68,22 @@ using Crystalline: MAX_SGNUM
         brs, brsˢ = bandreps(230, Val(3)), bandreps(230, Val(3); spinful=Val(true))
         i = findfirst(!iszero, spinify(brs[1], brsˢ).coefs)
         @test_throws ErrorException spinify(brs[1], Collection(deleteat!(collect(brsˢ), i)))
+        # mismatched numbers of k-points
+        @test_throws ErrorException spinify(SymmetryVector(brs[1]), irreps(brsˢ)[1:end-1])
+        # different space groups: P2₁ (4) and Pc (7) both have just a trivial 2a site group
+        brs⁴, brsˢ⁷ = bandreps(4, Val(3)), bandreps(7, Val(3); spinful=Val(true))
+        @test_throws ErrorException spinify(brs⁴[1], brsˢ⁷)
+        @test_throws ErrorException spinify(CompositeBandRep([1], brs⁴), brsˢ⁷)
+        # different time-reversal treatment
+        brs¹ = bandreps(1, Val(3); timereversal=false)
+        brsˢ¹ = bandreps(1, Val(3); spinful=Val(true), timereversal=true)
+        @test_throws ErrorException spinify(brs¹[1], brsˢ¹)
+    end
+
+    @testset "Non-`Vector` irrep collections" begin
+        brs, brsˢ = bandreps(230, Val(3)), bandreps(230, Val(3); spinful=Val(true))
+        n = SymmetryVector(brs[1])
+        @test spinify(n, view(irreps(brsˢ), :)) == spinify(n, brsˢ)
     end
 
     @testset "Site irreps agree with band representations" begin

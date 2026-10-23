@@ -146,7 +146,7 @@ bandreps(183, Val(3); spinful=Val(true))
 ```
 In the presence of time-reversal symmetry, every such band representation has even filling since Kramers' theorem pairs the states of a spinful system.
 
-## Adding spin without spin–orbit coupling
+## Adding spin to a spinless setting
 Spinful models are often built from spinless ones, e.g., by first ignoring spin and only later adding spin–orbit coupling.
 Without spin–orbit coupling, every spinless band simply becomes a spin-degenerate pair; yet, as spinful states, these bands are also classified by the double group's double-valued irreps.
 [`spinify`](@ref) provides this classification, i.e., answers the question "if these spinless states were in fact doubly degenerate but uncoupled spin-½ states, how would they transform under the double group?".

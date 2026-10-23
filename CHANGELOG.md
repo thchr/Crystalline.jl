@@ -16,6 +16,8 @@
   transform under the double group? It takes a spinless irrep (point, site, or little
   group), symmetry vector, or (composite) band representation, and returns its spinful
   counterpart in terms of double-valued irreps or spinful band representations.
+- `SymmetryVector(lgirsv, multsv, occupation)` now accepts any `AbstractVector` of irrep
+  collections as `lgirsv` (previously only a `Vector`).
 
 ## v0.7.3
 

@@ -126,7 +126,8 @@ function _spinify(
     poslab, poslabˢ = positionlabel(g), positionlabel(gˢ)
     poslab ≠ poslabˢ && error(lazy"the input `ir` and `irsˢ` refer to different positions: $poslab vs. $poslabˢ")
 
-    χs = characters(ir) # spinless characters of `ir` across operations of `g`
+    αβγ = get(representation_kws, :αβγ, nothing) # free parameters, as in `find_representation`
+    χs = characters(ir, αβγ) # spinless characters of `ir` across operations of `g`
     χsˢ = _spinified_characters(χs, g, gˢ) # spinified characters across operations of `gˢ`
 
     ms = find_representation(χsˢ, irsˢ; representation_kws...)
@@ -182,9 +183,12 @@ end
 
 function spinify(
     n::AbstractSymmetryVector{D, LGIrrep{D}},
-    lgirsvˢ::AbstractVector{Collection{DLGIrrep{D}}},
+    lgirsvˢ::AbstractVector{Collection{DLGIrrep{D}}}
 ) where D
     lgirsv = irreps(n)
+    if length(lgirsv) ≠ length(lgirsvˢ)
+        error(lazy"the input `n` and `lgirsvˢ` have different numbers of k-points: $(length(lgirsv)) vs. $(length(lgirsvˢ))")
+    end
     multsv = multiplicities(n)
     multsvˢ = map(zip(multsv, lgirsv, lgirsvˢ)) do (mults, lgirs, lgirsˢ)
         multsˢ = zeros(Int, length(lgirsˢ))
@@ -213,6 +217,7 @@ function spinify(
     br::BandRep{D, LGIrrep{D}, SiteIrrep{D}},
     brsˢ::Collection{BandRep{D, DLGIrrep{D}, DSiteIrrep{D}}}
 ) where D
+    _check_same_setting(num(br), br.timereversal, brsˢ)
     coefsˢ = zeros(Rational{Int}, length(brsˢ))
     _spinify!(coefsˢ, br, brsˢ)
     return CompositeBandRep(coefsˢ, brsˢ)
@@ -222,6 +227,7 @@ function spinify(
     cbr::CompositeBandRep{D, LGIrrep{D}, SiteIrrep{D}},
     brsˢ::Collection{BandRep{D, DLGIrrep{D}, DSiteIrrep{D}}}
 ) where D
+    _check_same_setting(num(cbr), first(cbr.brs).timereversal, brsˢ)
     # spinifying is linear, so we can spinify each band representation separately
     coefsˢ = zeros(Rational{Int}, length(brsˢ))
     for (c, br) in zip(cbr.coefs, cbr.brs)
@@ -229,6 +235,15 @@ function spinify(
         _spinify!(coefsˢ, br, brsˢ, c)
     end
     return CompositeBandRep(coefsˢ, brsˢ)
+end
+
+# check that the spinless band representation(s), with space group number `sgnum` and
+# time-reversal treatment `timereversal`, are in the same setting as the spinful `brsˢ`
+function _check_same_setting(sgnum::Integer, timereversal::Bool, brsˢ::Collection{<:BandRep})
+    sgnumˢ, timereversalˢ = num(brsˢ), first(brsˢ).timereversal
+    sgnum ≠ sgnumˢ && error(lazy"the spinless & spinful band representations refer to different space groups: $sgnum vs. $sgnumˢ")
+    timereversal ≠ timereversalˢ && error(lazy"the spinless & spinful band representations treat time reversal differently: timereversal = $timereversal vs. $timereversalˢ")
+    return nothing
 end
 
 # add `c` times the spinification of `br`, in terms of `brsˢ`, to `coefsˢ`
