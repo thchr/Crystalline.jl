@@ -146,6 +146,27 @@ bandreps(183, Val(3); spinful=Val(true))
 ```
 In the presence of time-reversal symmetry, every such band representation has even filling since Kramers' theorem pairs the states of a spinful system.
 
+## Adding spin to a spinless setting
+Spinful models are often built from spinless ones, e.g., by first ignoring spin and only later adding spin–orbit coupling.
+Without spin–orbit coupling, every spinless band simply becomes a spin-degenerate pair; yet, as spinful states, these bands are also classified by the double group's double-valued irreps.
+[`spinify`](@ref) provides this classification, i.e., answers the question "if these spinless states were in fact doubly degenerate but uncoupled spin-½ states, how would they transform under the double group?".
+The answer tells which spinful band representations a set of orbitals spans once spin is included, and which degeneracies spin–orbit coupling may lift.
+E.g., for the $p_z$ orbitals of graphene in plane group p6mm:
+```@example doublegroups
+brs  = bandreps(17, Val(2))
+brsˢ = bandreps(17, Val(2); spinful=Val(true))
+br   = brs[5] # (2b|A₁): pz orbitals on the honeycomb sites
+```
+```@example doublegroups
+spinify(SymmetryVector(br), brsˢ)
+```
+The Dirac point's two-dimensional irrep K₃ — four states, counting spin — decomposes into K₄ˢ + K₅ˢ + K₆ˢ, of dimensions 1, 1, and 2: spin–orbit coupling may split it, gapping the Dirac point (via e.g., a Kane–Mele or Rashba term).
+
+Band representations can also be spinified directly, giving a [`CompositeBandRep`](@ref) of spinful band representations — here, a single one:
+```@example doublegroups
+spinify(br, brsˢ)
+```
+
 ## Data sources
 The provided double-valued little group and point group irreps are obtained from the Bilbao Crystallographic Server's [Representations DSG](https://cryst.ehu.es/cgi-bin/cryst/programs/representations.pl?tipogrupo=dbg) and Representations DPG programs; ISOTROPY, the source of Crystalline's spinless little group irreps, provides no double-valued data.
 If used in research, please cite the original reference[^Elcoro] for [Representations DSG](https://cryst.ehu.es/cgi-bin/cryst/programs/representations.pl?tipogrupo=dbg).

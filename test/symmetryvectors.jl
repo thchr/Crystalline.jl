@@ -22,6 +22,20 @@ using Crystalline
     n = SymmetryVector(brs[1])
     @test n*0 == zero(n)
     @test string(zero(n)) == "[0Γᵢ, 0Rᵢ, 0Mᵢ, 0Xᵢ] (0 bands)"
+
+    # construction from any `AbstractVector` of irrep collections: a `Vector` is used as-is,
+    # other `AbstractVector`s are converted to a `Vector`
+    lgirsv, multsv = irreps(n), multiplicities(n)
+    @test irreps(SymmetryVector(lgirsv, multsv, occupation(n))) === lgirsv
+    n′ = SymmetryVector(view(lgirsv, :), multsv, occupation(n))
+    @test irreps(n′) isa Vector{Collection{LGIrrep{3}}}
+    @test n′ == n
+    # ... also for a partial view, e.g., over a subset of k-points
+    multsv₁₂ = view(multsv, 1:2)
+    n″ = SymmetryVector(view(lgirsv, 1:2), multsv₁₂, occupation(n))
+    @test irreps(n″) isa Vector{Collection{LGIrrep{3}}}
+    @test n″ == SymmetryVector(lgirsv[1:2], multsv₁₂, occupation(n))
+    @test klabels(n″) == klabels(n)[1:2]
 end # @testset "(Abstract)SymmetryVectors"
 
 @testset "CompositeBandRep & @composite" begin
